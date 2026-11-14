@@ -1,0 +1,115 @@
+/* ==========================================================================
+   PREMIUM DESIGN SYSTEM — THEME STYLES
+   Exact reproduction of dark minimalist SaaS reference layout
+   Scoped exclusively under html[data-design="premium"]
+   ========================================================================== */
+
+html[data-design="premium"] body {
+  background-color: var(--premium-bg) !important;
+  color: var(--premium-text) !important;
+  font-family: var(--app-font-family) !important;
+  letter-spacing: -0.012em;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 270px Pure Dark Vertical Sidebar */
+html[data-design="premium"] .sidebar-container {
+  background-color: var(--premium-sidebar) !important;
+  border-right: 1px solid var(--premium-border) !important;
+  width: var(--premium-sidebar-width) !important;
+}
+
+/* Compact Reference Header */
+html[data-design="premium"] .topbar-container {
+  background-color: var(--premium-sidebar) !important;
+  border-bottom: 1px solid var(--premium-border) !important;
+  height: 60px !important;
+}
+
+/* Floating Pill Controls on Top Header */
+html[data-design="premium"] .header-pill-badge {
+  background: rgba(245, 158, 11, 0.12) !important;
+  border: 1px solid rgba(245, 158, 11, 0.3) !important;
+  color: #fbbf24 !important;
+  border-radius: 9999px !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  padding: 4px 10px !important;
+}
+
+/* Sidebar Search Bar with Ctrl+K */
+html[data-design="premium"] .premium-search-box {
+  background: #141414 !important;
+  border: 1px solid var(--premium-border) !important;
+  border-radius: var(--premium-radius-sm) !important;
+  color: var(--premium-text) !important;
+  font-size: 0.82rem !important;
+  padding: 6px 10px !important;
+  transition: border-color 150ms ease !important;
+}
+
+html[data-design="premium"] .premium-search-box:focus {
+  border-color: #3b82f6 !important;
+  outline: none !important;
+}
+
+/* Navigation Groups & Links */
+html[data-design="premium"] .nav-group-title {
+  color: var(--premium-text-muted) !important;
+  font-size: 0.68rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+  padding: 10px 14px 4px 14px !important;
+}
+
+html[data-design="premium"] .nav-link-item {
+  color: var(--premium-text-secondary) !important;
+  border-radius: var(--premium-radius-sm) !important;
+  margin: 1px 8px !important;
+  padding: 7px 10px !important;
+  font-size: 0.86rem !important;
+  font-weight: 500 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  transition: all 140ms ease !important;
+  text-decoration: none !important;
+}
+
+html[data-design="premium"] .nav-link-item:hover {
+  background-color: var(--premium-surface-hover) !important;
+  color: var(--premium-text) !important;
+}
+
+/* Reference Screenshot Active Navigation Item */
+html[data-design="premium"] .nav-link-item.active {
+  background-color: #1e1e1e !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  border-left: 3px solid #3b82f6 !important;
+}
+
+/* Reference Sub-tab Pill Navigation */
+html[data-design="premium"] .premium-subtab-pill {
+  border-radius: 9999px !important;
+  padding: 5px 14px !important;
+  font-size: 0.8rem !important;
+  font-weight: 500 !important;
+  border: 1px solid var(--premium-border) !important;
+  background: transparent !important;
+  color: var(--premium-text-secondary) !important;
+  transition: all 140ms ease !important;
+}
+
+html[data-design="premium"] .premium-subtab-pill:hover {
+  background: var(--premium-surface-hover) !important;
+  color: var(--premium-text) !important;
+}
+
+html[data-design="premium"] .premium-subtab-pill.active {
+  background: #3b82f6 !important;
+  border-color: #3b82f6 !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+}

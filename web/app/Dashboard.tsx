@@ -85,6 +85,7 @@ import { AdminsTab } from "./components/tabs/AdminsTab";
 import { TeamTab } from "./components/tabs/TeamTab";
 import { LogsTab } from "./components/tabs/LogsTab";
 import { ProfileTab } from "./components/tabs/ProfileTab";
+import { DesignProvider } from "./components/design/DesignContext";
 
 type Overview = {
   conversations: number;
@@ -825,6 +826,11 @@ export default function Dashboard({
       const h = window.location.hash.replace("#", "") as (typeof validTabs)[number];
       if (h && validTabs.includes(h)) {
         setTab(h);
+        if (h === "platform") {
+          setZone("platform");
+        } else if (h !== "profile") {
+          setZone("tenant");
+        }
       }
     };
 
@@ -1054,6 +1060,12 @@ export default function Dashboard({
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || "Kirish amalga oshmadi");
       setAuthenticated(true);
+      if (data.user) {
+        setCurrentUser(data.user);
+        if (data.user.isPlatformOwner && !initialZone) {
+          setZone("platform");
+        }
+      }
       if (loginTelegramId) {
         const num = Number(loginTelegramId);
         if (num && !isNaN(num)) {
@@ -2259,7 +2271,11 @@ export default function Dashboard({
   );
 
   return (
-    <div className="linear-app">
+    <DesignProvider
+      subscriptionPlan={subscriptionData?.plan?.code || "ultra"}
+      isPlatformOwner={isPlatformOwner}
+    >
+      <div className="linear-app">
       <AppShell
         activeTab={tab}
         onSelectTab={(newTab) => {
@@ -2589,6 +2605,7 @@ export default function Dashboard({
                 onSelectFont={handleSelectFont}
                 onLogout={logout}
                 permissionLabels={PERMISSION_LABELS}
+                onNavigateToBilling={() => setTab("billing")}
               />
             )}
 
@@ -2717,6 +2734,7 @@ export default function Dashboard({
         message={upgradeModalConfig.message}
         onUpgradeToPlan={(planCode) => handleUpgradePlan(planCode, "monthly")}
       />
-    </div>
+      </div>
+    </DesignProvider>
   );
 }

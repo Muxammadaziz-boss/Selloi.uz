@@ -126,6 +126,7 @@ export async function POST(request: NextRequest) {
       email: sessionPayload.email,
       role: sessionPayload.role,
       organizationId: sessionPayload.organizationId,
+      isPlatformOwner: sessionPayload.role === "owner",
     },
   });
 

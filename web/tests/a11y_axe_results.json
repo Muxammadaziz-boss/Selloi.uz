@@ -1,8 +1,8 @@
 {
   "metadata": {
     "suite": "a11y_axe_suite",
-    "timestamp": "2026-11-14T11:28:14.191Z",
-    "commitSha": "78ecde8254fe18266e9c1360b70cffe4d3be6b97",
+    "timestamp": "2026-11-14T12:01:53.560Z",
+    "commitSha": "aa42d8d282b9fc57b5a06ba2263fc57bb482c0f2",
     "nodeVersion": "v24.20.0",
     "platform": "win32",
     "arch": "x64",
@@ -20,10 +20,10 @@
     ]
   },
   "themeAudits": {
-    "dark": {
+    "premium_dark": {
       "overview": {
         "name": "Overview Dashboard",
-        "passesCount": 21,
+        "passesCount": 23,
         "violationsCount": 0,
         "violations": [],
         "incompleteCount": 0,
@@ -31,14 +31,6 @@
       },
       "products": {
         "name": "Products Catalog",
-        "passesCount": 23,
-        "violationsCount": 0,
-        "violations": [],
-        "incompleteCount": 0,
-        "incompleteRules": []
-      },
-      "orders": {
-        "name": "Orders Management",
         "passesCount": 23,
         "violationsCount": 0,
         "violations": [],
@@ -58,11 +50,13 @@
         "passesCount": 21,
         "violationsCount": 0,
         "violations": [],
-        "incompleteCount": 0,
-        "incompleteRules": []
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
       }
     },
-    "light": {
+    "premium_light": {
       "overview": {
         "name": "Overview Dashboard",
         "passesCount": 23,
@@ -73,15 +67,7 @@
       },
       "products": {
         "name": "Products Catalog",
-        "passesCount": 24,
-        "violationsCount": 0,
-        "violations": [],
-        "incompleteCount": 0,
-        "incompleteRules": []
-      },
-      "orders": {
-        "name": "Orders Management",
-        "passesCount": 24,
+        "passesCount": 23,
         "violationsCount": 0,
         "violations": [],
         "incompleteCount": 0,
@@ -100,21 +86,392 @@
         "passesCount": 21,
         "violationsCount": 0,
         "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      }
+    },
+    "ios_dark": {
+      "overview": {
+        "name": "Overview Dashboard",
+        "passesCount": 23,
+        "violationsCount": 0,
+        "violations": [],
         "incompleteCount": 0,
         "incompleteRules": []
+      },
+      "products": {
+        "name": "Products Catalog",
+        "passesCount": 23,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 0,
+        "incompleteRules": []
+      },
+      "platform": {
+        "name": "Platform Owner Center",
+        "passesCount": 23,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 0,
+        "incompleteRules": []
+      },
+      "profile": {
+        "name": "Profile & Appearance",
+        "passesCount": 21,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      }
+    },
+    "ios_light": {
+      "overview": {
+        "name": "Overview Dashboard",
+        "passesCount": 23,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 0,
+        "incompleteRules": []
+      },
+      "products": {
+        "name": "Products Catalog",
+        "passesCount": 23,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 0,
+        "incompleteRules": []
+      },
+      "platform": {
+        "name": "Platform Owner Center",
+        "passesCount": 23,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 0,
+        "incompleteRules": []
+      },
+      "profile": {
+        "name": "Profile & Appearance",
+        "passesCount": 21,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      }
+    },
+    "classic_dark": {
+      "overview": {
+        "name": "Overview Dashboard",
+        "passesCount": 23,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 0,
+        "incompleteRules": []
+      },
+      "products": {
+        "name": "Products Catalog",
+        "passesCount": 23,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 0,
+        "incompleteRules": []
+      },
+      "platform": {
+        "name": "Platform Owner Center",
+        "passesCount": 23,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 0,
+        "incompleteRules": []
+      },
+      "profile": {
+        "name": "Profile & Appearance",
+        "passesCount": 21,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      }
+    },
+    "classic_light": {
+      "overview": {
+        "name": "Overview Dashboard",
+        "passesCount": 23,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "products": {
+        "name": "Products Catalog",
+        "passesCount": 23,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "platform": {
+        "name": "Platform Owner Center",
+        "passesCount": 23,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "profile": {
+        "name": "Profile & Appearance",
+        "passesCount": 21,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
       }
     }
   },
   "summary": {
-    "totalScans": 10,
-    "cleanPasses": 10,
+    "totalScans": 24,
+    "cleanPasses": 24,
     "totalViolations": 0,
     "criticalViolations": 0,
     "seriousViolations": 0,
     "moderateViolations": 0,
     "minorViolations": 0,
-    "totalIncompleteItems": 0,
+    "totalIncompleteItems": 9,
     "overall_status": "AUTOMATED_PASS_MANUAL_REVIEW_PENDING"
   },
-  "incompleteReviewRequired": []
+  "incompleteReviewRequired": [
+    {
+      "design": "premium",
+      "theme": "dark",
+      "tab": "profile",
+      "tabName": "Profile & Appearance",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 3,
+      "sampleNodes": [
+        {
+          "target": ".p-2.rounded-3.overflow-hidden > .pb-1.border-bottom.justify-content-between > span:nth-child(1)",
+          "htmlSnippet": "<span style=\"font-size: 9px; color: rgb(255, 255, 255); font-weight: 600;\"> iOS Glass</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        },
+        {
+          "target": ".py-0\\.5",
+          "htmlSnippet": "<div class=\"rounded-pill px-2 py-0.5\" style=\"background-color: rgba(255, 255, 255, 0.18); font-size: 8px; color: rgb(255",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        },
+        {
+          "target": ".p-1.text-center.rounded-2 > span",
+          "htmlSnippet": "<span style=\"font-size: 10px; color: rgb(147, 197, 253); font-weight: 700;\">SF Pro iOS</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        }
+      ]
+    },
+    {
+      "design": "premium",
+      "theme": "light",
+      "tab": "profile",
+      "tabName": "Profile & Appearance",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 3,
+      "sampleNodes": [
+        {
+          "target": ".p-2.rounded-3.overflow-hidden > .pb-1.border-bottom.justify-content-between > span:nth-child(1)",
+          "htmlSnippet": "<span style=\"font-size: 9px; color: rgb(255, 255, 255); font-weight: 600;\"> iOS Glass</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        },
+        {
+          "target": ".py-0\\.5",
+          "htmlSnippet": "<div class=\"rounded-pill px-2 py-0.5\" style=\"background-color: rgba(255, 255, 255, 0.18); font-size: 8px; color: rgb(255",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        },
+        {
+          "target": ".p-1.text-center.rounded-2 > span",
+          "htmlSnippet": "<span style=\"font-size: 10px; color: rgb(147, 197, 253); font-weight: 700;\">SF Pro iOS</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        }
+      ]
+    },
+    {
+      "design": "ios",
+      "theme": "dark",
+      "tab": "profile",
+      "tabName": "Profile & Appearance",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 3,
+      "sampleNodes": [
+        {
+          "target": ".p-2.rounded-3.overflow-hidden > .pb-1.border-bottom.justify-content-between > span:nth-child(1)",
+          "htmlSnippet": "<span style=\"font-size: 9px; color: rgb(255, 255, 255); font-weight: 600;\"> iOS Glass</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        },
+        {
+          "target": ".py-0\\.5",
+          "htmlSnippet": "<div class=\"rounded-pill px-2 py-0.5\" style=\"background-color: rgba(255, 255, 255, 0.18); font-size: 8px; color: rgb(255",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        },
+        {
+          "target": ".p-1.text-center.rounded-2 > span",
+          "htmlSnippet": "<span style=\"font-size: 10px; color: rgb(147, 197, 253); font-weight: 700;\">SF Pro iOS</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        }
+      ]
+    },
+    {
+      "design": "ios",
+      "theme": "light",
+      "tab": "profile",
+      "tabName": "Profile & Appearance",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 3,
+      "sampleNodes": [
+        {
+          "target": ".p-2.rounded-3.overflow-hidden > .pb-1.border-bottom.justify-content-between > span:nth-child(1)",
+          "htmlSnippet": "<span style=\"font-size: 9px; color: rgb(255, 255, 255); font-weight: 600;\"> iOS Glass</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        },
+        {
+          "target": ".py-0\\.5",
+          "htmlSnippet": "<div class=\"rounded-pill px-2 py-0.5\" style=\"background-color: rgba(255, 255, 255, 0.18); font-size: 8px; color: rgb(255",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        },
+        {
+          "target": ".p-1.text-center.rounded-2 > span",
+          "htmlSnippet": "<span style=\"font-size: 10px; color: rgb(147, 197, 253); font-weight: 700;\">SF Pro iOS</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        }
+      ]
+    },
+    {
+      "design": "classic",
+      "theme": "dark",
+      "tab": "profile",
+      "tabName": "Profile & Appearance",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 3,
+      "sampleNodes": [
+        {
+          "target": ".p-2.rounded-3.overflow-hidden > .pb-1.border-bottom.justify-content-between > span:nth-child(1)",
+          "htmlSnippet": "<span style=\"font-size: 9px; color: rgb(255, 255, 255); font-weight: 600;\"> iOS Glass</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        },
+        {
+          "target": ".py-0\\.5",
+          "htmlSnippet": "<div class=\"rounded-pill px-2 py-0.5\" style=\"background-color: rgba(255, 255, 255, 0.18); font-size: 8px; color: rgb(255",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        },
+        {
+          "target": ".p-1.text-center.rounded-2 > span",
+          "htmlSnippet": "<span style=\"font-size: 10px; color: rgb(147, 197, 253); font-weight: 700;\">SF Pro iOS</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        }
+      ]
+    },
+    {
+      "design": "classic",
+      "theme": "light",
+      "tab": "overview",
+      "tabName": "Overview Dashboard",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 1,
+      "sampleNodes": [
+        {
+          "target": ".rounded-circle.overflow-hidden.justify-content-center",
+          "htmlSnippet": "<div class=\"rounded-circle overflow-hidden d-flex align-items-center justify-content-center\" style=\"width: 24px; height:",
+          "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+        }
+      ]
+    },
+    {
+      "design": "classic",
+      "theme": "light",
+      "tab": "products",
+      "tabName": "Products Catalog",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 1,
+      "sampleNodes": [
+        {
+          "target": ".rounded-circle.overflow-hidden.justify-content-center",
+          "htmlSnippet": "<div class=\"rounded-circle overflow-hidden d-flex align-items-center justify-content-center\" style=\"width: 24px; height:",
+          "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+        }
+      ]
+    },
+    {
+      "design": "classic",
+      "theme": "light",
+      "tab": "platform",
+      "tabName": "Platform Owner Center",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 1,
+      "sampleNodes": [
+        {
+          "target": ".rounded-circle.overflow-hidden.justify-content-center",
+          "htmlSnippet": "<div class=\"rounded-circle overflow-hidden d-flex align-items-center justify-content-center\" style=\"width: 24px; height:",
+          "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+        }
+      ]
+    },
+    {
+      "design": "classic",
+      "theme": "light",
+      "tab": "profile",
+      "tabName": "Profile & Appearance",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 4,
+      "sampleNodes": [
+        {
+          "target": ".rounded-circle.overflow-hidden.justify-content-center",
+          "htmlSnippet": "<div class=\"rounded-circle overflow-hidden d-flex align-items-center justify-content-center\" style=\"width: 24px; height:",
+          "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+        },
+        {
+          "target": ".p-2.rounded-3.overflow-hidden > .pb-1.border-bottom.justify-content-between > span:nth-child(1)",
+          "htmlSnippet": "<span style=\"font-size: 9px; color: rgb(255, 255, 255); font-weight: 600;\"> iOS Glass</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        },
+        {
+          "target": ".py-0\\.5",
+          "htmlSnippet": "<div class=\"rounded-pill px-2 py-0.5\" style=\"background-color: rgba(255, 255, 255, 0.18); font-size: 8px; color: rgb(255",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        },
+        {
+          "target": ".p-1.text-center.rounded-2 > span",
+          "htmlSnippet": "<span style=\"font-size: 10px; color: rgb(147, 197, 253); font-weight: 700;\">SF Pro iOS</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        }
+      ]
+    }
+  ]
 }

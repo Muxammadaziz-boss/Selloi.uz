@@ -182,10 +182,10 @@ export function Sidebar({
 
   return (
     <aside
-      className="d-flex flex-column border-end flex-shrink-0"
+      className="d-flex flex-column border-end flex-shrink-0 sidebar-container"
       style={{
-        width: collapsed ? "64px" : "240px",
-        minWidth: collapsed ? "64px" : "240px",
+        width: collapsed ? "64px" : "var(--sidebar-width, 240px)",
+        minWidth: collapsed ? "64px" : "var(--sidebar-width, 240px)",
         height: "100vh",
         position: "sticky",
         top: 0,
@@ -273,12 +273,13 @@ export function Sidebar({
             <button
               type="button"
               onClick={() => onSwitchZone("platform")}
-              className="flex-grow-1 py-1 px-2 rounded-1 border-0 small fw-medium transition-fast text-center"
+              className="flex-grow-1 py-1 px-2 rounded-1 border-0 small transition-fast text-center"
               style={{
                 fontSize: "0.72rem",
                 cursor: "pointer",
-                backgroundColor: zone === "platform" ? "var(--accent)" : "transparent",
-                color: zone === "platform" ? "#ffffff" : "var(--text-secondary)",
+                fontWeight: 700,
+                backgroundColor: zone === "platform" ? "#1e40af" : "transparent",
+                color: zone === "platform" ? "#ffffff" : "var(--text-primary)",
               }}
             >
               Platform Owner
@@ -286,12 +287,13 @@ export function Sidebar({
             <button
               type="button"
               onClick={() => onSwitchZone("store")}
-              className="flex-grow-1 py-1 px-2 rounded-1 border-0 small fw-medium transition-fast text-center"
+              className="flex-grow-1 py-1 px-2 rounded-1 border-0 small transition-fast text-center"
               style={{
                 fontSize: "0.72rem",
                 cursor: "pointer",
-                backgroundColor: zone === "store" ? "var(--accent)" : "transparent",
-                color: zone === "store" ? "#ffffff" : "var(--text-secondary)",
+                fontWeight: 700,
+                backgroundColor: zone === "store" ? "#1e40af" : "transparent",
+                color: zone === "store" ? "#ffffff" : "var(--text-primary)",
               }}
             >
               Do'kon
@@ -306,7 +308,7 @@ export function Sidebar({
           <div key={group.title} className={groupIdx > 0 ? "mt-3 pt-2" : ""}>
             {!collapsed ? (
               <div
-                className="px-2 mb-1.5 text-uppercase fw-semibold"
+                className="px-2 mb-1.5 text-uppercase fw-semibold nav-group-title"
                 style={{
                   fontSize: "0.68rem",
                   letterSpacing: "0.08em",
@@ -352,9 +354,9 @@ export function Sidebar({
                         onSelectTab(item.id);
                       }
                     }}
-                    className={`d-flex align-items-center gap-2.5 px-2.5 py-1.5 rounded text-start w-100 border-0 transition-all ${
-                      isActive ? "fw-medium" : "text-secondary"
-                    }`}
+                    className={`nav-link-item ${
+                      isActive ? "active fw-medium" : "text-secondary"
+                    } d-flex align-items-center gap-2.5 px-2.5 py-1.5 rounded text-start w-100 border-0 transition-all`}
                     style={{
                       backgroundColor: isActive ? "var(--bg-surface-hover)" : "transparent",
                       color: isActive ? "var(--text-primary)" : "var(--text-secondary)",
@@ -396,10 +398,10 @@ export function Sidebar({
                     )}
                     {!collapsed && item.count !== undefined && (
                       <span
-                        className="small"
+                        className="small fw-semibold"
                         style={{
                           fontSize: "0.7rem",
-                          color: "var(--text-tertiary)",
+                          color: "var(--text-secondary)",
                         }}
                       >
                         {item.count}
@@ -424,12 +426,13 @@ export function Sidebar({
         >
           <div className="d-flex align-items-center justify-content-between mb-1.5">
             <span
-              className="badge rounded-pill fw-medium"
+              className="badge rounded-pill fw-bold"
               style={{
                 fontSize: "0.65rem",
                 padding: "2px 6px",
-                backgroundColor: zone === "platform" ? "var(--accent)" : "rgba(255,255,255,0.08)",
-                color: zone === "platform" ? "#ffffff" : "var(--text-secondary)",
+                backgroundColor: zone === "platform" ? "#1e40af" : "var(--bg-surface-elevated)",
+                color: zone === "platform" ? "#ffffff" : "var(--text-primary)",
+                border: "1px solid var(--border-subtle)",
               }}
             >
               {zone === "platform" ? "Platform Rejimi" : "Do'kon Rejimi"}

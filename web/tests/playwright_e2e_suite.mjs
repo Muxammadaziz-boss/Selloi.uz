@@ -20,6 +20,7 @@ const testResults = {
   platform_tenant_navigation: {},
   profile_both_zones: {},
   theme_font_switching: {},
+  design_system_switching: {},
   modal_escape_focus: {},
   keyboard_navigation: {},
   console_errors: [],
@@ -229,6 +230,41 @@ async function runE2ETests() {
       await page.screenshot({ path: path.join(SCREENSHOT_DIR, "09_olline_font.png") });
     } else {
       recordTest("theme_font_switching", "switch_to_pogonia_font", false, "Pogonia card not visible");
+    }
+
+    // -------------------------------------------------------------------
+    // 6.1. Testing Design System Switching (Phase 4: Premium, iOS, Classic)
+    // -------------------------------------------------------------------
+    console.log("\n--- 6.1. Testing Independent Design Systems Switching ---");
+    const initialDesign = await page.getAttribute("html", "data-design");
+    recordTest("design_system_switching", "initial_design_mounted", Boolean(initialDesign), `html[data-design="${initialDesign}"]`);
+
+    // Switch to Apple iOS Design
+    const iosDesignCard = page.locator('.cursor-pointer:has-text("Apple iOS Uslubi")').first();
+    if (await iosDesignCard.isVisible()) {
+      await iosDesignCard.click();
+      await page.waitForTimeout(400);
+      const iosDesign = await page.getAttribute("html", "data-design");
+      recordTest("design_system_switching", "switch_to_ios_design", iosDesign === "ios", `html[data-design="${iosDesign}"]`);
+      await page.screenshot({ path: path.join(SCREENSHOT_DIR, "10_ios_design.png") });
+
+      // Switch to Classic Standart Design
+      const classicDesignCard = page.locator('.cursor-pointer:has-text("Classic Standart")').first();
+      await classicDesignCard.click();
+      await page.waitForTimeout(400);
+      const classicDesign = await page.getAttribute("html", "data-design");
+      recordTest("design_system_switching", "switch_to_classic_design", classicDesign === "classic", `html[data-design="${classicDesign}"]`);
+      await page.screenshot({ path: path.join(SCREENSHOT_DIR, "11_classic_design.png") });
+
+      // Switch to Premium Minimal Design (Platform Owner has ULTRA entitlement)
+      const premiumDesignCard = page.locator('.cursor-pointer:has-text("Premium Minimal")').first();
+      await premiumDesignCard.click();
+      await page.waitForTimeout(400);
+      const premiumDesign = await page.getAttribute("html", "data-design");
+      recordTest("design_system_switching", "switch_to_premium_design", premiumDesign === "premium", `html[data-design="${premiumDesign}"]`);
+      await page.screenshot({ path: path.join(SCREENSHOT_DIR, "12_premium_design.png") });
+    } else {
+      recordTest("design_system_switching", "switch_to_ios_design", false, "iOS design card not visible");
     }
 
     // -------------------------------------------------------------------

@@ -11,11 +11,11 @@ const __dirname = path.dirname(__filename);
 const TABS_TO_AUDIT = [
   { tab: "overview", name: "Overview Dashboard" },
   { tab: "products", name: "Products Catalog" },
-  { tab: "orders", name: "Orders Management" },
   { tab: "platform", name: "Platform Owner Center" },
   { tab: "profile", name: "Profile & Appearance" }
 ];
 
+const DESIGNS = ["premium", "ios", "classic"];
 const THEMES = ["dark", "light"];
 
 const auditReport = {
@@ -85,110 +85,122 @@ async function runAccessibilityAudit() {
       });
     }
 
-    for (const theme of THEMES) {
+    for (const design of DESIGNS) {
       console.log(`\n======================================================`);
-      console.log(`Auditing Theme: ${theme.toUpperCase()}`);
+      console.log(`Auditing Design System: ${design.toUpperCase()}`);
       console.log(`======================================================`);
 
-      // Set theme on html element and synchronized classes
-      await page.evaluate((t) => {
-        document.documentElement.setAttribute("data-bs-theme", t);
-        document.documentElement.setAttribute("data-theme", t);
-        if (t === "light") {
-          document.documentElement.classList.remove("theme-dark");
-          document.documentElement.classList.add("theme-light");
-        } else {
-          document.documentElement.classList.remove("theme-light");
-          document.documentElement.classList.add("theme-dark");
-        }
-        localStorage.setItem("ai_sales_theme", t);
-      }, theme);
-      await page.waitForTimeout(400);
+      await page.evaluate((d) => {
+        document.documentElement.setAttribute("data-design", d);
+        localStorage.setItem("ai_sales_design_system", d);
+      }, design);
+      await page.waitForTimeout(300);
 
-      auditReport.themeAudits[theme] = {};
+      for (const theme of THEMES) {
+        console.log(`\nTheme: ${theme.toUpperCase()} (Design: ${design})`);
 
-      for (const item of TABS_TO_AUDIT) {
-        console.log(`--> Scanning Tab: #${item.tab} (${item.name})...`);
-        await page.goto(`${BASE_URL}/#${item.tab}`, { waitUntil: "domcontentloaded" });
-        await page.waitForTimeout(600);
+        // Set theme on html element and synchronized classes
+        await page.evaluate((t) => {
+          document.documentElement.setAttribute("data-bs-theme", t);
+          document.documentElement.setAttribute("data-theme", t);
+          if (t === "light") {
+            document.documentElement.classList.remove("theme-dark");
+            document.documentElement.classList.add("theme-light");
+          } else {
+            document.documentElement.classList.remove("theme-light");
+            document.documentElement.classList.add("theme-dark");
+          }
+          localStorage.setItem("ai_sales_theme", t);
+        }, theme);
+        await page.waitForTimeout(400);
 
-        auditReport.summary.totalScans++;
+        const auditKey = `${design}_${theme}`;
+        auditReport.themeAudits[auditKey] = {};
 
-        // Run AxeBuilder
-        const builder = new AxeBuilder({ page })
-          .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]);
+        for (const item of TABS_TO_AUDIT) {
+          console.log(`--> Scanning Tab: #${item.tab} (${item.name})...`);
+          await page.goto(`${BASE_URL}/#${item.tab}`, { waitUntil: "domcontentloaded" });
+          await page.waitForTimeout(600);
 
-        const results = await builder.analyze();
+          auditReport.summary.totalScans++;
 
-        // 1. Process Automated Violations
-        const violations = results.violations.map(v => ({
-          id: v.id,
-          impact: v.impact,
-          description: v.description,
-          help: v.help,
-          helpUrl: v.helpUrl,
-          nodesCount: v.nodes.length,
-          targetNodes: v.nodes.slice(0, 3).map(n => n.target.join(" ")),
-        }));
+          // Run AxeBuilder
+          const builder = new AxeBuilder({ page })
+            .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]);
 
-        for (const v of violations) {
-          auditReport.summary.totalViolations++;
-          if (v.impact === "critical") auditReport.summary.criticalViolations++;
-          else if (v.impact === "serious") auditReport.summary.seriousViolations++;
-          else if (v.impact === "moderate") auditReport.summary.moderateViolations++;
-          else if (v.impact === "minor") auditReport.summary.minorViolations++;
-        }
+          const results = await builder.analyze();
 
-        // 2. Process Incomplete Items (Rules requiring manual / human inspection)
-        const incompleteList = results.incomplete.map(inc => ({
-          id: inc.id,
-          impact: inc.impact || "unspecified",
-          description: inc.description,
-          help: inc.help,
-          helpUrl: inc.helpUrl,
-          nodesCount: inc.nodes.length,
-          targetNodes: inc.nodes.slice(0, 5).map(n => ({
-            target: n.target.join(" "),
-            htmlSnippet: n.html ? n.html.slice(0, 120) : "",
-            failureSummary: n.failureSummary || "",
-          })),
-        }));
+          // 1. Process Automated Violations
+          const violations = results.violations.map(v => ({
+            id: v.id,
+            impact: v.impact,
+            description: v.description,
+            help: v.help,
+            helpUrl: v.helpUrl,
+            nodesCount: v.nodes.length,
+            targetNodes: v.nodes.slice(0, 3).map(n => n.target.join(" ")),
+          }));
 
-        auditReport.summary.totalIncompleteItems += incompleteList.length;
+          for (const v of violations) {
+            auditReport.summary.totalViolations++;
+            if (v.impact === "critical") auditReport.summary.criticalViolations++;
+            else if (v.impact === "serious") auditReport.summary.seriousViolations++;
+            else if (v.impact === "moderate") auditReport.summary.moderateViolations++;
+            else if (v.impact === "minor") auditReport.summary.minorViolations++;
+          }
 
-        if (incompleteList.length > 0) {
-          for (const inc of incompleteList) {
-            auditReport.incompleteReviewRequired.push({
-              theme,
-              tab: item.tab,
-              tabName: item.name,
-              ruleId: inc.id,
-              description: inc.description,
-              helpUrl: inc.helpUrl,
-              nodesCount: inc.nodesCount,
-              sampleNodes: inc.targetNodes,
+          // 2. Process Incomplete Items (Rules requiring manual / human inspection)
+          const incompleteList = results.incomplete.map(inc => ({
+            id: inc.id,
+            impact: inc.impact || "unspecified",
+            description: inc.description,
+            help: inc.help,
+            helpUrl: inc.helpUrl,
+            nodesCount: inc.nodes.length,
+            targetNodes: inc.nodes.slice(0, 5).map(n => ({
+              target: n.target.join(" "),
+              htmlSnippet: n.html ? n.html.slice(0, 120) : "",
+              failureSummary: n.failureSummary || "",
+            })),
+          }));
+
+          auditReport.summary.totalIncompleteItems += incompleteList.length;
+
+          if (incompleteList.length > 0) {
+            for (const inc of incompleteList) {
+              auditReport.incompleteReviewRequired.push({
+                design,
+                theme,
+                tab: item.tab,
+                tabName: item.name,
+                ruleId: inc.id,
+                description: inc.description,
+                helpUrl: inc.helpUrl,
+                nodesCount: inc.nodesCount,
+                sampleNodes: inc.targetNodes,
+              });
+            }
+          }
+
+          if (violations.length === 0) {
+            auditReport.summary.cleanPasses++;
+            console.log(`    [CLEAN AUTOMATED PASS] 0 violations detected on #${item.tab} (${incompleteList.length} rules flagged for manual review)`);
+          } else {
+            console.error(`    [AUTOMATED VIOLATION] ${violations.length} violation types on #${item.tab}:`);
+            violations.forEach(v => {
+              console.error(`      * [${v.impact?.toUpperCase()}] ${v.id}: ${v.help} (${v.nodesCount} elements)`);
             });
           }
-        }
 
-        if (violations.length === 0) {
-          auditReport.summary.cleanPasses++;
-          console.log(`    [CLEAN AUTOMATED PASS] 0 violations detected on #${item.tab} (${incompleteList.length} rules flagged for manual review)`);
-        } else {
-          console.error(`    [AUTOMATED VIOLATION] ${violations.length} violation types on #${item.tab}:`);
-          violations.forEach(v => {
-            console.error(`      * [${v.impact?.toUpperCase()}] ${v.id}: ${v.help} (${v.nodesCount} elements)`);
-          });
+          auditReport.themeAudits[auditKey][item.tab] = {
+            name: item.name,
+            passesCount: results.passes.length,
+            violationsCount: violations.length,
+            violations: violations,
+            incompleteCount: incompleteList.length,
+            incompleteRules: incompleteList.map(i => i.id),
+          };
         }
-
-        auditReport.themeAudits[theme][item.tab] = {
-          name: item.name,
-          passesCount: results.passes.length,
-          violationsCount: violations.length,
-          violations: violations,
-          incompleteCount: incompleteList.length,
-          incompleteRules: incompleteList.map(i => i.id),
-        };
       }
     }
 

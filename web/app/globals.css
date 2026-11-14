@@ -1,6 +1,22 @@
 @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@500;600;700;800;900&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Syne:wght@600;700;800&display=swap');
 @import "./styles/theme.css";
 
+/* ==========================================================================
+   INDEPENDENT DESIGN SYSTEMS (Phase 4)
+   - Classic: Standard enterprise SaaS design
+   - iOS: Apple Human Interface frosted glass & capsule aesthetics
+   - Premium: Dark minimalist SaaS reference layout with near-black tones
+   ========================================================================== */
+@import "./design-systems/classic/tokens.css";
+@import "./design-systems/classic/theme.css";
+@import "./design-systems/classic/components.css";
+@import "./design-systems/ios/tokens.css";
+@import "./design-systems/ios/theme.css";
+@import "./design-systems/ios/components.css";
+@import "./design-systems/premium/tokens.css";
+@import "./design-systems/premium/theme.css";
+@import "./design-systems/premium/components.css";
+
 /* Design System Semantic Text Overrides to guarantee WCAG 2.1 AA contrast */
 :root {
   --tblr-primary: #5e6ad2 !important;
@@ -29,6 +45,30 @@ html[data-theme="light"],
   --tblr-warning: #92400e !important;
   --tblr-danger: #991b1b !important;
   --tblr-info: #1e40af !important;
+}
+
+/* Accessible High-Contrast Badges for WCAG 2.1 AA */
+html[data-theme="light"] .badge,
+[data-bs-theme="light"] .badge {
+  color: #0f172a !important;
+}
+html[data-theme="light"] .badge.rounded-pill,
+[data-bs-theme="light"] .badge.rounded-pill {
+  color: #0f172a !important;
+  background-color: #e2e8f0 !important;
+  border: 1px solid #cbd5e1 !important;
+}
+html[data-theme="light"] .badge-accent,
+html[data-theme="light"] .linear-badge-accent {
+  color: #1e3a8a !important;
+  background-color: #dbeafe !important;
+  border-color: #93c5fd !important;
+}
+html[data-theme="dark"] .badge-accent,
+html[data-theme="dark"] .linear-badge-accent {
+  color: #93c5fd !important;
+  background-color: rgba(59, 130, 246, 0.22) !important;
+  border-color: rgba(59, 130, 246, 0.45) !important;
 }
 
 html body .text-primary,

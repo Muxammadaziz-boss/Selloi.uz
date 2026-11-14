@@ -74,7 +74,7 @@ export function Topbar({
 
   return (
     <header
-      className="d-flex align-items-center justify-content-between px-3 py-2 border-bottom flex-shrink-0"
+      className="d-flex align-items-center justify-content-between px-3 py-2 border-bottom flex-shrink-0 topbar-container"
       style={{
         height: "56px",
         backgroundColor: "var(--bg-surface)",

@@ -16,6 +16,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { PageHeader } from "../layout/PageHeader";
+import { DesignSelector } from "../design/DesignSelector";
 
 export const FONT_OPTIONS = [
   {
@@ -71,6 +72,7 @@ export interface ProfileTabProps {
   onSelectFont: (fontId: string) => void;
   onLogout: () => void;
   permissionLabels: Record<string, string>;
+  onNavigateToBilling?: () => void;
 }
 
 export function ProfileTab({
@@ -84,6 +86,7 @@ export function ProfileTab({
   onSelectFont,
   onLogout,
   permissionLabels,
+  onNavigateToBilling,
 }: ProfileTabProps) {
   const isOwner = currentAdmin?.role === "owner";
 
@@ -176,8 +179,27 @@ export function ProfileTab({
           </Card>
         </div>
 
-        {/* Right Column: Theme & Custom Fonts */}
+        {/* Right Column: Design Systems, Theme & Custom Fonts */}
         <div className="col-12 col-lg-7 d-flex flex-column gap-4">
+          {/* Visual Design Systems (Phase 4: Premium, iOS, Classic) */}
+          <Card>
+            <CardHeader
+              actions={
+                <Badge variant="accent">
+                  3 ta Mustaqil Tizim
+                </Badge>
+              }
+            >
+              <CardTitle>Vizual Dizayn Tizimi (Design Systems)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-secondary small mb-3">
+                Tarifingizga mos vizual tizimni tanlang. <strong>Premium Minimal</strong> (Ultra) chuqur qora minimalist SaaS interfeysi, <strong>Apple iOS</strong> (Pro) muzlatilgan shisha va <strong>Classic Standart</strong> korporativ boshqaruv paneli.
+              </p>
+              <DesignSelector onNavigateToBilling={onNavigateToBilling} />
+            </CardContent>
+          </Card>
+
           {/* Theme Selector */}
           <Card>
             <CardHeader>

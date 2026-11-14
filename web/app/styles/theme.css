@@ -103,12 +103,12 @@ body[data-bs-theme="light"],
   --text-tertiary: #5c6270;
   --text-inverse: #f4f5f6;
 
-  --accent: #5e6ad2;
-  --accent-hover: #4f5bc4;
-  --accent-active: #414cb2;
-  --accent-subtle: rgba(94, 106, 210, 0.08);
-  --accent-border: rgba(94, 106, 210, 0.28);
-  --accent-text: #4f5bc4;
+  --accent: #4338ca;
+  --accent-hover: #3730a3;
+  --accent-active: #312e81;
+  --accent-subtle: rgba(67, 56, 202, 0.08);
+  --accent-border: rgba(67, 56, 202, 0.28);
+  --accent-text: #312e81;
 
   --success: #059669;
   --success-hover: #047857;

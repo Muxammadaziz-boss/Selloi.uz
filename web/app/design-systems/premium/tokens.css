@@ -1,0 +1,141 @@
+/* ==========================================================================
+   PREMIUM DESIGN SYSTEM — DESIGN TOKENS
+   Deep near-black minimalist SaaS reference design
+   Strictly scoped under html[data-design="premium"]
+   ========================================================================== */
+
+html[data-design="premium"] {
+  --design-id: "premium";
+
+  /* Deep near-black reference palette */
+  --premium-bg: #090909;
+  --premium-sidebar: #0d0d0d;
+  --premium-surface: #171717;
+  --premium-surface-elevated: #1e1e1e;
+  --premium-surface-hover: #222222;
+  --premium-surface-active: #2a2a2a;
+  --premium-border: #262626;
+  --premium-border-subtle: #1c1c1c;
+  --premium-border-strong: #383838;
+
+  --premium-text: #f8fafc;
+  --premium-text-secondary: #cbd5e1;
+  --premium-text-muted: #94a3b8;
+  --premium-text-inverse: #090909;
+
+  --premium-accent: #2563eb;
+  --premium-accent-subtle: rgba(37, 99, 235, 0.16);
+  --premium-accent-border: rgba(37, 99, 235, 0.45);
+  --premium-accent-text: #60a5fa;
+
+  --premium-success: #10b981;
+  --premium-success-subtle: rgba(16, 185, 129, 0.16);
+  --premium-danger: #ef4444;
+  --premium-danger-subtle: rgba(239, 68, 68, 0.16);
+  --premium-warning: #f59e0b;
+  --premium-warning-subtle: rgba(245, 158, 11, 0.16);
+
+  /* Geometry & Metrics */
+  --sidebar-width: 270px;
+  --premium-sidebar-width: 270px;
+  --premium-radius-xs: 4px;
+  --premium-radius-sm: 6px;
+  --premium-radius: 10px;
+  --premium-radius-lg: 14px;
+  --premium-radius-full: 9999px;
+
+  /* Semantic Design Tokens (Overrides) */
+  --bg-canvas: var(--premium-bg);
+  --bg-surface: var(--premium-surface);
+  --bg-surface-elevated: var(--premium-surface-elevated);
+  --bg-surface-hover: var(--premium-surface-hover);
+  --bg-surface-active: var(--premium-surface-active);
+
+  --border-subtle: var(--premium-border-subtle);
+  --border-default: var(--premium-border);
+  --border-strong: var(--premium-border-strong);
+
+  --text-primary: var(--premium-text);
+  --text-secondary: var(--premium-text-secondary);
+  --text-tertiary: var(--premium-text-muted);
+  --text-inverse: var(--premium-text-inverse);
+
+  --accent: var(--premium-accent);
+  --accent-subtle: var(--premium-accent-subtle);
+  --accent-border: var(--premium-accent-border);
+  --accent-text: var(--premium-accent-text);
+
+  --success: var(--premium-success);
+  --success-text: #34d399;
+  --danger: var(--premium-danger);
+  --danger-text: #f87171;
+  --warning: var(--premium-warning);
+  --warning-text: #fbbf24;
+
+  /* Font: Minimalist typography with sharp monospace numerals */
+  --app-font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --tblr-font-sans-serif: var(--app-font-family);
+  --tblr-primary: var(--premium-accent);
+  --tblr-body-bg: var(--premium-bg);
+  --tblr-card-bg: var(--premium-surface);
+
+  /* Shadows: Restrained, hairline definition without excessive blur */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.7);
+}
+
+html[data-design="premium"][data-theme="light"],
+html[data-design="premium"][data-bs-theme="light"] {
+  --premium-bg: #f8f9fa;
+  --premium-sidebar: #ffffff;
+  --premium-surface: #ffffff;
+  --premium-surface-elevated: #ffffff;
+  --premium-surface-hover: #f1f5f9;
+  --premium-surface-active: #e2e8f0;
+  --premium-border: #e2e8f0;
+  --premium-border-subtle: #f1f5f9;
+  --premium-border-strong: #cbd5e1;
+
+  --premium-text: #0f172a;
+  --premium-text-secondary: #334155;
+  --premium-text-muted: #475569;
+  --premium-text-inverse: #ffffff;
+
+  --premium-accent: #1d4ed8;
+  --premium-accent-subtle: rgba(29, 78, 216, 0.12);
+  --premium-accent-border: rgba(29, 78, 216, 0.4);
+  --premium-accent-text: #1e40af;
+
+  --premium-success: #047857;
+  --premium-danger: #b91c1c;
+  --premium-warning: #b45309;
+
+  --bg-canvas: #f8f9fa;
+  --bg-surface: #ffffff;
+  --bg-surface-elevated: #ffffff;
+  --bg-surface-hover: #f1f5f9;
+  --bg-surface-active: #e2e8f0;
+
+  --border-subtle: #f1f5f9;
+  --border-default: #e2e8f0;
+  --border-strong: #cbd5e1;
+
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-tertiary: #475569;
+  --text-inverse: #ffffff;
+
+  --accent: #1d4ed8;
+  --accent-text: #1e40af;
+  --success: #047857;
+  --success-text: #047857;
+  --danger: #b91c1c;
+  --danger-text: #b91c1c;
+  --warning: #b45309;
+  --warning-text: #b45309;
+
+  --tblr-primary: #1d4ed8;
+  --tblr-body-bg: #f8f9fa;
+  --tblr-card-bg: #ffffff;
+}

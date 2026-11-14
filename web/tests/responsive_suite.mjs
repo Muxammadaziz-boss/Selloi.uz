@@ -125,7 +125,7 @@ async function runResponsiveTests() {
         await page.waitForTimeout(400);
         const inboxLoaded = await page.evaluate(() => {
           const text = document.body.innerText;
-          return text.includes("Jonli Chat") || text.includes("Mijozlar") || text.includes("Inbox");
+          return text.includes("Jonli Suhbatlar") || text.includes("Suhbatlar") || text.includes("Jonli Chat") || text.includes("Mijozlar") || text.includes("Inbox");
         });
         recordTest(vp.name, "inbox_navigation_functional", inboxLoaded, "Live Inbox tab rendered and loaded");
         await page.screenshot({ path: path.join(SCREENSHOT_DIR, `${vp.name}_inbox.png`) });

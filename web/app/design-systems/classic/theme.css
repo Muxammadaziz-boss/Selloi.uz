@@ -1,0 +1,19 @@
+/* ==========================================================================
+   CLASSIC DESIGN SYSTEM — THEME STYLES
+   Scoped exclusively under html[data-design="classic"]
+   ========================================================================== */
+
+html[data-design="classic"] body {
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
+}
+
+html[data-design="classic"] .sidebar-container {
+  background-color: var(--bg-surface);
+  border-right: 1px solid var(--border-default);
+}
+
+html[data-design="classic"] .topbar-container {
+  background-color: var(--bg-surface);
+  border-bottom: 1px solid var(--border-default);
+}
