@@ -18,11 +18,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                 try {
                   var savedTheme = localStorage.getItem('ai_sales_theme') || 'dark';
                   var savedFont = localStorage.getItem('ai_sales_app_font') || 'olline';
-                  var savedDesign = localStorage.getItem('ai_sales_design_system') || 'premium';
+                  // Root HTML defaults to 'classic' during pre-hydration to prevent unauthorized design flashing.
+                  // Elevated designs ('premium', 'ios') are only applied after verified subscription entitlement.
                   document.documentElement.setAttribute('data-theme', savedTheme);
                   document.documentElement.setAttribute('data-bs-theme', savedTheme);
                   document.documentElement.setAttribute('data-font', savedFont);
-                  document.documentElement.setAttribute('data-design', savedDesign);
+                  document.documentElement.setAttribute('data-design', 'classic');
                   if (savedTheme === 'light') {
                     document.documentElement.classList.remove('theme-dark');
                     document.documentElement.classList.add('theme-light');

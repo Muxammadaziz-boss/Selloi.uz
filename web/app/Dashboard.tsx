@@ -624,6 +624,8 @@ export default function Dashboard({
   const [showOrgDropdown, setShowOrgDropdown] = useState(false);
   const [showOnboardingModal, setShowOnboardingModal] = useState(false);
   const [subscriptionData, setSubscriptionData] = useState<any>(null);
+  const [isSubscriptionLoading, setIsSubscriptionLoading] = useState<boolean>(true);
+  const [subscriptionError, setSubscriptionError] = useState<string | null>(null);
   const [usageData, setUsageData] = useState<any>(null);
   const [plansList, setPlansList] = useState<any[]>([]);
   const [platformMetrics, setPlatformMetrics] = useState<any>(null);
@@ -1106,12 +1108,17 @@ export default function Dashboard({
 
   // Load SaaS tenant, subscription, usage, and financial metrics
   const loadSaaSData = useCallback(async (orgId?: number) => {
+    setIsSubscriptionLoading(true);
+    setSubscriptionError(null);
     try {
       const effectiveOrgId = orgId || activeOrgId;
       try {
         const sub = await api<any>(`/api/subscription?organization_id=${effectiveOrgId}`);
         setSubscriptionData(sub);
-      } catch {}
+      } catch (err: any) {
+        setSubscriptionData(null);
+        setSubscriptionError(err?.message || "Obuna ma'lumotlarini yuklab bo'lmadi");
+      }
 
       try {
         const usage = await api<any>(`/api/usage?organization_id=${effectiveOrgId}`);
@@ -1150,6 +1157,8 @@ export default function Dashboard({
       }
     } catch (e) {
       console.error("loadSaaSData error:", e);
+    } finally {
+      setIsSubscriptionLoading(false);
     }
   }, [activeOrgId, isPlatformOwner, currentAdmin?.role]);
 
@@ -1358,6 +1367,9 @@ export default function Dashboard({
 
   const switchOrganization = (orgId: number) => {
     setActiveOrgId(orgId);
+    setSubscriptionData(null);
+    setIsSubscriptionLoading(true);
+    setSubscriptionError(null);
     if (typeof window !== "undefined") {
       localStorage.setItem("active_org_id", String(orgId));
     }
@@ -2272,7 +2284,9 @@ export default function Dashboard({
 
   return (
     <DesignProvider
-      subscriptionPlan={subscriptionData?.plan?.code || "ultra"}
+      subscriptionPlan={subscriptionData?.plan?.code || null}
+      isSubscriptionLoading={isSubscriptionLoading}
+      subscriptionError={subscriptionError}
       isPlatformOwner={isPlatformOwner}
     >
       <div className="linear-app">
@@ -2347,6 +2361,11 @@ export default function Dashboard({
             <button
               type="button"
               className="btn btn-sm btn-outline-warning"
+              style={{
+                color: "var(--warning-text)",
+                borderColor: "var(--warning-text)",
+                fontWeight: 600,
+              }}
               onClick={handleExitStore}
             >
               Platformaga qaytish

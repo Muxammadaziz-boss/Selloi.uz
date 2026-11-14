@@ -17,10 +17,10 @@ jobs:
     env:
       ENVIRONMENT: test
       TESTING: "true"
-      SECRET_KEY: test-secret-key-32-chars-minimum-required!
+      SECRET_KEY: ${{ secrets.SECRET_KEY || 'test-secret-key-32-chars-minimum-required!' }}
       DATABASE_URL: sqlite+aiosqlite:///./test_saas.db
-      TELEGRAM_BOT_TOKEN: 123456789:TEST_BOT_TOKEN_FOR_CI
-      TELEGRAM_WEBHOOK_SECRET: ci_secret_webhook
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN || '123456789:TEST_BOT_TOKEN_FOR_CI' }}
+      TELEGRAM_WEBHOOK_SECRET: ${{ secrets.TELEGRAM_WEBHOOK_SECRET || 'ci_secret_webhook' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -54,7 +54,7 @@ jobs:
           if-no-files-found: ignore
 
   frontend-build:
-    name: Frontend TypeScript & Next.js Build
+    name: Frontend TypeScript, Entitlements & Next.js Build
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -76,6 +76,9 @@ jobs:
       - name: TypeScript Typecheck
         run: npm run typecheck
 
+      - name: Run Design Entitlement & Authorization Matrix Suite
+        run: node --experimental-strip-types tests/design_entitlement_suite.mjs
+
       - name: Next.js Production Build
         run: npm run build
         env:
@@ -88,11 +91,11 @@ jobs:
     env:
       ENVIRONMENT: test
       TESTING: "true"
-      SECRET_KEY: test-secret-key-32-chars-minimum-required!
+      SECRET_KEY: ${{ secrets.SECRET_KEY || 'test-secret-key-32-chars-minimum-required!' }}
       DATABASE_URL: sqlite+aiosqlite:///./test_ci.db
-      TELEGRAM_BOT_TOKEN: 123456789:TEST_BOT_TOKEN_FOR_CI
-      TELEGRAM_WEBHOOK_SECRET: ci_secret_webhook
-      DASHBOARD_PASSWORD: test_secure_ci_password_12345
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN || '123456789:TEST_BOT_TOKEN_FOR_CI' }}
+      TELEGRAM_WEBHOOK_SECRET: ${{ secrets.TELEGRAM_WEBHOOK_SECRET || 'ci_secret_webhook' }}
+      DASHBOARD_PASSWORD: ${{ secrets.DASHBOARD_PASSWORD || 'test_secure_ci_password_12345' }}
       NEXT_PUBLIC_API_URL: http://127.0.0.1:8000
     steps:
       - name: Checkout code
@@ -139,16 +142,16 @@ jobs:
           sleep 5
           curl -f http://localhost:3000/ || exit 1
 
-      - name: Run Playwright E2E Suite (16 tabs, auth, modals)
+      - name: Run Playwright E2E Suite (16 tabs, auth, visual fidelity, modals)
         run: node web/tests/playwright_e2e_suite.mjs
 
       - name: Run Responsive Viewport Suite (5 viewports)
         run: node web/tests/responsive_suite.mjs
 
-      - name: Run Axe-Core WCAG 2.1 AA Suite (Dark & Light)
+      - name: Run Axe-Core WCAG 2.1 AA Suite (24 scans, 3 designs x 2 themes)
         run: node web/tests/a11y_axe_suite.mjs
 
-      - name: Upload Test Results & Evidence Artifacts
+      - name: Upload Test Results, Evidence & Screenshots
         uses: actions/upload-artifact@v4
         if: always()
         with:

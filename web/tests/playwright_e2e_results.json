@@ -1,8 +1,8 @@
 {
   "metadata": {
     "suite": "playwright_e2e_suite",
-    "timestamp": "2026-11-14T11:48:55.483Z",
-    "commitSha": "aa42d8d282b9fc57b5a06ba2263fc57bb482c0f2",
+    "timestamp": "2026-11-14T12:24:01.030Z",
+    "commitSha": "7cd7f7e88675a28bf0f5d5074b624308d211abed",
     "nodeVersion": "v24.20.0",
     "platform": "win32",
     "arch": "x64",
@@ -133,7 +133,7 @@
   "design_system_switching": {
     "initial_design_mounted": {
       "status": "PASSED",
-      "details": "html[data-design=\"classic\"]"
+      "details": "html[data-design=\"premium\"]"
     },
     "switch_to_ios_design": {
       "status": "PASSED",
@@ -146,6 +146,28 @@
     "switch_to_premium_design": {
       "status": "PASSED",
       "details": "html[data-design=\"premium\"]"
+    }
+  },
+  "visual_fidelity": {
+    "sidebar_geometry_270px": {
+      "status": "PASSED",
+      "details": "Sidebar width: 270px"
+    },
+    "canvas_deep_black_bg": {
+      "status": "PASSED",
+      "details": "Body background: rgb(9, 9, 9)"
+    },
+    "dark_charcoal_card_surface": {
+      "status": "PASSED",
+      "details": "Card background: rgb(23, 23, 23)"
+    },
+    "no_glassmorphism_in_premium": {
+      "status": "PASSED",
+      "details": "Backdrop filter: none"
+    },
+    "restrained_shadows_no_heavy_blur": {
+      "status": "PASSED",
+      "details": "Card shadow: none"
     }
   },
   "modal_escape_focus": {
@@ -190,8 +212,8 @@
     }
   ],
   "summary": {
-    "total": 34,
-    "passed": 34,
+    "total": 39,
+    "passed": 39,
     "failed": 0,
     "overall_status": "PASSED"
   }

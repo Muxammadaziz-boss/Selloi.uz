@@ -107,9 +107,9 @@ html[data-design="premium"][data-bs-theme="light"] {
   --premium-accent-border: rgba(29, 78, 216, 0.4);
   --premium-accent-text: #1e40af;
 
-  --premium-success: #047857;
+  --premium-success: #065f46;
   --premium-danger: #b91c1c;
-  --premium-warning: #b45309;
+  --premium-warning: #78350f;
 
   --bg-canvas: #f8f9fa;
   --bg-surface: #ffffff;
@@ -128,12 +128,12 @@ html[data-design="premium"][data-bs-theme="light"] {
 
   --accent: #1d4ed8;
   --accent-text: #1e40af;
-  --success: #047857;
-  --success-text: #047857;
+  --success: #065f46;
+  --success-text: #065f46;
   --danger: #b91c1c;
   --danger-text: #b91c1c;
-  --warning: #b45309;
-  --warning-text: #b45309;
+  --warning: #78350f;
+  --warning-text: #78350f;
 
   --tblr-primary: #1d4ed8;
   --tblr-body-bg: #f8f9fa;

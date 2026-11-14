@@ -1,8 +1,8 @@
 {
   "metadata": {
     "suite": "a11y_axe_suite",
-    "timestamp": "2026-11-14T12:01:53.560Z",
-    "commitSha": "aa42d8d282b9fc57b5a06ba2263fc57bb482c0f2",
+    "timestamp": "2026-11-14T12:29:59.669Z",
+    "commitSha": "7cd7f7e88675a28bf0f5d5074b624308d211abed",
     "nodeVersion": "v24.20.0",
     "platform": "win32",
     "arch": "x64",
@@ -23,19 +23,23 @@
     "premium_dark": {
       "overview": {
         "name": "Overview Dashboard",
-        "passesCount": 23,
+        "passesCount": 22,
         "violationsCount": 0,
         "violations": [],
-        "incompleteCount": 0,
-        "incompleteRules": []
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
       },
       "products": {
         "name": "Products Catalog",
-        "passesCount": 23,
+        "passesCount": 24,
         "violationsCount": 0,
         "violations": [],
-        "incompleteCount": 0,
-        "incompleteRules": []
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
       },
       "platform": {
         "name": "Platform Owner Center",
@@ -59,19 +63,23 @@
     "premium_light": {
       "overview": {
         "name": "Overview Dashboard",
-        "passesCount": 23,
+        "passesCount": 24,
         "violationsCount": 0,
         "violations": [],
-        "incompleteCount": 0,
-        "incompleteRules": []
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
       },
       "products": {
         "name": "Products Catalog",
-        "passesCount": 23,
+        "passesCount": 25,
         "violationsCount": 0,
         "violations": [],
-        "incompleteCount": 0,
-        "incompleteRules": []
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
       },
       "platform": {
         "name": "Platform Owner Center",
@@ -95,19 +103,23 @@
     "ios_dark": {
       "overview": {
         "name": "Overview Dashboard",
-        "passesCount": 23,
+        "passesCount": 24,
         "violationsCount": 0,
         "violations": [],
-        "incompleteCount": 0,
-        "incompleteRules": []
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
       },
       "products": {
         "name": "Products Catalog",
-        "passesCount": 23,
+        "passesCount": 25,
         "violationsCount": 0,
         "violations": [],
-        "incompleteCount": 0,
-        "incompleteRules": []
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
       },
       "platform": {
         "name": "Platform Owner Center",
@@ -131,19 +143,23 @@
     "ios_light": {
       "overview": {
         "name": "Overview Dashboard",
-        "passesCount": 23,
+        "passesCount": 24,
         "violationsCount": 0,
         "violations": [],
-        "incompleteCount": 0,
-        "incompleteRules": []
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
       },
       "products": {
         "name": "Products Catalog",
-        "passesCount": 23,
+        "passesCount": 25,
         "violationsCount": 0,
         "violations": [],
-        "incompleteCount": 0,
-        "incompleteRules": []
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
       },
       "platform": {
         "name": "Platform Owner Center",
@@ -167,7 +183,7 @@
     "classic_dark": {
       "overview": {
         "name": "Overview Dashboard",
-        "passesCount": 23,
+        "passesCount": 24,
         "violationsCount": 0,
         "violations": [],
         "incompleteCount": 0,
@@ -175,7 +191,7 @@
       },
       "products": {
         "name": "Products Catalog",
-        "passesCount": 23,
+        "passesCount": 25,
         "violationsCount": 0,
         "violations": [],
         "incompleteCount": 0,
@@ -203,7 +219,7 @@
     "classic_light": {
       "overview": {
         "name": "Overview Dashboard",
-        "passesCount": 23,
+        "passesCount": 24,
         "violationsCount": 0,
         "violations": [],
         "incompleteCount": 1,
@@ -213,7 +229,7 @@
       },
       "products": {
         "name": "Products Catalog",
-        "passesCount": 23,
+        "passesCount": 25,
         "violationsCount": 0,
         "violations": [],
         "incompleteCount": 1,
@@ -251,10 +267,74 @@
     "seriousViolations": 0,
     "moderateViolations": 0,
     "minorViolations": 0,
-    "totalIncompleteItems": 9,
+    "totalIncompleteItems": 17,
     "overall_status": "AUTOMATED_PASS_MANUAL_REVIEW_PENDING"
   },
   "incompleteReviewRequired": [
+    {
+      "design": "premium",
+      "theme": "dark",
+      "tab": "overview",
+      "tabName": "Overview Dashboard",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 4,
+      "sampleNodes": [
+        {
+          "target": ".mt-3.pt-2:nth-child(6) > .gap-0\\.5.flex-column.d-flex > .nav-link-item.text-start.py-1\\.5 > .text-truncate.flex-grow-1",
+          "htmlSnippet": "<span class=\"flex-grow-1 text-truncate\">Platform Owner</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        },
+        {
+          "target": ".nav-link-item.text-start.py-1\\.5 > .badge.rounded-pill",
+          "htmlSnippet": "<span class=\"badge rounded-pill\" style=\"font-size: 0.65rem; padding: 2px 6px; background-color: var(--accent-subtle); co",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        },
+        {
+          "target": ".mt-3.pt-2:nth-child(7) > .nav-group-title.mb-1\\.5.fw-semibold",
+          "htmlSnippet": "<div class=\"px-2 mb-1.5 text-uppercase fw-semibold nav-group-title\" style=\"font-size: 0.68rem; letter-spacing: 0.08em; c",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        },
+        {
+          "target": ".mt-3.pt-2:nth-child(7) > .gap-0\\.5.flex-column.d-flex > .nav-link-item.text-start.py-1\\.5 > .text-truncate.flex-grow-1",
+          "htmlSnippet": "<span class=\"flex-grow-1 text-truncate\">Profile &amp; Design</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        }
+      ]
+    },
+    {
+      "design": "premium",
+      "theme": "dark",
+      "tab": "products",
+      "tabName": "Products Catalog",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 4,
+      "sampleNodes": [
+        {
+          "target": ".mt-3.pt-2:nth-child(6) > .gap-0\\.5.flex-column.d-flex > .nav-link-item.text-start.transition-all > .text-truncate.flex-grow-1",
+          "htmlSnippet": "<span class=\"flex-grow-1 text-truncate\">Platform Owner</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        },
+        {
+          "target": ".nav-link-item.text-start.transition-all > .badge.rounded-pill",
+          "htmlSnippet": "<span class=\"badge rounded-pill\" style=\"font-size: 0.65rem; padding: 2px 6px; background-color: var(--accent-subtle); co",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        },
+        {
+          "target": ".mt-3.pt-2:nth-child(7) > .nav-group-title.mb-1\\.5.fw-semibold",
+          "htmlSnippet": "<div class=\"px-2 mb-1.5 text-uppercase fw-semibold nav-group-title\" style=\"font-size: 0.68rem; letter-spacing: 0.08em; c",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        },
+        {
+          "target": ".mt-3.pt-2:nth-child(7) > .gap-0\\.5.flex-column.d-flex > .nav-link-item.text-start.transition-all > .text-truncate.flex-grow-1",
+          "htmlSnippet": "<span class=\"flex-grow-1 text-truncate\">Profile &amp; Design</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        }
+      ]
+    },
     {
       "design": "premium",
       "theme": "dark",
@@ -279,6 +359,65 @@
           "target": ".p-1.text-center.rounded-2 > span",
           "htmlSnippet": "<span style=\"font-size: 10px; color: rgb(147, 197, 253); font-weight: 700;\">SF Pro iOS</span>",
           "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        }
+      ]
+    },
+    {
+      "design": "premium",
+      "theme": "light",
+      "tab": "overview",
+      "tabName": "Overview Dashboard",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 3,
+      "sampleNodes": [
+        {
+          "target": ".mt-3.pt-2:nth-child(6) > .gap-0\\.5.flex-column.d-flex > .nav-link-item.text-start.py-1\\.5 > .flex-grow-1.text-truncate",
+          "htmlSnippet": "<span class=\"flex-grow-1 text-truncate\">Platform Owner</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        },
+        {
+          "target": ".mt-3.pt-2:nth-child(7) > .nav-group-title.mb-1\\.5.fw-semibold",
+          "htmlSnippet": "<div class=\"px-2 mb-1.5 text-uppercase fw-semibold nav-group-title\" style=\"font-size: 0.68rem; letter-spacing: 0.08em; c",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        },
+        {
+          "target": ".mt-3.pt-2:nth-child(7) > .gap-0\\.5.flex-column.d-flex > .nav-link-item.text-start.py-1\\.5 > .flex-grow-1.text-truncate",
+          "htmlSnippet": "<span class=\"flex-grow-1 text-truncate\">Profile &amp; Design</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        }
+      ]
+    },
+    {
+      "design": "premium",
+      "theme": "light",
+      "tab": "products",
+      "tabName": "Products Catalog",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 4,
+      "sampleNodes": [
+        {
+          "target": ".active > .fw-semibold.small",
+          "htmlSnippet": "<span class=\"small fw-semibold\" style=\"font-size: 0.7rem; color: var(--text-secondary);\">6</span>",
+          "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+        },
+        {
+          "target": ".mt-3.pt-2:nth-child(6) > .gap-0\\.5.flex-column.d-flex > .nav-link-item.text-start.transition-all > .flex-grow-1.text-truncate",
+          "htmlSnippet": "<span class=\"flex-grow-1 text-truncate\">Platform Owner</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        },
+        {
+          "target": ".mt-3.pt-2:nth-child(7) > .nav-group-title.mb-1\\.5.text-uppercase",
+          "htmlSnippet": "<div class=\"px-2 mb-1.5 text-uppercase fw-semibold nav-group-title\" style=\"font-size: 0.68rem; letter-spacing: 0.08em; c",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        },
+        {
+          "target": ".mt-3.pt-2:nth-child(7) > .gap-0\\.5.flex-column.d-flex > .nav-link-item.text-start.transition-all > .flex-grow-1.text-truncate",
+          "htmlSnippet": "<span class=\"flex-grow-1 text-truncate\">Profile &amp; Design</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
         }
       ]
     },
@@ -312,6 +451,55 @@
     {
       "design": "ios",
       "theme": "dark",
+      "tab": "overview",
+      "tabName": "Overview Dashboard",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 2,
+      "sampleNodes": [
+        {
+          "target": ".mt-3.pt-2:nth-child(7) > .nav-group-title.mb-1\\.5.fw-semibold",
+          "htmlSnippet": "<div class=\"px-2 mb-1.5 text-uppercase fw-semibold nav-group-title\" style=\"font-size: 0.68rem; letter-spacing: 0.08em; c",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        },
+        {
+          "target": ".mt-3.pt-2:nth-child(7) > .gap-0\\.5.flex-column.d-flex > .nav-link-item.text-start.py-1\\.5 > .flex-grow-1.text-truncate",
+          "htmlSnippet": "<span class=\"flex-grow-1 text-truncate\">Profile &amp; Design</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        }
+      ]
+    },
+    {
+      "design": "ios",
+      "theme": "dark",
+      "tab": "products",
+      "tabName": "Products Catalog",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 3,
+      "sampleNodes": [
+        {
+          "target": ".active > .fw-semibold.small",
+          "htmlSnippet": "<span class=\"small fw-semibold\" style=\"font-size: 0.7rem; color: var(--text-secondary);\">6</span>",
+          "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+        },
+        {
+          "target": ".mt-3.pt-2:nth-child(7) > .nav-group-title.mb-1\\.5.text-uppercase",
+          "htmlSnippet": "<div class=\"px-2 mb-1.5 text-uppercase fw-semibold nav-group-title\" style=\"font-size: 0.68rem; letter-spacing: 0.08em; c",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        },
+        {
+          "target": ".mt-3.pt-2:nth-child(7) > .gap-0\\.5.flex-column.d-flex > .nav-link-item.text-start.transition-all > .flex-grow-1.text-truncate",
+          "htmlSnippet": "<span class=\"flex-grow-1 text-truncate\">Profile &amp; Design</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        }
+      ]
+    },
+    {
+      "design": "ios",
+      "theme": "dark",
       "tab": "profile",
       "tabName": "Profile & Appearance",
       "ruleId": "color-contrast",
@@ -333,6 +521,55 @@
           "target": ".p-1.text-center.rounded-2 > span",
           "htmlSnippet": "<span style=\"font-size: 10px; color: rgb(147, 197, 253); font-weight: 700;\">SF Pro iOS</span>",
           "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        }
+      ]
+    },
+    {
+      "design": "ios",
+      "theme": "light",
+      "tab": "overview",
+      "tabName": "Overview Dashboard",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 2,
+      "sampleNodes": [
+        {
+          "target": ".mt-3.pt-2:nth-child(7) > .nav-group-title.mb-1\\.5.fw-semibold",
+          "htmlSnippet": "<div class=\"px-2 mb-1.5 text-uppercase fw-semibold nav-group-title\" style=\"font-size: 0.68rem; letter-spacing: 0.08em; c",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        },
+        {
+          "target": ".mt-3.pt-2:nth-child(7) > .gap-0\\.5.flex-column.d-flex > .nav-link-item.text-start.py-1\\.5 > .flex-grow-1.text-truncate",
+          "htmlSnippet": "<span class=\"flex-grow-1 text-truncate\">Profile &amp; Design</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        }
+      ]
+    },
+    {
+      "design": "ios",
+      "theme": "light",
+      "tab": "products",
+      "tabName": "Products Catalog",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 3,
+      "sampleNodes": [
+        {
+          "target": ".active > .fw-semibold.small",
+          "htmlSnippet": "<span class=\"small fw-semibold\" style=\"font-size: 0.7rem; color: var(--text-secondary);\">6</span>",
+          "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+        },
+        {
+          "target": ".mt-3.pt-2:nth-child(7) > .nav-group-title.mb-1\\.5.text-uppercase",
+          "htmlSnippet": "<div class=\"px-2 mb-1.5 text-uppercase fw-semibold nav-group-title\" style=\"font-size: 0.68rem; letter-spacing: 0.08em; c",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        },
+        {
+          "target": ".mt-3.pt-2:nth-child(7) > .gap-0\\.5.flex-column.d-flex > .nav-link-item.text-start.transition-all > .flex-grow-1.text-truncate",
+          "htmlSnippet": "<span class=\"flex-grow-1 text-truncate\">Profile &amp; Design</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
         }
       ]
     },
@@ -401,7 +638,7 @@
       "nodesCount": 1,
       "sampleNodes": [
         {
-          "target": ".rounded-circle.overflow-hidden.justify-content-center",
+          "target": ".overflow-hidden.rounded-circle.justify-content-center",
           "htmlSnippet": "<div class=\"rounded-circle overflow-hidden d-flex align-items-center justify-content-center\" style=\"width: 24px; height:",
           "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
         }

@@ -21,6 +21,7 @@ const testResults = {
   profile_both_zones: {},
   theme_font_switching: {},
   design_system_switching: {},
+  visual_fidelity: {},
   modal_escape_focus: {},
   keyboard_navigation: {},
   console_errors: [],
@@ -263,6 +264,34 @@ async function runE2ETests() {
       const premiumDesign = await page.getAttribute("html", "data-design");
       recordTest("design_system_switching", "switch_to_premium_design", premiumDesign === "premium", `html[data-design="${premiumDesign}"]`);
       await page.screenshot({ path: path.join(SCREENSHOT_DIR, "12_premium_design.png") });
+
+      // -------------------------------------------------------------------
+      // 6.2. Visual Fidelity & Premium Design System Auditing
+      // -------------------------------------------------------------------
+      console.log("\n--- 6.2. Auditing Premium Minimal Visual Fidelity ---");
+      await page.goto(`${BASE_URL}/#overview`, { waitUntil: "domcontentloaded" });
+      await page.waitForTimeout(600);
+
+      const sidebarWidth = await page.$eval(".sidebar-container", (el) => window.getComputedStyle(el).width).catch(() => "0px");
+      recordTest("visual_fidelity", "sidebar_geometry_270px", sidebarWidth === "270px", `Sidebar width: ${sidebarWidth}`);
+
+      const bodyBg = await page.$eval("body", (el) => window.getComputedStyle(el).backgroundColor).catch(() => "");
+      const isDeepBlackBg = bodyBg === "rgb(9, 9, 9)" || bodyBg === "#090909";
+      recordTest("visual_fidelity", "canvas_deep_black_bg", isDeepBlackBg, `Body background: ${bodyBg}`);
+
+      const cardBg = await page.$eval(".card, .linear-card", (el) => window.getComputedStyle(el).backgroundColor).catch(() => "");
+      const isCharcoalCard = cardBg === "rgb(23, 23, 23)" || cardBg === "#171717";
+      recordTest("visual_fidelity", "dark_charcoal_card_surface", isCharcoalCard, `Card background: ${cardBg}`);
+
+      const sidebarBackdrop = await page.$eval(".sidebar-container", (el) => window.getComputedStyle(el).backdropFilter).catch(() => "none");
+      const noGlassmorphism = sidebarBackdrop === "none" || !sidebarBackdrop;
+      recordTest("visual_fidelity", "no_glassmorphism_in_premium", noGlassmorphism, `Backdrop filter: ${sidebarBackdrop}`);
+
+      const cardBoxShadow = await page.$eval(".card, .linear-card", (el) => window.getComputedStyle(el).boxShadow).catch(() => "none");
+      const isRestrainedShadow = cardBoxShadow === "none" || cardBoxShadow.includes("rgba(0, 0, 0, 0.4)");
+      recordTest("visual_fidelity", "restrained_shadows_no_heavy_blur", isRestrainedShadow, `Card shadow: ${cardBoxShadow}`);
+
+      await page.screenshot({ path: path.join(SCREENSHOT_DIR, "13_premium_overview_fidelity.png") });
     } else {
       recordTest("design_system_switching", "switch_to_ios_design", false, "iOS design card not visible");
     }

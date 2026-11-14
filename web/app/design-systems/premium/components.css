@@ -80,6 +80,13 @@ html[data-design="premium"] .badge-danger {
   color: #f87171 !important;
 }
 
+html[data-design="premium"][data-theme="light"] .badge-success,
+html[data-design="premium"][data-theme="light"] .linear-badge-success {
+  background: rgba(6, 95, 70, 0.12) !important;
+  border-color: rgba(6, 95, 70, 0.3) !important;
+  color: #065f46 !important;
+}
+
 /* Minimal Buttons */
 html[data-design="premium"] .btn {
   border-radius: var(--premium-radius-sm) !important;
@@ -111,6 +118,19 @@ html[data-design="premium"] .btn-secondary:hover,
 html[data-design="premium"] .btn-outline:hover {
   background-color: var(--premium-surface-hover) !important;
   border-color: #383838 !important;
+}
+
+html[data-design="premium"][data-theme="light"] .btn-secondary,
+html[data-design="premium"][data-theme="light"] .btn-outline {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+html[data-design="premium"][data-theme="light"] .btn-outline-warning {
+  color: #78350f !important;
+  border-color: #92400e !important;
+  background-color: transparent !important;
 }
 
 /* Compact Tables */

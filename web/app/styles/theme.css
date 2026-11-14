@@ -120,7 +120,7 @@ body[data-bs-theme="light"],
   --warning-hover: #b45309;
   --warning-subtle: rgba(217, 119, 6, 0.1);
   --warning-border: rgba(217, 119, 6, 0.3);
-  --warning-text: #92400e;
+  --warning-text: #78350f;
 
   --danger: #dc2626;
   --danger-hover: #b91c1c;
@@ -240,6 +240,27 @@ body[data-bs-theme="light"],
 .linear-btn-danger:hover {
   background-color: var(--danger);
   color: #ffffff;
+}
+
+/* WCAG 2.1 AA Button Outline Overrides */
+.btn-outline-warning {
+  color: var(--warning-text) !important;
+  border-color: var(--warning-border) !important;
+  font-weight: 600;
+}
+
+html[data-theme="light"] .btn-outline-warning,
+html[data-bs-theme="light"] .btn-outline-warning {
+  color: #78350f !important;
+  border-color: #92400e !important;
+  background-color: transparent !important;
+}
+
+html[data-theme="light"] .btn-outline-warning:hover,
+html[data-bs-theme="light"] .btn-outline-warning:hover {
+  color: #ffffff !important;
+  background-color: #92400e !important;
+  border-color: #92400e !important;
 }
 
 .linear-badge {
