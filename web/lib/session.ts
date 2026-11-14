@@ -8,6 +8,7 @@ export interface SessionPayload {
   telegramUserId?: number;
   email?: string;
   role?: string;
+  isPlatformOwner?: boolean;
   organizationId?: number;
   backendToken?: string;
   issuedAt: number;
@@ -34,6 +35,7 @@ export function createSessionToken(
       userId: 1,
       email: "admin@aisales.uz",
       role: "owner",
+      isPlatformOwner: true,
       organizationId: 1,
       issuedAt: Math.floor(Date.now() / 1000),
     };

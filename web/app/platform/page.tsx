@@ -17,7 +17,7 @@ export default async function PlatformPage() {
               email: session.email,
               role: session.role,
               organizationId: session.organizationId,
-              isPlatformOwner: session.role === "owner",
+              isPlatformOwner: Boolean(session.isPlatformOwner),
             }
           : null
       }

@@ -82,6 +82,12 @@ export function DesignProvider({
       if (typeof document !== "undefined") {
         document.documentElement.setAttribute("data-design", "classic");
       }
+      if ((subscriptionError || (!isSubscriptionLoading && !subscriptionPlan)) && typeof window !== "undefined") {
+        const stored = localStorage.getItem(STORAGE_KEY_DESIGN);
+        if (stored && stored !== "classic") {
+          localStorage.setItem(STORAGE_KEY_DESIGN, "classic");
+        }
+      }
       return;
     }
 

@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ "frontend/linear-redesign", "main" ]
 
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -17,10 +20,10 @@ jobs:
     env:
       ENVIRONMENT: test
       TESTING: "true"
-      SECRET_KEY: ${{ secrets.SECRET_KEY || 'test-secret-key-32-chars-minimum-required!' }}
+      SECRET_KEY: ${{ secrets.SECRET_KEY }}
       DATABASE_URL: sqlite+aiosqlite:///./test_saas.db
-      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN || '123456789:TEST_BOT_TOKEN_FOR_CI' }}
-      TELEGRAM_WEBHOOK_SECRET: ${{ secrets.TELEGRAM_WEBHOOK_SECRET || 'ci_secret_webhook' }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_WEBHOOK_SECRET: ${{ secrets.TELEGRAM_WEBHOOK_SECRET }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -30,6 +33,13 @@ jobs:
         with:
           python-version: "3.11"
           cache: "pip"
+
+      - name: Validate Required CI Credentials
+        run: |
+          if [ -z "$SECRET_KEY" ] || [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_WEBHOOK_SECRET" ]; then
+            echo "::error::Missing required repository secret(s). CI cannot run with unconfigured secrets."
+            exit 1
+          fi
 
       - name: Install backend dependencies
         run: |
@@ -91,15 +101,22 @@ jobs:
     env:
       ENVIRONMENT: test
       TESTING: "true"
-      SECRET_KEY: ${{ secrets.SECRET_KEY || 'test-secret-key-32-chars-minimum-required!' }}
+      SECRET_KEY: ${{ secrets.SECRET_KEY }}
       DATABASE_URL: sqlite+aiosqlite:///./test_ci.db
-      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN || '123456789:TEST_BOT_TOKEN_FOR_CI' }}
-      TELEGRAM_WEBHOOK_SECRET: ${{ secrets.TELEGRAM_WEBHOOK_SECRET || 'ci_secret_webhook' }}
-      DASHBOARD_PASSWORD: ${{ secrets.DASHBOARD_PASSWORD || 'test_secure_ci_password_12345' }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_WEBHOOK_SECRET: ${{ secrets.TELEGRAM_WEBHOOK_SECRET }}
+      DASHBOARD_PASSWORD: ${{ secrets.DASHBOARD_PASSWORD }}
       NEXT_PUBLIC_API_URL: http://127.0.0.1:8000
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Validate Required E2E Credentials
+        run: |
+          if [ -z "$SECRET_KEY" ] || [ -z "$DASHBOARD_PASSWORD" ]; then
+            echo "::error::Missing required secret(s) SECRET_KEY or DASHBOARD_PASSWORD."
+            exit 1
+          fi
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v5

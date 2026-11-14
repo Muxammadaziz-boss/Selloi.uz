@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-11-14T11:22:02.066782+00:00",
+  "timestamp": "2026-11-14T13:21:36.600273+00:00",
   "token_pricing_verification": {
     "pricing_model_gemini-3.1-flash-lite": {
       "status": "PASSED",
@@ -130,9 +130,9 @@
       "status": "PASSED",
       "count": 10,
       "sample_org": {
-        "id": 488,
-        "name": "Boutique A",
-        "slug": "boutique-a-13468",
+        "id": 562,
+        "name": "Boutique B",
+        "slug": "boutique-b-5748",
         "category": "Retail",
         "plan": "None",
         "subscription_status": "inactive",
@@ -142,7 +142,7 @@
         "is_profitable": true,
         "conversations_count": 0,
         "bot_configured": false,
-        "created_at": "2026-11-14T10:25:48.044420+00:00"
+        "created_at": "2026-11-14T13:20:30.829048+00:00"
       },
       "msg": "Retrieved 10 organizations with revenue/cost breakdowns"
     }

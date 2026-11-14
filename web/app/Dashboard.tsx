@@ -557,9 +557,7 @@ export default function Dashboard({
   initialTenantSlug,
 }: DashboardProps) {
   const [currentUser, setCurrentUser] = useState<DashboardUser | null>(initialUser);
-  const isPlatformOwner = Boolean(
-    currentUser?.isPlatformOwner || currentUser?.role === "owner"
-  );
+  const isPlatformOwner = Boolean(currentUser?.isPlatformOwner);
 
   const [zone, setZone] = useState<"platform" | "tenant">(() => {
     if (initialZone) return initialZone;
@@ -1090,10 +1088,16 @@ export default function Dashboard({
   async function logout() {
     await fetch("/api/logout", { method: "POST" });
     setAuthenticated(false);
+    setCurrentUser(null);
+    setSubscriptionData(null);
     setOverview(null);
     setConversations([]);
     setMessages([]);
     setAdmins([]);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("ai_sales_design_system");
+      document.documentElement.setAttribute("data-design", "classic");
+    }
   }
 
   const activeConversation = useMemo(
@@ -1145,7 +1149,7 @@ export default function Dashboard({
         }
       } catch {}
 
-      if (isPlatformOwner || currentAdmin?.role === "owner") {
+      if (isPlatformOwner) {
         try {
           const m = await api<any>("/api/platform/metrics");
           setPlatformMetrics(m);

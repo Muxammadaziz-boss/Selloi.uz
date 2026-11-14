@@ -61,6 +61,7 @@ export async function POST(request: NextRequest) {
   let backendToken: string | undefined = undefined;
   let authenticatedUserId: number | undefined = undefined;
   let authenticatedRole = "admin";
+  let isTruePlatformOwner = false;
 
   try {
     const backendRes = await fetch(`${backendUrl.replace(/\/$/, "")}/api/v1/auth/login`, {
@@ -81,7 +82,11 @@ export async function POST(request: NextRequest) {
       if (profileRes.ok) {
         const profile = await profileRes.json();
         if (profile.is_platform_owner) {
+          isTruePlatformOwner = true;
           authenticatedRole = "owner";
+        } else {
+          isTruePlatformOwner = false;
+          authenticatedRole = profile.role || "admin";
         }
         if (profile.telegram_user_id) {
           telegramIdNum = profile.telegram_user_id;
@@ -106,6 +111,7 @@ export async function POST(request: NextRequest) {
 
     authenticatedUserId = 1;
     authenticatedRole = "owner";
+    isTruePlatformOwner = true;
   }
 
   const sessionPayload: SessionPayload = {
@@ -113,6 +119,7 @@ export async function POST(request: NextRequest) {
     telegramUserId: telegramIdNum,
     email,
     role: authenticatedRole,
+    isPlatformOwner: isTruePlatformOwner,
     organizationId: orgId,
     backendToken,
     issuedAt: Math.floor(Date.now() / 1000),
@@ -126,7 +133,7 @@ export async function POST(request: NextRequest) {
       email: sessionPayload.email,
       role: sessionPayload.role,
       organizationId: sessionPayload.organizationId,
-      isPlatformOwner: sessionPayload.role === "owner",
+      isPlatformOwner: isTruePlatformOwner,
     },
   });
 

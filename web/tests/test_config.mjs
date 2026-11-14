@@ -46,6 +46,7 @@ export const BASE_URL = mergedEnv.TEST_BASE_URL || mergedEnv.NEXT_PUBLIC_BASE_UR
 
 // Ensure DASHBOARD_PASSWORD is provided securely
 export const DASHBOARD_PASSWORD = mergedEnv.DASHBOARD_PASSWORD || "";
+export const SESSION_SECRET = mergedEnv.SESSION_SECRET || "session_signing_secret_key_random_2026_abc";
 
 if (!DASHBOARD_PASSWORD) {
   console.error("==================================================================");
