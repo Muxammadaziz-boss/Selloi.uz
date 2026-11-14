@@ -1,8 +1,8 @@
 {
   "metadata": {
     "suite": "playwright_e2e_suite",
-    "timestamp": "2026-11-14T12:24:01.030Z",
-    "commitSha": "7cd7f7e88675a28bf0f5d5074b624308d211abed",
+    "timestamp": "2026-11-14T15:03:56.764Z",
+    "commitSha": "84035cfbd000cd9ab783b3acbd5433181720ecb9",
     "nodeVersion": "v24.20.0",
     "platform": "win32",
     "arch": "x64",
@@ -133,7 +133,7 @@
   "design_system_switching": {
     "initial_design_mounted": {
       "status": "PASSED",
-      "details": "html[data-design=\"premium\"]"
+      "details": "html[data-design=\"classic\"]"
     },
     "switch_to_ios_design": {
       "status": "PASSED",
@@ -187,7 +187,6 @@
     }
   },
   "console_errors": [
-    "Failed to load resource: the server responded with a status of 404 (Not Found)",
     "Failed to load resource: the server responded with a status of 404 (Not Found)",
     "Failed to load resource: the server responded with a status of 404 (Not Found)",
     "Failed to load resource: the server responded with a status of 404 (Not Found)",

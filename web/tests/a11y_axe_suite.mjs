@@ -8,11 +8,30 @@ import { BASE_URL, DASHBOARD_PASSWORD, getLaunchOptions, getRunMetadata } from "
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const TABS_TO_AUDIT = [
+const CORE_TABS = [
   { tab: "overview", name: "Overview Dashboard" },
   { tab: "products", name: "Products Catalog" },
   { tab: "platform", name: "Platform Owner Center" },
   { tab: "profile", name: "Profile & Appearance" }
+];
+
+const ALL_16_TABS = [
+  { tab: "overview", name: "Overview Dashboard" },
+  { tab: "inbox", name: "Inbox & Live Dialogues" },
+  { tab: "knowledge", name: "AI Knowledge Base" },
+  { tab: "products", name: "Products Catalog" },
+  { tab: "orders", name: "Orders Management" },
+  { tab: "customers", name: "Customers CRM" },
+  { tab: "analytics", name: "Analytics & Conversion" },
+  { tab: "settings", name: "Store & AI Settings" },
+  { tab: "admins", name: "Admins & Telegram Operators" },
+  { tab: "team", name: "Team & Permissions" },
+  { tab: "logs", name: "Activity & Audit Logs" },
+  { tab: "profile", name: "Profile & Appearance" },
+  { tab: "usage", name: "Token & Usage Analytics" },
+  { tab: "billing", name: "Billing & Invoices" },
+  { tab: "pricing", name: "Plans & Pricing Tiers" },
+  { tab: "platform", name: "Platform Owner Center" }
 ];
 
 const DESIGNS = ["premium", "ios", "classic"];
@@ -26,6 +45,8 @@ const auditReport = {
   },
   themeAudits: {},
   summary: {
+    coreScans: 0,
+    coreCleanPasses: 0,
     totalScans: 0,
     cleanPasses: 0,
     totalViolations: 0,
@@ -117,12 +138,16 @@ async function runAccessibilityAudit() {
         const auditKey = `${design}_${theme}`;
         auditReport.themeAudits[auditKey] = {};
 
-        for (const item of TABS_TO_AUDIT) {
+        for (const item of ALL_16_TABS) {
+          const isCore = CORE_TABS.some((c) => c.tab === item.tab);
           console.log(`--> Scanning Tab: #${item.tab} (${item.name})...`);
           await page.goto(`${BASE_URL}/#${item.tab}`, { waitUntil: "domcontentloaded" });
-          await page.waitForTimeout(600);
+          await page.waitForTimeout(400);
 
           auditReport.summary.totalScans++;
+          if (isCore) {
+            auditReport.summary.coreScans++;
+          }
 
           // Run AxeBuilder
           const builder = new AxeBuilder({ page })
@@ -184,6 +209,9 @@ async function runAccessibilityAudit() {
 
           if (violations.length === 0) {
             auditReport.summary.cleanPasses++;
+            if (isCore) {
+              auditReport.summary.coreCleanPasses++;
+            }
             console.log(`    [CLEAN AUTOMATED PASS] 0 violations detected on #${item.tab} (${incompleteList.length} rules flagged for manual review)`);
           } else {
             console.error(`    [AUTOMATED VIOLATION] ${violations.length} violation types on #${item.tab}:`);

@@ -25,6 +25,7 @@ export const FONT_OPTIONS = [
     subtitle: "Heavy Display Sans",
     fontFamily: "'Olline', 'Outfit', 'Syne', sans-serif",
     styleTag: "Modern Headline",
+    imagePreview: "/fonts/olline-preview.png",
     isNew: true,
   },
   {
@@ -33,6 +34,7 @@ export const FONT_OPTIONS = [
     subtitle: "Clean Geometric Sans",
     fontFamily: "'Pogonia', 'Bricolage Grotesque', 'Plus Jakarta Sans', sans-serif",
     styleTag: "Fresh & Tech",
+    imagePreview: "/fonts/pogonia-preview.png",
     isNew: true,
   },
   {
@@ -41,6 +43,7 @@ export const FONT_OPTIONS = [
     subtitle: "Linear Enterprise UI",
     fontFamily: "'Inter', sans-serif",
     styleTag: "Linear Style",
+    imagePreview: null,
     isNew: false,
   },
   {
@@ -49,6 +52,7 @@ export const FONT_OPTIONS = [
     subtitle: "Apple Native System",
     fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif",
     styleTag: "Apple Clean",
+    imagePreview: null,
     isNew: false,
   },
   {
@@ -57,6 +61,7 @@ export const FONT_OPTIONS = [
     subtitle: "Modern Geometric",
     fontFamily: "'Plus Jakarta Sans', sans-serif",
     styleTag: "Geometric",
+    imagePreview: null,
     isNew: false,
   },
 ];
@@ -197,6 +202,49 @@ export function ProfileTab({
                 Tarifingizga mos vizual tizimni tanlang. <strong>Premium Minimal</strong> (Ultra) chuqur qora minimalist SaaS interfeysi, <strong>Apple iOS</strong> (Pro) muzlatilgan shisha va <strong>Classic Standart</strong> korporativ boshqaruv paneli.
               </p>
               <DesignSelector onNavigateToBilling={onNavigateToBilling} />
+
+              {/* Quick Font Selection in Design Systems Row */}
+              <div className="mt-3 pt-3 border-top border-subtle">
+                <div className="d-flex align-items-center justify-content-between mb-2">
+                  <div className="d-flex align-items-center gap-1.5">
+                    <IconTypography size={16} className="text-secondary" />
+                    <span className="fw-semibold text-primary small">
+                      Dizayn Shriftlari (Yangi Fontlar: Olline & Pogonia):
+                    </span>
+                  </div>
+                  <Badge variant="accent">
+                    {FONT_OPTIONS.find((f) => f.id === appFont)?.name || "Olline"} faol
+                  </Badge>
+                </div>
+                <div className="d-flex flex-wrap gap-2">
+                  {FONT_OPTIONS.map((f) => (
+                    <button
+                      key={f.id}
+                      type="button"
+                      onClick={() => onSelectFont(f.id)}
+                      className={`btn btn-sm d-flex align-items-center gap-1.5 transition-fast ${
+                        appFont === f.id ? "btn-primary" : "btn-outline-secondary"
+                      }`}
+                      style={{
+                        fontFamily: f.fontFamily,
+                        fontSize: "0.82rem",
+                        padding: "5px 12px",
+                      }}
+                    >
+                      {f.isNew && (
+                        <span
+                          className="badge bg-warning text-dark px-1 py-0 me-1"
+                          style={{ fontSize: "8px", fontWeight: 700 }}
+                        >
+                          YANGI
+                        </span>
+                      )}
+                      <span>{f.name}</span>
+                      {appFont === f.id && <IconCheck size={14} />}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </CardContent>
           </Card>
 
@@ -294,35 +342,53 @@ export function ProfileTab({
                         )}
 
                         {/* Typography Visual Preview Box matching user images */}
-                        <div
-                          className="text-center py-2 px-2 rounded mb-2"
-                          style={{
-                            backgroundColor: "var(--bg-canvas)",
-                            border: "1px solid var(--border-subtle)",
-                          }}
-                        >
+                        {font.imagePreview ? (
                           <div
-                            className="text-primary text-truncate"
+                            className="d-flex flex-column align-items-center justify-content-center p-2 rounded mb-2 overflow-hidden"
                             style={{
-                              fontFamily: font.fontFamily,
-                              fontSize: font.id === "olline" || font.id === "pogonia" ? "1.6rem" : "1.35rem",
-                              fontWeight: font.id === "olline" ? 900 : font.id === "pogonia" ? 800 : 700,
-                              lineHeight: 1.15,
-                              letterSpacing: font.id === "olline" ? "-0.03em" : font.id === "pogonia" ? "-0.02em" : "-0.01em",
+                              backgroundColor: "#f1f5f9",
+                              border: "1px solid var(--border-subtle)",
+                              height: "82px",
                             }}
                           >
-                            {font.name}
+                            <img
+                              src={font.imagePreview}
+                              alt={`${font.name} font preview`}
+                              className="img-fluid object-fit-contain"
+                              style={{ maxHeight: "66px", maxWidth: "100%" }}
+                            />
                           </div>
+                        ) : (
                           <div
-                            className="text-secondary small mt-0.5"
+                            className="text-center py-2 px-2 rounded mb-2 d-flex flex-column justify-content-center"
                             style={{
-                              fontFamily: font.fontFamily,
-                              fontSize: "0.72rem",
+                              backgroundColor: "var(--bg-canvas)",
+                              border: "1px solid var(--border-subtle)",
+                              height: "82px",
                             }}
                           >
-                            {font.name}
+                            <div
+                              className="text-primary text-truncate"
+                              style={{
+                                fontFamily: font.fontFamily,
+                                fontSize: "1.35rem",
+                                fontWeight: 700,
+                                lineHeight: 1.15,
+                              }}
+                            >
+                              {font.name}
+                            </div>
+                            <div
+                              className="text-secondary small mt-0.5"
+                              style={{
+                                fontFamily: font.fontFamily,
+                                fontSize: "0.72rem",
+                              }}
+                            >
+                              {font.name}
+                            </div>
                           </div>
-                        </div>
+                        )}
 
                         <div className="d-flex align-items-center justify-content-between mt-auto pt-1">
                           <div>

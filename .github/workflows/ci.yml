@@ -17,16 +17,50 @@ jobs:
   backend-audit:
     name: Backend Pytest & Financial Verification
     runs-on: ubuntu-latest
-    env:
-      ENVIRONMENT: test
-      TESTING: "true"
-      SECRET_KEY: ${{ secrets.SECRET_KEY }}
-      DATABASE_URL: sqlite+aiosqlite:///./test_saas.db
-      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-      TELEGRAM_WEBHOOK_SECRET: ${{ secrets.TELEGRAM_WEBHOOK_SECRET }}
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_ci_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Configure Dedicated CI Test Environment
+        run: |
+          CI_JWT_SECRET=$(openssl rand -hex 32)
+          CI_ADMIN_TOKEN=$(openssl rand -hex 32)
+          CI_ENC_KEY=$(openssl rand -hex 16)
+          CI_TG_SECRET=$(openssl rand -hex 24)
+          CI_TG_BOT_TOKEN="123456789:AA$(openssl rand -hex 16)"
+
+          echo "APP_ENV=test" >> $GITHUB_ENV
+          echo "TESTING=true" >> $GITHUB_ENV
+          echo "JWT_SECRET=${CI_JWT_SECRET}" >> $GITHUB_ENV
+          echo "ADMIN_API_TOKEN=${CI_ADMIN_TOKEN}" >> $GITHUB_ENV
+          echo "ENCRYPTION_KEY=${CI_ENC_KEY}" >> $GITHUB_ENV
+          echo "TELEGRAM_WEBHOOK_SECRET=${CI_TG_SECRET}" >> $GITHUB_ENV
+          echo "TELEGRAM_BOT_TOKEN=${CI_TG_BOT_TOKEN}" >> $GITHUB_ENV
+          echo "DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/test_ci_db" >> $GITHUB_ENV
+
+      - name: Validate Required CI Credentials
+        run: |
+          for var in JWT_SECRET ADMIN_API_TOKEN ENCRYPTION_KEY TELEGRAM_WEBHOOK_SECRET TELEGRAM_BOT_TOKEN DATABASE_URL; do
+            if [ -z "${!var}" ]; then
+              echo "::error::CI environment variable $var is missing or empty."
+              exit 1
+            fi
+          done
+          echo "All required CI backend credentials successfully validated."
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
@@ -34,18 +68,11 @@ jobs:
           python-version: "3.11"
           cache: "pip"
 
-      - name: Validate Required CI Credentials
-        run: |
-          if [ -z "$SECRET_KEY" ] || [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_WEBHOOK_SECRET" ]; then
-            echo "::error::Missing required repository secret(s). CI cannot run with unconfigured secrets."
-            exit 1
-          fi
-
       - name: Install backend dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest pytest-asyncio httpx
+          pip install pytest pytest-asyncio httpx asyncpg
 
       - name: Run Backend Pytest Suite
         run: |
@@ -95,28 +122,59 @@ jobs:
           NEXT_TELEMETRY_DISABLED: "1"
 
   e2e-and-accessibility:
-    name: Playwright E2E, Responsive & Axe-Core Suites
+    name: Playwright E2E, Responsive, Entitlement & Axe-Core Suites
     needs: [backend-audit, frontend-build]
     runs-on: ubuntu-latest
-    env:
-      ENVIRONMENT: test
-      TESTING: "true"
-      SECRET_KEY: ${{ secrets.SECRET_KEY }}
-      DATABASE_URL: sqlite+aiosqlite:///./test_ci.db
-      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-      TELEGRAM_WEBHOOK_SECRET: ${{ secrets.TELEGRAM_WEBHOOK_SECRET }}
-      DASHBOARD_PASSWORD: ${{ secrets.DASHBOARD_PASSWORD }}
-      NEXT_PUBLIC_API_URL: http://127.0.0.1:8000
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_ci_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Validate Required E2E Credentials
+      - name: Configure Dedicated CI Test Environment
         run: |
-          if [ -z "$SECRET_KEY" ] || [ -z "$DASHBOARD_PASSWORD" ]; then
-            echo "::error::Missing required secret(s) SECRET_KEY or DASHBOARD_PASSWORD."
-            exit 1
-          fi
+          CI_JWT_SECRET=$(openssl rand -hex 32)
+          CI_SESSION_SECRET=$(openssl rand -hex 32)
+          CI_ADMIN_TOKEN=$(openssl rand -hex 32)
+          CI_ENC_KEY=$(openssl rand -hex 16)
+          CI_TG_SECRET=$(openssl rand -hex 24)
+          CI_DASHBOARD_PWD=$(openssl rand -base64 24)
+          CI_TG_BOT_TOKEN="123456789:AA$(openssl rand -hex 16)"
+
+          echo "APP_ENV=test" >> $GITHUB_ENV
+          echo "TESTING=true" >> $GITHUB_ENV
+          echo "JWT_SECRET=${CI_JWT_SECRET}" >> $GITHUB_ENV
+          echo "SESSION_SECRET=${CI_SESSION_SECRET}" >> $GITHUB_ENV
+          echo "ADMIN_API_TOKEN=${CI_ADMIN_TOKEN}" >> $GITHUB_ENV
+          echo "ENCRYPTION_KEY=${CI_ENC_KEY}" >> $GITHUB_ENV
+          echo "TELEGRAM_WEBHOOK_SECRET=${CI_TG_SECRET}" >> $GITHUB_ENV
+          echo "DASHBOARD_PASSWORD=${CI_DASHBOARD_PWD}" >> $GITHUB_ENV
+          echo "TELEGRAM_BOT_TOKEN=${CI_TG_BOT_TOKEN}" >> $GITHUB_ENV
+          echo "DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/test_ci_db" >> $GITHUB_ENV
+          echo "BACKEND_URL=http://127.0.0.1:8000" >> $GITHUB_ENV
+          echo "TEST_DASHBOARD_PASSWORD=${CI_DASHBOARD_PWD}" >> $GITHUB_ENV
+
+      - name: Validate Required CI Credentials
+        run: |
+          for var in JWT_SECRET SESSION_SECRET ADMIN_API_TOKEN ENCRYPTION_KEY TELEGRAM_WEBHOOK_SECRET DASHBOARD_PASSWORD TELEGRAM_BOT_TOKEN DATABASE_URL; do
+            if [ -z "${!var}" ]; then
+              echo "::error::CI environment variable $var is missing or empty."
+              exit 1
+            fi
+          done
+          echo "All required CI E2E credentials successfully validated."
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
@@ -128,7 +186,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install uvicorn
+          pip install uvicorn asyncpg
 
       - name: Set up Node.js 20
         uses: actions/setup-node@v4
@@ -148,7 +206,7 @@ jobs:
       - name: Start Backend Server
         run: |
           python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 &
-          sleep 4
+          sleep 5
           curl -f http://127.0.0.1:8000/docs || exit 1
 
       - name: Start Next.js Server
@@ -156,8 +214,11 @@ jobs:
         run: |
           npm run build
           npm run start -- -p 3000 &
-          sleep 5
+          sleep 6
           curl -f http://localhost:3000/ || exit 1
+
+      - name: Run Entitlement Integration Suite (Auth, Downgrades, UI Logout)
+        run: node web/tests/entitlement_integration_suite.mjs
 
       - name: Run Playwright E2E Suite (16 tabs, auth, visual fidelity, modals)
         run: node web/tests/playwright_e2e_suite.mjs
@@ -165,7 +226,7 @@ jobs:
       - name: Run Responsive Viewport Suite (5 viewports)
         run: node web/tests/responsive_suite.mjs
 
-      - name: Run Axe-Core WCAG 2.1 AA Suite (24 scans, 3 designs x 2 themes)
+      - name: Run Axe-Core WCAG 2.1 AA Suite (16 tabs x 3 designs x 2 themes)
         run: node web/tests/a11y_axe_suite.mjs
 
       - name: Upload Test Results, Evidence & Screenshots
@@ -174,6 +235,7 @@ jobs:
         with:
           name: e2e-and-a11y-test-evidence
           path: |
+            web/tests/entitlement_integration_results.json
             web/tests/playwright_e2e_results.json
             web/tests/responsive_test_results.json
             web/tests/a11y_axe_results.json

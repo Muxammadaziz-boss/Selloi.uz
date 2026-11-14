@@ -1,14 +1,24 @@
 {
   "metadata": {
     "suite": "entitlement_integration_suite",
-    "timestamp": "2026-11-14T13:14:13.867Z",
-    "commitSha": "987cd425dcbf3075be9de4a60b19408ef2afe9f7",
+    "timestamp": "2026-11-14T15:05:20.043Z",
+    "commitSha": "84035cfbd000cd9ab783b3acbd5433181720ecb9",
     "nodeVersion": "v24.20.0",
     "platform": "win32",
     "arch": "x64",
     "targetUrl": "http://localhost:3000",
     "credentialSource": "env_file",
     "browserVersion": "157.0.8103.78"
+  },
+  "unauthenticated_state": {
+    "unauthenticated_shows_login_card": {
+      "status": "PASSED",
+      "details": "Login form displayed"
+    },
+    "unauthenticated_defaults_to_classic": {
+      "status": "PASSED",
+      "details": "data-design=classic"
+    }
   },
   "ultra_plan": {
     "designs_rendered": {
@@ -91,13 +101,29 @@
     }
   },
   "logout_revocation": {
+    "premium_active_pre_logout": {
+      "status": "PASSED",
+      "details": "pre-logout data-design=premium"
+    },
+    "actual_ui_logout_clicked": {
+      "status": "PASSED",
+      "details": "UI logout button clicked successfully without test-side eval"
+    },
+    "server_cookie_invalidated": {
+      "status": "PASSED",
+      "details": "cookie status: cleared"
+    },
     "design_reset_to_classic": {
       "status": "PASSED",
-      "details": "data-design=classic"
+      "details": "post-logout data-design=classic"
     },
     "storage_cleared": {
       "status": "PASSED",
       "details": "localStorage=null"
+    },
+    "unauthenticated_view_rendered": {
+      "status": "PASSED",
+      "details": "login card visible=true"
     }
   },
   "org_switching": {
@@ -121,8 +147,8 @@
     }
   },
   "summary": {
-    "total": 22,
-    "passed": 22,
+    "total": 28,
+    "passed": 28,
     "failed": 0,
     "overall_status": "PASSED"
   }

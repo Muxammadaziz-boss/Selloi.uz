@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
   let supplied = "";
   let telegramIdNum: number | undefined = undefined;
   let email = "admin@aisales.uz";
-  let orgId = 1;
+  let orgId: number | undefined = undefined;
 
   try {
     const body = await request.json();
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
   // 1. Try individual backend authentication (/api/v1/auth/login)
   let backendToken: string | undefined = undefined;
   let authenticatedUserId: number | undefined = undefined;
-  let authenticatedRole = "admin";
+  let authenticatedRole = "member";
   let isTruePlatformOwner = false;
 
   try {
@@ -75,26 +75,50 @@ export async function POST(request: NextRequest) {
       backendToken = data.access_token;
       authenticatedUserId = data.user_id;
 
-      // Fetch user profile from backend to get is_platform_owner and telegram_user_id
+      // Authoritative profile claim verification: ONLY backend profile claim grants Platform Owner
       const profileRes = await fetch(`${backendUrl.replace(/\/$/, "")}/api/v1/auth/me`, {
         headers: { Authorization: `Bearer ${backendToken}` },
       });
       if (profileRes.ok) {
         const profile = await profileRes.json();
-        if (profile.is_platform_owner) {
+        // Strict equality check: only authenticated boolean claim true grants Platform Owner
+        if (profile && profile.is_platform_owner === true) {
           isTruePlatformOwner = true;
-          authenticatedRole = "owner";
+          authenticatedRole = "platform_owner";
         } else {
           isTruePlatformOwner = false;
-          authenticatedRole = profile.role || "admin";
+          // Tenant role "owner" must NEVER imply Platform Owner
+          authenticatedRole = profile?.role || "member";
         }
-        if (profile.telegram_user_id) {
+        if (profile?.telegram_user_id) {
           telegramIdNum = profile.telegram_user_id;
         }
+
+        // Resolve organization without assuming Org 1
+        if (!orgId) {
+          try {
+            const orgsRes = await fetch(`${backendUrl.replace(/\/$/, "")}/api/v1/organizations`, {
+              headers: { Authorization: `Bearer ${backendToken}` },
+            });
+            if (orgsRes.ok) {
+              const orgs = await orgsRes.json();
+              if (Array.isArray(orgs) && orgs.length > 0 && orgs[0]?.id) {
+                orgId = orgs[0].id;
+              }
+            }
+          } catch {
+            // Ignore org resolution errors
+          }
+        }
+      } else {
+        // Failed backend profile verification MUST NOT grant elevated privileges
+        isTruePlatformOwner = false;
+        authenticatedRole = "member";
       }
     }
   } catch {
-    // Backend may be offline or unreachable; fall through to dashboard password check
+    // Backend unreachable; fail safe without elevated privileges
+    isTruePlatformOwner = false;
   }
 
   // 2. Fallback to master DASHBOARD_PASSWORD if backend login did not match
@@ -110,8 +134,9 @@ export async function POST(request: NextRequest) {
     }
 
     authenticatedUserId = 1;
-    authenticatedRole = "owner";
-    isTruePlatformOwner = true;
+    authenticatedRole = "admin";
+    // Master DASHBOARD_PASSWORD is a local fallback and MUST NOT grant elevated Platform Owner status
+    isTruePlatformOwner = false;
   }
 
   const sessionPayload: SessionPayload = {

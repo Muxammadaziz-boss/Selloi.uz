@@ -128,6 +128,97 @@ html body p.text-info {
   color: var(--info-text) !important;
 }
 
+/* WCAG 2.1 AA Contrast Enforcement for Badges & Light Theme Utilities */
+[data-bs-theme="light"] .bg-green-lt,
+html[data-theme="light"] .bg-green-lt,
+[data-bs-theme="light"] .text-green,
+html[data-theme="light"] .text-green {
+  color: #065f46 !important;
+  background-color: #d1fae5 !important;
+}
+
+[data-bs-theme="light"] .bg-warning-lt,
+html[data-theme="light"] .bg-warning-lt {
+  color: #78350f !important;
+  background-color: #fef3c7 !important;
+}
+
+[data-bs-theme="light"] .bg-danger-lt,
+html[data-theme="light"] .bg-danger-lt {
+  color: #991b1b !important;
+  background-color: #fee2e2 !important;
+}
+
+[data-bs-theme="light"] .bg-primary-lt,
+html[data-theme="light"] .bg-primary-lt {
+  color: #1e3a8a !important;
+  background-color: #dbeafe !important;
+}
+
+[data-bs-theme="light"] .badge.bg-primary,
+html[data-theme="light"] .badge.bg-primary {
+  background-color: #312e81 !important;
+  color: #ffffff !important;
+}
+
+[data-bs-theme="light"] .badge.bg-green,
+html[data-theme="light"] .badge.bg-green {
+  background-color: #065f46 !important;
+  color: #ffffff !important;
+}
+
+/* Light theme button & tertiary backgrounds */
+[data-bs-theme="light"] .bg-body-tertiary,
+html[data-theme="light"] .bg-body-tertiary,
+html[data-theme="light"] [data-bs-theme="light"] .bg-body-tertiary {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+[data-bs-theme="light"] .btn-outline-secondary,
+html[data-theme="light"] .btn-outline-secondary {
+  color: #1e293b !important;
+  border-color: #94a3b8 !important;
+  background-color: #ffffff !important;
+}
+
+[data-bs-theme="light"] .btn-outline-secondary:hover,
+html[data-theme="light"] .btn-outline-secondary:hover {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+[data-bs-theme="light"] .btn-outline-primary,
+html[data-theme="light"] .btn-outline-primary {
+  color: #312e81 !important;
+  border-color: #4338ca !important;
+}
+
+[data-bs-theme="light"] .text-decoration-line-through.opacity-50,
+html[data-theme="light"] .text-decoration-line-through.opacity-50 {
+  opacity: 0.8 !important;
+  color: #475569 !important;
+}
+
+html[data-theme="light"] [data-design="premium"] .bg-body-tertiary {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] .table th,
+[data-bs-theme="light"] .table th {
+  color: #1e293b !important;
+  background-color: #f8fafc !important;
+  font-weight: 700 !important;
+}
+
+html[data-theme="light"] .linear-btn-secondary,
+[data-bs-theme="light"] .linear-btn-secondary {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
 /* Local & Custom Display Fonts: Olline and Pogonia */
 @font-face {
   font-family: 'Olline';

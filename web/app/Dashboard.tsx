@@ -1122,6 +1122,8 @@ export default function Dashboard({
       } catch (err: any) {
         setSubscriptionData(null);
         setSubscriptionError(err?.message || "Obuna ma'lumotlarini yuklab bo'lmadi");
+      } finally {
+        setIsSubscriptionLoading(false);
       }
 
       try {

@@ -41,19 +41,19 @@ export function DesignSelector({ onNavigateToBilling }: DesignSelectorProps) {
           <div className="d-flex align-items-center justify-content-between pb-1 border-bottom" style={{ borderColor: "#1f1f1f" }}>
             <div className="d-flex align-items-center gap-1">
               <span className="rounded-circle" style={{ width: "6px", height: "6px", backgroundColor: "#3b82f6" }} />
-              <span style={{ fontSize: "9px", color: "#e2e8f0", fontWeight: 600 }}>CONTROL CENTER</span>
+              <span style={{ fontSize: "9px", color: "#f8fafc", fontWeight: 600 }}>CONTROL CENTER</span>
             </div>
-            <span className="py-0 px-1 rounded" style={{ fontSize: "8px", backgroundColor: "rgba(245, 158, 11, 0.25)", color: "#fef08a" }}>
+            <span className="py-0 px-1 rounded" style={{ fontSize: "8px", backgroundColor: "#78350f", color: "#fef3c7" }}>
               AI ONLINE
             </span>
           </div>
           <div className="d-flex gap-1.5 flex-grow-1">
             <div className="rounded p-1 d-flex flex-column justify-content-center" style={{ width: "35%", backgroundColor: "#0d0d0d", border: "1px solid #1a1a1a" }}>
-              <span style={{ fontSize: "8px", color: "#cbd5e1" }}>SIDEBAR</span>
-              <span style={{ fontSize: "9px", color: "#f5f5f5", fontWeight: 700 }}>270px</span>
+              <span style={{ fontSize: "8px", color: "#e2e8f0" }}>SIDEBAR</span>
+              <span style={{ fontSize: "9px", color: "#f8fafc", fontWeight: 700 }}>270px</span>
             </div>
             <div className="rounded p-1 d-flex flex-column justify-content-center flex-grow-1" style={{ backgroundColor: "#171717", border: "1px solid #262626" }}>
-              <span style={{ fontSize: "8px", color: "#cbd5e1" }}>KONVERSIYA</span>
+              <span style={{ fontSize: "8px", color: "#e2e8f0" }}>KONVERSIYA</span>
               <span style={{ fontSize: "11px", color: "#34d399", fontWeight: 800 }}>88.4%</span>
             </div>
           </div>
@@ -83,8 +83,8 @@ export function DesignSelector({ onNavigateToBilling }: DesignSelectorProps) {
             <div className="rounded-pill px-2 py-0.5" style={{ backgroundColor: "rgba(255, 255, 255, 0.18)", fontSize: "8px", color: "#ffffff" }}>
               iMessage
             </div>
-            <div className="rounded-2 p-1 flex-grow-1 text-center" style={{ backgroundColor: "rgba(0, 122, 255, 0.22)", border: "1px solid rgba(0, 122, 255, 0.4)" }}>
-              <span style={{ fontSize: "10px", color: "#93c5fd", fontWeight: 700 }}>SF Pro iOS</span>
+            <div className="rounded-2 p-1 flex-grow-1 text-center" style={{ backgroundColor: "#0c4a6e", border: "1px solid #0284c7" }}>
+              <span style={{ fontSize: "11px", color: "#f0f9ff", fontWeight: 800 }}>SF Pro iOS</span>
             </div>
           </div>
         </div>
@@ -135,7 +135,6 @@ export function DesignSelector({ onNavigateToBilling }: DesignSelectorProps) {
                 }`}
                 style={{
                   backgroundColor: isSelected ? "var(--bg-surface-hover)" : "var(--bg-surface-elevated)",
-                  opacity: locked ? 0.78 : 1,
                 }}
               >
                 {/* Top Badge Indicators */}

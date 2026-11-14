@@ -121,7 +121,7 @@ export function UsageTab({ usageData, loading, onRefresh, onUpgradeClick }: Usag
             <IconAlertCircle size={26} className="text-danger flex-shrink-0" />
             <div>
               <h4 className="alert-title text-danger mb-0.5 fw-bold">Oylik Limitga Yetildi yoki Tugash Arafasida!</h4>
-              <div className="text-white small">
+              <div className="small" style={{ color: "var(--text-primary)" }}>
                 Ba'zi resurslaringiz belgilangan tarif rejasining 90% yoki 100% ga yetdi. Xizmat to'xtab qolmasligi uchun tarifni oshiring.
               </div>
             </div>
@@ -144,9 +144,9 @@ export function UsageTab({ usageData, loading, onRefresh, onUpgradeClick }: Usag
             <IconGauge size={22} className="text-primary" />
           </div>
           <div>
-            <h3 className="card-title mb-0 fw-bold">Resurslardan Foydalanish va Oylik Limitlar</h3>
+            <h3 className="card-title text-primary mb-0 fw-bold">Resurslardan Foydalanish va Oylik Limitlar</h3>
             <p className="text-secondary small mb-0">
-              Faol tarif: <span className="badge bg-primary text-white fw-bold">{planName}</span> • Hisob davri: {usageData?.period || "Joriy oy"}
+              Faol tarif: <span className="badge linear-badge-accent fw-bold">{planName}</span> • Hisob davri: {usageData?.period || "Joriy oy"}
             </p>
           </div>
         </div>
@@ -197,7 +197,7 @@ export function UsageTab({ usageData, loading, onRefresh, onUpgradeClick }: Usag
               <div className="card-body p-3.5 d-flex flex-column justify-content-between">
                 <div>
                   <div className="d-flex align-items-center justify-content-between mb-2">
-                    <span className="fw-bold text-white fs-4">{item.name}</span>
+                    <span className="fw-bold text-primary fs-4">{item.name}</span>
                     {getStatusBadge(item.status, item.raw_percentage)}
                   </div>
                   <p className="text-secondary small mb-3" style={{ minHeight: "36px", fontSize: "0.78rem" }}>
@@ -207,7 +207,7 @@ export function UsageTab({ usageData, loading, onRefresh, onUpgradeClick }: Usag
 
                 <div>
                   <div className="d-flex align-items-baseline justify-content-between mb-1.5">
-                    <div className="fs-2 fw-bold text-white">
+                    <div className="fs-2 fw-bold text-primary">
                       {item.used.toLocaleString()}{" "}
                       <span className="text-secondary small fs-5 fw-normal">
                         / {item.limit.toLocaleString()} {item.unit}
@@ -258,16 +258,16 @@ export function UsageTab({ usageData, loading, onRefresh, onUpgradeClick }: Usag
           <div className="card-header py-2.5 px-3 d-flex align-items-center justify-content-between">
             <h3 className="card-title d-flex align-items-center gap-2 mb-0">
               <IconCpu size={18} className="text-info" />
-              <span>AI Token Sarfi va Hisoblangan Xarajatlar (LLM Compute)</span>
+              <span className="text-primary">AI Token Sarfi va Hisoblangan Xarajatlar (LLM Compute)</span>
             </h3>
-            <span className="badge bg-blue-lt text-blue font-monospace">Gemini AI Models</span>
+            <span className="badge linear-badge-accent font-monospace">Gemini AI Models</span>
           </div>
           <div className="card-body p-3">
             <div className="row g-3 text-center">
               <div className="col-6 col-md-3">
                 <div className="p-3 rounded bg-body-tertiary border border-secondary border-opacity-10">
                   <div className="text-secondary small mb-1">Kirish Tokenlari (Prompt)</div>
-                  <div className="fs-3 fw-bold text-white font-monospace">
+                  <div className="fs-3 fw-bold text-primary font-monospace">
                     {usageData.tokens.input_tokens.toLocaleString()}
                   </div>
                 </div>
@@ -275,7 +275,7 @@ export function UsageTab({ usageData, loading, onRefresh, onUpgradeClick }: Usag
               <div className="col-6 col-md-3">
                 <div className="p-3 rounded bg-body-tertiary border border-secondary border-opacity-10">
                   <div className="text-secondary small mb-1">Chiqish Tokenlari (Reply)</div>
-                  <div className="fs-3 fw-bold text-white font-monospace">
+                  <div className="fs-3 fw-bold text-primary font-monospace">
                     {usageData.tokens.output_tokens.toLocaleString()}
                   </div>
                 </div>

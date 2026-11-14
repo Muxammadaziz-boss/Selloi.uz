@@ -206,7 +206,7 @@ export function InboxTab({
             </div>
 
             {/* Conversation List Scroll Area */}
-            <div className="flex-grow-1 overflow-y-auto custom-scrollbar p-1">
+            <div className="flex-grow-1 overflow-y-auto custom-scrollbar p-1" tabIndex={0} aria-label="Suhbatlar ro'yxati">
               {filteredConversations.length === 0 ? (
                 <div className="p-4 text-center text-secondary small">
                   Suhbat topilmadi
@@ -308,6 +308,8 @@ export function InboxTab({
               {/* Message Thread Scroll View */}
               <div
                 ref={chatScrollRef}
+                tabIndex={0}
+                aria-label="Xabarlar tarixi"
                 className="flex-grow-1 p-3 overflow-y-auto custom-scrollbar d-flex flex-column gap-2.5"
                 style={{ backgroundColor: "var(--bg-canvas)", maxHeight: "460px" }}
               >
@@ -344,8 +346,9 @@ export function InboxTab({
                             <div
                               className="d-flex align-items-center gap-1 mb-1 font-monospace"
                               style={{
-                                fontSize: "0.65rem",
-                                color: isAdmin ? "var(--warning-text)" : "rgba(255, 255, 255, 0.8)",
+                                fontSize: "0.7rem",
+                                fontWeight: 600,
+                                color: isAdmin ? "var(--warning-text)" : "#ffffff",
                               }}
                             >
                               {isAdmin ? <IconHeadset size={11} /> : <IconRobot size={11} />}
@@ -362,8 +365,9 @@ export function InboxTab({
                           <div
                             className="text-end mt-1 font-monospace"
                             style={{
-                              fontSize: "0.65rem",
-                              color: isOutgoing && !isAdmin ? "rgba(255, 255, 255, 0.7)" : "var(--text-tertiary)",
+                              fontSize: "0.68rem",
+                              fontWeight: 500,
+                              color: isOutgoing && !isAdmin ? "#ffffff" : "var(--text-secondary)",
                             }}
                           >
                             {formatChatTime(m.created_at)}
@@ -417,7 +421,7 @@ export function InboxTab({
         {/* PANEL 3: Customer Details, Internal Notes & Fast Proposals */}
         <div className="col-12 col-lg-3 d-flex flex-column">
           {activeConversation ? (
-            <div className="linear-card d-flex flex-column h-100 p-3 overflow-y-auto custom-scrollbar">
+            <div className="linear-card d-flex flex-column h-100 p-3 overflow-y-auto custom-scrollbar" tabIndex={0} aria-label="Mijoz ma'lumotlari">
               {/* Customer Avatar & Bio */}
               <div className="text-center pb-3 border-bottom border-subtle mb-3">
                 <div

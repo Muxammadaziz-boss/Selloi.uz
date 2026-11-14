@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-11-14T13:21:36.600273+00:00",
+  "timestamp": "2026-11-14T15:09:07.869309+00:00",
   "token_pricing_verification": {
     "pricing_model_gemini-3.1-flash-lite": {
       "status": "PASSED",
@@ -105,20 +105,20 @@
   "live_database_trace": {
     "live_mrr_valid": {
       "status": "PASSED",
-      "mrr_usd": 133.83,
-      "msg": "MRR calculated: $133.83"
+      "mrr_usd": 282.83,
+      "msg": "MRR calculated: $282.83"
     },
     "live_arr_calculation": {
       "status": "PASSED",
-      "arr_actual": 1606.0,
-      "arr_expected": 1605.96,
-      "msg": "ARR ($1606.0) matches MRR*12 ($1605.96)"
+      "arr_actual": 3394.0,
+      "arr_expected": 3393.96,
+      "msg": "ARR ($3394.0) matches MRR*12 ($3393.96)"
     },
     "live_arpu_calculation": {
       "status": "PASSED",
-      "arpu_actual": 44.61,
-      "arpu_expected": 44.61,
-      "msg": "ARPU ($44.61) matches MRR/active_subs ($44.61)"
+      "arpu_actual": 70.71,
+      "arpu_expected": 70.71,
+      "msg": "ARPU ($70.71) matches MRR/active_subs ($70.71)"
     },
     "live_gross_margin": {
       "status": "PASSED",

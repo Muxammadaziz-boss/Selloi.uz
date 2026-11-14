@@ -29,14 +29,13 @@ export function createSessionToken(
   let secret: string;
 
   if (typeof payloadOrSecret === "string") {
-    // Legacy fallback: generate owner session for admin
+    // Legacy fallback: generate non-elevated session for admin
     secret = payloadOrSecret;
     payload = {
       userId: 1,
       email: "admin@aisales.uz",
-      role: "owner",
-      isPlatformOwner: true,
-      organizationId: 1,
+      role: "admin",
+      isPlatformOwner: false,
       issuedAt: Math.floor(Date.now() / 1000),
     };
   } else {

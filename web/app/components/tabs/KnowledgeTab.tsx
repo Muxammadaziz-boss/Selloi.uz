@@ -119,6 +119,7 @@ export function KnowledgeTab({
           <form onSubmit={onConnectChannel} className="d-flex gap-2 mb-3">
             <input
               type="text"
+              aria-label="Telegram kanal username yoki havolasi"
               placeholder="Telegram kanal username yoki havolasi (@kanal_nomi yoki https://t.me/kanal_nomi)..."
               value={newChannelInput}
               onChange={(e) => setNewChannelInput(e.target.value)}
@@ -219,6 +220,7 @@ export function KnowledgeTab({
               <div className="d-flex align-items-center gap-1.5">
                 <IconFilter size={14} className="text-secondary" />
                 <select
+                  aria-label="Kanal bo'yicha saralash"
                   value={channelFilter}
                   onChange={(e) => setChannelFilter(e.target.value)}
                   className="linear-input py-1"
@@ -294,6 +296,7 @@ export function KnowledgeTab({
                         <Button
                           variant="danger"
                           size="xs"
+                          aria-label={`Post #${p.telegram_message_id} ni o'chirish`}
                           onClick={() => onDeletePost(p.id, p.telegram_message_id)}
                           disabled={busy}
                           icon={<IconTrash size={13} />}

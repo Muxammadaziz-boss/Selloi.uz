@@ -154,6 +154,7 @@ export function AdminsTab({
                                 <Badge variant="warning">Bosh Admin</Badge>
                               ) : (
                                 <select
+                                  aria-label={`Admin ${adm.name} roli`}
                                   value={adm.role}
                                   onChange={(e) => onRoleChange(adm.telegram_user_id, e.target.value)}
                                   disabled={busy}
@@ -193,6 +194,7 @@ export function AdminsTab({
                                 <Button
                                   variant="danger"
                                   size="xs"
+                                  aria-label={`Admin ${adm.name} ni o'chirish`}
                                   onClick={() => onDeleteAdmin(adm.telegram_user_id, adm.name)}
                                   disabled={busy}
                                   icon={<IconTrash size={13} />}

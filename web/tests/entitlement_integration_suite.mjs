@@ -42,6 +42,7 @@ function createSignedSessionToken(payload, secret = SESSION_SECRET) {
 
 const testResults = {
   metadata: getRunMetadata("entitlement_integration_suite"),
+  unauthenticated_state: {},
   ultra_plan: {},
   pro_plan: {},
   start_plan: {},
@@ -181,12 +182,28 @@ async function runEntitlementIntegration() {
 
   try {
     // -------------------------------------------------------------
+    // TEST CASE 0: UNAUTHENTICATED ACCESS & ROOT DEFAULTS
+    // -------------------------------------------------------------
+    console.log("\n[0] Testing Unauthenticated Session & Design Security...");
+    await context.clearCookies();
+    await page.goto(`${BASE_URL}/`);
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(400);
+
+    const docDesignUnauth = await page.evaluate(() => document.documentElement.getAttribute("data-design"));
+    const pwdInputVisible = await page.locator("#admin-pwd, input[type='password']").first().isVisible();
+    recordTest("unauthenticated_state", "unauthenticated_shows_login_card", pwdInputVisible, "Login form displayed");
+    recordTest("unauthenticated_state", "unauthenticated_defaults_to_classic", docDesignUnauth === "classic", `data-design=${docDesignUnauth}`);
+
+    // -------------------------------------------------------------
     // TEST CASE 1: ULTRA SUBSCRIPTION API RESPONSE (TENANT SESSION)
     // -------------------------------------------------------------
     console.log("\n[1] Testing ULTRA Subscription API Response (Tenant Session)...");
     await setTenantSession();
     await mockSubscription("ultra");
 
+    await page.goto(`${BASE_URL}/`);
+    await page.waitForLoadState("networkidle");
     await page.goto(`${BASE_URL}/#profile`);
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(600);
@@ -360,36 +377,68 @@ async function runEntitlementIntegration() {
     recordTest("non_owner_spoof_sanitization", "spoofed_storage_sanitized_to_classic", storedDesignSpoof === "classic", `localStorage=${storedDesignSpoof}`);
 
     // -------------------------------------------------------------
-    // TEST CASE 9: LOGOUT REVOCATION
+    // TEST CASE 9: LOGOUT REVOCATION & ACTUAL UI LOGOUT
     // -------------------------------------------------------------
-    console.log("\n[9] Testing Logout Elevated Design Revocation...");
+    console.log("\n[9] Testing Actual UI Logout & Elevated Design Revocation...");
     // Set Platform Owner session and active premium design
     await setPlatformOwnerSession();
+    await page.goto(`${BASE_URL}/#profile`);
+    await page.waitForLoadState("networkidle");
     await page.evaluate(() => {
       localStorage.setItem("ai_sales_design_system", "premium");
       document.documentElement.setAttribute("data-design", "premium");
     });
     await page.reload();
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(400);
+    await page.waitForTimeout(500);
 
-    // Trigger logout
-    const logoutBtn = page.locator('button:has-text("Chiqish"), button[title="Chiqish"], a:has-text("Chiqish")');
-    if (await logoutBtn.first().isVisible()) {
-      await logoutBtn.first().click();
-      await page.waitForTimeout(600);
+    // Verify Premium was active prior to logout
+    const docDesignPreLogout = await page.evaluate(() => document.documentElement.getAttribute("data-design"));
+    recordTest("logout_revocation", "premium_active_pre_logout", docDesignPreLogout === "premium", `pre-logout data-design=${docDesignPreLogout}`);
+
+    // Trigger actual UI logout via the rendered Logout button on ProfileTab
+    const profileLogoutBtn = page.locator('button:has-text("Tizimdan chiqish"), button:has-text("Logout")').first();
+    let clickedUiLogout = false;
+    if (await profileLogoutBtn.isVisible()) {
+      await profileLogoutBtn.click();
+      clickedUiLogout = true;
     } else {
-      await page.evaluate(async () => {
-        await fetch("/api/logout", { method: "POST" });
-        localStorage.removeItem("ai_sales_design_system");
-        document.documentElement.setAttribute("data-design", "classic");
-      });
+      // Topbar user menu fallback trigger
+      const userMenuTrigger = page.locator('header button').filter({ has: page.locator('.rounded-circle') }).last();
+      if (await userMenuTrigger.isVisible()) {
+        await userMenuTrigger.click();
+        await page.waitForTimeout(300);
+        const topbarLogoutBtn = page.locator('button:has-text("Chiqish")').first();
+        if (await topbarLogoutBtn.isVisible()) {
+          await topbarLogoutBtn.click();
+          clickedUiLogout = true;
+        }
+      }
     }
 
+    recordTest("logout_revocation", "actual_ui_logout_clicked", clickedUiLogout, `UI logout button clicked successfully without test-side eval`);
+
+    // Await transition to unauthenticated state (Login form displayed)
+    await page.waitForSelector('#admin-pwd, input[type="password"]', { timeout: 8000 });
+    await page.waitForTimeout(500);
+
+    // 1. Verify server session cookie invalidation
+    const cookiesAfterLogout = await context.cookies();
+    const sessionCookie = cookiesAfterLogout.find((c) => c.name === "sales_session");
+    const cookieInvalidated = !sessionCookie || sessionCookie.value === "" || sessionCookie.expires <= Math.floor(Date.now() / 1000);
+    recordTest("logout_revocation", "server_cookie_invalidated", cookieInvalidated, `cookie status: ${sessionCookie ? (sessionCookie.value === "" ? "empty" : "active") : "cleared"}`);
+
+    // 2. Verify root DOM design reset to classic
     const docDesignAfterLogout = await page.evaluate(() => document.documentElement.getAttribute("data-design"));
+    recordTest("logout_revocation", "design_reset_to_classic", docDesignAfterLogout === "classic", `post-logout data-design=${docDesignAfterLogout}`);
+
+    // 3. Verify localStorage design key purged
     const storedAfterLogout = await page.evaluate(() => localStorage.getItem("ai_sales_design_system"));
-    recordTest("logout_revocation", "design_reset_to_classic", docDesignAfterLogout === "classic", `data-design=${docDesignAfterLogout}`);
-    recordTest("logout_revocation", "storage_cleared", storedAfterLogout === null || storedAfterLogout === "classic", `localStorage=${storedAfterLogout}`);
+    recordTest("logout_revocation", "storage_cleared", storedAfterLogout === null, `localStorage=${storedAfterLogout}`);
+
+    // 4. Verify unauthenticated login card rendered
+    const loginCardVisible = await page.locator("#admin-pwd").isVisible();
+    recordTest("logout_revocation", "unauthenticated_view_rendered", loginCardVisible, `login card visible=${loginCardVisible}`);
 
     // -------------------------------------------------------------
     // TEST CASE 10: ORGANIZATION SWITCHING (ULTRA <-> START)

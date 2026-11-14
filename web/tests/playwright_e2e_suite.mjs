@@ -86,6 +86,25 @@ async function runE2ETests() {
     });
   });
 
+  // Mock subscription endpoint to grant ULTRA entitlement for full visual verification of all 3 design systems
+  await page.route(
+    (url) =>
+      url.pathname.includes("/api/subscription") ||
+      (url.pathname.includes("/api/proxy") && decodeURIComponent(url.search).includes("/subscription")),
+    async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          plan: { code: "ultra", name: "ULTRA", price_usd: 99.0 },
+          status: "active",
+          is_active: true,
+          trial_days_remaining: 14,
+        }),
+      });
+    }
+  );
+
   try {
     // -------------------------------------------------------------------
     // 1. Initial Load & Authentication as Platform Owner
@@ -237,6 +256,8 @@ async function runE2ETests() {
     // 6.1. Testing Design System Switching (Phase 4: Premium, iOS, Classic)
     // -------------------------------------------------------------------
     console.log("\n--- 6.1. Testing Independent Design Systems Switching ---");
+    await page.waitForLoadState("networkidle").catch(() => {});
+    await page.waitForTimeout(500);
     const initialDesign = await page.getAttribute("html", "data-design");
     recordTest("design_system_switching", "initial_design_mounted", Boolean(initialDesign), `html[data-design="${initialDesign}"]`);
 

@@ -133,6 +133,7 @@ export function SettingsTab({
                   </div>
                   <input
                     type="range"
+                    aria-label="Kreativlik darajasi (Temperature)"
                     min="0"
                     max="1"
                     step="0.05"
@@ -221,6 +222,7 @@ export function SettingsTab({
                   <div className="d-flex gap-2">
                     <input
                       type={showBotToken ? "text" : "password"}
+                      aria-label="Telegram Bot Token"
                       placeholder={currentOrgDetails?.telegram_bot_token_set ? "••••••••••••••••••••••••••••••••" : "Masalan: 123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ"}
                       value={botTokenInput}
                       onChange={(e) => setBotTokenInput(e.target.value)}
@@ -230,6 +232,7 @@ export function SettingsTab({
                       type="button"
                       variant="secondary"
                       size="sm"
+                      aria-label={showBotToken ? "Tokenni yashirish" : "Tokenni ko'rsatish"}
                       onClick={() => setShowBotToken(!showBotToken)}
                       icon={showBotToken ? <IconEyeOff size={15} /> : <IconEye size={15} />}
                     />
@@ -392,6 +395,7 @@ export function SettingsTab({
                   <label className="text-secondary small d-block mb-1">Fayl yuklash (PNG, SVG, JPG):</label>
                   <input
                     type="file"
+                    aria-label="Logotip faylini yuklash"
                     accept="image/*"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
@@ -407,6 +411,7 @@ export function SettingsTab({
                   <div className="d-flex gap-1.5">
                     <input
                       type="text"
+                      aria-label="Logotip URL manzili"
                       placeholder="/logo.svg"
                       value={customLogoInput}
                       onChange={(e) => setCustomLogoInput(e.target.value)}

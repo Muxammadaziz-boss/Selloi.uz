@@ -55,18 +55,22 @@ export function PricingTab({
         <span className="badge bg-primary-lt text-primary fw-bold text-uppercase px-3 py-1.5 mb-2">
           Moslashuvchan SaaS Tariflar
         </span>
-        <h2 className="fs-1 fw-bold text-white mb-2">Biznesingiz Ko'lamiga Mos Rejani Tanlang</h2>
+        <h2 className="fs-1 fw-bold text-primary mb-2">Biznesingiz Ko'lamiga Mos Rejani Tanlang</h2>
         <p className="text-secondary small mb-4">
           Barcha tariflarda xavfsiz multi-tenant ma'lumotlar izolyatsiyasi, Telegram Business ulanishi va sun'iy intellekt integratsiyasi mavjud.
         </p>
 
         {/* Monthly / Yearly Toggle */}
-        <div className="d-inline-flex align-items-center bg-dark p-1.5 rounded-pill border border-secondary border-opacity-20 shadow-sm">
+        <div
+          className="d-inline-flex align-items-center p-1.5 rounded-pill border border-secondary border-opacity-20 shadow-sm"
+          style={{ backgroundColor: "var(--bg-surface-elevated)" }}
+        >
           <button
             type="button"
             className={`btn btn-sm rounded-pill px-4 py-2 border-0 fw-bold transition-all ${
-              billingCycle === "monthly" ? "btn-primary shadow" : "text-secondary"
+              billingCycle === "monthly" ? "btn-primary shadow" : "text-primary"
             }`}
+            style={{ backgroundColor: billingCycle === "monthly" ? undefined : "transparent" }}
             onClick={() => setBillingCycle("monthly")}
           >
             Oylik To'lov
@@ -74,12 +78,13 @@ export function PricingTab({
           <button
             type="button"
             className={`btn btn-sm rounded-pill px-4 py-2 border-0 fw-bold transition-all d-flex align-items-center gap-1.5 ${
-              billingCycle === "yearly" ? "btn-primary shadow" : "text-secondary"
+              billingCycle === "yearly" ? "btn-primary shadow" : "text-primary"
             }`}
+            style={{ backgroundColor: billingCycle === "yearly" ? undefined : "transparent" }}
             onClick={() => setBillingCycle("yearly")}
           >
             <span>Yillik To'lov</span>
-            <span className="badge bg-green text-white fw-bold" style={{ fontSize: "10px" }}>
+            <span className="badge linear-badge-success fw-bold" style={{ fontSize: "10px" }}>
               17% TEJASH
             </span>
           </button>
@@ -112,7 +117,7 @@ export function PricingTab({
                 {/* Most Popular Badge */}
                 {isFeatured && (
                   <div className="position-absolute top-0 start-50 translate-middle">
-                    <span className="badge bg-primary text-white fw-bold px-3 py-1.5 rounded-pill shadow d-flex align-items-center gap-1">
+                    <span className="badge linear-badge-accent fw-bold px-3 py-1.5 rounded-pill shadow d-flex align-items-center gap-1">
                       <IconCrown size={14} /> ENG OMMABOP REJA
                     </span>
                   </div>
@@ -122,7 +127,7 @@ export function PricingTab({
                   {/* Plan Name & Tagline */}
                   <div className="mb-3">
                     <div className="d-flex align-items-center justify-content-between mb-1">
-                      <h3 className="card-title fw-bold fs-2 text-white mb-0 font-monospace">{p.name}</h3>
+                      <h3 className="card-title fw-bold fs-2 text-primary mb-0 font-monospace">{p.name}</h3>
                       {isCurrent && (
                         <span className="badge bg-green-lt text-green fw-bold">Joriy Reja</span>
                       )}
@@ -135,7 +140,7 @@ export function PricingTab({
                   {/* Pricing Display */}
                   <div className="py-3 my-2 border-top border-bottom border-secondary border-opacity-10">
                     <div className="d-flex align-items-baseline gap-1">
-                      <span className="fs-1 fw-bold text-white font-monospace">${monthlyEquivalent}</span>
+                      <span className="fs-1 fw-bold text-primary font-monospace">${monthlyEquivalent}</span>
                       <span className="text-secondary small">/ oy</span>
                     </div>
                     {billingCycle === "yearly" && (
@@ -153,27 +158,27 @@ export function PricingTab({
                     <ul className="list-unstyled space-y-1.5 mb-0 small">
                       <li className="d-flex align-items-center justify-content-between py-1 border-bottom border-secondary border-opacity-10">
                         <span className="text-secondary">AI Xabarlar</span>
-                        <span className="fw-bold text-white">{p.limits?.ai_messages?.toLocaleString()} / oy</span>
+                        <span className="fw-bold text-primary">{p.limits?.ai_messages?.toLocaleString()} / oy</span>
                       </li>
                       <li className="d-flex align-items-center justify-content-between py-1 border-bottom border-secondary border-opacity-10">
                         <span className="text-secondary">Faol Suhbatlar</span>
-                        <span className="fw-bold text-white">{p.limits?.ai_conversations?.toLocaleString()} / oy</span>
+                        <span className="fw-bold text-primary">{p.limits?.ai_conversations?.toLocaleString()} / oy</span>
                       </li>
                       <li className="d-flex align-items-center justify-content-between py-1 border-bottom border-secondary border-opacity-10">
                         <span className="text-secondary">Telegram Ulanish</span>
-                        <span className="fw-bold text-white">{p.limits?.telegram_connections} ta akkaunt</span>
+                        <span className="fw-bold text-primary">{p.limits?.telegram_connections} ta akkaunt</span>
                       </li>
                       <li className="d-flex align-items-center justify-content-between py-1 border-bottom border-secondary border-opacity-10">
                         <span className="text-secondary">Telegram Kanallar</span>
-                        <span className="fw-bold text-white">{p.limits?.telegram_channels} ta</span>
+                        <span className="fw-bold text-primary">{p.limits?.telegram_channels} ta</span>
                       </li>
                       <li className="d-flex align-items-center justify-content-between py-1 border-bottom border-secondary border-opacity-10">
                         <span className="text-secondary">Katalog Mahsulotlari</span>
-                        <span className="fw-bold text-white">{p.limits?.products?.toLocaleString()} ta</span>
+                        <span className="fw-bold text-primary">{p.limits?.products?.toLocaleString()} ta</span>
                       </li>
                       <li className="d-flex align-items-center justify-content-between py-1">
                         <span className="text-secondary">Jamoa Operatorlari</span>
-                        <span className="fw-bold text-white">{p.limits?.team_members} kishi</span>
+                        <span className="fw-bold text-primary">{p.limits?.team_members} kishi</span>
                       </li>
                     </ul>
                   </div>
@@ -186,15 +191,15 @@ export function PricingTab({
                     <ul className="list-unstyled space-y-2 mb-0 small">
                       <li className="d-flex align-items-center gap-2">
                         <IconCheck size={16} className="text-success flex-shrink-0" />
-                        <span className="text-white">Jonli Suhbatlar va Takeover</span>
+                        <span className="text-primary">Jonli Suhbatlar va Takeover</span>
                       </li>
                       <li className="d-flex align-items-center gap-2">
                         <IconCheck size={16} className="text-success flex-shrink-0" />
-                        <span className="text-white">Telegram Mahsulotlar Bazasi</span>
+                        <span className="text-primary">Telegram Mahsulotlar Bazasi</span>
                       </li>
                       <li className="d-flex align-items-center gap-2">
                         <IconCheck size={16} className="text-success flex-shrink-0" />
-                        <span className="text-white">Avtomatik Buyurtma Rasmiylashtirish</span>
+                        <span className="text-primary">Avtomatik Buyurtma Rasmiylashtirish</span>
                       </li>
 
                       {/* Pro & Ultra specific */}
@@ -204,7 +209,7 @@ export function PricingTab({
                         ) : (
                           <IconX size={16} className="text-secondary flex-shrink-0 opacity-40" />
                         )}
-                        <span className={p.features?.advanced_rag ? "text-white" : "text-secondary text-decoration-line-through opacity-50"}>
+                        <span className={p.features?.advanced_rag ? "text-primary" : "text-secondary text-decoration-line-through"}>
                           Kengaytirilgan RAG (Vektor Qidiruv)
                         </span>
                       </li>
@@ -215,7 +220,7 @@ export function PricingTab({
                         ) : (
                           <IconX size={16} className="text-secondary flex-shrink-0 opacity-40" />
                         )}
-                        <span className={p.features?.ai_image_understanding ? "text-white" : "text-secondary text-decoration-line-through opacity-50"}>
+                        <span className={p.features?.ai_image_understanding ? "text-primary" : "text-secondary text-decoration-line-through"}>
                           Rasm va Skrinshotlarni Tahlil Qilish (Vision)
                         </span>
                       </li>
@@ -226,7 +231,7 @@ export function PricingTab({
                         ) : (
                           <IconX size={16} className="text-secondary flex-shrink-0 opacity-40" />
                         )}
-                        <span className={p.features?.data_export ? "text-white" : "text-secondary text-decoration-line-through opacity-50"}>
+                        <span className={p.features?.data_export ? "text-primary" : "text-secondary text-decoration-line-through"}>
                           Eksport va Hisobotlar
                         </span>
                       </li>
@@ -237,7 +242,7 @@ export function PricingTab({
                         ) : (
                           <IconX size={16} className="text-secondary flex-shrink-0 opacity-40" />
                         )}
-                        <span className={p.features?.api_access ? "text-white" : "text-secondary text-decoration-line-through opacity-50"}>
+                        <span className={p.features?.api_access ? "text-primary" : "text-secondary text-decoration-line-through"}>
                           API va Webhook Integratsiyasi
                         </span>
                       </li>
@@ -248,7 +253,7 @@ export function PricingTab({
                         ) : (
                           <IconX size={16} className="text-secondary flex-shrink-0 opacity-40" />
                         )}
-                        <span className={p.features?.custom_ai_tools ? "text-white" : "text-secondary text-decoration-line-through opacity-50"}>
+                        <span className={p.features?.custom_ai_tools ? "text-primary" : "text-secondary text-decoration-line-through"}>
                           Maxsus AI Asboblari & Integratsiyalar
                         </span>
                       </li>
@@ -293,7 +298,7 @@ export function PricingTab({
 
       {/* Enterprise / Custom Requirement Footnote */}
       <div className="text-center p-4 bg-body-tertiary rounded-3 border border-secondary border-opacity-10 mt-4">
-        <h4 className="fw-bold text-white mb-1">Maxsus talablar yoki yirik korporativ integratsiyalar bormi?</h4>
+        <h4 className="fw-bold text-primary mb-1">Maxsus talablar yoki yirik korporativ integratsiyalar bormi?</h4>
         <p className="text-secondary small mb-3">
           Cheksiz kanallar, maxsus ERP/CRM integratsiyalari va lokal serverda o'rnatish uchun bevosita biz bilan bog'laning.
         </p>

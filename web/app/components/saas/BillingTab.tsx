@@ -127,7 +127,7 @@ export function BillingTab({
               <h4 className="alert-title text-primary mb-1 fw-bold fs-4">
                 7 Kunlik Bepul Sinov Muddati Faol ({subscription.trial_days_remaining} kun qoldi)
               </h4>
-              <div className="text-white small">
+              <div className="text-secondary small">
                 Siz hozirda START tarifining barcha imkoniyatlaridan 7 kun davomida bepul foydalanmoqdasiz. Sinov muddati tugagach, xizmatni to'xtovsiz davom ettirish uchun to'lov rejasini tasdiqlang.
               </div>
             </div>
@@ -154,7 +154,7 @@ export function BillingTab({
             <IconAlertCircle size={26} className="text-warning flex-shrink-0" />
             <div>
               <h4 className="alert-title text-warning mb-0.5 fw-bold">Obuna davr oxirida to'xtatiladi</h4>
-              <div className="text-white small">
+              <div className="text-secondary small">
                 Sizning obunangiz {formatDate(subscription?.current_period_end)} sanasiga qadar faol qoladi va avtomatik uzaytirilmaydi.
               </div>
             </div>
@@ -181,7 +181,7 @@ export function BillingTab({
             <IconAlertCircle size={28} className="text-danger flex-shrink-0" />
             <div>
               <h4 className="alert-title text-danger mb-1 fw-bold fs-4">Obuna muddati tugagan!</h4>
-              <div className="text-white small">
+              <div className="text-secondary small">
                 Premium AI xususiyatlari va avtomatik javoblar to'xtatildi. Barcha ma'lumotlaringiz xavfsiz saqlanmoqda. Davom etish uchun tarifni yangilang.
               </div>
             </div>
@@ -228,9 +228,9 @@ export function BillingTab({
                 <div>
                   <div className="text-secondary small text-uppercase fw-bold mb-1">Tarif nomi</div>
                   <div className="d-flex align-items-center gap-2">
-                    <span className="fs-1 fw-bold text-white font-monospace">{plan?.name || "START"}</span>
+                    <span className="fs-1 fw-bold text-primary font-monospace">{plan?.name || "START"}</span>
                     {plan?.code === "pro" && (
-                      <span className="badge bg-primary text-white fw-bold">Ommabop Tanlov</span>
+                      <span className="badge linear-badge-accent fw-bold">Ommabop Tanlov</span>
                     )}
                   </div>
                 </div>
@@ -254,7 +254,7 @@ export function BillingTab({
                 <div className="col-sm-6 col-md-4">
                   <div className="p-3 rounded bg-body-tertiary border border-secondary border-opacity-10">
                     <div className="text-secondary small mb-1">Boshlangan sana</div>
-                    <div className="fw-semibold text-white small">
+                    <div className="fw-semibold text-primary small">
                       {formatDate(subscription?.current_period_start)}
                     </div>
                   </div>
@@ -262,7 +262,7 @@ export function BillingTab({
                 <div className="col-sm-6 col-md-4">
                   <div className="p-3 rounded bg-body-tertiary border border-secondary border-opacity-10">
                     <div className="text-secondary small mb-1">Keyingi hisob / Tugash sanasi</div>
-                    <div className="fw-semibold text-white small">
+                    <div className="fw-semibold text-primary small">
                       {formatDate(subscription?.current_period_end)}
                     </div>
                   </div>
@@ -270,7 +270,7 @@ export function BillingTab({
                 <div className="col-sm-6 col-md-4">
                   <div className="p-3 rounded bg-body-tertiary border border-secondary border-opacity-10">
                     <div className="text-secondary small mb-1">To'lov Gateway</div>
-                    <div className="fw-semibold text-white small d-flex align-items-center gap-1.5">
+                    <div className="fw-semibold text-primary small d-flex align-items-center gap-1.5">
                       <IconBrandStripe size={18} className="text-primary" />
                       <span>{subscription?.provider?.toUpperCase() || "STRIPE"}</span>
                     </div>
@@ -350,11 +350,11 @@ export function BillingTab({
               <div>
                 <div className="p-3 rounded bg-dark border border-secondary border-opacity-20 mb-3">
                   <div className="d-flex align-items-center justify-content-between mb-3">
-                    <span className="badge bg-primary text-white font-monospace">VISA / MASTERCARD</span>
+                    <span className="badge linear-badge-accent font-monospace fw-bold">VISA / MASTERCARD</span>
                     <IconShieldCheck size={20} className="text-success" />
                   </div>
                   <div className="font-monospace fs-3 text-white mb-2">•••• •••• •••• 4242</div>
-                  <div className="d-flex align-items-center justify-content-between text-secondary small font-monospace">
+                  <div className="d-flex align-items-center justify-content-between small font-monospace" style={{ color: "#cbd5e1" }}>
                     <span>Muddati: 12/28</span>
                     <span>Stripe Verified</span>
                   </div>
@@ -400,13 +400,13 @@ export function BillingTab({
             </thead>
             <tbody>
               <tr>
-                <td className="font-monospace fw-semibold text-white">INV-2026-001</td>
+                <td className="font-monospace fw-semibold text-primary">INV-2026-001</td>
                 <td className="text-secondary small">{formatDate(subscription?.current_period_start)}</td>
                 <td>
-                  <span className="fw-medium text-white">{plan?.name} Plan</span>{" "}
+                  <span className="fw-medium text-primary">{plan?.name} Plan</span>{" "}
                   <span className="text-secondary small">({cycle === "yearly" ? "Yillik" : "Oylik"})</span>
                 </td>
-                <td className="fw-bold font-monospace text-white">${price}</td>
+                <td className="fw-bold font-monospace text-primary">${price}</td>
                 <td>
                   <span className="badge bg-green-lt text-green d-inline-flex align-items-center gap-1">
                     <IconCheck size={12} /> To'langan (Paid)
