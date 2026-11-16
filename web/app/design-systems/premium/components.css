@@ -88,12 +88,23 @@ html[data-design="premium"][data-theme="light"] .linear-badge-success {
 }
 
 /* Minimal Buttons */
-html[data-design="premium"] .btn {
+html[data-design="premium"] .btn:not(.btn-icon) {
   border-radius: var(--premium-radius-sm) !important;
   font-size: 0.84rem !important;
   font-weight: 500 !important;
   padding: 6px 14px !important;
   transition: all 120ms ease !important;
+}
+
+html[data-design="premium"] .btn-icon {
+  padding: 0 !important;
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: var(--premium-radius-sm) !important;
 }
 
 html[data-design="premium"] .btn-primary {

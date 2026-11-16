@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useLanguage } from "../../lib/i18n";
 import {
   IconShieldLock,
   IconPlus,
@@ -70,15 +71,19 @@ export function AdminsTab({
   permissionLabels,
   permissionCategories,
 }: AdminsTabProps) {
+  const { language, t } = useLanguage();
   const totalPermissionsCount = Object.keys(permissionLabels).length;
 
   return (
     <div>
       <PageHeader
-        breadcrumbs="SYSTEM / ADMINISTRATION"
-        title="Administratorlar Boshqaruvi"
-        description="Telegram bot orqali mijozlarga javob beradigan adminlar, ularning roli va aniq ruxsatlarini boshqarish"
-        badge={{ text: `${admins.length} ta faol admin`, variant: "accent" }}
+        breadcrumbs={t("breadcrumb.admins")}
+        title={t("admins.title")}
+        description={t("admins.subtitle")}
+        badge={{
+          text: language === "uz" ? `${admins.length} ta faol admin` : `${admins.length} active admins`,
+          variant: "accent",
+        }}
       />
 
       <div className="row g-4">

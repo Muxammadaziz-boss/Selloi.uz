@@ -1,0 +1,155 @@
+{
+  "metadata": {
+    "suite": "entitlement_integration_suite",
+    "timestamp": "2026-11-14T15:05:20.043Z",
+    "commitSha": "84035cfbd000cd9ab783b3acbd5433181720ecb9",
+    "nodeVersion": "v24.20.0",
+    "platform": "win32",
+    "arch": "x64",
+    "targetUrl": "http://localhost:3000",
+    "credentialSource": "env_file",
+    "browserVersion": "157.0.8103.78"
+  },
+  "unauthenticated_state": {
+    "unauthenticated_shows_login_card": {
+      "status": "PASSED",
+      "details": "Login form displayed"
+    },
+    "unauthenticated_defaults_to_classic": {
+      "status": "PASSED",
+      "details": "data-design=classic"
+    }
+  },
+  "ultra_plan": {
+    "designs_rendered": {
+      "status": "PASSED",
+      "details": "Found 3 design option cards"
+    },
+    "select_premium": {
+      "status": "PASSED",
+      "details": "data-design=premium"
+    },
+    "persist_premium": {
+      "status": "PASSED",
+      "details": "localStorage=premium"
+    }
+  },
+  "pro_plan": {
+    "auto_downgrade_premium_to_classic": {
+      "status": "PASSED",
+      "details": "data-design=classic"
+    },
+    "storage_sanitized_to_classic": {
+      "status": "PASSED",
+      "details": "localStorage=classic"
+    },
+    "premium_locked_opens_upgrade_modal": {
+      "status": "PASSED",
+      "details": "Upgrade modal opened on locked design click"
+    },
+    "select_ios_allowed": {
+      "status": "PASSED",
+      "details": "data-design=ios"
+    }
+  },
+  "start_plan": {
+    "defaults_to_classic": {
+      "status": "PASSED",
+      "details": "data-design=classic"
+    },
+    "ios_locked_on_start": {
+      "status": "PASSED",
+      "details": "Modal triggered for iOS on START plan"
+    }
+  },
+  "missing_subscription_404": {
+    "enforces_classic_on_404": {
+      "status": "PASSED",
+      "details": "data-design=classic"
+    },
+    "blocks_tamper_on_404": {
+      "status": "PASSED",
+      "details": "data-design=classic"
+    }
+  },
+  "expired_subscription": {
+    "expired_plan_forces_classic": {
+      "status": "PASSED",
+      "details": "data-design=classic"
+    }
+  },
+  "api_failure_500": {
+    "safe_classic_fallback_on_500": {
+      "status": "PASSED",
+      "details": "data-design=classic"
+    }
+  },
+  "platform_owner_session": {
+    "owner_override_premium_on_start_plan": {
+      "status": "PASSED",
+      "details": "data-design=premium"
+    }
+  },
+  "non_owner_spoof_sanitization": {
+    "tenant_owner_denied_platform_override": {
+      "status": "PASSED",
+      "details": "data-design=classic"
+    },
+    "spoofed_storage_sanitized_to_classic": {
+      "status": "PASSED",
+      "details": "localStorage=classic"
+    }
+  },
+  "logout_revocation": {
+    "premium_active_pre_logout": {
+      "status": "PASSED",
+      "details": "pre-logout data-design=premium"
+    },
+    "actual_ui_logout_clicked": {
+      "status": "PASSED",
+      "details": "UI logout button clicked successfully without test-side eval"
+    },
+    "server_cookie_invalidated": {
+      "status": "PASSED",
+      "details": "cookie status: cleared"
+    },
+    "design_reset_to_classic": {
+      "status": "PASSED",
+      "details": "post-logout data-design=classic"
+    },
+    "storage_cleared": {
+      "status": "PASSED",
+      "details": "localStorage=null"
+    },
+    "unauthenticated_view_rendered": {
+      "status": "PASSED",
+      "details": "login card visible=true"
+    }
+  },
+  "org_switching": {
+    "org1_ultra_selects_premium": {
+      "status": "PASSED",
+      "details": "Org 1 design=premium"
+    },
+    "org2_start_demotes_to_classic": {
+      "status": "PASSED",
+      "details": "Org 2 design=classic"
+    },
+    "org1_reauthorize_premium": {
+      "status": "PASSED",
+      "details": "Org 1 design back=premium"
+    }
+  },
+  "downgrade_transition": {
+    "active_premium_gracefully_demoted_to_classic": {
+      "status": "PASSED",
+      "details": "final data-design=classic"
+    }
+  },
+  "summary": {
+    "total": 28,
+    "passed": 28,
+    "failed": 0,
+    "overall_status": "PASSED"
+  }
+}

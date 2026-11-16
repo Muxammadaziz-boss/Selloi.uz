@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useRef, useEffect } from "react";
+import { useLanguage } from "../../lib/i18n";
 import {
   IconSearch,
   IconRobot,
@@ -76,6 +77,7 @@ export function InboxTab({
   onSendCatalogProposal,
   onSendDiscountProposal,
 }: InboxTabProps) {
+  const { language, t } = useLanguage();
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -116,15 +118,17 @@ export function InboxTab({
     }
   }, [activeConversation?.id, customerNotes]);
 
+  const waitingOperatorsCount = conversations.filter((c) => c.status === "human_takeover").length;
+
   return (
     <div className="d-flex flex-column h-100">
       <PageHeader
-        breadcrumbs="WORKSPACE / LIVE INBOX"
-        title="Jonli Suhbatlar"
-        description="Mijozlar bilan real vaqtda muloqot, AI assistent va operator boshqaruvi"
+        breadcrumbs={t("breadcrumb.inbox")}
+        title={t("inbox.title")}
+        description={t("inbox.subtitle")}
         badge={{
-          text: `${conversations.filter((c) => c.status === "human_takeover").length} ta operator kutmoqda`,
-          variant: conversations.some((c) => c.status === "human_takeover") ? "warning" : "success",
+          text: t("inbox.operators_badge", { count: waitingOperatorsCount }),
+          variant: waitingOperatorsCount > 0 ? "warning" : "success",
         }}
       />
 

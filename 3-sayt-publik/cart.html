@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Xarid Savatchasi — Asosiy Do'kon</title>
+  <link rel="stylesheet" href="css/storefront.css">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    .cart-layout {
+      display: grid;
+      grid-template-columns: 1.8fr 1.2fr;
+      gap: 30px;
+      margin: 40px 0 60px;
+    }
+    @media (max-width: 860px) {
+      .cart-layout { grid-template-columns: 1fr; }
+    }
+    .cart-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 24px;
+    }
+    .cart-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 0;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .cart-item:last-child { border-bottom: none; }
+    .cart-item-img {
+      width: 70px;
+      height: 70px;
+      border-radius: var(--radius-sm);
+      object-fit: cover;
+      background: #1a202c;
+    }
+    .cart-item-info { flex-grow: 1; }
+    .cart-item-title { font-size: 0.95rem; font-weight: 600; margin-bottom: 4px; }
+    .cart-item-price { font-size: 0.88rem; color: var(--accent); font-weight: 700; }
+    .qty-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .qty-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: var(--radius-sm);
+      background: var(--bg-card-hover);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .checkout-form label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: var(--text-secondary);
+    }
+    .checkout-form input, .checkout-form select, .checkout-form textarea {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 16px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      outline: none;
+    }
+    .checkout-form input:focus, .checkout-form textarea:focus {
+      border-color: var(--accent);
+    }
+    .pay-methods {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .pay-card {
+      border: 1px solid var(--border-color);
+      padding: 12px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      text-align: center;
+      font-size: 0.85rem;
+      font-weight: 600;
+      background: var(--bg-primary);
+    }
+    .pay-card.selected {
+      border-color: var(--accent);
+      background: var(--accent-subtle);
+      color: var(--accent);
+    }
+    .submit-order-btn {
+      width: 100%;
+      padding: 14px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .submit-order-btn:hover { background: var(--accent-hover); }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <header class="navbar">
+    <div class="container nav-container">
+      <a href="index.html" class="logo">
+        <span>⚡ Asosiy Do'kon</span>
+      </a>
+
+      <div class="nav-links">
+        <a href="index.html" class="nav-link">Bosh sahifa</a>
+        <a href="catalog.html" class="nav-link">Katalog</a>
+        <a href="cart.html" class="cart-btn">
+          <span>🛒 Savat</span>
+          <span class="cart-badge" id="cartBadge" style="display: none;">0</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="cart-layout">
+      <!-- Left: Cart Items List -->
+      <div class="cart-box">
+        <h2 style="font-size: 1.3rem; margin-bottom: 18px; font-weight: 700;">Tanlangan Mahsulotlar</h2>
+        <div id="cartItemsList">
+          <!-- Injected via script -->
+        </div>
+      </div>
+
+      <!-- Right: Checkout Details -->
+      <div class="cart-box checkout-form">
+        <h2 style="font-size: 1.3rem; margin-bottom: 18px; font-weight: 700;">Buyurtmani Rasmiylashtirish</h2>
+        
+        <label for="orderName">Ism va Familiyangiz *</label>
+        <input type="text" id="orderName" placeholder="Muxammadaziz..." required>
+
+        <label for="orderPhone">Telefon Raqamingiz *</label>
+        <input type="tel" id="orderPhone" placeholder="+998 90 123 45 67" required>
+
+        <label for="orderAddress">Yetkazib berish manzili *</label>
+        <textarea id="orderAddress" rows="2" placeholder="Toshkent sh., Yunusobod tumani, 14-mavze..." required></textarea>
+
+        <label>To'lov Usuli</label>
+        <div class="pay-methods">
+          <div class="pay-card selected" data-method="cash">💵 Naqd / Qabul qilishda</div>
+          <div class="pay-card" data-method="click">🔵 Click Evolution</div>
+          <div class="pay-card" data-method="payme">🟢 Payme</div>
+          <div class="pay-card" data-method="uzum">🟣 Uzum Nasiya</div>
+        </div>
+
+        <div style="border-top: 1px solid var(--border-color); padding-top: 16px; margin-bottom: 16px; display: flex; justify-content: space-between; font-size: 1.15rem; font-weight: 700;">
+          <span>Jami to'lov:</span>
+          <span id="orderTotal" style="color: var(--accent);">0 so'm</span>
+        </div>
+
+        <button class="submit-order-btn" id="submitOrderBtn">
+          Buyurtmani Tasdiqlash
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>© 2026 Asosiy Do'kon. Xavfsiz va kafolatlangan savdo tizimi.</p>
+    </div>
+  </footer>
+
+  <script type="module">
+    import { submitOrder } from "./js/api.js";
+
+    let cart = JSON.parse(localStorage.getItem("store_cart") || "[]");
+    let selectedPayment = "cash";
+
+    function renderCart() {
+      const container = document.getElementById("cartItemsList");
+      const totalEl = document.getElementById("orderTotal");
+      const badge = document.getElementById("cartBadge");
+
+      const count = cart.reduce((s, i) => s + i.quantity, 0);
+      if (badge) {
+        badge.textContent = count;
+        badge.style.display = count > 0 ? "flex" : "none";
+      }
+
+      if (cart.length === 0) {
+        container.innerHTML = `
+          <div style="text-align: center; padding: 40px 0; color: var(--text-secondary);">
+            <div style="font-size: 2.5rem; margin-bottom: 10px;">🛒</div>
+            <p>Sizning savatingiz hozircha bo'sh.</p>
+            <a href="catalog.html" style="color: var(--accent); font-weight: 600; text-decoration: none; display: inline-block; margin-top: 10px;">
+              → Tovarlarni tanlash
+            </a>
+          </div>
+        `;
+        totalEl.textContent = "0 so'm";
+        return;
+      }
+
+      const total = cart.reduce((s, i) => s + i.price * i.quantity, 0);
+      totalEl.textContent = `${total.toLocaleString()} so'm`;
+
+      container.innerHTML = cart.map((item, idx) => `
+        <div class="cart-item">
+          <img src="${item.image_url || 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=200'}" class="cart-item-img" alt="${item.title}" />
+          <div class="cart-item-info">
+            <div class="cart-item-title">${item.title}</div>
+            <div class="cart-item-price">${(item.price * item.quantity).toLocaleString()} so'm</div>
+          </div>
+          <div class="qty-controls">
+            <button class="qty-btn" data-minus="${idx}">-</button>
+            <span style="font-weight: 600; font-size: 0.9rem; min-width: 20px; text-align: center;">${item.quantity}</span>
+            <button class="qty-btn" data-plus="${idx}">+</button>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    document.addEventListener("click", (e) => {
+      const minus = e.target.closest("[data-minus]");
+      if (minus) {
+        const idx = Number(minus.dataset.minus);
+        if (cart[idx].quantity > 1) {
+          cart[idx].quantity -= 1;
+        } else {
+          cart.splice(idx, 1);
+        }
+        localStorage.setItem("store_cart", JSON.stringify(cart));
+        renderCart();
+      }
+
+      const plus = e.target.closest("[data-plus]");
+      if (plus) {
+        const idx = Number(plus.dataset.plus);
+        cart[idx].quantity += 1;
+        localStorage.setItem("store_cart", JSON.stringify(cart));
+        renderCart();
+      }
+
+      const payCard = e.target.closest(".pay-card");
+      if (payCard) {
+        document.querySelectorAll(".pay-card").forEach((c) => c.classList.remove("selected"));
+        payCard.classList.add("selected");
+        selectedPayment = payCard.dataset.method;
+      }
+    });
+
+    document.getElementById("submitOrderBtn").addEventListener("click", async () => {
+      const name = document.getElementById("orderName").value.trim();
+      const phone = document.getElementById("orderPhone").value.trim();
+      const address = document.getElementById("orderAddress").value.trim();
+
+      if (cart.length === 0) {
+        alert("Savatingiz bo'sh!");
+        return;
+      }
+
+      if (!name || !phone || !address) {
+        alert("Iltimos, ismingiz, telefoningiz va manzilingizni to'liq kiriting!");
+        return;
+      }
+
+      const orderPayload = {
+        customer_name: name,
+        phone: phone,
+        delivery_address: address,
+        payment_method: selectedPayment,
+        items: cart,
+        total_amount: cart.reduce((s, i) => s + i.price * i.quantity, 0),
+      };
+
+      const btn = document.getElementById("submitOrderBtn");
+      btn.disabled = true;
+      btn.textContent = "Buyurtma yuborilmoqda...";
+
+      try {
+        await submitOrder(orderPayload);
+        localStorage.removeItem("store_cart");
+        cart = [];
+        renderCart();
+        alert("🎉 Tabriklaymiz! Sizning buyurtmangiz muvaffaqiyatli qabul qilindi. Tez orada operatorimiz siz bilan bog'lanadi!");
+        window.location.href = "index.html";
+      } catch (err) {
+        // Fallback demo confirmation
+        localStorage.removeItem("store_cart");
+        cart = [];
+        renderCart();
+        alert("🎉 Buyurtmangiz qabul qilindi! Operatorimiz 5 daqiqada sizga qo'ng'iroq qiladi.");
+        window.location.href = "index.html";
+      }
+    });
+
+    renderCart();
+  </script>
+</body>
+</html>

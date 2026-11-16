@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useLanguage } from "../../lib/i18n";
 import {
   IconShoppingCart,
   IconSearch,
@@ -41,6 +42,7 @@ export function OrdersTab({
   onDeleteOrder,
   busy,
 }: OrdersTabProps) {
+  const { language, t } = useLanguage();
   const [statusFilter, setStatusFilter] = useState("all");
 
   const filteredOrders = orders.filter((ord) => {
@@ -60,10 +62,13 @@ export function OrdersTab({
   return (
     <div>
       <PageHeader
-        breadcrumbs="SALES / ORDERS MANAGEMENT"
-        title="Buyurtmalar Jurnali"
-        description="Mijozlar bilan suhbat orqali AI yoki operator tomonidan shakllantirilgan barcha xaridlar"
-        badge={{ text: `${orders.length} ta jami buyurtma`, variant: "success" }}
+        breadcrumbs={t("breadcrumb.orders")}
+        title={t("orders.title")}
+        description={t("orders.subtitle")}
+        badge={{
+          text: language === "uz" ? `${orders.length} ta jami buyurtma` : `${orders.length} total orders`,
+          variant: "success",
+        }}
       />
 
       <Card>

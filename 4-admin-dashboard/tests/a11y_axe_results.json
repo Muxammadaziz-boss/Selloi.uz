@@ -1,0 +1,2526 @@
+{
+  "metadata": {
+    "suite": "a11y_axe_suite",
+    "timestamp": "2026-11-16T13:25:43.869Z",
+    "commitSha": "b0cd19fd855e3e90ab88e533dce07043f22d139d",
+    "nodeVersion": "v24.20.0",
+    "platform": "win32",
+    "arch": "x64",
+    "targetUrl": "http://localhost:3000",
+    "credentialSource": "env_file",
+    "browserVersion": "157.0.8103.78"
+  },
+  "environment": {
+    "standard": "WCAG 2.1 Level AA",
+    "tags": [
+      "wcag2a",
+      "wcag2aa",
+      "wcag21a",
+      "wcag21aa"
+    ]
+  },
+  "themeAudits": {
+    "premium_dark": {
+      "overview": {
+        "name": "Overview Dashboard",
+        "passesCount": 22,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "inbox": {
+        "name": "Inbox & Live Dialogues",
+        "passesCount": 21,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "aria-prohibited-attr"
+        ]
+      },
+      "knowledge": {
+        "name": "AI Knowledge Base",
+        "passesCount": 25,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 0,
+        "incompleteRules": []
+      },
+      "products": {
+        "name": "Products Catalog",
+        "passesCount": 25,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "orders": {
+        "name": "Orders Management",
+        "passesCount": 25,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "customers": {
+        "name": "Customers CRM",
+        "passesCount": 24,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "analytics": {
+        "name": "Analytics & Conversion",
+        "passesCount": 21,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "settings": {
+        "name": "Store & AI Settings",
+        "passesCount": 24,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "admins": {
+        "name": "Admins & Telegram Operators",
+        "passesCount": 26,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "team": {
+        "name": "Team & Permissions",
+        "passesCount": 23,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "logs": {
+        "name": "Activity & Audit Logs",
+        "passesCount": 23,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "profile": {
+        "name": "Profile & Appearance",
+        "passesCount": 22,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "usage": {
+        "name": "Token & Usage Analytics",
+        "passesCount": 21,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "billing": {
+        "name": "Billing & Invoices",
+        "passesCount": 23,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "pricing": {
+        "name": "Plans & Pricing Tiers",
+        "passesCount": 25,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "platform": {
+        "name": "Platform Owner Center",
+        "passesCount": 23,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 0,
+        "incompleteRules": []
+      }
+    },
+    "premium_light": {
+      "overview": {
+        "name": "Overview Dashboard",
+        "passesCount": 23,
+        "violationsCount": 1,
+        "violations": [
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+            "help": "Elements must meet minimum color contrast ratio thresholds",
+            "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+            "nodesCount": 1,
+            "targetNodes": [
+              "button[aria-label=\"Yangilash\"] > span"
+            ]
+          }
+        ],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "inbox": {
+        "name": "Inbox & Live Dialogues",
+        "passesCount": 22,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 2,
+        "incompleteRules": [
+          "aria-prohibited-attr",
+          "color-contrast"
+        ]
+      },
+      "knowledge": {
+        "name": "AI Knowledge Base",
+        "passesCount": 26,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "products": {
+        "name": "Products Catalog",
+        "passesCount": 25,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "orders": {
+        "name": "Orders Management",
+        "passesCount": 25,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "customers": {
+        "name": "Customers CRM",
+        "passesCount": 24,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "analytics": {
+        "name": "Analytics & Conversion",
+        "passesCount": 21,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "settings": {
+        "name": "Store & AI Settings",
+        "passesCount": 24,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "admins": {
+        "name": "Admins & Telegram Operators",
+        "passesCount": 26,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "team": {
+        "name": "Team & Permissions",
+        "passesCount": 23,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "logs": {
+        "name": "Activity & Audit Logs",
+        "passesCount": 23,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "profile": {
+        "name": "Profile & Appearance",
+        "passesCount": 22,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "usage": {
+        "name": "Token & Usage Analytics",
+        "passesCount": 21,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "billing": {
+        "name": "Billing & Invoices",
+        "passesCount": 23,
+        "violationsCount": 1,
+        "violations": [
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+            "help": "Elements must meet minimum color contrast ratio thresholds",
+            "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+            "nodesCount": 6,
+            "targetNodes": [
+              "th:nth-child(1)",
+              "th:nth-child(2)",
+              "th:nth-child(3)"
+            ]
+          }
+        ],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "pricing": {
+        "name": "Plans & Pricing Tiers",
+        "passesCount": 25,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "platform": {
+        "name": "Platform Owner Center",
+        "passesCount": 23,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 0,
+        "incompleteRules": []
+      }
+    },
+    "ios_dark": {
+      "overview": {
+        "name": "Overview Dashboard",
+        "passesCount": 23,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 0,
+        "incompleteRules": []
+      },
+      "inbox": {
+        "name": "Inbox & Live Dialogues",
+        "passesCount": 22,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 2,
+        "incompleteRules": [
+          "aria-prohibited-attr",
+          "color-contrast"
+        ]
+      },
+      "knowledge": {
+        "name": "AI Knowledge Base",
+        "passesCount": 25,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 0,
+        "incompleteRules": []
+      },
+      "products": {
+        "name": "Products Catalog",
+        "passesCount": 24,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "orders": {
+        "name": "Orders Management",
+        "passesCount": 24,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "customers": {
+        "name": "Customers CRM",
+        "passesCount": 23,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 0,
+        "incompleteRules": []
+      },
+      "analytics": {
+        "name": "Analytics & Conversion",
+        "passesCount": 20,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 0,
+        "incompleteRules": []
+      },
+      "settings": {
+        "name": "Store & AI Settings",
+        "passesCount": 23,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 0,
+        "incompleteRules": []
+      },
+      "admins": {
+        "name": "Admins & Telegram Operators",
+        "passesCount": 25,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 0,
+        "incompleteRules": []
+      },
+      "team": {
+        "name": "Team & Permissions",
+        "passesCount": 22,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 0,
+        "incompleteRules": []
+      },
+      "logs": {
+        "name": "Activity & Audit Logs",
+        "passesCount": 22,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 0,
+        "incompleteRules": []
+      },
+      "profile": {
+        "name": "Profile & Appearance",
+        "passesCount": 21,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "usage": {
+        "name": "Token & Usage Analytics",
+        "passesCount": 20,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "billing": {
+        "name": "Billing & Invoices",
+        "passesCount": 22,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "pricing": {
+        "name": "Plans & Pricing Tiers",
+        "passesCount": 24,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "platform": {
+        "name": "Platform Owner Center",
+        "passesCount": 23,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 0,
+        "incompleteRules": []
+      }
+    },
+    "ios_light": {
+      "overview": {
+        "name": "Overview Dashboard",
+        "passesCount": 23,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "inbox": {
+        "name": "Inbox & Live Dialogues",
+        "passesCount": 22,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 2,
+        "incompleteRules": [
+          "aria-prohibited-attr",
+          "color-contrast"
+        ]
+      },
+      "knowledge": {
+        "name": "AI Knowledge Base",
+        "passesCount": 25,
+        "violationsCount": 1,
+        "violations": [
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+            "help": "Elements must meet minimum color contrast ratio thresholds",
+            "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+            "nodesCount": 1,
+            "targetNodes": [
+              ".active > .flex-grow-1.text-truncate"
+            ]
+          }
+        ],
+        "incompleteCount": 0,
+        "incompleteRules": []
+      },
+      "products": {
+        "name": "Products Catalog",
+        "passesCount": 24,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "orders": {
+        "name": "Orders Management",
+        "passesCount": 24,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "customers": {
+        "name": "Customers CRM",
+        "passesCount": 23,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 0,
+        "incompleteRules": []
+      },
+      "analytics": {
+        "name": "Analytics & Conversion",
+        "passesCount": 20,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 0,
+        "incompleteRules": []
+      },
+      "settings": {
+        "name": "Store & AI Settings",
+        "passesCount": 23,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 0,
+        "incompleteRules": []
+      },
+      "admins": {
+        "name": "Admins & Telegram Operators",
+        "passesCount": 25,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 0,
+        "incompleteRules": []
+      },
+      "team": {
+        "name": "Team & Permissions",
+        "passesCount": 22,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 0,
+        "incompleteRules": []
+      },
+      "logs": {
+        "name": "Activity & Audit Logs",
+        "passesCount": 22,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 0,
+        "incompleteRules": []
+      },
+      "profile": {
+        "name": "Profile & Appearance",
+        "passesCount": 21,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "usage": {
+        "name": "Token & Usage Analytics",
+        "passesCount": 20,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "billing": {
+        "name": "Billing & Invoices",
+        "passesCount": 22,
+        "violationsCount": 1,
+        "violations": [
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+            "help": "Elements must meet minimum color contrast ratio thresholds",
+            "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+            "nodesCount": 3,
+            "targetNodes": [
+              ".px-4.card-header.py-3 > div > h3",
+              "h3 > span",
+              ".px-4.card-header.py-3 > h3"
+            ]
+          }
+        ],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "pricing": {
+        "name": "Plans & Pricing Tiers",
+        "passesCount": 24,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "platform": {
+        "name": "Platform Owner Center",
+        "passesCount": 23,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 0,
+        "incompleteRules": []
+      }
+    },
+    "classic_dark": {
+      "overview": {
+        "name": "Overview Dashboard",
+        "passesCount": 23,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 0,
+        "incompleteRules": []
+      },
+      "inbox": {
+        "name": "Inbox & Live Dialogues",
+        "passesCount": 22,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 2,
+        "incompleteRules": [
+          "aria-prohibited-attr",
+          "color-contrast"
+        ]
+      },
+      "knowledge": {
+        "name": "AI Knowledge Base",
+        "passesCount": 25,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 0,
+        "incompleteRules": []
+      },
+      "products": {
+        "name": "Products Catalog",
+        "passesCount": 24,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 0,
+        "incompleteRules": []
+      },
+      "orders": {
+        "name": "Orders Management",
+        "passesCount": 24,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 0,
+        "incompleteRules": []
+      },
+      "customers": {
+        "name": "Customers CRM",
+        "passesCount": 23,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 0,
+        "incompleteRules": []
+      },
+      "analytics": {
+        "name": "Analytics & Conversion",
+        "passesCount": 20,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 0,
+        "incompleteRules": []
+      },
+      "settings": {
+        "name": "Store & AI Settings",
+        "passesCount": 23,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 0,
+        "incompleteRules": []
+      },
+      "admins": {
+        "name": "Admins & Telegram Operators",
+        "passesCount": 25,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 0,
+        "incompleteRules": []
+      },
+      "team": {
+        "name": "Team & Permissions",
+        "passesCount": 22,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 0,
+        "incompleteRules": []
+      },
+      "logs": {
+        "name": "Activity & Audit Logs",
+        "passesCount": 22,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 0,
+        "incompleteRules": []
+      },
+      "profile": {
+        "name": "Profile & Appearance",
+        "passesCount": 21,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "usage": {
+        "name": "Token & Usage Analytics",
+        "passesCount": 20,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "billing": {
+        "name": "Billing & Invoices",
+        "passesCount": 22,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "pricing": {
+        "name": "Plans & Pricing Tiers",
+        "passesCount": 24,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "platform": {
+        "name": "Platform Owner Center",
+        "passesCount": 23,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 0,
+        "incompleteRules": []
+      }
+    },
+    "classic_light": {
+      "overview": {
+        "name": "Overview Dashboard",
+        "passesCount": 23,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "inbox": {
+        "name": "Inbox & Live Dialogues",
+        "passesCount": 22,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 2,
+        "incompleteRules": [
+          "aria-prohibited-attr",
+          "color-contrast"
+        ]
+      },
+      "knowledge": {
+        "name": "AI Knowledge Base",
+        "passesCount": 25,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "products": {
+        "name": "Products Catalog",
+        "passesCount": 24,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "orders": {
+        "name": "Orders Management",
+        "passesCount": 24,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "customers": {
+        "name": "Customers CRM",
+        "passesCount": 23,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "analytics": {
+        "name": "Analytics & Conversion",
+        "passesCount": 20,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "settings": {
+        "name": "Store & AI Settings",
+        "passesCount": 23,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "admins": {
+        "name": "Admins & Telegram Operators",
+        "passesCount": 25,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "team": {
+        "name": "Team & Permissions",
+        "passesCount": 22,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "logs": {
+        "name": "Activity & Audit Logs",
+        "passesCount": 22,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "profile": {
+        "name": "Profile & Appearance",
+        "passesCount": 21,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "usage": {
+        "name": "Token & Usage Analytics",
+        "passesCount": 20,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "billing": {
+        "name": "Billing & Invoices",
+        "passesCount": 22,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "pricing": {
+        "name": "Plans & Pricing Tiers",
+        "passesCount": 24,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      },
+      "platform": {
+        "name": "Platform Owner Center",
+        "passesCount": 23,
+        "violationsCount": 0,
+        "violations": [],
+        "incompleteCount": 1,
+        "incompleteRules": [
+          "color-contrast"
+        ]
+      }
+    }
+  },
+  "summary": {
+    "coreScans": 24,
+    "coreCleanPasses": 23,
+    "totalScans": 96,
+    "cleanPasses": 92,
+    "totalViolations": 4,
+    "criticalViolations": 0,
+    "seriousViolations": 4,
+    "moderateViolations": 0,
+    "minorViolations": 0,
+    "totalIncompleteItems": 70,
+    "overall_status": "FAILED"
+  },
+  "incompleteReviewRequired": [
+    {
+      "design": "premium",
+      "theme": "dark",
+      "tab": "overview",
+      "tabName": "Overview Dashboard",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 1,
+      "sampleNodes": [
+        {
+          "target": ".mt-3.pt-2:nth-child(6) > .gap-0\\.5.flex-column.d-flex > .nav-link-item.border-0.gap-2\\.5 > .flex-grow-1.text-truncate",
+          "htmlSnippet": "<span class=\"flex-grow-1 text-truncate\">Profil &amp; Dizayn</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        }
+      ]
+    },
+    {
+      "design": "premium",
+      "theme": "dark",
+      "tab": "inbox",
+      "tabName": "Inbox & Live Dialogues",
+      "ruleId": "aria-prohibited-attr",
+      "description": "Ensure ARIA attributes are not prohibited for an element's role",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/aria-prohibited-attr?application=playwright",
+      "nodesCount": 3,
+      "sampleNodes": [
+        {
+          "target": "div[aria-label=\"Suhbatlar ro'yxati\"]",
+          "htmlSnippet": "<div class=\"flex-grow-1 overflow-y-auto custom-scrollbar p-1\" tabindex=\"0\" aria-label=\"Suhbatlar ro'yxati\">",
+          "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on \"div\" elements with no valid role attribute."
+        },
+        {
+          "target": "div[aria-label=\"Xabarlar tarixi\"]",
+          "htmlSnippet": "<div tabindex=\"0\" aria-label=\"Xabarlar tarixi\" class=\"flex-grow-1 p-3 overflow-y-auto custom-scrollbar d-flex flex-colum",
+          "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on \"div\" elements with no valid role attribute."
+        },
+        {
+          "target": "div[aria-label=\"Mijoz ma'lumotlari\"]",
+          "htmlSnippet": "<div class=\"linear-card d-flex flex-column h-100 p-3 overflow-y-auto custom-scrollbar\" tabindex=\"0\" aria-label=\"Mijoz ma",
+          "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on \"div\" elements with no valid role attribute."
+        }
+      ]
+    },
+    {
+      "design": "premium",
+      "theme": "dark",
+      "tab": "products",
+      "tabName": "Products Catalog",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 1,
+      "sampleNodes": [
+        {
+          "target": ".mt-3.pt-2:nth-child(6) > .gap-0\\.5.flex-column.d-flex > .nav-link-item.border-0.gap-2\\.5 > .flex-grow-1.text-truncate",
+          "htmlSnippet": "<span class=\"flex-grow-1 text-truncate\">Profil &amp; Dizayn</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        }
+      ]
+    },
+    {
+      "design": "premium",
+      "theme": "dark",
+      "tab": "orders",
+      "tabName": "Orders Management",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 1,
+      "sampleNodes": [
+        {
+          "target": ".mt-3.pt-2:nth-child(6) > .gap-0\\.5.flex-column.d-flex > .nav-link-item.border-0.gap-2\\.5 > .flex-grow-1.text-truncate",
+          "htmlSnippet": "<span class=\"flex-grow-1 text-truncate\">Profil &amp; Dizayn</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        }
+      ]
+    },
+    {
+      "design": "premium",
+      "theme": "dark",
+      "tab": "customers",
+      "tabName": "Customers CRM",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 1,
+      "sampleNodes": [
+        {
+          "target": ".mt-3.pt-2:nth-child(6) > .gap-0\\.5.flex-column.d-flex > .nav-link-item.border-0.gap-2\\.5 > .flex-grow-1.text-truncate",
+          "htmlSnippet": "<span class=\"flex-grow-1 text-truncate\">Profil &amp; Dizayn</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        }
+      ]
+    },
+    {
+      "design": "premium",
+      "theme": "dark",
+      "tab": "analytics",
+      "tabName": "Analytics & Conversion",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 1,
+      "sampleNodes": [
+        {
+          "target": ".mt-3.pt-2:nth-child(6) > .gap-0\\.5.flex-column.d-flex > .nav-link-item.border-0.px-2\\.5 > .flex-grow-1.text-truncate",
+          "htmlSnippet": "<span class=\"flex-grow-1 text-truncate\">Profil &amp; Dizayn</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        }
+      ]
+    },
+    {
+      "design": "premium",
+      "theme": "dark",
+      "tab": "settings",
+      "tabName": "Store & AI Settings",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 1,
+      "sampleNodes": [
+        {
+          "target": ".mt-3.pt-2:nth-child(6) > .gap-0\\.5.flex-column.d-flex > .nav-link-item.rounded.transition-all > .flex-grow-1.text-truncate",
+          "htmlSnippet": "<span class=\"flex-grow-1 text-truncate\">Profil &amp; Dizayn</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        }
+      ]
+    },
+    {
+      "design": "premium",
+      "theme": "dark",
+      "tab": "admins",
+      "tabName": "Admins & Telegram Operators",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 1,
+      "sampleNodes": [
+        {
+          "target": ".mt-3.pt-2:nth-child(6) > .gap-0\\.5.flex-column.d-flex > .nav-link-item.border-0.gap-2\\.5 > .flex-grow-1.text-truncate",
+          "htmlSnippet": "<span class=\"flex-grow-1 text-truncate\">Profil &amp; Dizayn</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        }
+      ]
+    },
+    {
+      "design": "premium",
+      "theme": "dark",
+      "tab": "team",
+      "tabName": "Team & Permissions",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 1,
+      "sampleNodes": [
+        {
+          "target": ".mt-3.pt-2:nth-child(6) > .gap-0\\.5.flex-column.d-flex > .nav-link-item.border-0.gap-2\\.5 > .text-truncate.flex-grow-1",
+          "htmlSnippet": "<span class=\"flex-grow-1 text-truncate\">Profil &amp; Dizayn</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        }
+      ]
+    },
+    {
+      "design": "premium",
+      "theme": "dark",
+      "tab": "logs",
+      "tabName": "Activity & Audit Logs",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 1,
+      "sampleNodes": [
+        {
+          "target": ".mt-3.pt-2:nth-child(6) > .gap-0\\.5.flex-column.d-flex > .nav-link-item.border-0.gap-2\\.5 > .flex-grow-1.text-truncate",
+          "htmlSnippet": "<span class=\"flex-grow-1 text-truncate\">Profil &amp; Dizayn</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        }
+      ]
+    },
+    {
+      "design": "premium",
+      "theme": "dark",
+      "tab": "profile",
+      "tabName": "Profile & Appearance",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 3,
+      "sampleNodes": [
+        {
+          "target": ".rounded-3.p-2.overflow-hidden > .pb-1.border-bottom.justify-content-between > span:nth-child(1)",
+          "htmlSnippet": "<span style=\"font-size: 9px; color: rgb(255, 255, 255); font-weight: 600;\"> iOS Glass</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        },
+        {
+          "target": ".py-0\\.5",
+          "htmlSnippet": "<div class=\"rounded-pill px-2 py-0.5\" style=\"background-color: rgba(255, 255, 255, 0.18); font-size: 8px; color: rgb(255",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        },
+        {
+          "target": ".btn-primary > span:nth-child(2)",
+          "htmlSnippet": "<span>Olline</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        }
+      ]
+    },
+    {
+      "design": "premium",
+      "theme": "dark",
+      "tab": "usage",
+      "tabName": "Token & Usage Analytics",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 2,
+      "sampleNodes": [
+        {
+          "target": ".pt-2.mt-3:nth-child(6) > .gap-0\\.5.flex-column.d-flex > .nav-link-item.border-0.px-2\\.5 > .flex-grow-1.text-truncate",
+          "htmlSnippet": "<span class=\"flex-grow-1 text-truncate\">Profil &amp; Dizayn</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        },
+        {
+          "target": ".btn-primary > span",
+          "htmlSnippet": "<span>Tarifni Kengaytirish</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        }
+      ]
+    },
+    {
+      "design": "premium",
+      "theme": "dark",
+      "tab": "billing",
+      "tabName": "Billing & Invoices",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 2,
+      "sampleNodes": [
+        {
+          "target": ".mt-3.pt-2:nth-child(6) > .gap-0\\.5.flex-column.d-flex > .nav-link-item.border-0.gap-2\\.5 > .flex-grow-1.text-truncate",
+          "htmlSnippet": "<span class=\"flex-grow-1 text-truncate\">Profil &amp; Dizayn</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        },
+        {
+          "target": ".btn-primary > span",
+          "htmlSnippet": "<span>Tarifni Oshirish / O'zgartirish</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        }
+      ]
+    },
+    {
+      "design": "premium",
+      "theme": "dark",
+      "tab": "pricing",
+      "tabName": "Plans & Pricing Tiers",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 4,
+      "sampleNodes": [
+        {
+          "target": ".mt-3.pt-2:nth-child(6) > .gap-0\\.5.flex-column > .nav-link-item.gap-2\\.5.px-2\\.5 > .flex-grow-1.text-truncate",
+          "htmlSnippet": "<span class=\"flex-grow-1 text-truncate\">Profil &amp; Dizayn</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        },
+        {
+          "target": ".px-4.btn-primary.shadow",
+          "htmlSnippet": "<button type=\"button\" class=\"btn btn-sm rounded-pill px-4 py-2 border-0 fw-bold transition-all btn-primary shadow\">Oylik",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        },
+        {
+          "target": ".linear-badge-accent",
+          "htmlSnippet": "<span class=\"badge linear-badge-accent fw-bold px-3 py-1.5 rounded-pill shadow d-flex align-items-center gap-1\">",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it is overlapped by another element"
+        },
+        {
+          "target": ".btn-primary.py-2\\.5.shadow > span",
+          "htmlSnippet": "<span>PRO Rejasiga O'tish</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        }
+      ]
+    },
+    {
+      "design": "premium",
+      "theme": "light",
+      "tab": "overview",
+      "tabName": "Overview Dashboard",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 1,
+      "sampleNodes": [
+        {
+          "target": ".overflow-hidden.rounded-circle.justify-content-center",
+          "htmlSnippet": "<div class=\"rounded-circle overflow-hidden d-flex align-items-center justify-content-center\" style=\"width: 24px; height:",
+          "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+        }
+      ]
+    },
+    {
+      "design": "premium",
+      "theme": "light",
+      "tab": "inbox",
+      "tabName": "Inbox & Live Dialogues",
+      "ruleId": "aria-prohibited-attr",
+      "description": "Ensure ARIA attributes are not prohibited for an element's role",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/aria-prohibited-attr?application=playwright",
+      "nodesCount": 3,
+      "sampleNodes": [
+        {
+          "target": "div[aria-label=\"Suhbatlar ro'yxati\"]",
+          "htmlSnippet": "<div class=\"flex-grow-1 overflow-y-auto custom-scrollbar p-1\" tabindex=\"0\" aria-label=\"Suhbatlar ro'yxati\">",
+          "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on \"div\" elements with no valid role attribute."
+        },
+        {
+          "target": "div[aria-label=\"Xabarlar tarixi\"]",
+          "htmlSnippet": "<div tabindex=\"0\" aria-label=\"Xabarlar tarixi\" class=\"flex-grow-1 p-3 overflow-y-auto custom-scrollbar d-flex flex-colum",
+          "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on \"div\" elements with no valid role attribute."
+        },
+        {
+          "target": "div[aria-label=\"Mijoz ma'lumotlari\"]",
+          "htmlSnippet": "<div class=\"linear-card d-flex flex-column h-100 p-3 overflow-y-auto custom-scrollbar\" tabindex=\"0\" aria-label=\"Mijoz ma",
+          "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on \"div\" elements with no valid role attribute."
+        }
+      ]
+    },
+    {
+      "design": "premium",
+      "theme": "light",
+      "tab": "inbox",
+      "tabName": "Inbox & Live Dialogues",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 4,
+      "sampleNodes": [
+        {
+          "target": ".rounded-circle.justify-content-center.overflow-hidden",
+          "htmlSnippet": "<div class=\"rounded-circle overflow-hidden d-flex align-items-center justify-content-center\" style=\"width: 24px; height:",
+          "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+        },
+        {
+          "target": ".justify-content-end.d-flex:nth-child(44) > .rounded-3.position-relative.p-2\\.5 > .text-end.mt-1.font-monospace > .ms-1",
+          "htmlSnippet": "<span class=\"ms-1\">✓✓</span>",
+          "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+        },
+        {
+          "target": ".justify-content-end.d-flex:nth-child(46) > .rounded-3.position-relative.p-2\\.5 > .text-end.mt-1.font-monospace > .ms-1",
+          "htmlSnippet": "<span class=\"ms-1\">✓✓</span>",
+          "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+        },
+        {
+          "target": ".justify-content-end.d-flex:nth-child(47) > .rounded-3.position-relative.p-2\\.5 > .text-end.mt-1.font-monospace > .ms-1",
+          "htmlSnippet": "<span class=\"ms-1\">✓✓</span>",
+          "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+        }
+      ]
+    },
+    {
+      "design": "premium",
+      "theme": "light",
+      "tab": "knowledge",
+      "tabName": "AI Knowledge Base",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 1,
+      "sampleNodes": [
+        {
+          "target": ".mt-3.pt-2:nth-child(6) > .gap-0\\.5.flex-column.d-flex > .nav-link-item.border-0.gap-2\\.5 > .flex-grow-1.text-truncate",
+          "htmlSnippet": "<span class=\"flex-grow-1 text-truncate\">Profil &amp; Dizayn</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        }
+      ]
+    },
+    {
+      "design": "premium",
+      "theme": "light",
+      "tab": "products",
+      "tabName": "Products Catalog",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 2,
+      "sampleNodes": [
+        {
+          "target": ".active > .fw-semibold.small",
+          "htmlSnippet": "<span class=\"small fw-semibold\" style=\"font-size: 0.7rem; color: var(--text-secondary);\">6</span>",
+          "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+        },
+        {
+          "target": ".mt-3.pt-2:nth-child(6) > .gap-0\\.5.flex-column.d-flex > .nav-link-item.border-0.gap-2\\.5 > .flex-grow-1.text-truncate",
+          "htmlSnippet": "<span class=\"flex-grow-1 text-truncate\">Profil &amp; Dizayn</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        }
+      ]
+    },
+    {
+      "design": "premium",
+      "theme": "light",
+      "tab": "orders",
+      "tabName": "Orders Management",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 2,
+      "sampleNodes": [
+        {
+          "target": ".active > .fw-semibold.small",
+          "htmlSnippet": "<span class=\"small fw-semibold\" style=\"font-size: 0.7rem; color: var(--text-secondary);\">3</span>",
+          "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+        },
+        {
+          "target": ".mt-3.pt-2:nth-child(6) > .gap-0\\.5.flex-column.d-flex > .nav-link-item.border-0.gap-2\\.5 > .flex-grow-1.text-truncate",
+          "htmlSnippet": "<span class=\"flex-grow-1 text-truncate\">Profil &amp; Dizayn</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        }
+      ]
+    },
+    {
+      "design": "premium",
+      "theme": "light",
+      "tab": "customers",
+      "tabName": "Customers CRM",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 1,
+      "sampleNodes": [
+        {
+          "target": ".mt-3.pt-2:nth-child(6) > .gap-0\\.5.flex-column.d-flex > .nav-link-item.border-0.gap-2\\.5 > .flex-grow-1.text-truncate",
+          "htmlSnippet": "<span class=\"flex-grow-1 text-truncate\">Profil &amp; Dizayn</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        }
+      ]
+    },
+    {
+      "design": "premium",
+      "theme": "light",
+      "tab": "analytics",
+      "tabName": "Analytics & Conversion",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 1,
+      "sampleNodes": [
+        {
+          "target": ".mt-3.pt-2:nth-child(6) > .gap-0\\.5.flex-column.d-flex > .nav-link-item.border-0.px-2\\.5 > .flex-grow-1.text-truncate",
+          "htmlSnippet": "<span class=\"flex-grow-1 text-truncate\">Profil &amp; Dizayn</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        }
+      ]
+    },
+    {
+      "design": "premium",
+      "theme": "light",
+      "tab": "settings",
+      "tabName": "Store & AI Settings",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 1,
+      "sampleNodes": [
+        {
+          "target": ".mt-3.pt-2:nth-child(6) > .gap-0\\.5.flex-column.d-flex > .nav-link-item.rounded.transition-all > .flex-grow-1.text-truncate",
+          "htmlSnippet": "<span class=\"flex-grow-1 text-truncate\">Profil &amp; Dizayn</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        }
+      ]
+    },
+    {
+      "design": "premium",
+      "theme": "light",
+      "tab": "admins",
+      "tabName": "Admins & Telegram Operators",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 1,
+      "sampleNodes": [
+        {
+          "target": ".mt-3.pt-2:nth-child(6) > .gap-0\\.5.flex-column.d-flex > .nav-link-item.border-0.gap-2\\.5 > .flex-grow-1.text-truncate",
+          "htmlSnippet": "<span class=\"flex-grow-1 text-truncate\">Profil &amp; Dizayn</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        }
+      ]
+    },
+    {
+      "design": "premium",
+      "theme": "light",
+      "tab": "team",
+      "tabName": "Team & Permissions",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 1,
+      "sampleNodes": [
+        {
+          "target": ".mt-3.pt-2:nth-child(6) > .gap-0\\.5.flex-column.d-flex > .nav-link-item.border-0.gap-2\\.5 > .text-truncate.flex-grow-1",
+          "htmlSnippet": "<span class=\"flex-grow-1 text-truncate\">Profil &amp; Dizayn</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        }
+      ]
+    },
+    {
+      "design": "premium",
+      "theme": "light",
+      "tab": "logs",
+      "tabName": "Activity & Audit Logs",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 1,
+      "sampleNodes": [
+        {
+          "target": ".mt-3.pt-2:nth-child(6) > .gap-0\\.5.flex-column > .nav-link-item.border-0.gap-2\\.5 > .flex-grow-1.text-truncate",
+          "htmlSnippet": "<span class=\"flex-grow-1 text-truncate\">Profil &amp; Dizayn</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        }
+      ]
+    },
+    {
+      "design": "premium",
+      "theme": "light",
+      "tab": "profile",
+      "tabName": "Profile & Appearance",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 3,
+      "sampleNodes": [
+        {
+          "target": ".rounded-3.p-2.overflow-hidden > .pb-1.border-bottom.justify-content-between > span:nth-child(1)",
+          "htmlSnippet": "<span style=\"font-size: 9px; color: rgb(255, 255, 255); font-weight: 600;\"> iOS Glass</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        },
+        {
+          "target": ".py-0\\.5",
+          "htmlSnippet": "<div class=\"rounded-pill px-2 py-0.5\" style=\"background-color: rgba(255, 255, 255, 0.18); font-size: 8px; color: rgb(255",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        },
+        {
+          "target": ".btn-primary > span:nth-child(2)",
+          "htmlSnippet": "<span>Olline</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        }
+      ]
+    },
+    {
+      "design": "premium",
+      "theme": "light",
+      "tab": "usage",
+      "tabName": "Token & Usage Analytics",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 2,
+      "sampleNodes": [
+        {
+          "target": ".pt-2.mt-3:nth-child(6) > .gap-0\\.5.flex-column.d-flex > .nav-link-item.border-0.px-2\\.5 > .flex-grow-1.text-truncate",
+          "htmlSnippet": "<span class=\"flex-grow-1 text-truncate\">Profil &amp; Dizayn</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        },
+        {
+          "target": ".btn-primary > span",
+          "htmlSnippet": "<span>Tarifni Kengaytirish</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        }
+      ]
+    },
+    {
+      "design": "premium",
+      "theme": "light",
+      "tab": "billing",
+      "tabName": "Billing & Invoices",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 5,
+      "sampleNodes": [
+        {
+          "target": ".mt-3.pt-2:nth-child(6) > .gap-0\\.5.flex-column.d-flex > .nav-link-item.border-0.gap-2\\.5 > .flex-grow-1.text-truncate",
+          "htmlSnippet": "<span class=\"flex-grow-1 text-truncate\">Profil &amp; Dizayn</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        },
+        {
+          "target": ".px-4.card-header.py-3 > div > h3",
+          "htmlSnippet": "<h3 class=\"card-title fw-bold mb-0\">Joriy Obuna va Tarif Rejasi</h3>",
+          "failureSummary": "Fix any of the following:\n  Element has a 1:1 contrast ratio with the background"
+        },
+        {
+          "target": ".btn-primary > span",
+          "htmlSnippet": "<span>Tarifni Oshirish / O'zgartirish</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        },
+        {
+          "target": "h3 > span",
+          "htmlSnippet": "<span>To'lov Usuli</span>",
+          "failureSummary": "Fix any of the following:\n  Element has a 1:1 contrast ratio with the background"
+        },
+        {
+          "target": ".px-4.card-header.py-3 > h3",
+          "htmlSnippet": "<h3 class=\"card-title fw-bold mb-0\">Hisob-Fakturalar va To'lovlar Tarixi (Invoices)</h3>",
+          "failureSummary": "Fix any of the following:\n  Element has a 1:1 contrast ratio with the background"
+        }
+      ]
+    },
+    {
+      "design": "premium",
+      "theme": "light",
+      "tab": "pricing",
+      "tabName": "Plans & Pricing Tiers",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 4,
+      "sampleNodes": [
+        {
+          "target": ".mt-3.pt-2:nth-child(6) > .gap-0\\.5.flex-column > .nav-link-item.gap-2\\.5.px-2\\.5 > .flex-grow-1.text-truncate",
+          "htmlSnippet": "<span class=\"flex-grow-1 text-truncate\">Profil &amp; Dizayn</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        },
+        {
+          "target": ".px-4.btn-primary.shadow",
+          "htmlSnippet": "<button type=\"button\" class=\"btn btn-sm rounded-pill px-4 py-2 border-0 fw-bold transition-all btn-primary shadow\">Oylik",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        },
+        {
+          "target": ".linear-badge-accent",
+          "htmlSnippet": "<span class=\"badge linear-badge-accent fw-bold px-3 py-1.5 rounded-pill shadow d-flex align-items-center gap-1\">",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it is overlapped by another element"
+        },
+        {
+          "target": ".btn-primary.py-2\\.5.shadow > span",
+          "htmlSnippet": "<span>PRO Rejasiga O'tish</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        }
+      ]
+    },
+    {
+      "design": "ios",
+      "theme": "dark",
+      "tab": "inbox",
+      "tabName": "Inbox & Live Dialogues",
+      "ruleId": "aria-prohibited-attr",
+      "description": "Ensure ARIA attributes are not prohibited for an element's role",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/aria-prohibited-attr?application=playwright",
+      "nodesCount": 3,
+      "sampleNodes": [
+        {
+          "target": "div[aria-label=\"Suhbatlar ro'yxati\"]",
+          "htmlSnippet": "<div class=\"flex-grow-1 overflow-y-auto custom-scrollbar p-1\" tabindex=\"0\" aria-label=\"Suhbatlar ro'yxati\">",
+          "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on \"div\" elements with no valid role attribute."
+        },
+        {
+          "target": "div[aria-label=\"Xabarlar tarixi\"]",
+          "htmlSnippet": "<div tabindex=\"0\" aria-label=\"Xabarlar tarixi\" class=\"flex-grow-1 p-3 overflow-y-auto custom-scrollbar d-flex flex-colum",
+          "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on \"div\" elements with no valid role attribute."
+        },
+        {
+          "target": "div[aria-label=\"Mijoz ma'lumotlari\"]",
+          "htmlSnippet": "<div class=\"linear-card d-flex flex-column h-100 p-3 overflow-y-auto custom-scrollbar\" tabindex=\"0\" aria-label=\"Mijoz ma",
+          "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on \"div\" elements with no valid role attribute."
+        }
+      ]
+    },
+    {
+      "design": "ios",
+      "theme": "dark",
+      "tab": "inbox",
+      "tabName": "Inbox & Live Dialogues",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 3,
+      "sampleNodes": [
+        {
+          "target": ".justify-content-end.d-flex:nth-child(44) > .rounded-3.position-relative.p-2\\.5 > .text-end.mt-1.font-monospace > .ms-1",
+          "htmlSnippet": "<span class=\"ms-1\">✓✓</span>",
+          "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+        },
+        {
+          "target": ".justify-content-end.d-flex:nth-child(46) > .rounded-3.position-relative.p-2\\.5 > .text-end.mt-1.font-monospace > .ms-1",
+          "htmlSnippet": "<span class=\"ms-1\">✓✓</span>",
+          "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+        },
+        {
+          "target": ".justify-content-end.d-flex:nth-child(47) > .rounded-3.position-relative.p-2\\.5 > .text-end.mt-1.font-monospace > .ms-1",
+          "htmlSnippet": "<span class=\"ms-1\">✓✓</span>",
+          "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+        }
+      ]
+    },
+    {
+      "design": "ios",
+      "theme": "dark",
+      "tab": "products",
+      "tabName": "Products Catalog",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 1,
+      "sampleNodes": [
+        {
+          "target": ".active > .fw-semibold.small",
+          "htmlSnippet": "<span class=\"small fw-semibold\" style=\"font-size: 0.7rem; color: var(--text-secondary);\">6</span>",
+          "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+        }
+      ]
+    },
+    {
+      "design": "ios",
+      "theme": "dark",
+      "tab": "orders",
+      "tabName": "Orders Management",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 1,
+      "sampleNodes": [
+        {
+          "target": ".active > .fw-semibold.small",
+          "htmlSnippet": "<span class=\"small fw-semibold\" style=\"font-size: 0.7rem; color: var(--text-secondary);\">3</span>",
+          "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+        }
+      ]
+    },
+    {
+      "design": "ios",
+      "theme": "dark",
+      "tab": "profile",
+      "tabName": "Profile & Appearance",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 3,
+      "sampleNodes": [
+        {
+          "target": ".rounded-3.p-2.overflow-hidden > .pb-1.border-bottom.justify-content-between > span:nth-child(1)",
+          "htmlSnippet": "<span style=\"font-size: 9px; color: rgb(255, 255, 255); font-weight: 600;\"> iOS Glass</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        },
+        {
+          "target": ".py-0\\.5",
+          "htmlSnippet": "<div class=\"rounded-pill px-2 py-0.5\" style=\"background-color: rgba(255, 255, 255, 0.18); font-size: 8px; color: rgb(255",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        },
+        {
+          "target": ".btn-primary > span:nth-child(2)",
+          "htmlSnippet": "<span>Olline</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        }
+      ]
+    },
+    {
+      "design": "ios",
+      "theme": "dark",
+      "tab": "usage",
+      "tabName": "Token & Usage Analytics",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 1,
+      "sampleNodes": [
+        {
+          "target": ".btn-primary > span",
+          "htmlSnippet": "<span>Tarifni Kengaytirish</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        }
+      ]
+    },
+    {
+      "design": "ios",
+      "theme": "dark",
+      "tab": "billing",
+      "tabName": "Billing & Invoices",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 1,
+      "sampleNodes": [
+        {
+          "target": ".btn-primary > span",
+          "htmlSnippet": "<span>Tarifni Oshirish / O'zgartirish</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        }
+      ]
+    },
+    {
+      "design": "ios",
+      "theme": "dark",
+      "tab": "pricing",
+      "tabName": "Plans & Pricing Tiers",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 3,
+      "sampleNodes": [
+        {
+          "target": ".px-4.btn-primary.shadow",
+          "htmlSnippet": "<button type=\"button\" class=\"btn btn-sm rounded-pill px-4 py-2 border-0 fw-bold transition-all btn-primary shadow\">Oylik",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        },
+        {
+          "target": ".linear-badge-accent",
+          "htmlSnippet": "<span class=\"badge linear-badge-accent fw-bold px-3 py-1.5 rounded-pill shadow d-flex align-items-center gap-1\">",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it is overlapped by another element"
+        },
+        {
+          "target": ".btn-primary.py-2\\.5.shadow > span",
+          "htmlSnippet": "<span>PRO Rejasiga O'tish</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        }
+      ]
+    },
+    {
+      "design": "ios",
+      "theme": "light",
+      "tab": "overview",
+      "tabName": "Overview Dashboard",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 1,
+      "sampleNodes": [
+        {
+          "target": ".overflow-hidden.rounded-circle.justify-content-center",
+          "htmlSnippet": "<div class=\"rounded-circle overflow-hidden d-flex align-items-center justify-content-center\" style=\"width: 24px; height:",
+          "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+        }
+      ]
+    },
+    {
+      "design": "ios",
+      "theme": "light",
+      "tab": "inbox",
+      "tabName": "Inbox & Live Dialogues",
+      "ruleId": "aria-prohibited-attr",
+      "description": "Ensure ARIA attributes are not prohibited for an element's role",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/aria-prohibited-attr?application=playwright",
+      "nodesCount": 3,
+      "sampleNodes": [
+        {
+          "target": "div[aria-label=\"Suhbatlar ro'yxati\"]",
+          "htmlSnippet": "<div class=\"flex-grow-1 overflow-y-auto custom-scrollbar p-1\" tabindex=\"0\" aria-label=\"Suhbatlar ro'yxati\">",
+          "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on \"div\" elements with no valid role attribute."
+        },
+        {
+          "target": "div[aria-label=\"Xabarlar tarixi\"]",
+          "htmlSnippet": "<div tabindex=\"0\" aria-label=\"Xabarlar tarixi\" class=\"flex-grow-1 p-3 overflow-y-auto custom-scrollbar d-flex flex-colum",
+          "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on \"div\" elements with no valid role attribute."
+        },
+        {
+          "target": "div[aria-label=\"Mijoz ma'lumotlari\"]",
+          "htmlSnippet": "<div class=\"linear-card d-flex flex-column h-100 p-3 overflow-y-auto custom-scrollbar\" tabindex=\"0\" aria-label=\"Mijoz ma",
+          "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on \"div\" elements with no valid role attribute."
+        }
+      ]
+    },
+    {
+      "design": "ios",
+      "theme": "light",
+      "tab": "inbox",
+      "tabName": "Inbox & Live Dialogues",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 4,
+      "sampleNodes": [
+        {
+          "target": ".rounded-circle.justify-content-center.overflow-hidden",
+          "htmlSnippet": "<div class=\"rounded-circle overflow-hidden d-flex align-items-center justify-content-center\" style=\"width: 24px; height:",
+          "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+        },
+        {
+          "target": ".justify-content-end.d-flex:nth-child(44) > .rounded-3.position-relative.p-2\\.5 > .text-end.mt-1.font-monospace > .ms-1",
+          "htmlSnippet": "<span class=\"ms-1\">✓✓</span>",
+          "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+        },
+        {
+          "target": ".justify-content-end.d-flex:nth-child(46) > .rounded-3.position-relative.p-2\\.5 > .text-end.mt-1.font-monospace > .ms-1",
+          "htmlSnippet": "<span class=\"ms-1\">✓✓</span>",
+          "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+        },
+        {
+          "target": ".justify-content-end.d-flex:nth-child(47) > .rounded-3.position-relative.p-2\\.5 > .text-end.mt-1.font-monospace > .ms-1",
+          "htmlSnippet": "<span class=\"ms-1\">✓✓</span>",
+          "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+        }
+      ]
+    },
+    {
+      "design": "ios",
+      "theme": "light",
+      "tab": "products",
+      "tabName": "Products Catalog",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 1,
+      "sampleNodes": [
+        {
+          "target": ".active > .fw-semibold.small",
+          "htmlSnippet": "<span class=\"small fw-semibold\" style=\"font-size: 0.7rem; color: var(--text-secondary);\">6</span>",
+          "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+        }
+      ]
+    },
+    {
+      "design": "ios",
+      "theme": "light",
+      "tab": "orders",
+      "tabName": "Orders Management",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 1,
+      "sampleNodes": [
+        {
+          "target": ".active > .fw-semibold.small",
+          "htmlSnippet": "<span class=\"small fw-semibold\" style=\"font-size: 0.7rem; color: var(--text-secondary);\">3</span>",
+          "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+        }
+      ]
+    },
+    {
+      "design": "ios",
+      "theme": "light",
+      "tab": "profile",
+      "tabName": "Profile & Appearance",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 3,
+      "sampleNodes": [
+        {
+          "target": ".rounded-3.p-2.overflow-hidden > .pb-1.border-bottom.justify-content-between > span:nth-child(1)",
+          "htmlSnippet": "<span style=\"font-size: 9px; color: rgb(255, 255, 255); font-weight: 600;\"> iOS Glass</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        },
+        {
+          "target": ".py-0\\.5",
+          "htmlSnippet": "<div class=\"rounded-pill px-2 py-0.5\" style=\"background-color: rgba(255, 255, 255, 0.18); font-size: 8px; color: rgb(255",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        },
+        {
+          "target": ".btn-primary > span:nth-child(2)",
+          "htmlSnippet": "<span>Olline</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        }
+      ]
+    },
+    {
+      "design": "ios",
+      "theme": "light",
+      "tab": "usage",
+      "tabName": "Token & Usage Analytics",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 1,
+      "sampleNodes": [
+        {
+          "target": ".btn-primary > span",
+          "htmlSnippet": "<span>Tarifni Kengaytirish</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        }
+      ]
+    },
+    {
+      "design": "ios",
+      "theme": "light",
+      "tab": "billing",
+      "tabName": "Billing & Invoices",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 1,
+      "sampleNodes": [
+        {
+          "target": ".btn-primary > span",
+          "htmlSnippet": "<span>Tarifni Oshirish / O'zgartirish</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        }
+      ]
+    },
+    {
+      "design": "ios",
+      "theme": "light",
+      "tab": "pricing",
+      "tabName": "Plans & Pricing Tiers",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 3,
+      "sampleNodes": [
+        {
+          "target": ".px-4.btn-primary.shadow",
+          "htmlSnippet": "<button type=\"button\" class=\"btn btn-sm rounded-pill px-4 py-2 border-0 fw-bold transition-all btn-primary shadow\">Oylik",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        },
+        {
+          "target": ".linear-badge-accent",
+          "htmlSnippet": "<span class=\"badge linear-badge-accent fw-bold px-3 py-1.5 rounded-pill shadow d-flex align-items-center gap-1\">",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it is overlapped by another element"
+        },
+        {
+          "target": ".btn-primary.py-2\\.5.shadow > span",
+          "htmlSnippet": "<span>PRO Rejasiga O'tish</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        }
+      ]
+    },
+    {
+      "design": "classic",
+      "theme": "dark",
+      "tab": "inbox",
+      "tabName": "Inbox & Live Dialogues",
+      "ruleId": "aria-prohibited-attr",
+      "description": "Ensure ARIA attributes are not prohibited for an element's role",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/aria-prohibited-attr?application=playwright",
+      "nodesCount": 3,
+      "sampleNodes": [
+        {
+          "target": "div[aria-label=\"Suhbatlar ro'yxati\"]",
+          "htmlSnippet": "<div class=\"flex-grow-1 overflow-y-auto custom-scrollbar p-1\" tabindex=\"0\" aria-label=\"Suhbatlar ro'yxati\">",
+          "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on \"div\" elements with no valid role attribute."
+        },
+        {
+          "target": "div[aria-label=\"Xabarlar tarixi\"]",
+          "htmlSnippet": "<div tabindex=\"0\" aria-label=\"Xabarlar tarixi\" class=\"flex-grow-1 p-3 overflow-y-auto custom-scrollbar d-flex flex-colum",
+          "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on \"div\" elements with no valid role attribute."
+        },
+        {
+          "target": "div[aria-label=\"Mijoz ma'lumotlari\"]",
+          "htmlSnippet": "<div class=\"linear-card d-flex flex-column h-100 p-3 overflow-y-auto custom-scrollbar\" tabindex=\"0\" aria-label=\"Mijoz ma",
+          "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on \"div\" elements with no valid role attribute."
+        }
+      ]
+    },
+    {
+      "design": "classic",
+      "theme": "dark",
+      "tab": "inbox",
+      "tabName": "Inbox & Live Dialogues",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 3,
+      "sampleNodes": [
+        {
+          "target": ".justify-content-end.d-flex:nth-child(44) > .rounded-3.position-relative.p-2\\.5 > .text-end.mt-1.font-monospace > .ms-1",
+          "htmlSnippet": "<span class=\"ms-1\">✓✓</span>",
+          "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+        },
+        {
+          "target": ".justify-content-end.d-flex:nth-child(46) > .rounded-3.position-relative.p-2\\.5 > .text-end.mt-1.font-monospace > .ms-1",
+          "htmlSnippet": "<span class=\"ms-1\">✓✓</span>",
+          "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+        },
+        {
+          "target": ".justify-content-end.d-flex:nth-child(47) > .rounded-3.position-relative.p-2\\.5 > .text-end.mt-1.font-monospace > .ms-1",
+          "htmlSnippet": "<span class=\"ms-1\">✓✓</span>",
+          "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+        }
+      ]
+    },
+    {
+      "design": "classic",
+      "theme": "dark",
+      "tab": "profile",
+      "tabName": "Profile & Appearance",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 3,
+      "sampleNodes": [
+        {
+          "target": ".rounded-3.p-2.overflow-hidden > .pb-1.border-bottom.justify-content-between > span:nth-child(1)",
+          "htmlSnippet": "<span style=\"font-size: 9px; color: rgb(255, 255, 255); font-weight: 600;\"> iOS Glass</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        },
+        {
+          "target": ".py-0\\.5",
+          "htmlSnippet": "<div class=\"rounded-pill px-2 py-0.5\" style=\"background-color: rgba(255, 255, 255, 0.18); font-size: 8px; color: rgb(255",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        },
+        {
+          "target": ".btn-primary > span:nth-child(2)",
+          "htmlSnippet": "<span>Olline</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        }
+      ]
+    },
+    {
+      "design": "classic",
+      "theme": "dark",
+      "tab": "usage",
+      "tabName": "Token & Usage Analytics",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 1,
+      "sampleNodes": [
+        {
+          "target": ".btn-primary > span",
+          "htmlSnippet": "<span>Tarifni Kengaytirish</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        }
+      ]
+    },
+    {
+      "design": "classic",
+      "theme": "dark",
+      "tab": "billing",
+      "tabName": "Billing & Invoices",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 1,
+      "sampleNodes": [
+        {
+          "target": ".btn-primary > span",
+          "htmlSnippet": "<span>Tarifni Oshirish / O'zgartirish</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        }
+      ]
+    },
+    {
+      "design": "classic",
+      "theme": "dark",
+      "tab": "pricing",
+      "tabName": "Plans & Pricing Tiers",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 3,
+      "sampleNodes": [
+        {
+          "target": ".px-4.btn-primary.shadow",
+          "htmlSnippet": "<button type=\"button\" class=\"btn btn-sm rounded-pill px-4 py-2 border-0 fw-bold transition-all btn-primary shadow\">Oylik",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        },
+        {
+          "target": ".linear-badge-accent",
+          "htmlSnippet": "<span class=\"badge linear-badge-accent fw-bold px-3 py-1.5 rounded-pill shadow d-flex align-items-center gap-1\">",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+        },
+        {
+          "target": ".btn-primary.py-2\\.5.shadow > span",
+          "htmlSnippet": "<span>PRO Rejasiga O'tish</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        }
+      ]
+    },
+    {
+      "design": "classic",
+      "theme": "light",
+      "tab": "overview",
+      "tabName": "Overview Dashboard",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 1,
+      "sampleNodes": [
+        {
+          "target": ".overflow-hidden.rounded-circle.justify-content-center",
+          "htmlSnippet": "<div class=\"rounded-circle overflow-hidden d-flex align-items-center justify-content-center\" style=\"width: 24px; height:",
+          "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+        }
+      ]
+    },
+    {
+      "design": "classic",
+      "theme": "light",
+      "tab": "inbox",
+      "tabName": "Inbox & Live Dialogues",
+      "ruleId": "aria-prohibited-attr",
+      "description": "Ensure ARIA attributes are not prohibited for an element's role",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/aria-prohibited-attr?application=playwright",
+      "nodesCount": 3,
+      "sampleNodes": [
+        {
+          "target": "div[aria-label=\"Suhbatlar ro'yxati\"]",
+          "htmlSnippet": "<div class=\"flex-grow-1 overflow-y-auto custom-scrollbar p-1\" tabindex=\"0\" aria-label=\"Suhbatlar ro'yxati\">",
+          "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on \"div\" elements with no valid role attribute."
+        },
+        {
+          "target": "div[aria-label=\"Xabarlar tarixi\"]",
+          "htmlSnippet": "<div tabindex=\"0\" aria-label=\"Xabarlar tarixi\" class=\"flex-grow-1 p-3 overflow-y-auto custom-scrollbar d-flex flex-colum",
+          "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on \"div\" elements with no valid role attribute."
+        },
+        {
+          "target": "div[aria-label=\"Mijoz ma'lumotlari\"]",
+          "htmlSnippet": "<div class=\"linear-card d-flex flex-column h-100 p-3 overflow-y-auto custom-scrollbar\" tabindex=\"0\" aria-label=\"Mijoz ma",
+          "failureSummary": "Fix all of the following:\n  aria-label attribute is not well supported on \"div\" elements with no valid role attribute."
+        }
+      ]
+    },
+    {
+      "design": "classic",
+      "theme": "light",
+      "tab": "inbox",
+      "tabName": "Inbox & Live Dialogues",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 4,
+      "sampleNodes": [
+        {
+          "target": ".rounded-circle.justify-content-center.overflow-hidden",
+          "htmlSnippet": "<div class=\"rounded-circle overflow-hidden d-flex align-items-center justify-content-center\" style=\"width: 24px; height:",
+          "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+        },
+        {
+          "target": ".justify-content-end.d-flex:nth-child(44) > .rounded-3.position-relative.p-2\\.5 > .text-end.mt-1.font-monospace > .ms-1",
+          "htmlSnippet": "<span class=\"ms-1\">✓✓</span>",
+          "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+        },
+        {
+          "target": ".justify-content-end.d-flex:nth-child(46) > .rounded-3.position-relative.p-2\\.5 > .text-end.mt-1.font-monospace > .ms-1",
+          "htmlSnippet": "<span class=\"ms-1\">✓✓</span>",
+          "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+        },
+        {
+          "target": ".justify-content-end.d-flex:nth-child(47) > .rounded-3.position-relative.p-2\\.5 > .text-end.mt-1.font-monospace > .ms-1",
+          "htmlSnippet": "<span class=\"ms-1\">✓✓</span>",
+          "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+        }
+      ]
+    },
+    {
+      "design": "classic",
+      "theme": "light",
+      "tab": "knowledge",
+      "tabName": "AI Knowledge Base",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 1,
+      "sampleNodes": [
+        {
+          "target": ".rounded-circle.overflow-hidden.justify-content-center",
+          "htmlSnippet": "<div class=\"rounded-circle overflow-hidden d-flex align-items-center justify-content-center\" style=\"width: 24px; height:",
+          "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+        }
+      ]
+    },
+    {
+      "design": "classic",
+      "theme": "light",
+      "tab": "products",
+      "tabName": "Products Catalog",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 1,
+      "sampleNodes": [
+        {
+          "target": ".rounded-circle.overflow-hidden.justify-content-center",
+          "htmlSnippet": "<div class=\"rounded-circle overflow-hidden d-flex align-items-center justify-content-center\" style=\"width: 24px; height:",
+          "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+        }
+      ]
+    },
+    {
+      "design": "classic",
+      "theme": "light",
+      "tab": "orders",
+      "tabName": "Orders Management",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 1,
+      "sampleNodes": [
+        {
+          "target": ".rounded-circle.overflow-hidden.justify-content-center",
+          "htmlSnippet": "<div class=\"rounded-circle overflow-hidden d-flex align-items-center justify-content-center\" style=\"width: 24px; height:",
+          "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+        }
+      ]
+    },
+    {
+      "design": "classic",
+      "theme": "light",
+      "tab": "customers",
+      "tabName": "Customers CRM",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 1,
+      "sampleNodes": [
+        {
+          "target": ".overflow-hidden.rounded-circle.justify-content-center",
+          "htmlSnippet": "<div class=\"rounded-circle overflow-hidden d-flex align-items-center justify-content-center\" style=\"width: 24px; height:",
+          "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+        }
+      ]
+    },
+    {
+      "design": "classic",
+      "theme": "light",
+      "tab": "analytics",
+      "tabName": "Analytics & Conversion",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 1,
+      "sampleNodes": [
+        {
+          "target": ".rounded-circle.overflow-hidden.justify-content-center",
+          "htmlSnippet": "<div class=\"rounded-circle overflow-hidden d-flex align-items-center justify-content-center\" style=\"width: 24px; height:",
+          "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+        }
+      ]
+    },
+    {
+      "design": "classic",
+      "theme": "light",
+      "tab": "settings",
+      "tabName": "Store & AI Settings",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 1,
+      "sampleNodes": [
+        {
+          "target": ".rounded-circle.overflow-hidden.justify-content-center",
+          "htmlSnippet": "<div class=\"rounded-circle overflow-hidden d-flex align-items-center justify-content-center\" style=\"width: 24px; height:",
+          "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+        }
+      ]
+    },
+    {
+      "design": "classic",
+      "theme": "light",
+      "tab": "admins",
+      "tabName": "Admins & Telegram Operators",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 1,
+      "sampleNodes": [
+        {
+          "target": ".overflow-hidden.rounded-circle.justify-content-center",
+          "htmlSnippet": "<div class=\"rounded-circle overflow-hidden d-flex align-items-center justify-content-center\" style=\"width: 24px; height:",
+          "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+        }
+      ]
+    },
+    {
+      "design": "classic",
+      "theme": "light",
+      "tab": "team",
+      "tabName": "Team & Permissions",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 1,
+      "sampleNodes": [
+        {
+          "target": ".rounded-circle.overflow-hidden.justify-content-center",
+          "htmlSnippet": "<div class=\"rounded-circle overflow-hidden d-flex align-items-center justify-content-center\" style=\"width: 24px; height:",
+          "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+        }
+      ]
+    },
+    {
+      "design": "classic",
+      "theme": "light",
+      "tab": "logs",
+      "tabName": "Activity & Audit Logs",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 1,
+      "sampleNodes": [
+        {
+          "target": ".rounded-circle.overflow-hidden.justify-content-center",
+          "htmlSnippet": "<div class=\"rounded-circle overflow-hidden d-flex align-items-center justify-content-center\" style=\"width: 24px; height:",
+          "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+        }
+      ]
+    },
+    {
+      "design": "classic",
+      "theme": "light",
+      "tab": "profile",
+      "tabName": "Profile & Appearance",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 4,
+      "sampleNodes": [
+        {
+          "target": ".rounded-circle.overflow-hidden.justify-content-center",
+          "htmlSnippet": "<div class=\"rounded-circle overflow-hidden d-flex align-items-center justify-content-center\" style=\"width: 24px; height:",
+          "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+        },
+        {
+          "target": ".rounded-3.p-2.overflow-hidden > .pb-1.border-bottom.justify-content-between > span:nth-child(1)",
+          "htmlSnippet": "<span style=\"font-size: 9px; color: rgb(255, 255, 255); font-weight: 600;\"> iOS Glass</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        },
+        {
+          "target": ".py-0\\.5",
+          "htmlSnippet": "<div class=\"rounded-pill px-2 py-0.5\" style=\"background-color: rgba(255, 255, 255, 0.18); font-size: 8px; color: rgb(255",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        },
+        {
+          "target": ".btn-primary > span:nth-child(2)",
+          "htmlSnippet": "<span>Olline</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        }
+      ]
+    },
+    {
+      "design": "classic",
+      "theme": "light",
+      "tab": "usage",
+      "tabName": "Token & Usage Analytics",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 2,
+      "sampleNodes": [
+        {
+          "target": ".rounded-circle.overflow-hidden.justify-content-center",
+          "htmlSnippet": "<div class=\"rounded-circle overflow-hidden d-flex align-items-center justify-content-center\" style=\"width: 24px; height:",
+          "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+        },
+        {
+          "target": ".btn-primary > span",
+          "htmlSnippet": "<span>Tarifni Kengaytirish</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        }
+      ]
+    },
+    {
+      "design": "classic",
+      "theme": "light",
+      "tab": "billing",
+      "tabName": "Billing & Invoices",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 5,
+      "sampleNodes": [
+        {
+          "target": ".rounded-circle.overflow-hidden.justify-content-center",
+          "htmlSnippet": "<div class=\"rounded-circle overflow-hidden d-flex align-items-center justify-content-center\" style=\"width: 24px; height:",
+          "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+        },
+        {
+          "target": ".px-4.card-header.py-3 > div > h3",
+          "htmlSnippet": "<h3 class=\"card-title fw-bold mb-0\">Joriy Obuna va Tarif Rejasi</h3>",
+          "failureSummary": "Fix any of the following:\n  Element has a 1:1 contrast ratio with the background"
+        },
+        {
+          "target": ".btn-primary > span",
+          "htmlSnippet": "<span>Tarifni Oshirish / O'zgartirish</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        },
+        {
+          "target": "h3 > span",
+          "htmlSnippet": "<span>To'lov Usuli</span>",
+          "failureSummary": "Fix any of the following:\n  Element has a 1:1 contrast ratio with the background"
+        },
+        {
+          "target": ".px-4.card-header.py-3 > h3",
+          "htmlSnippet": "<h3 class=\"card-title fw-bold mb-0\">Hisob-Fakturalar va To'lovlar Tarixi (Invoices)</h3>",
+          "failureSummary": "Fix any of the following:\n  Element has a 1:1 contrast ratio with the background"
+        }
+      ]
+    },
+    {
+      "design": "classic",
+      "theme": "light",
+      "tab": "pricing",
+      "tabName": "Plans & Pricing Tiers",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 3,
+      "sampleNodes": [
+        {
+          "target": ".rounded-circle.overflow-hidden.justify-content-center",
+          "htmlSnippet": "<div class=\"rounded-circle overflow-hidden d-flex align-items-center justify-content-center\" style=\"width: 24px; height:",
+          "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+        },
+        {
+          "target": ".px-4.btn-primary.shadow",
+          "htmlSnippet": "<button type=\"button\" class=\"btn btn-sm rounded-pill px-4 py-2 border-0 fw-bold transition-all btn-primary shadow\">Oylik",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        },
+        {
+          "target": ".btn-primary.py-2\\.5.shadow > span",
+          "htmlSnippet": "<span>PRO Rejasiga O'tish</span>",
+          "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+        }
+      ]
+    },
+    {
+      "design": "classic",
+      "theme": "light",
+      "tab": "platform",
+      "tabName": "Platform Owner Center",
+      "ruleId": "color-contrast",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+      "nodesCount": 1,
+      "sampleNodes": [
+        {
+          "target": ".rounded-circle.justify-content-center.overflow-hidden",
+          "htmlSnippet": "<div class=\"rounded-circle overflow-hidden d-flex align-items-center justify-content-center\" style=\"width: 24px; height:",
+          "failureSummary": "Fix any of the following:\n  Element content is too short to determine if it is actual text content"
+        }
+      ]
+    }
+  ]
+}

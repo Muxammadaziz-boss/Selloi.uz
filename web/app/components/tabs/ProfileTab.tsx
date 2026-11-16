@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useLanguage } from "../../lib/i18n";
 import {
   IconUser,
   IconShieldCheck,
@@ -93,15 +94,16 @@ export function ProfileTab({
   permissionLabels,
   onNavigateToBilling,
 }: ProfileTabProps) {
+  const { language, setLanguage, t } = useLanguage();
   const isOwner = currentAdmin?.role === "owner";
 
   return (
     <div>
       <PageHeader
-        breadcrumbs="SYSTEM / ADMIN PROFILE & APPEARANCE"
-        title="Admin Profili va Dizayn Sozlamalari"
-        description="Foydalanuvchi hisobi ma'lumotlari, rangli mavzular va interfeys tipografiyasi (Olline & Pogonia)"
-        badge={{ text: "Shaxsiy kabinet", variant: "accent" }}
+        breadcrumbs={t("breadcrumb.profile")}
+        title={t("profile.title")}
+        description={t("profile.subtitle")}
+        badge={{ text: language === "uz" ? "Shaxsiy kabinet" : "Account Settings", variant: "accent" }}
       />
 
       <div className="row g-4">
@@ -288,6 +290,62 @@ export function ProfileTab({
                       <span className="fw-medium text-primary small">Yorug' (Light)</span>
                     </div>
                     {theme === "light" && <IconCheck size={16} style={{ color: "var(--accent)" }} />}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Interface Language Selector */}
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("profile.section_language")}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="row g-3">
+                <div className="col-12 col-sm-6">
+                  <div
+                    onClick={() => setLanguage("uz")}
+                    className={`p-3 rounded-2 border cursor-pointer transition-fast d-flex align-items-center justify-content-between ${
+                      language === "uz" ? "border-accent" : "border-subtle"
+                    }`}
+                    style={{
+                      backgroundColor: language === "uz" ? "var(--bg-surface-hover)" : "var(--bg-surface-elevated)",
+                    }}
+                  >
+                    <div>
+                      <div className="d-flex align-items-center gap-2">
+                        <span style={{ fontSize: "1.1rem" }}>🇺🇿</span>
+                        <span className="fw-medium text-primary small">{t("profile.language_uz_title")}</span>
+                      </div>
+                      <p className="text-secondary small mb-0 mt-1" style={{ fontSize: "0.75rem" }}>
+                        {t("profile.language_uz_desc")}
+                      </p>
+                    </div>
+                    {language === "uz" && <IconCheck size={16} style={{ color: "var(--accent)" }} />}
+                  </div>
+                </div>
+
+                <div className="col-12 col-sm-6">
+                  <div
+                    onClick={() => setLanguage("en")}
+                    className={`p-3 rounded-2 border cursor-pointer transition-fast d-flex align-items-center justify-content-between ${
+                      language === "en" ? "border-accent" : "border-subtle"
+                    }`}
+                    style={{
+                      backgroundColor: language === "en" ? "var(--bg-surface-hover)" : "var(--bg-surface-elevated)",
+                    }}
+                  >
+                    <div>
+                      <div className="d-flex align-items-center gap-2">
+                        <span style={{ fontSize: "1.1rem" }}>🇬🇧</span>
+                        <span className="fw-medium text-primary small">{t("profile.language_en_title")}</span>
+                      </div>
+                      <p className="text-secondary small mb-0 mt-1" style={{ fontSize: "0.75rem" }}>
+                        {t("profile.language_en_desc")}
+                      </p>
+                    </div>
+                    {language === "en" && <IconCheck size={16} style={{ color: "var(--accent)" }} />}
                   </div>
                 </div>
               </div>

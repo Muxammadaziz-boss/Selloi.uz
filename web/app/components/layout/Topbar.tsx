@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useLanguage } from "../../lib/i18n";
 import {
   IconSearch,
   IconSun,
@@ -41,6 +42,7 @@ export interface TopbarProps {
   onLogout: () => void;
   onOpenProfile: () => void;
   isPlatformOwner?: boolean;
+  onOpenCommandPalette?: () => void;
 }
 
 export function Topbar({
@@ -61,7 +63,9 @@ export function Topbar({
   onLogout,
   onOpenProfile,
   isPlatformOwner = false,
+  onOpenCommandPalette,
 }: TopbarProps) {
+  const { language, setLanguage, t } = useLanguage();
   const [showOrgMenu, setShowOrgMenu] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -144,7 +148,7 @@ export function Topbar({
                     color: "var(--text-tertiary)",
                   }}
                 >
-                  Do'konlar ro'yxati ({organizations.length})
+                  {t("topbar.stores_list")} ({organizations.length})
                 </div>
 
                 <div className="py-1" style={{ maxHeight: "200px", overflowY: "auto" }}>
@@ -192,7 +196,7 @@ export function Topbar({
                   }}
                 >
                   <IconPlus size={14} />
-                  <span>Yangi Do'kon Ochish</span>
+                  <span>{t("topbar.new_store")}</span>
                 </button>
               </div>
             </>
@@ -211,8 +215,12 @@ export function Topbar({
         </div>
       </div>
 
-      {/* Middle: Quick Search */}
-      <div className="d-none d-lg-flex align-items-center position-relative" style={{ width: "240px" }}>
+      {/* Middle: Quick Search & Command Palette Trigger */}
+      <div
+        className="d-none d-lg-flex align-items-center position-relative cursor-pointer"
+        style={{ width: "240px" }}
+        onClick={onOpenCommandPalette}
+      >
         <IconSearch
           size={14}
           className="position-absolute start-0 ms-2.5"
@@ -220,21 +228,32 @@ export function Topbar({
         />
         <input
           type="text"
-          placeholder="Qidiruv... (Ctrl+K)"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-100 ps-5 pe-2 py-1 rounded-2 border"
+          readOnly
+          placeholder={t("topbar.search_placeholder")}
+          onClick={onOpenCommandPalette}
+          className="w-100 ps-5 pe-5 py-1 rounded-2 border cursor-pointer"
           style={{
             backgroundColor: "var(--bg-canvas)",
             borderColor: "var(--border-subtle)",
-            color: "var(--text-primary)",
+            color: "var(--text-secondary)",
             fontSize: "0.78rem",
             outline: "none",
           }}
         />
+        <span
+          className="position-absolute end-0 me-2 badge rounded-1 font-monospace border"
+          style={{
+            fontSize: "0.65rem",
+            backgroundColor: "var(--bg-surface-elevated)",
+            borderColor: "var(--border-subtle)",
+            color: "var(--text-tertiary)",
+          }}
+        >
+          ⌘K
+        </span>
       </div>
 
-      {/* Right Controls: AI status, Refresh, Theme Toggle, Profile */}
+      {/* Right Controls: AI status, Refresh, Theme Toggle, Language Switcher, Profile */}
       <div className="d-flex align-items-center gap-2">
         {/* AI Engine Status Indicator */}
         <div
@@ -245,7 +264,7 @@ export function Topbar({
             fontSize: "0.72rem",
             color: "var(--success-text)",
           }}
-          title="AI savdo yordamchisi faol"
+          title={t("topbar.ai_active_hint")}
         >
           <span
             className="rounded-circle"
@@ -256,7 +275,7 @@ export function Topbar({
               display: "inline-block",
             }}
           />
-          <span className="fw-medium">AI Online</span>
+          <span className="fw-medium">{t("topbar.ai_online")}</span>
         </div>
 
         {/* Refresh Button */}
@@ -264,38 +283,64 @@ export function Topbar({
           type="button"
           onClick={onRefresh}
           disabled={loading}
-          className="btn btn-sm p-1.5 d-flex align-items-center justify-content-center rounded"
+          className="btn-icon rounded-2 border transition-fast"
           style={{
-            background: "transparent",
+            backgroundColor: "var(--bg-surface-elevated)",
             color: "var(--text-secondary)",
-            border: "1px solid var(--border-subtle)",
-            width: "30px",
-            height: "30px",
+            borderColor: "var(--border-default)",
+            width: "32px",
+            height: "32px",
+            padding: 0,
+            cursor: "pointer",
           }}
-          title="Yangilash"
+          title={t("topbar.refresh")}
         >
-          <IconRefresh size={15} className={loading ? "spin" : ""} />
+          <IconRefresh size={16} className={loading ? "spin" : ""} />
         </button>
 
         {/* Theme Toggle Button */}
         <button
           type="button"
           onClick={onToggleTheme}
-          className="btn btn-sm p-1.5 d-flex align-items-center justify-content-center rounded"
+          className="btn-icon rounded-2 border transition-fast"
           style={{
-            background: "transparent",
+            backgroundColor: "var(--bg-surface-elevated)",
             color: "var(--text-secondary)",
-            border: "1px solid var(--border-subtle)",
-            width: "30px",
-            height: "30px",
+            borderColor: "var(--border-default)",
+            width: "32px",
+            height: "32px",
+            padding: 0,
+            cursor: "pointer",
           }}
-          title={theme === "dark" ? "Yorug' mavzuga o'tish" : "Qorong'i mavzuga o'tish"}
+          title={theme === "dark" ? t("topbar.toggle_theme_light") : t("topbar.toggle_theme_dark")}
         >
           {theme === "dark" ? (
-            <IconSun size={15} style={{ color: "#f59e0b" }} />
+            <IconSun size={16} style={{ color: "#f59e0b" }} />
           ) : (
-            <IconMoon size={15} style={{ color: "#5e6ad2" }} />
+            <IconMoon size={16} style={{ color: "#818cf8" }} />
           )}
+        </button>
+
+        {/* Language Switcher Toggle */}
+        <button
+          type="button"
+          onClick={() => setLanguage(language === "uz" ? "en" : "uz")}
+          className="btn-icon rounded-2 border transition-fast d-flex align-items-center justify-content-center"
+          style={{
+            backgroundColor: "var(--bg-surface-elevated)",
+            color: "var(--text-primary)",
+            borderColor: "var(--border-default)",
+            width: "36px",
+            height: "32px",
+            padding: 0,
+            cursor: "pointer",
+            fontSize: "0.72rem",
+            fontWeight: 700,
+            letterSpacing: "0.06em",
+          }}
+          title={language === "uz" ? "Switch to English" : "O'zbek tiliga o'tish"}
+        >
+          {language === "uz" ? "UZ" : "EN"}
         </button>
 
         {/* Admin Profile Dropdown */}
@@ -382,7 +427,7 @@ export function Topbar({
                   }}
                 >
                   <IconUser size={14} style={{ color: "var(--text-secondary)" }} />
-                  <span>Profil & Shriftlar</span>
+                  <span>{t("topbar.admin_profile")}</span>
                 </button>
 
                 <div className="border-top my-1" style={{ borderColor: "var(--border-subtle)" }} />
@@ -402,7 +447,7 @@ export function Topbar({
                   }}
                 >
                   <IconLogout size={14} />
-                  <span>Chiqish</span>
+                  <span>{t("topbar.logout")}</span>
                 </button>
               </div>
             </>

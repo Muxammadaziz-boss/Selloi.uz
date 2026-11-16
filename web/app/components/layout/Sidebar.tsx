@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useLanguage } from "../../lib/i18n";
 import {
   IconLayoutDashboard,
   IconMessageDots,
@@ -94,86 +95,88 @@ export function Sidebar({
   logoUrl = "/logo.svg",
   onOpenLogoModal,
 }: SidebarProps) {
+  const { t } = useLanguage();
+
   const storeNavGroups: NavGroup[] = [
     {
-      title: "WORKSPACE",
+      title: t("nav.group.workspace"),
       items: [
-        { id: "overview", label: "Overview", icon: IconLayoutDashboard },
-        { id: "inbox", label: "Live Inbox", icon: IconMessageDots, badge: unreadCount > 0 ? unreadCount : undefined },
-        { id: "knowledge", label: "Knowledge Base", icon: IconBooks },
+        { id: "overview", label: t("nav.item.overview"), icon: IconLayoutDashboard },
+        { id: "inbox", label: t("nav.item.inbox"), icon: IconMessageDots, badge: unreadCount > 0 ? unreadCount : undefined },
+        { id: "knowledge", label: t("nav.item.knowledge"), icon: IconBooks },
       ],
     },
     {
-      title: "SALES",
+      title: t("nav.group.sales"),
       items: [
-        { id: "products", label: "Products", icon: IconPackage, count: productsCount > 0 ? productsCount : undefined },
-        { id: "orders", label: "Orders", icon: IconShoppingCart, count: ordersCount > 0 ? ordersCount : undefined },
-        { id: "customers", label: "Customers", icon: IconUsers },
+        { id: "products", label: t("nav.item.products"), icon: IconPackage, count: productsCount > 0 ? productsCount : undefined },
+        { id: "orders", label: t("nav.item.orders"), icon: IconShoppingCart, count: ordersCount > 0 ? ordersCount : undefined },
+        { id: "customers", label: t("nav.item.customers"), icon: IconUsers },
       ],
     },
     {
-      title: "INTELLIGENCE",
+      title: t("nav.group.intelligence"),
       items: [
-        { id: "analytics", label: "Analytics", icon: IconChartBar },
-        { id: "settings", label: "AI Settings", icon: IconCpu },
+        { id: "analytics", label: t("nav.item.analytics"), icon: IconChartBar },
+        { id: "settings", label: t("nav.item.settings"), icon: IconCpu },
       ],
     },
     {
-      title: "SAAS",
+      title: t("nav.group.saas"),
       items: [
-        { id: "usage", label: "Usage & Limits", icon: IconGauge },
-        { id: "billing", label: "Subscription", icon: IconCreditCard },
-        { id: "pricing", label: "Plans & Pricing", icon: IconLayersLinked },
+        { id: "usage", label: t("nav.item.usage"), icon: IconGauge },
+        { id: "billing", label: t("nav.item.billing"), icon: IconCreditCard },
+        { id: "pricing", label: t("nav.item.pricing"), icon: IconLayersLinked },
       ],
     },
     {
-      title: "SYSTEM",
+      title: t("nav.group.system"),
       items: [
-        { id: "admins", label: "Administration", icon: IconShieldLock },
-        { id: "team", label: "Team & Access", icon: IconUserCheck },
-        { id: "logs", label: "Activity Logs", icon: IconHistory },
+        { id: "admins", label: t("nav.item.admins"), icon: IconShieldLock },
+        { id: "team", label: t("nav.item.team"), icon: IconUserCheck },
+        { id: "logs", label: t("nav.item.logs"), icon: IconHistory },
       ],
     },
   ];
 
   if (isPlatformOwner) {
     storeNavGroups.push({
-      title: "PLATFORM OWNER",
+      title: t("nav.group.platform"),
       items: [
-        { id: "platform", label: "Platform Owner", icon: IconBuildingStore, badge: "Master" },
+        { id: "platform", label: t("nav.item.platform"), icon: IconBuildingStore, badge: "Master" },
       ],
     });
   }
 
   storeNavGroups.push({
-    title: "ACCOUNT",
+    title: t("nav.group.account"),
     items: [
-      { id: "profile", label: "Profile & Design", icon: IconUser },
+      { id: "profile", label: t("nav.item.profile"), icon: IconUser },
     ],
   });
 
   const platformNavGroups: NavGroup[] = [
     {
-      title: "PLATFORM CONTROL",
+      title: t("nav.group.platform"),
       items: [
-        { id: "platform", label: "Overview", icon: IconLayoutDashboard, subTab: "overview" },
-        { id: "platform", label: "Do'konlar", icon: IconBuildingStore, count: storesCount > 0 ? storesCount : undefined, subTab: "stores" },
-        { id: "platform", label: "Foydalanuvchilar", icon: IconUsers, subTab: "users" },
-        { id: "platform", label: "Tariflar & Narxlar", icon: IconLayersLinked, subTab: "plans" },
-        { id: "platform", label: "AI Xarajati & Usage", icon: IconCpu, subTab: "usage" },
+        { id: "platform", label: t("nav.item.overview"), icon: IconLayoutDashboard, subTab: "overview" },
+        { id: "platform", label: t("nav.item.stores"), icon: IconBuildingStore, count: storesCount > 0 ? storesCount : undefined, subTab: "stores" },
+        { id: "platform", label: t("nav.item.users"), icon: IconUsers, subTab: "users" },
+        { id: "platform", label: t("nav.item.plans"), icon: IconLayersLinked, subTab: "plans" },
+        { id: "platform", label: t("nav.item.usage"), icon: IconCpu, subTab: "usage" },
       ],
     },
     {
-      title: "SECURITY & SYSTEM",
+      title: t("nav.group.security"),
       items: [
-        { id: "platform", label: "Tizim Holati", icon: IconShieldLock, badge: "OK", subTab: "system" },
-        { id: "platform", label: "Audit Loglar", icon: IconHistory, subTab: "audit" },
+        { id: "platform", label: t("nav.item.system_health"), icon: IconShieldLock, badge: "OK", subTab: "system" },
+        { id: "platform", label: t("nav.item.audit_logs"), icon: IconHistory, subTab: "audit" },
       ],
     },
     {
-      title: "ACCOUNT",
+      title: t("nav.group.account"),
       items: [
-        { id: "profile", label: "Profile & Design", icon: IconUser },
+        { id: "profile", label: t("nav.item.profile"), icon: IconUser },
       ],
     },
   ];
@@ -204,7 +207,7 @@ export function Sidebar({
         <div
           className="d-flex align-items-center gap-2.5 overflow-hidden cursor-pointer"
           onClick={onOpenLogoModal}
-          title="Logotipni o'zgartirish"
+          title={t("sidebar.change_logo")}
         >
           <div
             className="d-flex align-items-center justify-content-center rounded-2 flex-shrink-0"
@@ -254,7 +257,7 @@ export function Sidebar({
             width: "24px",
             height: "24px",
           }}
-          title={collapsed ? "Kengaytirish" : "Yig'ish"}
+          title={collapsed ? (t("common.expand", { defaultValue: "Kengaytirish" })) : (t("common.collapse", { defaultValue: "Yig'ish" }))}
         >
           {collapsed ? <IconChevronRight size={14} /> : <IconChevronLeft size={14} />}
         </button>
@@ -282,7 +285,7 @@ export function Sidebar({
                 color: zone === "platform" ? "#ffffff" : "var(--text-primary)",
               }}
             >
-              Platform Owner
+              {t("nav.item.platform")}
             </button>
             <button
               type="button"
@@ -296,7 +299,7 @@ export function Sidebar({
                 color: zone === "store" ? "#ffffff" : "var(--text-primary)",
               }}
             >
-              Do'kon
+              {t("nav.item.stores")}
             </button>
           </div>
         </div>

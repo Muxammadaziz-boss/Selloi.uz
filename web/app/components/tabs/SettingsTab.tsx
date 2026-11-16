@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useLanguage } from "../../lib/i18n";
 import {
   IconCpu,
   IconBrandTelegram,
@@ -17,6 +18,7 @@ import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { Input, Textarea } from "../ui/Input";
 import { Select } from "../ui/Select";
+import { Tooltip } from "../ui/Tooltip";
 import { PageHeader } from "../layout/PageHeader";
 
 export interface SettingsTabProps {
@@ -94,13 +96,14 @@ export function SettingsTab({
   onLogoUpload,
   channels,
 }: SettingsTabProps) {
+  const { language, t } = useLanguage();
   return (
     <div>
       <PageHeader
-        breadcrumbs="INTELLIGENCE / AI CONFIGURATION"
-        title="AI va Tizim Sozlamalari"
-        description="Gemini modeli parametrlari, Telegram bot integratsiyasi va maxsus tizim ko'rsatmalari"
-        badge={{ text: "Tizim sozlamalari", variant: "accent" }}
+        breadcrumbs={t("breadcrumb.settings")}
+        title={t("settings.title")}
+        description={t("settings.subtitle")}
+        badge={{ text: language === "uz" ? "Tizim sozlamalari" : "System Config", variant: "accent" }}
       />
 
       <div className="row g-4">
@@ -127,9 +130,15 @@ export function SettingsTab({
 
                 <div>
                   <div className="d-flex align-items-center justify-content-between mb-1.5">
-                    <label className="fw-medium text-primary small">
-                      Kreativlik darajasi (Temperature): <strong className="text-accent">{aiTemperature}</strong>
-                    </label>
+                    <div className="d-flex align-items-center gap-1.5">
+                      <label className="fw-medium text-primary small m-0">
+                        Kreativlik darajasi (Temperature): <strong className="text-accent">{aiTemperature}</strong>
+                      </label>
+                      <Tooltip
+                        title="Kreativlik (Temperature)"
+                        content="0.0 - 0.2: AI do'kon qoidalari va mahsulot narxlariga 100% qat'iy rioya qiladi (tavsiya etiladi). 0.7+: ko'proq ijodiy javoblar beradi, lekin narxlarda og'ishlar bo'lishi mumkin."
+                      />
+                    </div>
                   </div>
                   <input
                     type="range"
@@ -160,8 +169,12 @@ export function SettingsTab({
                       onChange={(e) => setAutoHandoff(e.target.checked)}
                       style={{ accentColor: "var(--accent)" }}
                     />
-                    <span className="small text-primary">
-                      Avtomatik Takeover (Mijoz operator talab qilsa darhol insonga o'tkazish)
+                    <span className="small text-primary d-flex align-items-center gap-1.5">
+                      <span>Avtomatik Takeover (Mijoz operator talab qilsa darhol insonga o'tkazish)</span>
+                      <Tooltip
+                        title="Avtomatik Inson Nazorati"
+                        content="Agar mijoz 'operator', 'inson', 'telefon raqam' yoki shikoyat so'zlarini yozsa, AI suhbatni avtomatik ravishda xodimlarga o'tkazadi va javob berishni to'xtatadi."
+                      />
                     </span>
                   </label>
 
@@ -172,8 +185,12 @@ export function SettingsTab({
                       onChange={(e) => setDoubleConfirmation(e.target.checked)}
                       style={{ accentColor: "var(--accent)" }}
                     />
-                    <span className="small text-primary">
-                      Dublyor tasdiqlash va typing... statusini ko'rsatish
+                    <span className="small text-primary d-flex align-items-center gap-1.5">
+                      <span>Dublyor tasdiqlash va typing... statusini ko'rsatish</span>
+                      <Tooltip
+                        title="Haqiqiy Dialog Simulyatsiyasi"
+                        content="Mijozga xabar yuborishdan oldin Telegramda 'yozmoqda...' (typing) statusini yoqadi, bu esa muloqotni insonga xos va tabiiy qiladi."
+                      />
                     </span>
                   </label>
 
@@ -331,9 +348,15 @@ export function SettingsTab({
 
                 {/* System Prompt Textarea */}
                 <div>
-                  <label className="fw-medium text-primary small d-block mb-1">
-                    Do'kon AI Sotuvchisi Uchun Maxsus Tizim Ko'rsatmasi (System Prompt)
-                  </label>
+                  <div className="d-flex align-items-center justify-content-between mb-1">
+                    <label className="fw-medium text-primary small m-0">
+                      Do'kon AI Sotuvchisi Uchun Maxsus Tizim Ko'rsatmasi (System Prompt)
+                    </label>
+                    <Tooltip
+                      title="Tizim Ko'rsatmasi (System Prompt)"
+                      content="Bu yerda do'koningiz nomi, muloqot ohangi (xushmuomala, do'stona), chegirma va to'lov shartlari hamda taqiqlangan mavzularni ko'rsatishingiz mumkin."
+                    />
+                  </div>
                   <textarea
                     rows={4}
                     placeholder="Do'konning o'ziga xos xususiyatlari, yetkazib berish qoidalari yoki mijozlar bilan muloqot ohangi bo'yicha maxsus ko'rsatma..."

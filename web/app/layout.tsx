@@ -18,8 +18,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                 try {
                   var savedTheme = localStorage.getItem('ai_sales_theme') || 'dark';
                   var savedFont = localStorage.getItem('ai_sales_app_font') || 'olline';
+                  var savedLang = localStorage.getItem('ai_sales_language') || 'uz';
                   // Root HTML defaults to 'classic' during pre-hydration to prevent unauthorized design flashing.
                   // Elevated designs ('premium', 'ios') are only applied after verified subscription entitlement.
+                  document.documentElement.setAttribute('lang', savedLang);
                   document.documentElement.setAttribute('data-theme', savedTheme);
                   document.documentElement.setAttribute('data-bs-theme', savedTheme);
                   document.documentElement.setAttribute('data-font', savedFont);

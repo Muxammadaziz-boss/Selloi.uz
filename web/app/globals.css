@@ -1135,4 +1135,80 @@ body {
   color: #ffffff;
 }
 
+/* ==========================================================================
+   SHIMMER SKELETON LOADING STATES (Design Analyst & Enhancer)
+   ========================================================================== */
+@keyframes shimmerWave {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--bg-surface-elevated) 25%,
+    var(--bg-surface-hover) 50%,
+    var(--bg-surface-elevated) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmerWave 1.6s ease-in-out infinite;
+  border-radius: var(--radius-sm, 6px);
+  display: inline-block;
+}
+
+.skeleton-text {
+  height: 12px;
+  border-radius: 4px;
+}
+
+.skeleton-title {
+  height: 28px;
+  border-radius: 6px;
+}
+
+.skeleton-badge {
+  height: 18px;
+  border-radius: 9999px;
+}
+
+/* ==========================================================================
+   UTILITY & SPACING CLASSES (Fix for decimal gaps and icon buttons)
+   ========================================================================== */
+.gap-0-5, [class*="gap-0.5"] { gap: 0.25rem !important; }
+.gap-1-5, [class*="gap-1.5"] { gap: 0.5rem !important; }
+.gap-2-5, [class*="gap-2.5"] { gap: 0.75rem !important; }
+.gap-3-5, [class*="gap-3.5"] { gap: 1rem !important; }
+
+.p-1-5, [class*="p-1.5"] { padding: 0.375rem !important; }
+.p-2-5, [class*="p-2.5"] { padding: 0.625rem !important; }
+.p-3-5, [class*="p-3.5"] { padding: 0.875rem !important; }
+
+.px-1-5, [class*="px-1.5"] { padding-left: 0.375rem !important; padding-right: 0.375rem !important; }
+.px-2-5, [class*="px-2.5"] { padding-left: 0.625rem !important; padding-right: 0.625rem !important; }
+.px-3-5, [class*="px-3.5"] { padding-left: 0.875rem !important; padding-right: 0.875rem !important; }
+
+.py-1-5, [class*="py-1.5"] { padding-top: 0.375rem !important; padding-bottom: 0.375rem !important; }
+.py-2-5, [class*="py-2.5"] { padding-top: 0.625rem !important; padding-bottom: 0.625rem !important; }
+
+/* Dedicated Icon Button Styles to prevent padding squashing */
+.btn-icon,
+button.btn-icon,
+.btn.btn-icon {
+  padding: 0 !important;
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+
+
 

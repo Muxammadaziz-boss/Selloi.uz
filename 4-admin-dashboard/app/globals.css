@@ -1,0 +1,1214 @@
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@500;600;700;800;900&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Syne:wght@600;700;800&display=swap');
+@import "./styles/theme.css";
+
+/* ==========================================================================
+   INDEPENDENT DESIGN SYSTEMS (Phase 4)
+   - Classic: Standard enterprise SaaS design
+   - iOS: Apple Human Interface frosted glass & capsule aesthetics
+   - Premium: Dark minimalist SaaS reference layout with near-black tones
+   ========================================================================== */
+@import "./design-systems/classic/tokens.css";
+@import "./design-systems/classic/theme.css";
+@import "./design-systems/classic/components.css";
+@import "./design-systems/ios/tokens.css";
+@import "./design-systems/ios/theme.css";
+@import "./design-systems/ios/components.css";
+@import "./design-systems/premium/tokens.css";
+@import "./design-systems/premium/theme.css";
+@import "./design-systems/premium/components.css";
+
+/* Design System Semantic Text Overrides to guarantee WCAG 2.1 AA contrast */
+:root {
+  --tblr-primary: #5e6ad2 !important;
+  --tblr-primary-rgb: 94, 106, 210 !important;
+}
+
+[data-bs-theme="dark"],
+html[data-theme="dark"],
+.theme-dark {
+  --tblr-primary: #818cf8 !important;
+  --tblr-primary-rgb: 129, 140, 248 !important;
+  --tblr-body-color: #f4f5f6 !important;
+  --tblr-success: #34d399 !important;
+  --tblr-warning: #fbbf24 !important;
+  --tblr-danger: #f87171 !important;
+  --tblr-info: #60a5fa !important;
+}
+
+[data-bs-theme="light"],
+html[data-theme="light"],
+.theme-light {
+  --tblr-primary: #4338ca !important;
+  --tblr-primary-rgb: 67, 56, 202 !important;
+  --tblr-body-color: #121316 !important;
+  --tblr-success: #065f46 !important;
+  --tblr-warning: #92400e !important;
+  --tblr-danger: #991b1b !important;
+  --tblr-info: #1e40af !important;
+}
+
+/* Accessible High-Contrast Badges for WCAG 2.1 AA */
+html[data-theme="light"] .badge,
+[data-bs-theme="light"] .badge {
+  color: #0f172a !important;
+}
+html[data-theme="light"] .badge.rounded-pill,
+[data-bs-theme="light"] .badge.rounded-pill {
+  color: #0f172a !important;
+  background-color: #e2e8f0 !important;
+  border: 1px solid #cbd5e1 !important;
+}
+html[data-theme="light"] .badge-accent,
+html[data-theme="light"] .linear-badge-accent {
+  color: #1e3a8a !important;
+  background-color: #dbeafe !important;
+  border-color: #93c5fd !important;
+}
+html[data-theme="dark"] .badge-accent,
+html[data-theme="dark"] .linear-badge-accent {
+  color: #93c5fd !important;
+  background-color: rgba(59, 130, 246, 0.22) !important;
+  border-color: rgba(59, 130, 246, 0.45) !important;
+}
+
+html body .text-primary,
+html body span.text-primary,
+html body div.text-primary,
+html body h3.text-primary,
+html body h4.text-primary,
+html body h5.text-primary,
+html body p.text-primary {
+  color: var(--text-primary) !important;
+}
+
+html body .text-secondary,
+html body span.text-secondary,
+html body div.text-secondary,
+html body p.text-secondary {
+  color: var(--text-secondary) !important;
+}
+
+html body .text-tertiary {
+  color: var(--text-tertiary) !important;
+}
+
+html body .text-success,
+html body span.text-success,
+html body div.text-success,
+html body td.text-success,
+html body strong.text-success,
+html body p.text-success {
+  color: var(--success-text) !important;
+}
+
+html body .text-warning,
+html body span.text-warning,
+html body div.text-warning,
+html body td.text-warning,
+html body strong.text-warning,
+html body p.text-warning {
+  color: var(--warning-text) !important;
+}
+
+html body .text-danger,
+html body span.text-danger,
+html body div.text-danger,
+html body td.text-danger,
+html body strong.text-danger,
+html body p.text-danger {
+  color: var(--danger-text) !important;
+}
+
+html body .text-info,
+html body span.text-info,
+html body div.text-info,
+html body td.text-info,
+html body strong.text-info,
+html body p.text-info {
+  color: var(--info-text) !important;
+}
+
+/* WCAG 2.1 AA Contrast Enforcement for Badges & Light Theme Utilities */
+[data-bs-theme="light"] .bg-green-lt,
+html[data-theme="light"] .bg-green-lt,
+[data-bs-theme="light"] .text-green,
+html[data-theme="light"] .text-green {
+  color: #065f46 !important;
+  background-color: #d1fae5 !important;
+}
+
+[data-bs-theme="light"] .bg-warning-lt,
+html[data-theme="light"] .bg-warning-lt {
+  color: #78350f !important;
+  background-color: #fef3c7 !important;
+}
+
+[data-bs-theme="light"] .bg-danger-lt,
+html[data-theme="light"] .bg-danger-lt {
+  color: #991b1b !important;
+  background-color: #fee2e2 !important;
+}
+
+[data-bs-theme="light"] .bg-primary-lt,
+html[data-theme="light"] .bg-primary-lt {
+  color: #1e3a8a !important;
+  background-color: #dbeafe !important;
+}
+
+[data-bs-theme="light"] .badge.bg-primary,
+html[data-theme="light"] .badge.bg-primary {
+  background-color: #312e81 !important;
+  color: #ffffff !important;
+}
+
+[data-bs-theme="light"] .badge.bg-green,
+html[data-theme="light"] .badge.bg-green {
+  background-color: #065f46 !important;
+  color: #ffffff !important;
+}
+
+/* Light theme button & tertiary backgrounds */
+[data-bs-theme="light"] .bg-body-tertiary,
+html[data-theme="light"] .bg-body-tertiary,
+html[data-theme="light"] [data-bs-theme="light"] .bg-body-tertiary {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+[data-bs-theme="light"] .btn-outline-secondary,
+html[data-theme="light"] .btn-outline-secondary {
+  color: #1e293b !important;
+  border-color: #94a3b8 !important;
+  background-color: #ffffff !important;
+}
+
+[data-bs-theme="light"] .btn-outline-secondary:hover,
+html[data-theme="light"] .btn-outline-secondary:hover {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+[data-bs-theme="light"] .btn-outline-primary,
+html[data-theme="light"] .btn-outline-primary {
+  color: #312e81 !important;
+  border-color: #4338ca !important;
+}
+
+[data-bs-theme="light"] .text-decoration-line-through.opacity-50,
+html[data-theme="light"] .text-decoration-line-through.opacity-50 {
+  opacity: 0.8 !important;
+  color: #475569 !important;
+}
+
+html[data-theme="light"] [data-design="premium"] .bg-body-tertiary {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] .table th,
+[data-bs-theme="light"] .table th {
+  color: #1e293b !important;
+  background-color: #f8fafc !important;
+  font-weight: 700 !important;
+}
+
+html[data-theme="light"] .linear-btn-secondary,
+[data-bs-theme="light"] .linear-btn-secondary {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+/* Local & Custom Display Fonts: Olline and Pogonia */
+@font-face {
+  font-family: 'Olline';
+  src: local('Olline'), local('Olline-Bold'), local('Olline Bold'), url('/fonts/Olline.woff2') format('woff2'), url('/fonts/Olline.ttf') format('truetype');
+  font-weight: 700 800 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Pogonia';
+  src: local('Pogonia'), local('Pogonia-Bold'), local('Pogonia Bold'), url('/fonts/Pogonia.woff2') format('woff2'), url('/fonts/Pogonia.ttf') format('truetype');
+  font-weight: 700 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ==========================================================================
+   TABLER NATIVE DASHBOARD STYLES & FLOATING NAVBAR
+   ========================================================================== */
+
+:root {
+  --app-font-family: 'Outfit', 'Olline', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --tblr-font-sans-serif: var(--app-font-family);
+}
+
+/* Custom Dynamic Typography Selection (Olline, Pogonia, Inter, Apple SF Pro, Jakarta) */
+[data-font="olline"] {
+  --app-font-family: 'Olline', 'Outfit', 'Syne', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --tblr-font-sans-serif: var(--app-font-family) !important;
+  font-family: var(--app-font-family) !important;
+  letter-spacing: -0.015em;
+}
+
+[data-font="pogonia"] {
+  --app-font-family: 'Pogonia', 'Bricolage Grotesque', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --tblr-font-sans-serif: var(--app-font-family) !important;
+  font-family: var(--app-font-family) !important;
+  letter-spacing: -0.012em;
+}
+
+[data-font="sf-pro"] {
+  --app-font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  --tblr-font-sans-serif: var(--app-font-family) !important;
+  font-family: var(--app-font-family) !important;
+  letter-spacing: -0.01em;
+}
+
+[data-font="jakarta"] {
+  --app-font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --tblr-font-sans-serif: var(--app-font-family) !important;
+  font-family: var(--app-font-family) !important;
+  letter-spacing: -0.01em;
+}
+
+[data-font="inter"] {
+  --app-font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --tblr-font-sans-serif: var(--app-font-family) !important;
+  font-family: var(--app-font-family) !important;
+}
+
+body {
+  font-family: var(--tblr-font-sans-serif);
+  font-feature-settings: "cv03", "cv04", "cv11";
+}
+
+/* 4. Floating Top Navbar (Explicit user requirement) */
+.navbar-floating {
+  position: sticky;
+  top: 16px;
+  margin: 16px 16px 0;
+  border-radius: var(--tblr-border-radius);
+  z-index: 100;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.navbar-floating .dropdown-menu {
+  margin-top: 8px !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45) !important;
+}
+
+.page-header {
+  margin-top: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Smooth counter-clockwise spinning for refresh indicators (soat miliga qarama-qarshi) */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Live Inbox chat messages scroll container */
+.chat-history-container {
+  height: 480px;
+  overflow-y: auto;
+  padding: 1rem 1.25rem 2rem 1.25rem;
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.chat-history-container::-webkit-scrollbar {
+  width: 6px;
+}
+.chat-history-container::-webkit-scrollbar-thumb {
+  background: var(--tblr-border-color);
+  border-radius: 4px;
+}
+
+/* Conversation list scroll container */
+.conversations-scroll-container {
+  max-height: calc(100vh - 280px);
+  min-height: 520px;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+
+.conversations-scroll-container::-webkit-scrollbar {
+  width: 6px;
+}
+.conversations-scroll-container::-webkit-scrollbar-thumb {
+  background: var(--tblr-border-color);
+  border-radius: 4px;
+}
+
+/* ==========================================================================
+   INTERACTIVE LIVE STATS CARDS & MINI SPARKLINES
+   ========================================================================== */
+
+.stat-card-interactive {
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, border-color 0.22s ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.stat-card-interactive:hover {
+  transform: translateY(-3px);
+}
+
+.stat-card-blue:hover {
+  box-shadow: 0 12px 28px -5px rgba(32, 107, 196, 0.25);
+  border-color: rgba(32, 107, 196, 0.5) !important;
+}
+
+.stat-card-green:hover {
+  box-shadow: 0 12px 28px -5px rgba(47, 179, 68, 0.25);
+  border-color: rgba(47, 179, 68, 0.5) !important;
+}
+
+.stat-card-amber:hover {
+  box-shadow: 0 12px 28px -5px rgba(245, 159, 0, 0.25);
+  border-color: rgba(245, 159, 0, 0.5) !important;
+}
+
+.stat-card-purple:hover {
+  box-shadow: 0 12px 28px -5px rgba(174, 62, 201, 0.25);
+  border-color: rgba(174, 62, 201, 0.5) !important;
+}
+
+.stat-icon-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.22s ease;
+}
+
+.stat-card-interactive:hover .stat-icon-badge {
+  transform: scale(1.1);
+}
+
+.sparkline-svg {
+  width: 100%;
+  height: 38px;
+  overflow: visible;
+  display: block;
+}
+
+@keyframes sparkline-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.28);
+    opacity: 0.85;
+  }
+}
+
+.sparkline-dot {
+  animation: sparkline-pulse 2.2s ease-in-out infinite;
+  box-sizing: border-box;
+}
+
+.live-pulse-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: #22c55e;
+  font-weight: 500;
+}
+
+/* ==========================================================================
+   PREMIUM AUTHENTICATION PAGE & LOGO STYLING (ULTRA-MODERN SAAS AESTHETIC)
+   ========================================================================== */
+
+.auth-page-wrapper {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background-color: #07090e;
+  padding: 1.5rem;
+  overflow: hidden;
+}
+
+/* Atmospheric Ambient Glow Orbs */
+.auth-ambient-orb-1 {
+  position: absolute;
+  top: 8%;
+  left: 20%;
+  width: 520px;
+  height: 520px;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.18) 0%, rgba(99, 102, 241, 0) 70%);
+  filter: blur(85px);
+  pointer-events: none;
+  border-radius: 50%;
+  animation: floatOrb 12s ease-in-out infinite alternate;
+  z-index: 0;
+}
+
+.auth-ambient-orb-2 {
+  position: absolute;
+  bottom: 12%;
+  right: 20%;
+  width: 480px;
+  height: 480px;
+  background: radial-gradient(circle, rgba(14, 165, 233, 0.14) 0%, rgba(59, 130, 246, 0) 70%);
+  filter: blur(80px);
+  pointer-events: none;
+  border-radius: 50%;
+  animation: floatOrb 15s ease-in-out infinite alternate-reverse;
+  z-index: 0;
+}
+
+@keyframes floatOrb {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  100% {
+    transform: translate(30px, 20px) scale(1.08);
+  }
+}
+
+/* Micro-dots background grid overlay */
+.auth-mesh-grid {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(ellipse at center, black 40%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse at center, black 40%, transparent 80%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.auth-content-container {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 440px;
+}
+
+/* Glowing Logo Squircle */
+.auth-logo-halo {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+}
+
+.auth-logo-halo::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 26px;
+  background: radial-gradient(circle, rgba(124, 58, 237, 0.45) 0%, rgba(59, 130, 246, 0.2) 50%, transparent 75%);
+  filter: blur(16px);
+  z-index: -1;
+  transition: all 0.3s ease;
+}
+
+.auth-logo-halo:hover::after {
+  inset: -12px;
+  filter: blur(20px);
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.6) 0%, rgba(56, 189, 248, 0.3) 60%, transparent 80%);
+}
+
+.auth-brand-title {
+  background: linear-gradient(180deg, #ffffff 10%, #cbd5e1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  font-size: 1.85rem;
+  line-height: 1.2;
+}
+
+.auth-version-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.85rem;
+  border-radius: 9999px;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.22);
+  color: #a5b4fc;
+  font-size: 0.78rem;
+  font-weight: 500;
+  backdrop-filter: blur(8px);
+}
+
+/* Glassmorphism Luxury Card */
+.auth-card-modern {
+  background: rgba(14, 18, 30, 0.76);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 22px;
+  box-shadow: 
+    0 24px 60px -12px rgba(0, 0, 0, 0.85),
+    0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 0 35px -5px rgba(99, 102, 241, 0.1);
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.auth-card-modern::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 15%;
+  right: 15%;
+  height: 1.5px;
+  background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.8), rgba(56, 189, 248, 0.8), transparent);
+}
+
+/* Unified Telegram ID Profile Box */
+.auth-tg-profile-box {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.65rem 0.85rem;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 14px;
+  transition: all 0.2s ease;
+}
+
+.auth-tg-profile-box:focus-within {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.22), 0 0 20px rgba(99, 102, 241, 0.12);
+}
+
+.auth-tg-avatar-wrap {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+}
+
+.auth-tg-avatar-wrap img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #6366f1;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+.auth-tg-status-dot {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 11px;
+  height: 11px;
+  background-color: #22c55e;
+  border: 2px solid #0e121e;
+  border-radius: 50%;
+  box-shadow: 0 0 6px #22c55e;
+}
+
+/* Modern Input Box */
+.auth-input-modern {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 14px;
+  padding: 0 0.85rem;
+  height: 48px;
+  transition: all 0.2s ease;
+}
+
+.auth-input-modern:focus-within {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.22), 0 0 20px rgba(99, 102, 241, 0.12);
+}
+
+.auth-input-modern input {
+  flex: 1;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  color: #f8fafc;
+  padding: 0 0.5rem;
+  font-size: 0.95rem;
+}
+
+.auth-input-modern input::placeholder {
+  color: #64748b;
+  font-size: 0.88rem;
+}
+
+/* High-Energy Gradient Submit Button */
+.btn-auth-gradient {
+  background: linear-gradient(135deg, #2563eb 0%, #4f46e5 50%, #7c3aed 100%);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 14px;
+  height: 48px;
+  font-weight: 600;
+  font-size: 0.98rem;
+  letter-spacing: 0.015em;
+  color: #ffffff;
+  box-shadow: 0 8px 24px -4px rgba(79, 70, 229, 0.45), 0 0 16px rgba(37, 99, 235, 0.2);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.btn-auth-gradient:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px -4px rgba(79, 70, 229, 0.65), 0 0 25px rgba(37, 99, 235, 0.35);
+  filter: brightness(1.08);
+  color: #ffffff;
+}
+
+.btn-auth-gradient:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-auth-gradient:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Security Footnote Pill */
+.auth-security-badge {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  padding: 0.4rem 0.9rem;
+  border-radius: 9999px;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.78rem;
+  backdrop-filter: blur(8px);
+}
+
+.app-brand-logo-container {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.app-brand-logo-container img {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+/* ==========================================================================
+   CHAT MESSAGES: INCOMING (LEFT) & OUTGOING (RIGHT)
+   ========================================================================== */
+
+.chat-bubble-custom {
+  padding: 8px 13px 6px 13px;
+  position: relative;
+  transition: all 0.15s ease;
+  word-break: break-word;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  min-width: 90px;
+}
+
+/* User / Customer Message (LEFT) */
+.bubble-incoming {
+  background: #1e293b;
+  color: #f1f5f9;
+  border-radius: 14px 14px 14px 3px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Admin / AI Assistant Message (RIGHT) */
+.bubble-outgoing {
+  background: #2b5278;
+  color: #ffffff;
+  border-radius: 14px 14px 3px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.chat-sender-tag {
+  font-size: 0.72rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 2px;
+  letter-spacing: 0.01em;
+}
+
+.chat-time-tag {
+  font-size: 0.68rem;
+  letter-spacing: 0.02em;
+  user-select: none;
+  line-height: 1;
+}
+
+/* ==========================================================================
+   COLLAPSIBLE SIDEBAR (MINI / COMPACT SIDEBAR)
+   ========================================================================== */
+
+@media (min-width: 992px) {
+  .navbar-vertical {
+    transition: width 0.22s cubic-bezier(0.16, 1, 0.3, 1), min-width 0.22s ease !important;
+  }
+
+  .navbar-vertical ~ .page-wrapper {
+    transition: margin-left 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+
+  .navbar-vertical.navbar-vertical-collapsed {
+    width: 72px !important;
+    min-width: 72px !important;
+  }
+
+  .navbar-vertical.navbar-vertical-collapsed ~ .page-wrapper {
+    margin-left: 72px !important;
+  }
+
+  .navbar-vertical.navbar-vertical-collapsed .navbar-brand {
+    justify-content: center !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .navbar-vertical.navbar-vertical-collapsed .app-brand-text,
+  .navbar-vertical.navbar-vertical-collapsed .nav-link-title,
+  .navbar-vertical.navbar-vertical-collapsed .nav-section-title,
+  .navbar-vertical.navbar-vertical-collapsed .user-info-text {
+    display: none !important;
+  }
+
+  .navbar-vertical.navbar-vertical-collapsed .nav-section-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.08);
+    margin: 8px 12px;
+    display: block !important;
+  }
+
+  .navbar-vertical.navbar-vertical-collapsed .nav-link {
+    justify-content: center !important;
+    padding: 0.65rem 0 !important;
+    margin: 3px 8px !important;
+  }
+
+  .navbar-vertical.navbar-vertical-collapsed .nav-link-icon {
+    margin-right: 0 !important;
+  }
+
+  .navbar-vertical.navbar-vertical-collapsed .sidebar-badge,
+  .navbar-vertical.navbar-vertical-collapsed .badge {
+    display: none !important;
+  }
+
+  .navbar-vertical.navbar-vertical-collapsed .sidebar-user-card {
+    justify-content: center !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .navbar-vertical.navbar-vertical-collapsed .sidebar-user-card .avatar {
+    margin-right: 0 !important;
+  }
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.hover-bg {
+  transition: background 0.15s ease;
+}
+
+.hover-bg:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* ==========================================================================
+   ADMIN NAVBAR AVATAR BUTTON (PERFECT CIRCLE, NO GLITCHES)
+   ========================================================================== */
+
+.admin-navbar-avatar-btn {
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  min-height: 38px !important;
+  max-width: 38px !important;
+  max-height: 38px !important;
+  border-radius: 50% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 2px solid rgba(255, 255, 255, 0.22) !important;
+  background: #1e293b !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  position: relative !important;
+  cursor: pointer !important;
+  outline: none !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25) !important;
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.18s ease, box-shadow 0.18s ease !important;
+}
+
+.admin-navbar-avatar-btn:hover {
+  transform: scale(1.08) !important;
+  border-color: rgba(255, 255, 255, 0.6) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35) !important;
+}
+
+.admin-navbar-avatar-btn:active {
+  transform: scale(0.96) !important;
+}
+
+.admin-navbar-avatar-btn.active {
+  border-color: #007aff !important;
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.4), 0 2px 10px rgba(0, 122, 255, 0.35) !important;
+}
+
+.admin-navbar-avatar-img {
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 50% !important;
+  object-fit: cover !important;
+  display: block !important;
+}
+
+.admin-navbar-avatar-fallback {
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: linear-gradient(135deg, #007aff 0%, #0051a8 100%) !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  font-size: 0.82rem !important;
+  letter-spacing: 0.02em !important;
+}
+
+.admin-navbar-avatar-status {
+  position: absolute !important;
+  bottom: -1px !important;
+  right: -1px !important;
+  width: 10px !important;
+  height: 10px !important;
+  border-radius: 50% !important;
+  background: #2fb344 !important;
+  border: 2px solid #0f172a !important;
+  box-shadow: 0 0 4px rgba(47, 179, 68, 0.8) !important;
+  pointer-events: none !important;
+}
+
+/* ==========================================================================
+   APPLE iOS HUMAN INTERFACE DESIGN SYSTEM ([data-ui-style="ios"])
+   ========================================================================== */
+
+[data-ui-style="ios"] {
+  --tblr-primary: #007aff;
+  --tblr-primary-rgb: 0, 122, 255;
+  --tblr-border-radius: 18px;
+}
+
+[data-ui-style="ios"] body {
+  background: #000000 !important;
+  background-image: 
+    radial-gradient(circle at 50% 0%, rgba(0, 122, 255, 0.16) 0%, transparent 55%),
+    radial-gradient(circle at 85% 25%, rgba(175, 82, 222, 0.1) 0%, transparent 45%),
+    radial-gradient(circle at 15% 75%, rgba(48, 209, 88, 0.07) 0%, transparent 45%) !important;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji" !important;
+  letter-spacing: -0.01em;
+}
+
+/* iOS Floating Dynamic Island Header */
+[data-ui-style="ios"] .navbar-floating {
+  background: rgba(28, 28, 30, 0.75) !important;
+  backdrop-filter: blur(30px) saturate(210%) !important;
+  -webkit-backdrop-filter: blur(30px) saturate(210%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-radius: 9999px !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.55), 0 0 0 0.5px rgba(255, 255, 255, 0.2) inset !important;
+  padding: 6px 16px !important;
+}
+
+/* iOS Floating Sidebar */
+[data-ui-style="ios"] .navbar-vertical {
+  background: rgba(22, 22, 24, 0.78) !important;
+  backdrop-filter: blur(28px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(200%) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-ui-style="ios"] .navbar-vertical .nav-item.active .nav-link {
+  background: #007aff !important;
+  color: #ffffff !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 14px rgba(0, 122, 255, 0.45) !important;
+}
+
+[data-ui-style="ios"] .navbar-vertical .nav-link {
+  border-radius: 12px !important;
+  margin: 3px 10px !important;
+  font-weight: 500;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+/* iOS Frosted Glass Cards */
+[data-ui-style="ios"] .card {
+  background: rgba(28, 28, 30, 0.74) !important;
+  backdrop-filter: blur(24px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(190%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.42) !important;
+}
+
+[data-ui-style="ios"] .card-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: transparent !important;
+}
+
+[data-ui-style="ios"] .card-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: transparent !important;
+}
+
+/* iOS Pill Buttons */
+[data-ui-style="ios"] .btn {
+  border-radius: 9999px !important;
+  font-weight: 500;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+[data-ui-style="ios"] .btn:active {
+  transform: scale(0.97);
+}
+
+[data-ui-style="ios"] .btn-primary {
+  background: #007aff !important;
+  border-color: #007aff !important;
+  box-shadow: 0 4px 16px rgba(0, 122, 255, 0.45) !important;
+}
+
+/* iOS Form Inputs */
+[data-ui-style="ios"] .form-control,
+[data-ui-style="ios"] .form-select {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 14px !important;
+  color: #ffffff !important;
+}
+
+[data-ui-style="ios"] .form-control:focus,
+[data-ui-style="ios"] .form-select:focus {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: #007aff !important;
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.3) !important;
+}
+
+/* iOS Badges: Capsule shaped */
+[data-ui-style="ios"] .badge {
+  border-radius: 9999px !important;
+  padding: 4px 10px !important;
+  font-weight: 600 !important;
+  font-size: 0.72rem !important;
+}
+
+/* iOS Progress Bars */
+[data-ui-style="ios"] .progress {
+  border-radius: 9999px !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-ui-style="ios"] .progress-bar {
+  border-radius: 9999px !important;
+}
+
+/* iOS Chat: Clean Apple iMessage Style */
+[data-ui-style="ios"] .bubble-incoming {
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: #ffffff !important;
+  border-radius: 16px 16px 16px 4px !important;
+  border: none !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15) !important;
+}
+
+[data-ui-style="ios"] .bubble-outgoing {
+  background: #007aff !important;
+  color: #ffffff !important;
+  border-radius: 16px 16px 4px 16px !important;
+  border: none !important;
+  box-shadow: 0 2px 6px rgba(0, 122, 255, 0.25) !important;
+}
+
+/* ==========================================================================
+   FLOATING TOAST NOTIFICATIONS (Top-Right Glassmorphism)
+   ========================================================================== */
+@keyframes toastSlideIn {
+  0% {
+    transform: translateX(115%) scale(0.92);
+    opacity: 0;
+  }
+  60% {
+    transform: translateX(-4%) scale(1.01);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.toast-slide-in {
+  animation: toastSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.toast-container-fixed {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 99999;
+  pointer-events: none;
+  max-width: 420px;
+  width: calc(100% - 40px);
+}
+
+.toast-floating {
+  pointer-events: auto;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transition: all 0.2s ease;
+}
+
+.toast-floating:hover {
+  transform: translateY(-2px);
+}
+
+/* ==========================================================================
+   HIGH-CONTRAST CLARITY & ACCESSIBILITY (Dark Mode Text & Headers)
+   ========================================================================== */
+[data-bs-theme="dark"] .card-title,
+[data-bs-theme="dark"] .card-header .card-title,
+[data-bs-theme="dark"] .card-header h3,
+[data-bs-theme="dark"] .card-header h4 {
+  color: #ffffff !important;
+  font-weight: 600;
+}
+
+[data-bs-theme="dark"] .card-header span:not(.badge):not(.status-dot) {
+  color: #ffffff;
+}
+
+[data-bs-theme="dark"] .text-secondary {
+  color: rgba(255, 255, 255, 0.65) !important;
+}
+
+[data-bs-theme="dark"] .list-group-item {
+  color: #ffffff;
+}
+
+/* ==========================================================================
+   SHIMMER SKELETON LOADING STATES (Design Analyst & Enhancer)
+   ========================================================================== */
+@keyframes shimmerWave {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--bg-surface-elevated) 25%,
+    var(--bg-surface-hover) 50%,
+    var(--bg-surface-elevated) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmerWave 1.6s ease-in-out infinite;
+  border-radius: var(--radius-sm, 6px);
+  display: inline-block;
+}
+
+.skeleton-text {
+  height: 12px;
+  border-radius: 4px;
+}
+
+.skeleton-title {
+  height: 28px;
+  border-radius: 6px;
+}
+
+.skeleton-badge {
+  height: 18px;
+  border-radius: 9999px;
+}
+
+/* ==========================================================================
+   UTILITY & SPACING CLASSES (Fix for decimal gaps and icon buttons)
+   ========================================================================== */
+.gap-0-5, [class*="gap-0.5"] { gap: 0.25rem !important; }
+.gap-1-5, [class*="gap-1.5"] { gap: 0.5rem !important; }
+.gap-2-5, [class*="gap-2.5"] { gap: 0.75rem !important; }
+.gap-3-5, [class*="gap-3.5"] { gap: 1rem !important; }
+
+.p-1-5, [class*="p-1.5"] { padding: 0.375rem !important; }
+.p-2-5, [class*="p-2.5"] { padding: 0.625rem !important; }
+.p-3-5, [class*="p-3.5"] { padding: 0.875rem !important; }
+
+.px-1-5, [class*="px-1.5"] { padding-left: 0.375rem !important; padding-right: 0.375rem !important; }
+.px-2-5, [class*="px-2.5"] { padding-left: 0.625rem !important; padding-right: 0.625rem !important; }
+.px-3-5, [class*="px-3.5"] { padding-left: 0.875rem !important; padding-right: 0.875rem !important; }
+
+.py-1-5, [class*="py-1.5"] { padding-top: 0.375rem !important; padding-bottom: 0.375rem !important; }
+.py-2-5, [class*="py-2.5"] { padding-top: 0.625rem !important; padding-bottom: 0.625rem !important; }
+
+/* Dedicated Icon Button Styles to prevent padding squashing */
+.btn-icon,
+button.btn-icon,
+.btn.btn-icon {
+  padding: 0 !important;
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+
+
+

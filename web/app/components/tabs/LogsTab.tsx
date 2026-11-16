@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useLanguage } from "../../lib/i18n";
 import { IconHistory, IconCircleCheck, IconClock } from "@tabler/icons-react";
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
 import { Badge } from "../ui/Badge";
@@ -51,15 +52,16 @@ export function LogsTab({ logs }: LogsTabProps) {
     },
   ];
 
+  const { language, t } = useLanguage();
   const displayLogs = logs && logs.length > 0 ? logs : defaultLogs;
 
   return (
     <div>
       <PageHeader
-        breadcrumbs="SYSTEM / AUDIT & ACTIVITY LOGS"
-        title="Tizim Amallari Tarixi"
-        description="AI savdo assistenti, Telegram webhook va operatorlar tomonidan bajarilgan barcha operatsiyalar auditi"
-        badge={{ text: "Real-time audit", variant: "success" }}
+        breadcrumbs={t("breadcrumb.logs")}
+        title={t("logs.title")}
+        description={t("logs.subtitle")}
+        badge={{ text: language === "uz" ? "Jonli audit" : "Real-time audit", variant: "success" }}
       />
 
       <Card>

@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useLanguage } from "../../lib/i18n";
 import { IconKey, IconUserCheck, IconShield, IconHeadset } from "@tabler/icons-react";
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
 import { Badge } from "../ui/Badge";
@@ -11,40 +12,41 @@ export interface TeamTabProps {
 }
 
 export function TeamTab({ permissionLabels }: TeamTabProps) {
+  const { language, t } = useLanguage();
   const roles = [
     {
       name: "Owner",
-      title: "Bosh Ega",
-      badge: "Owner",
+      title: t("team.role_owner_title"),
+      badge: t("team.role_owner_badge"),
       badgeVariant: "accent" as const,
       icon: IconShield,
-      desc: "Barcha huquqlar to'liq berilgan. Adminlarni qo'shish, o'chirish va tizim sozlamalarini boshqarish huquqiga ega.",
+      desc: t("team.role_owner_desc"),
     },
     {
       name: "Admin",
-      title: "Tizim Menejeri",
-      badge: "Admin",
+      title: t("team.role_admin_title"),
+      badge: t("team.role_admin_badge"),
       badgeVariant: "info" as const,
       icon: IconUserCheck,
-      desc: "Suhbatlar, kataloglar, buyurtmalar va bilim bazalarini to'liq boshqarishi mumkin.",
+      desc: t("team.role_admin_desc"),
     },
     {
       name: "Moderator",
-      title: "Sotuvchi Operator",
-      badge: "Moderator",
+      title: t("team.role_moderator_title"),
+      badge: t("team.role_moderator_badge"),
       badgeVariant: "success" as const,
       icon: IconHeadset,
-      desc: "Faqat jonli suhbatlarga javob berish va mijozlar bilan muloqot qilish vakolatiga ega.",
+      desc: t("team.role_moderator_desc"),
     },
   ];
 
   return (
     <div>
       <PageHeader
-        breadcrumbs="SYSTEM / TEAM & ACCESS ROLES"
-        title="Jamoa va Ruxsatlar Tizimi"
-        description="Har bir rol uchun belgilangan huquqlar, mas'uliyat doirasi va ruxsatlar matritsasi"
-        badge={{ text: "Rollar Matritsasi", variant: "accent" }}
+        breadcrumbs={t("breadcrumb.team")}
+        title={t("team.title")}
+        description={t("team.subtitle")}
+        badge={{ text: t("team.badge"), variant: "accent" }}
       />
 
       {/* Role Cards */}
@@ -53,15 +55,33 @@ export function TeamTab({ permissionLabels }: TeamTabProps) {
           const IconC = r.icon;
           return (
             <div key={r.name} className="col-12 col-md-4">
-              <div className="linear-card p-3.5 h-100">
-                <div className="d-flex align-items-center justify-content-between mb-2">
+              <div
+                className="linear-card p-3 p-md-3.5 h-100 d-flex flex-column"
+                style={{
+                  backgroundColor: "var(--bg-surface)",
+                  border: "1px solid var(--border-default)",
+                  borderRadius: "10px",
+                }}
+              >
+                <div className="d-flex align-items-center justify-content-between mb-2.5">
                   <Badge variant={r.badgeVariant}>{r.badge}</Badge>
-                  <IconC size={18} style={{ color: "var(--accent)" }} />
+                  <div
+                    className="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0"
+                    style={{
+                      width: "32px",
+                      height: "32px",
+                      backgroundColor: "var(--bg-surface-elevated)",
+                      border: "1px solid var(--border-subtle)",
+                      borderRadius: "6px",
+                    }}
+                  >
+                    <IconC size={16} style={{ color: "var(--accent)" }} />
+                  </div>
                 </div>
-                <div className="fw-bold text-primary mb-1" style={{ fontSize: "1rem" }}>
+                <div className="fw-bold text-primary mb-1.5" style={{ fontSize: "1.05rem", letterSpacing: "-0.01em" }}>
                   {r.title}
                 </div>
-                <div className="text-secondary small" style={{ fontSize: "0.78rem", lineHeight: 1.5 }}>
+                <div className="text-secondary small flex-grow-1" style={{ fontSize: "0.8rem", lineHeight: 1.55 }}>
                   {r.desc}
                 </div>
               </div>
@@ -73,15 +93,15 @@ export function TeamTab({ permissionLabels }: TeamTabProps) {
       {/* Matrix Table Card */}
       <Card>
         <CardHeader>
-          <CardTitle>Granulyar Ruxsatlar Matritsasi (Permissions)</CardTitle>
+          <CardTitle>{t("team.matrix_title")}</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <div className="table-responsive">
             <table className="linear-table">
               <thead>
                 <tr>
-                  <th style={{ width: "240px" }}>Ruxsat Kaliti</th>
-                  <th>Tavsifi</th>
+                  <th style={{ width: "240px" }}>{language === "uz" ? "Ruxsat Kaliti" : "Permission Key"}</th>
+                  <th>{language === "uz" ? "Tavsifi" : "Description"}</th>
                   <th style={{ textAlign: "center", width: "110px" }}>Owner</th>
                   <th style={{ textAlign: "center", width: "110px" }}>Admin</th>
                   <th style={{ textAlign: "center", width: "110px" }}>Moderator</th>

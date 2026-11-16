@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useLanguage } from "../../lib/i18n";
 import {
   IconChartBar,
   IconTrendingUp,
@@ -68,13 +69,15 @@ export function AnalyticsTab({
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5);
 
+  const { language, t } = useLanguage();
+
   return (
     <div>
       <PageHeader
-        breadcrumbs="INTELLIGENCE / ANALYTICS"
-        title="Savdo va AI Statistikasi"
-        description="Mijozlar bilan haqiqiy yozishmalar, buyurtmalar konversiyasi va AI avtonomiya ko'rsatkichlari"
-        badge={{ text: "Haqiqiy ma'lumotlar", variant: "success" }}
+        breadcrumbs={t("breadcrumb.analytics")}
+        title={t("analytics.title")}
+        description={t("analytics.subtitle")}
+        badge={{ text: language === "uz" ? "Haqiqiy ma'lumotlar" : "Live data", variant: "success" }}
       />
 
       {/* 4 Metric KPI Cards */}

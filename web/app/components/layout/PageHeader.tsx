@@ -29,7 +29,7 @@ export function PageHeader({
             {breadcrumbs}
           </div>
         )}
-        <div className="d-flex align-items-center gap-2.5 flex-wrap">
+        <div className="d-flex align-items-center flex-wrap" style={{ gap: "12px", rowGap: "8px" }}>
           <h1 className="h2 m-0 text-primary fw-bold" style={{ letterSpacing: "-0.02em" }}>
             {title}
           </h1>

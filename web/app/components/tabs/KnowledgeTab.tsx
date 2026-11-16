@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useLanguage } from "../../lib/i18n";
 import {
   IconBooks,
   IconPlus,
@@ -63,6 +64,7 @@ export function KnowledgeTab({
   onExtractProducts,
   busy,
 }: KnowledgeTabProps) {
+  const { language, t } = useLanguage();
   const filteredPosts = posts.filter(
     (p) => channelFilter === "all" || p.channel_username === channelFilter
   );
@@ -80,10 +82,13 @@ export function KnowledgeTab({
   return (
     <div>
       <PageHeader
-        breadcrumbs="WORKSPACE / KNOWLEDGE BASE"
-        title="Telegram Mahsulotlar Bazasi"
-        description="Telegram kanallardagi postlar, matnlar va rasmlar (Vision) orqali AI bilim bazasini boshqarish"
-        badge={{ text: `${channels.length} ta faol kanal`, variant: "accent" }}
+        breadcrumbs={t("breadcrumb.knowledge")}
+        title={t("knowledge.title")}
+        description={t("knowledge.subtitle")}
+        badge={{
+          text: language === "uz" ? `${channels.length} ta faol kanal` : `${channels.length} active channels`,
+          variant: "accent",
+        }}
         actions={
           <div className="d-flex align-items-center gap-2">
             <Button

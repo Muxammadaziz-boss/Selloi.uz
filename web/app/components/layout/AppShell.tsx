@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Sidebar, NavTabId, PlatformSubTabId } from "./Sidebar";
 import { Topbar, OrganizationItem } from "./Topbar";
+import { CommandPalette } from "./CommandPalette";
 
 export interface AppShellProps {
   children: React.ReactNode;
@@ -70,6 +71,19 @@ export function AppShell({
   tabTitle,
 }: AppShellProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+
+  // Global Command Palette Shortcut: ⌘K or Ctrl+K
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setCommandPaletteOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   return (
     <div className="d-flex w-100" style={{ minHeight: "100vh", backgroundColor: "var(--bg-canvas)" }}>
@@ -113,6 +127,7 @@ export function AppShell({
           onLogout={onLogout}
           onOpenProfile={() => onSelectTab("profile")}
           isPlatformOwner={isPlatformOwner}
+          onOpenCommandPalette={() => setCommandPaletteOpen(true)}
         />
 
         {/* Tab Page Workspace */}
@@ -127,6 +142,20 @@ export function AppShell({
           {children}
         </main>
       </div>
+
+      {/* Global Command Palette */}
+      <CommandPalette
+        isOpen={commandPaletteOpen}
+        onClose={() => setCommandPaletteOpen(false)}
+        onSelectTab={onSelectTab}
+        onToggleTheme={onToggleTheme}
+        theme={theme}
+        onRefresh={onRefresh}
+        onOpenNewStoreModal={onOpenNewStoreModal}
+        isPlatformOwner={isPlatformOwner}
+        onSwitchZone={onSwitchZone}
+        onSelectPlatformSubTab={onSelectPlatformSubTab}
+      />
     </div>
   );
 }

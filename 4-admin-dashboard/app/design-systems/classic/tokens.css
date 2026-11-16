@@ -1,0 +1,65 @@
+/* ==========================================================================
+   CLASSIC DESIGN SYSTEM — DESIGN TOKENS
+   Standard enterprise SaaS appearance with Tabler foundations
+   Scoped exclusively under html[data-design="classic"]
+   ========================================================================== */
+
+html[data-design="classic"] {
+  --design-id: "classic";
+  --bg-canvas: #090a0c;
+  --bg-surface: #111216;
+  --bg-surface-elevated: #16181d;
+  --bg-surface-hover: #1c1e24;
+  --bg-surface-active: #23262e;
+
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-default: rgba(255, 255, 255, 0.14);
+  --border-strong: rgba(255, 255, 255, 0.24);
+
+  --text-primary: #f4f5f6;
+  --text-secondary: #94a3b8;
+  --text-tertiary: #9aa1ac;
+  --text-inverse: #090a0c;
+
+  --accent: #5e6ad2;
+  --accent-hover: #6d79e2;
+  --accent-active: #535ec0;
+  --accent-subtle: rgba(94, 106, 210, 0.14);
+  --accent-border: rgba(94, 106, 210, 0.35);
+  --accent-text: #8e98ec;
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+
+  --tblr-primary: #5e6ad2;
+  --tblr-body-bg: #090a0c;
+  --tblr-card-bg: #111216;
+}
+
+html[data-design="classic"][data-theme="light"],
+html[data-design="classic"][data-bs-theme="light"] {
+  --bg-canvas: #f8f9fa;
+  --bg-surface: #ffffff;
+  --bg-surface-elevated: #ffffff;
+  --bg-surface-hover: #f1f3f5;
+  --bg-surface-active: #e9ecef;
+
+  --border-subtle: rgba(0, 0, 0, 0.08);
+  --border-default: rgba(0, 0, 0, 0.14);
+  --border-strong: rgba(0, 0, 0, 0.24);
+
+  --text-primary: #121316;
+  --text-secondary: #475569;
+  --text-tertiary: #5c6270;
+  --text-inverse: #f4f5f6;
+
+  --accent: #4338ca;
+  --accent-hover: #3730a3;
+  --accent-active: #312e81;
+
+  --tblr-primary: #4338ca;
+  --tblr-body-bg: #f8f9fa;
+  --tblr-card-bg: #ffffff;
+}

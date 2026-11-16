@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useLanguage } from "../../lib/i18n";
 import {
   IconMessageDots,
   IconRobot,
@@ -73,6 +74,7 @@ export function OverviewTab({
   onRefresh,
   loading,
 }: OverviewTabProps) {
+  const { language, t } = useLanguage();
   const totalConversations = overview?.conversations ?? conversations.length;
   const aiActiveCount = overview?.ai_active ?? conversations.filter((c) => c.status === "ai_active").length;
   const takeoverCount = overview?.human_takeover ?? conversations.filter((c) => c.status === "human_takeover").length;
@@ -95,10 +97,10 @@ export function OverviewTab({
   return (
     <div>
       <PageHeader
-        breadcrumbs="WORKSPACE / OVERVIEW"
-        title="Boshqaruv Paneli"
-        description="Jonli AI savdo assistenti, Telegram xabarlar oqimi va mijozlar holati"
-        badge={{ text: "Real-time sync (6s)", variant: "success" }}
+        breadcrumbs={t("breadcrumb.overview")}
+        title={t("overview.title")}
+        description={t("overview.subtitle")}
+        badge={{ text: language === "uz" ? "Jonli sinxron (6s)" : "Real-time sync (6s)", variant: "success" }}
         actions={
           <Button
             variant="secondary"
@@ -107,7 +109,7 @@ export function OverviewTab({
             loading={loading}
             icon={<IconRefresh size={14} />}
           >
-            Yangilash
+            {language === "uz" ? "Yangilash" : "Refresh"}
           </Button>
         }
       />
@@ -128,13 +130,21 @@ export function OverviewTab({
                 <IconMessageDots size={12} />
               </Badge>
             </div>
-            <div className="display-6 fw-bold text-primary mb-1" style={{ fontSize: "1.75rem", letterSpacing: "-0.02em" }}>
-              {totalConversations}
-            </div>
-            <div className="text-secondary small d-flex align-items-center justify-content-between">
-              <span>Mijozlar bilan aloqa</span>
-              <span className="text-primary fw-medium">100%</span>
-            </div>
+            {loading ? (
+              <div className="skeleton-shimmer skeleton-title w-50 mb-2 mt-1" />
+            ) : (
+              <div className="display-6 fw-bold text-primary mb-1" style={{ fontSize: "1.75rem", letterSpacing: "-0.02em" }}>
+                {totalConversations}
+              </div>
+            )}
+            {loading ? (
+              <div className="skeleton-shimmer skeleton-text w-75 mt-1" />
+            ) : (
+              <div className="text-secondary small d-flex align-items-center justify-content-between">
+                <span>Mijozlar bilan aloqa</span>
+                <span className="text-primary fw-medium">100%</span>
+              </div>
+            )}
             <div className="mt-2" style={{ height: "4px", backgroundColor: "var(--border-subtle)", borderRadius: "2px", overflow: "hidden" }}>
               <div style={{ width: "100%", height: "100%", backgroundColor: "var(--accent)" }} />
             </div>
@@ -155,13 +165,21 @@ export function OverviewTab({
                 <IconRobot size={12} />
               </Badge>
             </div>
-            <div className="display-6 fw-bold text-primary mb-1" style={{ fontSize: "1.75rem", letterSpacing: "-0.02em" }}>
-              {aiActiveCount}
-            </div>
-            <div className="text-secondary small d-flex align-items-center justify-content-between">
-              <span>Avtomatik javob</span>
-              <span className="text-success fw-medium">{aiPercentage}%</span>
-            </div>
+            {loading ? (
+              <div className="skeleton-shimmer skeleton-title w-50 mb-2 mt-1" />
+            ) : (
+              <div className="display-6 fw-bold text-primary mb-1" style={{ fontSize: "1.75rem", letterSpacing: "-0.02em" }}>
+                {aiActiveCount}
+              </div>
+            )}
+            {loading ? (
+              <div className="skeleton-shimmer skeleton-text w-75 mt-1" />
+            ) : (
+              <div className="text-secondary small d-flex align-items-center justify-content-between">
+                <span>Avtomatik javob</span>
+                <span className="text-success fw-medium">{aiPercentage}%</span>
+              </div>
+            )}
             <div className="mt-2" style={{ height: "4px", backgroundColor: "var(--border-subtle)", borderRadius: "2px", overflow: "hidden" }}>
               <div style={{ width: `${aiPercentage}%`, height: "100%", backgroundColor: "var(--success)" }} />
             </div>
@@ -182,13 +200,21 @@ export function OverviewTab({
                 <IconHeadset size={12} />
               </Badge>
             </div>
-            <div className="display-6 fw-bold text-primary mb-1" style={{ fontSize: "1.75rem", letterSpacing: "-0.02em" }}>
-              {takeoverCount}
-            </div>
-            <div className="text-secondary small d-flex align-items-center justify-content-between">
-              <span>Inson nazorati</span>
-              <span className="text-warning fw-medium">{humanPercentage}%</span>
-            </div>
+            {loading ? (
+              <div className="skeleton-shimmer skeleton-title w-50 mb-2 mt-1" />
+            ) : (
+              <div className="display-6 fw-bold text-primary mb-1" style={{ fontSize: "1.75rem", letterSpacing: "-0.02em" }}>
+                {takeoverCount}
+              </div>
+            )}
+            {loading ? (
+              <div className="skeleton-shimmer skeleton-text w-75 mt-1" />
+            ) : (
+              <div className="text-secondary small d-flex align-items-center justify-content-between">
+                <span>Inson nazorati</span>
+                <span className="text-warning fw-medium">{humanPercentage}%</span>
+              </div>
+            )}
             <div className="mt-2" style={{ height: "4px", backgroundColor: "var(--border-subtle)", borderRadius: "2px", overflow: "hidden" }}>
               <div style={{ width: `${humanPercentage}%`, height: "100%", backgroundColor: "var(--warning)" }} />
             </div>
@@ -209,13 +235,21 @@ export function OverviewTab({
                 <IconBooks size={12} />
               </Badge>
             </div>
-            <div className="display-6 fw-bold text-primary mb-1" style={{ fontSize: "1.75rem", letterSpacing: "-0.02em" }}>
-              {totalPosts}
-            </div>
-            <div className="text-secondary small d-flex align-items-center justify-content-between">
-              <span>Faol kanallar</span>
-              <span className="text-primary fw-medium">{channels.length} ta</span>
-            </div>
+            {loading ? (
+              <div className="skeleton-shimmer skeleton-title w-50 mb-2 mt-1" />
+            ) : (
+              <div className="display-6 fw-bold text-primary mb-1" style={{ fontSize: "1.75rem", letterSpacing: "-0.02em" }}>
+                {totalPosts}
+              </div>
+            )}
+            {loading ? (
+              <div className="skeleton-shimmer skeleton-text w-75 mt-1" />
+            ) : (
+              <div className="text-secondary small d-flex align-items-center justify-content-between">
+                <span>Faol kanallar</span>
+                <span className="text-primary fw-medium">{channels.length} ta</span>
+              </div>
+            )}
             <div className="mt-2" style={{ height: "4px", backgroundColor: "var(--border-subtle)", borderRadius: "2px", overflow: "hidden" }}>
               <div style={{ width: "100%", height: "100%", backgroundColor: "var(--info)" }} />
             </div>
@@ -334,32 +368,68 @@ export function OverviewTab({
           {/* AI Engine Status Card */}
           <Card>
             <CardHeader>
-              <CardTitle>AI Dvigateli & Telegram</CardTitle>
+              <CardTitle>{t("overview.card_ai_engine")}</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="d-flex flex-column gap-2.5">
-                <div className="d-flex align-items-center justify-content-between p-2 rounded-2" style={{ backgroundColor: "var(--bg-surface-hover)" }}>
+              <div className="d-flex flex-column" style={{ gap: "8px" }}>
+                <div
+                  className="d-flex align-items-center justify-content-between px-3 py-2.5 rounded-2 border"
+                  style={{
+                    backgroundColor: "var(--bg-surface-elevated)",
+                    borderColor: "var(--border-subtle)",
+                    borderRadius: "8px",
+                  }}
+                >
                   <div className="d-flex align-items-center gap-2">
-                    <IconCpu size={16} style={{ color: "var(--accent)" }} />
-                    <span className="small text-secondary">AI Model:</span>
+                    <div
+                      className="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0"
+                      style={{ width: "26px", height: "26px", backgroundColor: "var(--accent-subtle)", borderRadius: "6px" }}
+                    >
+                      <IconCpu size={15} style={{ color: "var(--accent)" }} />
+                    </div>
+                    <span className="small text-secondary">{t("overview.ai_model")}</span>
                   </div>
-                  <span className="small fw-medium text-primary font-monospace">{aiModel}</span>
+                  <span className="small fw-semibold text-primary font-monospace">{aiModel}</span>
                 </div>
 
-                <div className="d-flex align-items-center justify-content-between p-2 rounded-2" style={{ backgroundColor: "var(--bg-surface-hover)" }}>
+                <div
+                  className="d-flex align-items-center justify-content-between px-3 py-2.5 rounded-2 border"
+                  style={{
+                    backgroundColor: "var(--bg-surface-elevated)",
+                    borderColor: "var(--border-subtle)",
+                    borderRadius: "8px",
+                  }}
+                >
                   <div className="d-flex align-items-center gap-2">
-                    <IconBrandTelegram size={16} style={{ color: "#229ed9" }} />
-                    <span className="small text-secondary">Telegram Bot:</span>
+                    <div
+                      className="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0"
+                      style={{ width: "26px", height: "26px", backgroundColor: "rgba(34, 158, 217, 0.15)", borderRadius: "6px" }}
+                    >
+                      <IconBrandTelegram size={15} style={{ color: "#229ed9" }} />
+                    </div>
+                    <span className="small text-secondary">{t("overview.telegram_bot")}</span>
                   </div>
-                  <Badge variant="success" dot>Ulangan</Badge>
+                  <Badge variant="success" dot>{t("overview.bot_connected")}</Badge>
                 </div>
 
-                <div className="d-flex align-items-center justify-content-between p-2 rounded-2" style={{ backgroundColor: "var(--bg-surface-hover)" }}>
+                <div
+                  className="d-flex align-items-center justify-content-between px-3 py-2.5 rounded-2 border"
+                  style={{
+                    backgroundColor: "var(--bg-surface-elevated)",
+                    borderColor: "var(--border-subtle)",
+                    borderRadius: "8px",
+                  }}
+                >
                   <div className="d-flex align-items-center gap-2">
-                    <IconActivity size={16} style={{ color: "var(--success)" }} />
-                    <span className="small text-secondary">O'rtacha javob:</span>
+                    <div
+                      className="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0"
+                      style={{ width: "26px", height: "26px", backgroundColor: "var(--success-subtle)", borderRadius: "6px" }}
+                    >
+                      <IconActivity size={15} style={{ color: "var(--success)" }} />
+                    </div>
+                    <span className="small text-secondary">{t("overview.avg_response")}</span>
                   </div>
-                  <span className="small fw-medium text-primary">~1.2 soniya</span>
+                  <span className="small fw-semibold text-primary">{t("overview.avg_response_val")}</span>
                 </div>
               </div>
             </CardContent>

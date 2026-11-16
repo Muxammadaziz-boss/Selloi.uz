@@ -1,0 +1,84 @@
+/* ==========================================================================
+   APPLE iOS DESIGN SYSTEM — DESIGN TOKENS
+   Frosted glassmorphism, SF Pro typography, capsule pills, iMessage bubbles
+   Scoped exclusively under html[data-design="ios"]
+   ========================================================================== */
+
+html[data-design="ios"] {
+  --design-id: "ios";
+
+  /* Dark mode iOS tokens (Default) */
+  --bg-canvas: #000000;
+  --bg-surface: rgba(28, 28, 30, 0.75);
+  --bg-surface-elevated: rgba(44, 44, 46, 0.85);
+  --bg-surface-hover: rgba(58, 58, 60, 0.7);
+  --bg-surface-active: rgba(72, 72, 74, 0.85);
+
+  --border-subtle: rgba(255, 255, 255, 0.12);
+  --border-default: rgba(255, 255, 255, 0.18);
+  --border-strong: rgba(255, 255, 255, 0.3);
+
+  --text-primary: #ffffff;
+  --text-secondary: #cbd5e1;
+  --text-tertiary: #94a3b8;
+  --text-inverse: #000000;
+
+  /* Apple System Accent Colors */
+  --accent: #0369a1;
+  --accent-hover: #075985;
+  --accent-active: #0c4a6e;
+  --accent-subtle: rgba(3, 105, 161, 0.14);
+  --accent-border: rgba(3, 105, 161, 0.45);
+  --accent-text: #bfdbfe;
+
+  --success: #10b981;
+  --success-text: #34d399;
+  --warning: #f59e0b;
+  --warning-text: #fbbf24;
+  --danger: #ef4444;
+  --danger-text: #f87171;
+
+  /* Geometry & Metrics */
+  --sidebar-width: 240px;
+  --radius-xs: 8px;
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
+  --radius-xl: 26px;
+  --radius-full: 9999px;
+
+  /* iOS Blur & Shadow */
+  --ios-blur: blur(28px) saturate(190%);
+  --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 8px 32px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.5);
+
+  --app-font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  --tblr-font-sans-serif: var(--app-font-family);
+  --tblr-primary: #007aff;
+}
+
+html[data-design="ios"][data-theme="light"],
+html[data-design="ios"][data-bs-theme="light"] {
+  --bg-canvas: #f2f2f7;
+  --bg-surface: rgba(255, 255, 255, 0.88);
+  --bg-surface-elevated: #ffffff;
+  --bg-surface-hover: rgba(242, 242, 247, 0.9);
+  --bg-surface-active: rgba(229, 229, 234, 0.95);
+
+  --border-subtle: rgba(60, 60, 67, 0.12);
+  --border-default: rgba(60, 60, 67, 0.2);
+  --border-strong: rgba(60, 60, 67, 0.35);
+
+  --text-primary: #000000;
+  --text-secondary: #334155;
+  --text-tertiary: #475569;
+  --text-inverse: #ffffff;
+
+  --accent: #0056b3;
+  --accent-text: #004494;
+
+  --success-text: #065f46;
+  --warning-text: #92400e;
+  --danger-text: #991b1b;
+}

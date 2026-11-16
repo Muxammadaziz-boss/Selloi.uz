@@ -13,10 +13,21 @@ html[data-design="ios"] .linear-card {
   box-shadow: var(--shadow-md) !important;
 }
 
-html[data-design="ios"] .btn {
+html[data-design="ios"] .btn:not(.btn-icon) {
   border-radius: var(--radius-full) !important;
   font-weight: 600 !important;
   transition: transform 140ms ease, opacity 140ms ease !important;
+}
+
+html[data-design="ios"] .btn-icon {
+  padding: 0 !important;
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: var(--radius-sm) !important;
 }
 
 html[data-design="ios"] .btn-primary {

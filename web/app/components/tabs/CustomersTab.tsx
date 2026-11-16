@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useLanguage } from "../../lib/i18n";
 import {
   IconUsers,
   IconSearch,
@@ -32,6 +33,7 @@ export function CustomersTab({
   onSelectConversation,
   onNavigateInbox,
 }: CustomersTabProps) {
+  const { language, t } = useLanguage();
   const [search, setSearch] = useState("");
 
   const filtered = conversations.filter((c) => {
@@ -57,10 +59,13 @@ export function CustomersTab({
   return (
     <div>
       <PageHeader
-        breadcrumbs="SALES / CUSTOMERS DIRECTORY"
-        title="Mijozlar Katalogi"
-        description="Telegram bot bilan muloqot qilgan barcha mijozlar va ularning faollik tarixi"
-        badge={{ text: `${conversations.length} ta mijoz`, variant: "accent" }}
+        breadcrumbs={t("breadcrumb.customers")}
+        title={t("customers.title")}
+        description={t("customers.subtitle")}
+        badge={{
+          text: language === "uz" ? `${conversations.length} ta mijoz` : `${conversations.length} customers`,
+          variant: "accent",
+        }}
       />
 
       <Card>

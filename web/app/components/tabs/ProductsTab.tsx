@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useLanguage } from "../../lib/i18n";
 import {
   IconPackage,
   IconSearch,
@@ -59,6 +60,7 @@ export function ProductsTab({
   onExtractProducts,
   busy,
 }: ProductsTabProps) {
+  const { language, t } = useLanguage();
   const [selectedCategory, setSelectedCategory] = useState("all");
 
   const categories = Array.from(new Set(products.map((p) => p.category))).filter(Boolean);
@@ -78,10 +80,13 @@ export function ProductsTab({
   return (
     <div>
       <PageHeader
-        breadcrumbs="SALES / PRODUCTS CATALOG"
-        title="Mahsulotlar Katalogi"
-        description="Do'kondagi barcha tovarlar, narxlar va qoldiqlar. AI ushbu bazadan foydalanib mijozlarga sotadi."
-        badge={{ text: `${products.length} ta mahsulot`, variant: "accent" }}
+        breadcrumbs={t("breadcrumb.products")}
+        title={t("products.title")}
+        description={t("products.subtitle")}
+        badge={{
+          text: language === "uz" ? `${products.length} ta mahsulot` : `${products.length} items`,
+          variant: "accent",
+        }}
         actions={
           <div className="d-flex align-items-center gap-2">
             <Button
@@ -91,7 +96,7 @@ export function ProductsTab({
               disabled={busy}
               icon={<IconSparkles size={14} style={{ color: "var(--accent)" }} />}
             >
-              Kanal postlaridan aniqlash
+              {language === "uz" ? "Kanal postlaridan aniqlash" : "Extract from channel"}
             </Button>
             <Button
               variant="primary"
@@ -99,7 +104,7 @@ export function ProductsTab({
               onClick={() => setIsAddingProduct(true)}
               icon={<IconPlus size={15} />}
             >
-              Yangi mahsulot
+              {language === "uz" ? "Yangi mahsulot" : "Add Product"}
             </Button>
           </div>
         }

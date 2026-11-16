@@ -86,6 +86,7 @@ import { TeamTab } from "./components/tabs/TeamTab";
 import { LogsTab } from "./components/tabs/LogsTab";
 import { ProfileTab } from "./components/tabs/ProfileTab";
 import { DesignProvider } from "./components/design/DesignContext";
+import { LanguageProvider, useLanguage } from "./lib/i18n";
 
 type Overview = {
   conversations: number;
@@ -550,12 +551,13 @@ export interface DashboardProps {
   initialTenantSlug?: string;
 }
 
-export default function Dashboard({
+function DashboardContent({
   initialAuthenticated = false,
   initialUser = null,
   initialZone,
   initialTenantSlug,
 }: DashboardProps) {
+  const { language, setLanguage, t } = useLanguage();
   const [currentUser, setCurrentUser] = useState<DashboardUser | null>(initialUser);
   const isPlatformOwner = Boolean(currentUser?.isPlatformOwner);
 
@@ -2238,53 +2240,53 @@ export default function Dashboard({
     );
   }
 
-  const breadcrumb = tab === "profile" ? "SYSTEM / ADMIN PROFILE & APPEARANCE" : (
-    zone === "platform" ? "SAAS / PLATFORM OWNER CONTROL" : (
-      tab === "overview" ? "WORKSPACE / OVERVIEW" :
-      tab === "inbox" ? "WORKSPACE / LIVE INBOX" :
-      tab === "knowledge" ? "WORKSPACE / KNOWLEDGE BASE" :
-      tab === "products" ? "SALES / PRODUCTS CATALOG" :
-      tab === "orders" ? "SALES / ORDERS MANAGEMENT" :
-      tab === "customers" ? "SALES / CUSTOMERS DIRECTORY" :
-      tab === "usage" ? "SAAS / USAGE & LIMITS METERING" :
-      tab === "billing" ? "SAAS / SUBSCRIPTION & INVOICES" :
-      tab === "pricing" ? "SAAS / COMMERCIAL PLANS MATRIX" :
-      tab === "platform" ? "SAAS / PLATFORM OWNER CONTROL" :
-      tab === "analytics" ? "INTELLIGENCE / ANALYTICS" :
-      tab === "settings" ? "INTELLIGENCE / AI CONFIGURATION" :
-      tab === "admins" ? "SYSTEM / ADMINISTRATION" :
-      tab === "team" ? "SYSTEM / TEAM & ACCESS ROLES" :
-      tab === "logs" ? "SYSTEM / AUDIT & ACTIVITY LOGS" :
-      "SYSTEM / ADMIN PROFILE & APPEARANCE"
+  const breadcrumb = tab === "profile" ? t("breadcrumb.profile") : (
+    zone === "platform" ? t("breadcrumb.platform") : (
+      tab === "overview" ? t("breadcrumb.overview") :
+      tab === "inbox" ? t("breadcrumb.inbox") :
+      tab === "knowledge" ? t("breadcrumb.knowledge") :
+      tab === "products" ? t("breadcrumb.products") :
+      tab === "orders" ? t("breadcrumb.orders") :
+      tab === "customers" ? t("breadcrumb.customers") :
+      tab === "usage" ? t("breadcrumb.usage") :
+      tab === "billing" ? t("breadcrumb.billing") :
+      tab === "pricing" ? t("breadcrumb.pricing") :
+      tab === "platform" ? t("breadcrumb.platform") :
+      tab === "analytics" ? t("breadcrumb.analytics") :
+      tab === "settings" ? t("breadcrumb.settings") :
+      tab === "admins" ? t("breadcrumb.admins") :
+      tab === "team" ? t("breadcrumb.team") :
+      tab === "logs" ? t("breadcrumb.logs") :
+      t("breadcrumb.profile")
     )
   );
 
-  const tabTitle = tab === "profile" ? "Admin Profili va Dizayn Sozlamalari" : (
+  const tabTitle = tab === "profile" ? t("profile.title") : (
     zone === "platform" ? (
-      platformSubTab === "overview" ? "Platforma Umumiy Ko'rinishi (MRR & AI Xarajatlari)" :
-      platformSubTab === "stores" ? "Do'konlar Portfeli (Tenants)" :
-      platformSubTab === "users" ? "Platforma Foydalanuvchilari" :
-      platformSubTab === "plans" ? "Tarif Rejalari va Narxlar" :
-      platformSubTab === "usage" ? "AI Xarajatlari va Resurslar Sarfi" :
-      platformSubTab === "system" ? "Tizim va Integratsiyalar Holati" :
-      "Audit va Xavfsizlik Tarixi"
+      platformSubTab === "overview" ? t("platform.overview_title", { defaultValue: "Platforma Umumiy Ko'rinishi" }) :
+      platformSubTab === "stores" ? t("nav.item.stores") :
+      platformSubTab === "users" ? t("nav.item.users") :
+      platformSubTab === "plans" ? t("nav.item.plans") :
+      platformSubTab === "usage" ? t("nav.item.usage") :
+      platformSubTab === "system" ? t("nav.item.system_health") :
+      t("nav.item.audit_logs")
     ) : (
-      tab === "overview" ? "Boshqaruv Paneli" :
-      tab === "inbox" ? "Jonli Suhbatlar (Live Inbox)" :
-      tab === "knowledge" ? "Telegram Mahsulotlar Bazasi" :
-      tab === "products" ? "Mahsulotlar Katalogi" :
-      tab === "orders" ? "Buyurtmalar Jurnali" :
-      tab === "customers" ? "Mijozlar Ro'yxati" :
-      tab === "usage" ? "Foydalanish va Resurs Limitlari" :
-      tab === "billing" ? "Obuna va Hisob-Kitoblar" :
-      tab === "pricing" ? "Tariflar va Imkoniyatlar" :
-      tab === "platform" ? "Platforma Egasi Boshqaruv Markazi" :
-      tab === "analytics" ? "Savdo va AI Statistikasi" :
-      tab === "settings" ? "AI va Tizim Sozlamalari" :
-      tab === "admins" ? "Administratorlar Boshqaruvi" :
-      tab === "team" ? "Jamoa va Ruxsatlar Tizimi" :
-      tab === "logs" ? "Tizim Amallari Tarixi" :
-      "Admin Profili va Dizayn Sozlamalari"
+      tab === "overview" ? t("overview.title") :
+      tab === "inbox" ? t("inbox.title") :
+      tab === "knowledge" ? t("knowledge.title") :
+      tab === "products" ? t("products.title") :
+      tab === "orders" ? t("orders.title") :
+      tab === "customers" ? t("customers.title") :
+      tab === "usage" ? t("nav.item.usage") :
+      tab === "billing" ? t("nav.item.billing") :
+      tab === "pricing" ? t("nav.item.pricing") :
+      tab === "platform" ? t("nav.item.platform") :
+      tab === "analytics" ? t("analytics.title") :
+      tab === "settings" ? t("settings.title") :
+      tab === "admins" ? t("admins.title") :
+      tab === "team" ? t("team.title") :
+      tab === "logs" ? t("logs.title") :
+      t("profile.title")
     )
   );
 
@@ -2761,5 +2763,13 @@ export default function Dashboard({
       />
       </div>
     </DesignProvider>
+  );
+}
+
+export default function Dashboard(props: DashboardProps) {
+  return (
+    <LanguageProvider>
+      <DashboardContent {...props} />
+    </LanguageProvider>
   );
 }

@@ -1,0 +1,68 @@
+/* ==========================================================================
+   APPLE iOS DESIGN SYSTEM — COMPONENTS
+   Scoped exclusively under html[data-design="ios"]
+   ========================================================================== */
+
+html[data-design="ios"] .card,
+html[data-design="ios"] .linear-card {
+  background: var(--bg-surface) !important;
+  backdrop-filter: var(--ios-blur) !important;
+  -webkit-backdrop-filter: var(--ios-blur) !important;
+  border: 1px solid var(--border-default) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+html[data-design="ios"] .btn:not(.btn-icon) {
+  border-radius: var(--radius-full) !important;
+  font-weight: 600 !important;
+  transition: transform 140ms ease, opacity 140ms ease !important;
+}
+
+html[data-design="ios"] .btn-icon {
+  padding: 0 !important;
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+html[data-design="ios"] .btn-primary {
+  background-color: #0055b3 !important;
+  color: #ffffff !important;
+  border-color: #0055b3 !important;
+}
+
+html[data-design="ios"] .btn:active {
+  transform: scale(0.97);
+}
+
+html[data-design="ios"] .badge {
+  border-radius: var(--radius-full) !important;
+  padding: 4px 10px !important;
+  font-weight: 700 !important;
+}
+
+html[data-design="ios"] .form-control,
+html[data-design="ios"] .form-select {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid var(--border-default) !important;
+  border-radius: var(--radius-sm) !important;
+  color: var(--text-primary) !important;
+}
+
+html[data-design="ios"] .chat-bubble-user {
+  background: #0055b3 !important;
+  color: #ffffff !important;
+  border-radius: 18px 18px 4px 18px !important;
+  box-shadow: 0 2px 8px rgba(0, 85, 179, 0.3) !important;
+}
+
+html[data-design="ios"] .chat-bubble-peer {
+  background: var(--bg-surface-elevated) !important;
+  color: var(--text-primary) !important;
+  border-radius: 18px 18px 18px 4px !important;
+}

@@ -1,0 +1,216 @@
+/* ==========================================================================
+   PREMIUM DESIGN SYSTEM — COMPONENTS
+   Minimalist dark SaaS component styles matching reference screenshot
+   Scoped exclusively under html[data-design="premium"]
+   ========================================================================== */
+
+/* Main Card Surface */
+html[data-design="premium"] .card,
+html[data-design="premium"] .linear-card,
+html[data-design="premium"] .premium-card {
+  background: var(--premium-surface) !important;
+  border: 1px solid var(--premium-border) !important;
+  border-radius: var(--premium-radius) !important;
+  box-shadow: none !important;
+  transition: border-color 140ms ease !important;
+}
+
+html[data-design="premium"] .card:hover,
+html[data-design="premium"] .linear-card:hover,
+html[data-design="premium"] .premium-card:hover {
+  border-color: #383838 !important;
+}
+
+/* KPI Card Typography & Structure */
+html[data-design="premium"] .kpi-label {
+  color: var(--premium-text-secondary) !important;
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
+}
+
+html[data-design="premium"] .kpi-value {
+  color: #ffffff !important;
+  font-size: 1.85rem !important;
+  font-weight: 700 !important;
+  font-family: var(--tblr-font-monospace, monospace) !important;
+  letter-spacing: -0.02em !important;
+}
+
+html[data-design="premium"] .kpi-footer {
+  border-top: 1px solid var(--premium-border-subtle) !important;
+  color: var(--premium-text-secondary) !important;
+  font-size: 0.78rem !important;
+  padding-top: 8px !important;
+  margin-top: 8px !important;
+}
+
+/* Minimal Badges */
+html[data-design="premium"] .badge {
+  border-radius: var(--premium-radius-sm) !important;
+  font-size: 0.72rem !important;
+  font-weight: 600 !important;
+  padding: 3px 8px !important;
+  border: 1px solid transparent !important;
+}
+
+html[data-design="premium"] .badge-primary,
+html[data-design="premium"] .badge-accent {
+  background: rgba(59, 130, 246, 0.14) !important;
+  border-color: rgba(59, 130, 246, 0.35) !important;
+  color: #60a5fa !important;
+}
+
+html[data-design="premium"] .badge-success {
+  background: rgba(16, 185, 129, 0.14) !important;
+  border-color: rgba(16, 185, 129, 0.35) !important;
+  color: #34d399 !important;
+}
+
+html[data-design="premium"] .badge-warning {
+  background: rgba(245, 158, 11, 0.14) !important;
+  border-color: rgba(245, 158, 11, 0.35) !important;
+  color: #fbbf24 !important;
+}
+
+html[data-design="premium"] .badge-danger {
+  background: rgba(239, 68, 68, 0.14) !important;
+  border-color: rgba(239, 68, 68, 0.35) !important;
+  color: #f87171 !important;
+}
+
+html[data-design="premium"][data-theme="light"] .badge-success,
+html[data-design="premium"][data-theme="light"] .linear-badge-success {
+  background: rgba(6, 95, 70, 0.12) !important;
+  border-color: rgba(6, 95, 70, 0.3) !important;
+  color: #065f46 !important;
+}
+
+/* Minimal Buttons */
+html[data-design="premium"] .btn:not(.btn-icon) {
+  border-radius: var(--premium-radius-sm) !important;
+  font-size: 0.84rem !important;
+  font-weight: 500 !important;
+  padding: 6px 14px !important;
+  transition: all 120ms ease !important;
+}
+
+html[data-design="premium"] .btn-icon {
+  padding: 0 !important;
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: var(--premium-radius-sm) !important;
+}
+
+html[data-design="premium"] .btn-primary {
+  background-color: #3b82f6 !important;
+  border-color: #3b82f6 !important;
+  color: #ffffff !important;
+}
+
+html[data-design="premium"] .btn-primary:hover {
+  background-color: #2563eb !important;
+  border-color: #2563eb !important;
+}
+
+html[data-design="premium"] .btn-secondary,
+html[data-design="premium"] .btn-outline {
+  background-color: #1a1a1a !important;
+  border-color: var(--premium-border) !important;
+  color: var(--premium-text) !important;
+}
+
+html[data-design="premium"] .btn-secondary:hover,
+html[data-design="premium"] .btn-outline:hover {
+  background-color: var(--premium-surface-hover) !important;
+  border-color: #383838 !important;
+}
+
+html[data-design="premium"][data-theme="light"] .btn-secondary,
+html[data-design="premium"][data-theme="light"] .btn-outline {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+html[data-design="premium"][data-theme="light"] .btn-outline-warning {
+  color: #78350f !important;
+  border-color: #92400e !important;
+  background-color: transparent !important;
+}
+
+/* Compact Tables */
+html[data-design="premium"] .table {
+  background: transparent !important;
+  color: var(--premium-text) !important;
+  font-size: 0.84rem !important;
+}
+
+html[data-design="premium"] .table th {
+  background: #121212 !important;
+  border-bottom: 1px solid var(--premium-border) !important;
+  color: var(--premium-text-secondary) !important;
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
+  padding: 10px 14px !important;
+}
+
+html[data-design="premium"] .table td {
+  border-bottom: 1px solid var(--premium-border-subtle) !important;
+  padding: 10px 14px !important;
+  vertical-align: middle !important;
+}
+
+html[data-design="premium"] .table tbody tr:hover td {
+  background-color: #1a1a1a !important;
+}
+
+/* Modals */
+html[data-design="premium"] .modal-content {
+  background-color: #161616 !important;
+  border: 1px solid var(--premium-border-strong) !important;
+  border-radius: var(--premium-radius) !important;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.85) !important;
+  color: var(--premium-text) !important;
+}
+
+html[data-design="premium"] .modal-header,
+html[data-design="premium"] .modal-footer {
+  border-color: var(--premium-border) !important;
+}
+
+/* Live Inbox Minimal Styling */
+html[data-design="premium"] .inbox-conversation-item {
+  border-bottom: 1px solid var(--premium-border-subtle) !important;
+  transition: background-color 120ms ease !important;
+}
+
+html[data-design="premium"] .inbox-conversation-item:hover {
+  background-color: var(--premium-surface-hover) !important;
+}
+
+html[data-design="premium"] .inbox-conversation-item.active {
+  background-color: #1f1f1f !important;
+  border-left: 3px solid #3b82f6 !important;
+}
+
+html[data-design="premium"] .chat-bubble-user {
+  background: #1e3a8a !important;
+  border: 1px solid #2563eb !important;
+  border-radius: var(--premium-radius-sm) !important;
+  color: #ffffff !important;
+}
+
+html[data-design="premium"] .chat-bubble-peer {
+  background: #1c1c1c !important;
+  border: 1px solid var(--premium-border) !important;
+  border-radius: var(--premium-radius-sm) !important;
+  color: var(--premium-text) !important;
+}

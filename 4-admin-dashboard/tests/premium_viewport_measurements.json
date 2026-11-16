@@ -1,0 +1,35 @@
+{
+  "desktop_1440x900": {
+    "dataDesign": "premium",
+    "dataTheme": "dark",
+    "sidebarWidth": 270,
+    "sidebarComputedWidth": "270px",
+    "bodyBg": "rgb(9, 9, 9)",
+    "cardBg": "rgb(23, 23, 23)",
+    "cardBorder": "rgb(38, 38, 38)",
+    "cardBackdropFilter": "none",
+    "cardBoxShadow": "none"
+  },
+  "laptop_1366x768": {
+    "dataDesign": "premium",
+    "dataTheme": "dark",
+    "sidebarWidth": 270,
+    "sidebarComputedWidth": "270px",
+    "bodyBg": "rgb(9, 9, 9)",
+    "cardBg": "rgb(23, 23, 23)",
+    "cardBorder": "rgb(38, 38, 38)",
+    "cardBackdropFilter": "none",
+    "cardBoxShadow": "none"
+  },
+  "mobile_375x812": {
+    "dataDesign": "premium",
+    "dataTheme": "dark",
+    "sidebarWidth": 270,
+    "sidebarComputedWidth": "270px",
+    "bodyBg": "rgb(9, 9, 9)",
+    "cardBg": "rgb(23, 23, 23)",
+    "cardBorder": "rgb(38, 38, 38)",
+    "cardBackdropFilter": "none",
+    "cardBoxShadow": "none"
+  }
+}
