@@ -173,13 +173,13 @@ export function AdminsTab({
                             </td>
                             <td>
                               {isOwner ? (
-                                <Badge variant="success">Barcha huquqlar ({totalPermissionsCount}/{totalPermissionsCount})</Badge>
+                                <Badge variant="success">{t("admins.all_permissions")} ({totalPermissionsCount}/{totalPermissionsCount})</Badge>
                               ) : (
                                 <div className="d-flex align-items-center gap-2">
                                   <Badge
                                     variant={activePermsCount > 0 ? "accent" : "secondary" as any}
                                   >
-                                    {activePermsCount} / {totalPermissionsCount} ta
+                                    {activePermsCount} / {totalPermissionsCount} {t("admins.permissions_suffix")}
                                   </Badge>
                                   <Button
                                     variant="secondary"
@@ -187,7 +187,7 @@ export function AdminsTab({
                                     onClick={() => setManagingPermissionsAdmin(adm)}
                                     icon={<IconAdjustments size={12} />}
                                   >
-                                    Sozlash
+                                    {language === "uz" ? "Sozlash" : "Configure"}
                                   </Button>
                                 </div>
                               )}
@@ -274,7 +274,7 @@ export function AdminsTab({
         <Modal
           isOpen={true}
           onClose={() => setManagingPermissionsAdmin(null)}
-          title={`${managingPermissionsAdmin.name || "Admin"} — Ruxsatlar Tizimi`}
+          title={`${managingPermissionsAdmin.name || "Admin"} — ${t("admins.modal_title")}`}
           size="lg"
           footer={
             <Button
@@ -282,7 +282,7 @@ export function AdminsTab({
               size="sm"
               onClick={() => setManagingPermissionsAdmin(null)}
             >
-              Tayyor
+              {t("admins.btn_done")}
             </Button>
           }
         >

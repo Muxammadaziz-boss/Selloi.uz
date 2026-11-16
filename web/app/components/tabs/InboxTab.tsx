@@ -141,9 +141,9 @@ export function InboxTab({
             <div className="p-3 border-bottom border-subtle">
               <div className="d-flex align-items-center justify-content-between mb-2">
                 <span className="fw-semibold text-primary small">
-                  Suhbatlar ({filteredConversations.length})
+                  {t("inbox.conversations_heading")} ({filteredConversations.length})
                 </span>
-                <Badge variant="accent" dot>Jonli</Badge>
+                <Badge variant="accent" dot>{t("inbox.badge_live")}</Badge>
               </div>
 
               {/* Search */}
@@ -154,7 +154,7 @@ export function InboxTab({
                 />
                 <input
                   type="text"
-                  placeholder="Mijoz yoki @username..."
+                  placeholder={t("inbox.search_input_placeholder")}
                   value={inboxSearch}
                   onChange={(e) => setInboxSearch(e.target.value)}
                   className="linear-input ps-5 py-1"
@@ -176,7 +176,7 @@ export function InboxTab({
                     fontSize: "0.72rem",
                   }}
                 >
-                  Barchasi ({conversations.length})
+                  {t("inbox.filter_all_label")} ({conversations.length})
                 </button>
                 <button
                   type="button"
@@ -190,7 +190,7 @@ export function InboxTab({
                     fontSize: "0.72rem",
                   }}
                 >
-                  AI ({conversations.filter((c) => c.status === "ai_active").length})
+                  {t("inbox.filter_ai_label")} ({conversations.filter((c) => c.status === "ai_active").length})
                 </button>
                 <button
                   type="button"
@@ -204,16 +204,16 @@ export function InboxTab({
                     fontSize: "0.72rem",
                   }}
                 >
-                  Operator ({conversations.filter((c) => c.status === "human_takeover").length})
+                  {t("inbox.filter_operator_label")} ({conversations.filter((c) => c.status === "human_takeover").length})
                 </button>
               </div>
             </div>
 
             {/* Conversation List Scroll Area */}
-            <div className="flex-grow-1 overflow-y-auto custom-scrollbar p-1" tabIndex={0} aria-label="Suhbatlar ro'yxati">
+            <div className="flex-grow-1 overflow-y-auto custom-scrollbar p-1" tabIndex={0} aria-label={t("inbox.conversations_heading")}>
               {filteredConversations.length === 0 ? (
                 <div className="p-4 text-center text-secondary small">
-                  Suhbat topilmadi
+                  {t("inbox.empty_chats")}
                 </div>
               ) : (
                 filteredConversations.map((c) => {
@@ -293,7 +293,7 @@ export function InboxTab({
                       disabled={busy}
                       icon={<IconHeadset size={14} style={{ color: "var(--warning)" }} />}
                     >
-                      Takeover (O'zim javob beraman)
+                      {t("inbox.btn_takeover")}
                     </Button>
                   ) : (
                     <Button
@@ -303,7 +303,7 @@ export function InboxTab({
                       disabled={busy}
                       icon={<IconRobot size={14} style={{ color: "var(--success)" }} />}
                     >
-                      Resume AI (AI ga qaytarish)
+                      {t("inbox.btn_resume_ai")}
                     </Button>
                   )}
                 </div>
@@ -313,14 +313,14 @@ export function InboxTab({
               <div
                 ref={chatScrollRef}
                 tabIndex={0}
-                aria-label="Xabarlar tarixi"
+                aria-label={t("inbox.conversations_heading")}
                 className="flex-grow-1 p-3 overflow-y-auto custom-scrollbar d-flex flex-column gap-2.5"
                 style={{ backgroundColor: "var(--bg-canvas)", maxHeight: "460px" }}
               >
                 {messages.length === 0 ? (
                   <div className="text-center text-secondary py-5 my-auto">
                     <IconMessages size={32} className="mb-2 opacity-50" />
-                    <div className="small">Ushbu suhbatda hali xabarlar yo'q</div>
+                    <div className="small">{t("inbox.empty_thread")}</div>
                   </div>
                 ) : (
                   messages.map((m) => {
@@ -398,7 +398,7 @@ export function InboxTab({
                 >
                   <input
                     type="text"
-                    placeholder="Mijozga operator sifatida javob yozing..."
+                    placeholder={t("inbox.composer_placeholder")}
                     value={draft}
                     onChange={(e) => setDraft(e.target.value)}
                     disabled={busy}
@@ -410,14 +410,14 @@ export function InboxTab({
                     disabled={busy || !draft.trim()}
                     icon={<IconSend size={15} />}
                   >
-                    Yuborish
+                    {t("inbox.btn_send")}
                   </Button>
                 </form>
               </div>
             </div>
           ) : (
             <div className="linear-card d-flex align-items-center justify-content-center h-100 p-5 text-secondary">
-              Chap tarafdan birorta suhbatni tanlang
+              {t("inbox.select_prompt")}
             </div>
           )}
         </div>
@@ -425,7 +425,7 @@ export function InboxTab({
         {/* PANEL 3: Customer Details, Internal Notes & Fast Proposals */}
         <div className="col-12 col-lg-3 d-flex flex-column">
           {activeConversation ? (
-            <div className="linear-card d-flex flex-column h-100 p-3 overflow-y-auto custom-scrollbar" tabIndex={0} aria-label="Mijoz ma'lumotlari">
+            <div className="linear-card d-flex flex-column h-100 p-3 overflow-y-auto custom-scrollbar" tabIndex={0} aria-label={t("customers.card_title")}>
               {/* Customer Avatar & Bio */}
               <div className="text-center pb-3 border-bottom border-subtle mb-3">
                 <div
@@ -451,17 +451,17 @@ export function InboxTab({
               {/* Quick Info Items */}
               <div className="d-flex flex-column gap-2 mb-3 pb-3 border-bottom border-subtle">
                 <div className="d-flex align-items-center justify-content-between small">
-                  <span className="text-secondary">Telegram Chat ID:</span>
+                  <span className="text-secondary">{t("inbox.detail_chat_id")}</span>
                   <span className="text-primary font-monospace">{activeConversation.chat_id}</span>
                 </div>
                 <div className="d-flex align-items-center justify-content-between small">
-                  <span className="text-secondary">Holati:</span>
+                  <span className="text-secondary">{t("inbox.detail_status")}</span>
                   <Badge variant={activeConversation.status === "ai_active" ? "success" : "warning"}>
-                    {activeConversation.status === "ai_active" ? "AI Boshqaruvida" : "Operator Nazorati"}
+                    {activeConversation.status === "ai_active" ? t("inbox.detail_status_ai") : t("inbox.detail_status_operator")}
                   </Badge>
                 </div>
                 <div className="d-flex align-items-center justify-content-between small">
-                  <span className="text-secondary">Xabarlar soni:</span>
+                  <span className="text-secondary">{t("inbox.detail_message_count")}</span>
                   <span className="text-primary fw-medium">{messages.length}</span>
                 </div>
               </div>
@@ -470,16 +470,16 @@ export function InboxTab({
               <div className="mb-3 pb-3 border-bottom border-subtle">
                 <div className="d-flex align-items-center justify-content-between mb-1.5">
                   <span className="text-uppercase fw-semibold text-secondary" style={{ fontSize: "0.68rem" }}>
-                    Operator Eslatmasi
+                    {t("inbox.note_heading")}
                   </span>
                   {customerNotes[activeConversation.id] && (
-                    <Badge variant="success">Saqlangan</Badge>
+                    <Badge variant="success">{t("inbox.note_saved")}</Badge>
                   )}
                 </div>
                 <textarea
                   className="linear-input mb-2"
                   rows={3}
-                  placeholder="Mijoz haqida ichki qayd (qidirayotgan model, kelishuv)..."
+                  placeholder={t("inbox.note_placeholder")}
                   value={currentNote}
                   onChange={(e) => setCurrentNote(e.target.value)}
                   style={{ fontSize: "0.78rem" }}
@@ -491,14 +491,14 @@ export function InboxTab({
                   onClick={() => onSaveCustomerNote(activeConversation.id, currentNote)}
                   icon={<IconPencil size={13} />}
                 >
-                  Eslatmani saqlash
+                  {t("inbox.btn_save_note")}
                 </Button>
               </div>
 
               {/* 2. Fast Proposals */}
               <div>
                 <span className="text-uppercase fw-semibold text-secondary d-block mb-2" style={{ fontSize: "0.68rem" }}>
-                  Tezkor Takliflar (Chatga)
+                  {t("inbox.proposals_heading")}
                 </span>
                 <div className="d-flex flex-column gap-2">
                   <button
@@ -512,8 +512,8 @@ export function InboxTab({
                   >
                     <IconPackage size={16} style={{ color: "var(--accent)" }} />
                     <div className="flex-grow-1 overflow-hidden">
-                      <div className="text-primary small fw-medium text-truncate">Katalog yuborish</div>
-                      <div className="text-secondary" style={{ fontSize: "0.68rem" }}>Ommabop mahsulotlar ro'yxati</div>
+                      <div className="text-primary small fw-medium text-truncate">{t("inbox.proposal_catalog_title")}</div>
+                      <div className="text-secondary" style={{ fontSize: "0.68rem" }}>{t("inbox.proposal_catalog_desc")}</div>
                     </div>
                   </button>
 
@@ -528,8 +528,8 @@ export function InboxTab({
                   >
                     <IconSparkles size={16} style={{ color: "var(--success)" }} />
                     <div className="flex-grow-1 overflow-hidden">
-                      <div className="text-primary small fw-medium text-truncate">5% chegirma taklifi</div>
-                      <div className="text-secondary" style={{ fontSize: "0.68rem" }}>Maxsus chegirma xabari</div>
+                      <div className="text-primary small fw-medium text-truncate">{t("inbox.proposal_discount_title")}</div>
+                      <div className="text-secondary" style={{ fontSize: "0.68rem" }}>{t("inbox.proposal_discount_desc")}</div>
                     </div>
                   </button>
                 </div>

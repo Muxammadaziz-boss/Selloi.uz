@@ -283,7 +283,7 @@ export function Topbar({
           type="button"
           onClick={onRefresh}
           disabled={loading}
-          className="btn-icon rounded-2 border transition-fast"
+          className="btn-icon rounded-2 border transition-fast d-flex align-items-center justify-content-center"
           style={{
             backgroundColor: "var(--bg-surface-elevated)",
             color: "var(--text-secondary)",
@@ -292,8 +292,12 @@ export function Topbar({
             height: "32px",
             padding: 0,
             cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
           title={t("topbar.refresh")}
+          aria-label={t("topbar.refresh")}
         >
           <IconRefresh size={16} className={loading ? "spin" : ""} />
         </button>
@@ -302,7 +306,7 @@ export function Topbar({
         <button
           type="button"
           onClick={onToggleTheme}
-          className="btn-icon rounded-2 border transition-fast"
+          className="btn-icon rounded-2 border transition-fast d-flex align-items-center justify-content-center"
           style={{
             backgroundColor: "var(--bg-surface-elevated)",
             color: "var(--text-secondary)",
@@ -311,8 +315,12 @@ export function Topbar({
             height: "32px",
             padding: 0,
             cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
           title={theme === "dark" ? t("topbar.toggle_theme_light") : t("topbar.toggle_theme_dark")}
+          aria-label={theme === "dark" ? t("topbar.toggle_theme_light") : t("topbar.toggle_theme_dark")}
         >
           {theme === "dark" ? (
             <IconSun size={16} style={{ color: "#f59e0b" }} />
@@ -334,11 +342,15 @@ export function Topbar({
             height: "32px",
             padding: 0,
             cursor: "pointer",
-            fontSize: "0.72rem",
+            fontSize: "0.74rem",
             fontWeight: 700,
             letterSpacing: "0.06em",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
           title={language === "uz" ? "Switch to English" : "O'zbek tiliga o'tish"}
+          aria-label={language === "uz" ? "Switch to English" : "O'zbek tiliga o'tish"}
         >
           {language === "uz" ? "UZ" : "EN"}
         </button>
@@ -408,7 +420,7 @@ export function Topbar({
                 <div className="px-3 py-2 border-bottom" style={{ borderColor: "var(--border-subtle)" }}>
                   <div className="fw-semibold text-primary small text-truncate">{adminName}</div>
                   <div className="text-secondary" style={{ fontSize: "0.7rem" }}>
-                    Roli: <span className="text-uppercase fw-medium">{adminRole}</span>
+                    {language === "uz" ? "Roli:" : "Role:"} <span className="text-uppercase fw-medium">{adminRole === "owner" ? t("topbar.role_owner") : adminRole === "admin" ? t("topbar.role_admin") : t("topbar.role_moderator")}</span>
                   </div>
                 </div>
 

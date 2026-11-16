@@ -78,7 +78,7 @@ export function CustomersTab({
               />
               <input
                 type="text"
-                placeholder="Mijoz yoki username izlash..."
+                placeholder={t("customers.search_placeholder")}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="linear-input ps-5 py-1"
@@ -87,26 +87,26 @@ export function CustomersTab({
             </div>
           }
         >
-          <CardTitle>Mijozlar Ro'yxati ({filtered.length})</CardTitle>
+          <CardTitle>{t("customers.card_title")} ({filtered.length})</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <div className="table-responsive">
             <table className="linear-table">
               <thead>
                 <tr>
-                  <th>Mijoz Nomi</th>
-                  <th>Username</th>
-                  <th>Chat ID</th>
-                  <th>Holati</th>
-                  <th>Oxirgi Muloqot</th>
-                  <th style={{ textAlign: "right" }}>Amal</th>
+                  <th>{t("customers.th_name")}</th>
+                  <th>{t("customers.th_username")}</th>
+                  <th>{t("customers.th_chat_id")}</th>
+                  <th>{t("customers.th_status")}</th>
+                  <th>{t("customers.th_last_active")}</th>
+                  <th style={{ textAlign: "right" }}>{t("customers.th_action")}</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="text-center text-secondary py-5 small">
-                      Mijozlar ma'lumotlari topilmadi
+                      {t("customers.empty")}
                     </td>
                   </tr>
                 ) : (
@@ -136,9 +136,9 @@ export function CustomersTab({
                       </td>
                       <td>
                         {c.status === "ai_active" ? (
-                          <Badge variant="success" dot>AI Boshqaruvida</Badge>
+                          <Badge variant="success" dot>{t("customers.status_ai")}</Badge>
                         ) : (
-                          <Badge variant="warning" dot>Operator Qabulida</Badge>
+                          <Badge variant="warning" dot>{t("customers.status_operator")}</Badge>
                         )}
                       </td>
                       <td className="text-secondary small">
@@ -157,7 +157,7 @@ export function CustomersTab({
                           }}
                           icon={<IconMessageDots size={13} />}
                         >
-                          Chatga o'tish
+                          {t("customers.btn_open_chat")}
                         </Button>
                       </td>
                     </tr>

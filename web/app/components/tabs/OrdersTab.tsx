@@ -84,11 +84,11 @@ export function OrdersTab({
                   className="linear-input py-1"
                   style={{ width: "auto", fontSize: "0.78rem" }}
                 >
-                  <option value="all">Barcha statuslar</option>
-                  <option value="New">Yangi (New)</option>
-                  <option value="Processing">Jarayonda (Processing)</option>
-                  <option value="Confirmed">Tasdiqlangan (Confirmed)</option>
-                  <option value="Completed">Bajarilgan (Completed)</option>
+                  <option value="all">{t("orders.status_all")}</option>
+                  <option value="New">{t("orders.status_new")}</option>
+                  <option value="Processing">{t("orders.status_processing")}</option>
+                  <option value="Confirmed">{t("orders.status_confirmed")}</option>
+                  <option value="Completed">{t("orders.status_completed")}</option>
                 </select>
               </div>
 
@@ -99,7 +99,7 @@ export function OrdersTab({
                 />
                 <input
                   type="text"
-                  placeholder="Mijoz yoki ID izlash..."
+                  placeholder={t("orders.search_placeholder")}
                   value={orderSearch}
                   onChange={(e) => setOrderSearch(e.target.value)}
                   className="linear-input ps-5 py-1"
@@ -109,28 +109,28 @@ export function OrdersTab({
             </div>
           }
         >
-          <CardTitle>Buyurtmalar Ro'yxati ({filteredOrders.length})</CardTitle>
+          <CardTitle>{t("orders.card_title")} ({filteredOrders.length})</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <div className="table-responsive">
             <table className="linear-table">
               <thead>
                 <tr>
-                  <th style={{ width: "90px" }}>Buyurtma ID</th>
-                  <th>Mijoz</th>
-                  <th>Mahsulot</th>
-                  <th>Summa</th>
-                  <th>Holati</th>
-                  <th>Sana</th>
-                  <th>Kanal / Manba</th>
-                  <th style={{ textAlign: "right" }}>Amallar</th>
+                  <th style={{ width: "90px" }}>{t("orders.th_id")}</th>
+                  <th>{t("orders.th_customer")}</th>
+                  <th>{t("orders.th_product")}</th>
+                  <th>{t("orders.th_amount")}</th>
+                  <th>{t("orders.th_status")}</th>
+                  <th>{t("orders.th_date")}</th>
+                  <th>{t("orders.th_source")}</th>
+                  <th style={{ textAlign: "right" }}>{t("orders.th_actions")}</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredOrders.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="text-center text-secondary py-5 small">
-                      Buyurtmalar mavjud emas
+                      {t("orders.empty")}
                     </td>
                   </tr>
                 ) : (
@@ -147,13 +147,13 @@ export function OrdersTab({
                       <td className="fw-bold text-success font-monospace small">{ord.amount}</td>
                       <td>
                         {ord.status === "Confirmed" ? (
-                          <Badge variant="success">Tasdiqlangan</Badge>
+                          <Badge variant="success">{t("orders.status_confirmed")}</Badge>
                         ) : ord.status === "Processing" ? (
-                          <Badge variant="info">Jarayonda</Badge>
+                          <Badge variant="info">{t("orders.status_processing")}</Badge>
                         ) : ord.status === "Completed" ? (
-                          <Badge variant="accent">Bajarilgan</Badge>
+                          <Badge variant="accent">{t("orders.status_completed")}</Badge>
                         ) : (
-                          <Badge variant="warning">Yangi</Badge>
+                          <Badge variant="warning">{t("orders.status_new")}</Badge>
                         )}
                       </td>
                       <td className="text-secondary small">{ord.date}</td>

@@ -112,37 +112,37 @@ export function SettingsTab({
           {/* AI Model & Temperature Card */}
           <Card>
             <CardHeader>
-              <CardTitle>AI Dvigateli Parametrlari</CardTitle>
+              <CardTitle>{t("settings.card_ai_params")}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="d-flex flex-column gap-3">
                 <Select
-                  label="Asosiy AI Modeli"
+                  label={t("settings.label_model")}
                   value={aiModel}
                   onChange={(e) => setAiModel(e.target.value)}
                   options={[
-                    { value: "gemini-3.1-flash-lite", label: "gemini-3.1-flash-lite (Tavsiya etiladi - tez 0.7s)" },
-                    { value: "gemini-3.5-flash", label: "gemini-3.5-flash (Yuqori aniqlik va muvozanat)" },
-                    { value: "gemini-flash-latest", label: "gemini-flash-latest (Avtomatik yangi versiya)" },
+                    { value: "gemini-3.1-flash-lite", label: "gemini-3.1-flash-lite (0.7s)" },
+                    { value: "gemini-3.5-flash", label: "gemini-3.5-flash" },
+                    { value: "gemini-flash-latest", label: "gemini-flash-latest" },
                   ]}
-                  hint="Telegram xabarlariga 1-2 soniyada javob berish uchun optimallashtirilgan model."
+                  hint={t("settings.hint_model")}
                 />
 
                 <div>
                   <div className="d-flex align-items-center justify-content-between mb-1.5">
                     <div className="d-flex align-items-center gap-1.5">
                       <label className="fw-medium text-primary small m-0">
-                        Kreativlik darajasi (Temperature): <strong className="text-accent">{aiTemperature}</strong>
+                        {t("settings.label_temperature")} <strong className="text-accent">{aiTemperature}</strong>
                       </label>
                       <Tooltip
-                        title="Kreativlik (Temperature)"
-                        content="0.0 - 0.2: AI do'kon qoidalari va mahsulot narxlariga 100% qat'iy rioya qiladi (tavsiya etiladi). 0.7+: ko'proq ijodiy javoblar beradi, lekin narxlarda og'ishlar bo'lishi mumkin."
+                        title={t("settings.tooltip_temp_title")}
+                        content={t("settings.tooltip_temp_desc")}
                       />
                     </div>
                   </div>
                   <input
                     type="range"
-                    aria-label="Kreativlik darajasi (Temperature)"
+                    aria-label={t("settings.label_temperature")}
                     min="0"
                     max="1"
                     step="0.05"
@@ -152,9 +152,9 @@ export function SettingsTab({
                     style={{ accentColor: "var(--accent)" }}
                   />
                   <div className="d-flex justify-content-between text-secondary mt-1 font-monospace" style={{ fontSize: "0.72rem" }}>
-                    <span>Aniq & Faktik (0.0)</span>
-                    <span>Muvozanatli (0.2)</span>
-                    <span>Ijodiy (1.0)</span>
+                    <span>{t("settings.temp_precise")}</span>
+                    <span>{t("settings.temp_balanced")}</span>
+                    <span>{t("settings.temp_creative")}</span>
                   </div>
                 </div>
 
@@ -170,10 +170,10 @@ export function SettingsTab({
                       style={{ accentColor: "var(--accent)" }}
                     />
                     <span className="small text-primary d-flex align-items-center gap-1.5">
-                      <span>Avtomatik Takeover (Mijoz operator talab qilsa darhol insonga o'tkazish)</span>
+                      <span>{t("settings.switch_handoff")}</span>
                       <Tooltip
-                        title="Avtomatik Inson Nazorati"
-                        content="Agar mijoz 'operator', 'inson', 'telefon raqam' yoki shikoyat so'zlarini yozsa, AI suhbatni avtomatik ravishda xodimlarga o'tkazadi va javob berishni to'xtatadi."
+                        title={t("settings.tooltip_handoff_title")}
+                        content={t("settings.tooltip_handoff_desc")}
                       />
                     </span>
                   </label>
@@ -186,10 +186,10 @@ export function SettingsTab({
                       style={{ accentColor: "var(--accent)" }}
                     />
                     <span className="small text-primary d-flex align-items-center gap-1.5">
-                      <span>Dublyor tasdiqlash va typing... statusini ko'rsatish</span>
+                      <span>{t("settings.switch_typing")}</span>
                       <Tooltip
-                        title="Haqiqiy Dialog Simulyatsiyasi"
-                        content="Mijozga xabar yuborishdan oldin Telegramda 'yozmoqda...' (typing) statusini yoqadi, bu esa muloqotni insonga xos va tabiiy qiladi."
+                        title={t("settings.tooltip_typing_title")}
+                        content={t("settings.tooltip_typing_desc")}
                       />
                     </span>
                   </label>

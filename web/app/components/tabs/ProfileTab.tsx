@@ -149,9 +149,9 @@ export function ProfileTab({
 
                 <div className="d-flex align-items-center gap-2">
                   <Badge variant={isOwner ? "warning" : "accent"}>
-                    {isOwner ? "Owner (Tizim Egasi)" : (currentAdmin?.role || "Admin")}
+                    {isOwner ? (language === "uz" ? "Bosh Ega" : "Owner") : (currentAdmin?.role === "admin" ? (language === "uz" ? "Menejer" : "Admin") : (language === "uz" ? "Operator" : "Moderator"))}
                   </Badge>
-                  <Badge variant="success" dot>Online</Badge>
+                  <Badge variant="success" dot>{language === "uz" ? "Faol" : "Online"}</Badge>
                 </div>
 
                 {/* Account Details Box */}
@@ -161,13 +161,13 @@ export function ProfileTab({
                     <span className="font-monospace text-primary fw-medium">{activeAdminTelegramId}</span>
                   </div>
                   <div className="d-flex justify-content-between">
-                    <span className="text-secondary">Tizim roli:</span>
+                    <span className="text-secondary">{language === "uz" ? "Tizim roli:" : "Role:"}</span>
                     <span className="text-capitalize text-primary fw-medium">{currentAdmin?.role || "Owner"}</span>
                   </div>
                   <div className="d-flex justify-content-between">
-                    <span className="text-secondary">Vakolatlar:</span>
+                    <span className="text-secondary">{language === "uz" ? "Vakolatlar:" : "Permissions:"}</span>
                     <span className="text-success fw-medium">
-                      {isOwner ? "Barcha ruxsatlar faol" : "Cheklangan"}
+                      {isOwner ? (language === "uz" ? "Barcha ruxsatlar faol" : "Full access") : (language === "uz" ? "Cheklangan" : "Restricted")}
                     </span>
                   </div>
                 </div>
@@ -179,7 +179,7 @@ export function ProfileTab({
                   onClick={onLogout}
                   icon={<IconLogout size={15} />}
                 >
-                  Tizimdan chiqish (Logout)
+                  {t("profile.logout_btn")}
                 </Button>
               </div>
             </CardContent>
@@ -193,15 +193,15 @@ export function ProfileTab({
             <CardHeader
               actions={
                 <Badge variant="accent">
-                  3 ta Mustaqil Tizim
+                  {t("profile.badge_3_systems")}
                 </Badge>
               }
             >
-              <CardTitle>Vizual Dizayn Tizimi (Design Systems)</CardTitle>
+              <CardTitle>{t("profile.card_design_systems")}</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-secondary small mb-3">
-                Tarifingizga mos vizual tizimni tanlang. <strong>Premium Minimal</strong> (Ultra) chuqur qora minimalist SaaS interfeysi, <strong>Apple iOS</strong> (Pro) muzlatilgan shisha va <strong>Classic Standart</strong> korporativ boshqaruv paneli.
+                {t("profile.card_design_desc")}
               </p>
               <DesignSelector onNavigateToBilling={onNavigateToBilling} />
 
@@ -211,11 +211,11 @@ export function ProfileTab({
                   <div className="d-flex align-items-center gap-1.5">
                     <IconTypography size={16} className="text-secondary" />
                     <span className="fw-semibold text-primary small">
-                      Dizayn Shriftlari (Yangi Fontlar: Olline & Pogonia):
+                      {t("profile.font_heading")}
                     </span>
                   </div>
                   <Badge variant="accent">
-                    {FONT_OPTIONS.find((f) => f.id === appFont)?.name || "Olline"} faol
+                    {FONT_OPTIONS.find((f) => f.id === appFont)?.name || "Olline"} {t("profile.font_active_suffix")}
                   </Badge>
                 </div>
                 <div className="d-flex flex-wrap gap-2">
@@ -238,7 +238,7 @@ export function ProfileTab({
                           className="badge bg-warning text-dark px-1 py-0 me-1"
                           style={{ fontSize: "8px", fontWeight: 700 }}
                         >
-                          YANGI
+                          {t("profile.badge_new")}
                         </span>
                       )}
                       <span>{f.name}</span>
@@ -253,7 +253,7 @@ export function ProfileTab({
           {/* Theme Selector */}
           <Card>
             <CardHeader>
-              <CardTitle>Rangli Mavzu (Theme Mode)</CardTitle>
+              <CardTitle>{t("profile.card_title_theme")}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="row g-3">
@@ -269,7 +269,7 @@ export function ProfileTab({
                   >
                     <div className="d-flex align-items-center gap-2">
                       <IconMoon size={18} style={{ color: "#8e98ec" }} />
-                      <span className="fw-medium text-primary small">Qorong'i (Dark)</span>
+                      <span className="fw-medium text-primary small">{t("profile.theme_dark")}</span>
                     </div>
                     {theme === "dark" && <IconCheck size={16} style={{ color: "var(--accent)" }} />}
                   </div>
@@ -287,7 +287,7 @@ export function ProfileTab({
                   >
                     <div className="d-flex align-items-center gap-2">
                       <IconSun size={18} style={{ color: "#f59e0b" }} />
-                      <span className="fw-medium text-primary small">Yorug' (Light)</span>
+                      <span className="fw-medium text-primary small">{t("profile.theme_light")}</span>
                     </div>
                     {theme === "light" && <IconCheck size={16} style={{ color: "var(--accent)" }} />}
                   </div>

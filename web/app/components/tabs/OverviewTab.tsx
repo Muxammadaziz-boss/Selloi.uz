@@ -100,7 +100,7 @@ export function OverviewTab({
         breadcrumbs={t("breadcrumb.overview")}
         title={t("overview.title")}
         description={t("overview.subtitle")}
-        badge={{ text: language === "uz" ? "Jonli sinxron (6s)" : "Real-time sync (6s)", variant: "success" }}
+        badge={{ text: t("overview.badge_sync"), variant: "success" }}
         actions={
           <Button
             variant="secondary"
@@ -109,7 +109,7 @@ export function OverviewTab({
             loading={loading}
             icon={<IconRefresh size={14} />}
           >
-            {language === "uz" ? "Yangilash" : "Refresh"}
+            {t("overview.btn_refresh")}
           </Button>
         }
       />
@@ -124,7 +124,7 @@ export function OverviewTab({
           >
             <div className="d-flex align-items-center justify-content-between mb-2">
               <span className="text-secondary small fw-medium text-uppercase" style={{ fontSize: "0.7rem", letterSpacing: "0.04em" }}>
-                Jami Suhbatlar
+                {t("overview.stat_total_chats")}
               </span>
               <Badge variant="accent">
                 <IconMessageDots size={12} />
@@ -141,7 +141,7 @@ export function OverviewTab({
               <div className="skeleton-shimmer skeleton-text w-75 mt-1" />
             ) : (
               <div className="text-secondary small d-flex align-items-center justify-content-between">
-                <span>Mijozlar bilan aloqa</span>
+                <span>{t("overview.stat_total_chats_desc")}</span>
                 <span className="text-primary fw-medium">100%</span>
               </div>
             )}
@@ -159,7 +159,7 @@ export function OverviewTab({
           >
             <div className="d-flex align-items-center justify-content-between mb-2">
               <span className="text-secondary small fw-medium text-uppercase" style={{ fontSize: "0.7rem", letterSpacing: "0.04em" }}>
-                AI Boshqaruvida
+                {t("overview.stat_ai_active")}
               </span>
               <Badge variant="success">
                 <IconRobot size={12} />
@@ -176,7 +176,7 @@ export function OverviewTab({
               <div className="skeleton-shimmer skeleton-text w-75 mt-1" />
             ) : (
               <div className="text-secondary small d-flex align-items-center justify-content-between">
-                <span>Avtomatik javob</span>
+                <span>{t("overview.stat_ai_active_desc")}</span>
                 <span className="text-success fw-medium">{aiPercentage}%</span>
               </div>
             )}
@@ -194,7 +194,7 @@ export function OverviewTab({
           >
             <div className="d-flex align-items-center justify-content-between mb-2">
               <span className="text-secondary small fw-medium text-uppercase" style={{ fontSize: "0.7rem", letterSpacing: "0.04em" }}>
-                Operator Qabulida
+                {t("overview.stat_takeover")}
               </span>
               <Badge variant="warning">
                 <IconHeadset size={12} />
@@ -211,7 +211,7 @@ export function OverviewTab({
               <div className="skeleton-shimmer skeleton-text w-75 mt-1" />
             ) : (
               <div className="text-secondary small d-flex align-items-center justify-content-between">
-                <span>Inson nazorati</span>
+                <span>{t("overview.stat_takeover_desc")}</span>
                 <span className="text-warning fw-medium">{humanPercentage}%</span>
               </div>
             )}
@@ -229,7 +229,7 @@ export function OverviewTab({
           >
             <div className="d-flex align-items-center justify-content-between mb-2">
               <span className="text-secondary small fw-medium text-uppercase" style={{ fontSize: "0.7rem", letterSpacing: "0.04em" }}>
-                Telegram Postlar
+                {t("overview.stat_posts")}
               </span>
               <Badge variant="info">
                 <IconBooks size={12} />
@@ -246,8 +246,8 @@ export function OverviewTab({
               <div className="skeleton-shimmer skeleton-text w-75 mt-1" />
             ) : (
               <div className="text-secondary small d-flex align-items-center justify-content-between">
-                <span>Faol kanallar</span>
-                <span className="text-primary fw-medium">{channels.length} ta</span>
+                <span>{t("overview.stat_posts_desc")}</span>
+                <span className="text-primary fw-medium">{channels.length} {language === "uz" ? "ta" : "channels"}</span>
               </div>
             )}
             <div className="mt-2" style={{ height: "4px", backgroundColor: "var(--border-subtle)", borderRadius: "2px", overflow: "hidden" }}>
@@ -270,29 +270,29 @@ export function OverviewTab({
                   onClick={() => onNavigateTab("inbox")}
                   icon={<IconArrowUpRight size={13} />}
                 >
-                  Hammasini ko'rish
+                  {t("overview.view_all")}
                 </Button>
               }
             >
-              <CardTitle>So'nggi Mijoz Yozishmalari</CardTitle>
+              <CardTitle>{t("overview.recent_conversations")}</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               {conversations.length === 0 ? (
                 <EmptyState
                   icon={<IconMessageDots size={32} />}
-                  title="Hozircha suhbatlar yo'q"
-                  description="Telegram bot orqali mijozlar yozganda jonli xabarlar shu yerda aks etadi."
+                  title={t("overview.empty_conversations_title")}
+                  description={t("overview.empty_conversations_desc")}
                 />
               ) : (
                 <div className="table-responsive">
                   <table className="linear-table">
                     <thead>
                       <tr>
-                        <th>Mijoz</th>
-                        <th>Holati</th>
-                        <th>Sabab / Izoh</th>
-                        <th>Vaqti</th>
-                        <th style={{ textAlign: "right" }}>Amal</th>
+                        <th>{t("overview.th_customer")}</th>
+                        <th>{t("overview.th_status")}</th>
+                        <th>{t("overview.th_reason")}</th>
+                        <th>{t("overview.th_time")}</th>
+                        <th style={{ textAlign: "right" }}>{t("overview.th_action")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -324,16 +324,16 @@ export function OverviewTab({
                           <td>
                             {conv.status === "ai_active" ? (
                               <Badge variant="success" dot>
-                                AI Faol
+                                {t("topbar.ai_online")}
                               </Badge>
                             ) : (
                               <Badge variant="warning" dot>
-                                Operator
+                                {t("topbar.role_moderator")}
                               </Badge>
                             )}
                           </td>
                           <td className="text-secondary small text-truncate" style={{ maxWidth: "200px" }}>
-                            {conv.handoff_reason || "Mijoz maslahat so'radi"}
+                            {conv.handoff_reason || (language === "uz" ? "Mijoz maslahat so'radi" : "Customer inquiry")}
                           </td>
                           <td className="text-secondary small">
                             <span className="d-flex align-items-center gap-1">
@@ -350,7 +350,7 @@ export function OverviewTab({
                                 onNavigateTab("inbox");
                               }}
                             >
-                              Ochish
+                              {t("overview.btn_open")}
                             </Button>
                           </td>
                         </tr>
@@ -445,16 +445,16 @@ export function OverviewTab({
                   onClick={() => onNavigateTab("orders")}
                   icon={<IconArrowUpRight size={13} />}
                 >
-                  Katalog
+                  {t("overview.btn_view_catalog")}
                 </Button>
               }
             >
-              <CardTitle>So'nggi Buyurtmalar ({totalOrders})</CardTitle>
+              <CardTitle>{t("overview.recent_orders_title")} ({totalOrders})</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               {orders.length === 0 ? (
                 <div className="p-3 text-center text-secondary small">
-                  Hozircha buyurtmalar mavjud emas
+                  {t("overview.empty_orders")}
                 </div>
               ) : (
                 <div className="d-flex flex-column">

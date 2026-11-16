@@ -165,7 +165,7 @@ type ProductItem = {
   warranty: string;
 };
 
-const PERMISSION_LABELS: Record<string, string> = {
+const PERMISSION_LABELS_UZ: Record<string, string> = {
   can_view_conversations: "Suhbatlarni ko'rish",
   can_reply_customers: "Mijozlarga javob berish",
   can_takeover: "Suhbatni qabul qilish",
@@ -177,6 +177,20 @@ const PERMISSION_LABELS: Record<string, string> = {
   can_manage_orders: "Buyurtmalarni boshqarish",
   can_view_analytics: "Statistikani ko'rish",
   can_manage_settings: "Sozlamalarni boshqarish",
+};
+
+const PERMISSION_LABELS_EN: Record<string, string> = {
+  can_view_conversations: "View Conversations",
+  can_reply_customers: "Reply to Customers",
+  can_takeover: "Takeover Chat",
+  can_resume_ai: "Resume AI",
+  can_view_knowledge: "View Knowledge Base",
+  can_manage_knowledge: "Manage Knowledge Base",
+  can_manage_admins: "Manage Administrators",
+  can_view_orders: "View Orders",
+  can_manage_orders: "Manage Orders",
+  can_view_analytics: "View Analytics",
+  can_manage_settings: "Manage Settings",
 };
 
 function cleanTelegramUsername(val?: string | null): string {
@@ -191,7 +205,7 @@ function cleanTelegramUsername(val?: string | null): string {
     .trim();
 }
 
-const PERMISSION_CATEGORIES = [
+const PERMISSION_CATEGORIES_UZ = [
   {
     category: "Mijozlar va Jonli Suhbatlar",
     icon: "💬",
@@ -199,7 +213,7 @@ const PERMISSION_CATEGORIES = [
     permissions: [
       { key: "can_view_conversations", label: "Suhbatlarni ko'rish", desc: "Mijozlar bilan barcha jonli yozishmalarni o'qish" },
       { key: "can_reply_customers", label: "Mijozlarga javob berish", desc: "Telegram orqali mijozlarga bevosita xabar yozish" },
-      { key: "can_takeover", label: "Suhbatni qabul qilish", desc: "AI ni to'xtatib, suhbatni o'z nazoratiga olish (Takeover)" },
+      { key: "can_takeover", label: "Suhbatni qabul qilish", desc: "AI ni to'xtatib, suhbatni o'z nazoratiga olish" },
       { key: "can_resume_ai", label: "AI ni qayta yoqish", desc: "Suhbatni qaytadan AI avtomatik rejimiga o'tkazish" },
     ],
   },
@@ -222,6 +236,41 @@ const PERMISSION_CATEGORIES = [
       { key: "can_view_analytics", label: "Statistikani ko'rish", desc: "Savdo va konversiya ko'rsatkichlarini kuzatish" },
       { key: "can_manage_settings", label: "Sozlamalarni boshqarish", desc: "AI modeli, harorati va tizim sozlamalarini o'zgartirish" },
       { key: "can_manage_admins", label: "Adminlarni boshqarish", desc: "Yangi admin qo'shish va huquqlarini belgilash" },
+    ],
+  },
+];
+
+const PERMISSION_CATEGORIES_EN = [
+  {
+    category: "Customers & Live Chat",
+    icon: "💬",
+    description: "Customer interactions, live messaging, and AI takeover",
+    permissions: [
+      { key: "can_view_conversations", label: "View Conversations", desc: "Read all incoming customer chat messages" },
+      { key: "can_reply_customers", label: "Reply to Customers", desc: "Send direct messages to customers via Telegram" },
+      { key: "can_takeover", label: "Takeover Chat", desc: "Pause AI and assume manual human control" },
+      { key: "can_resume_ai", label: "Resume AI", desc: "Return conversation back to AI automation" },
+    ],
+  },
+  {
+    category: "Products & Orders",
+    icon: "📦",
+    description: "Catalog management, knowledge channels, and customer orders",
+    permissions: [
+      { key: "can_view_knowledge", label: "View Knowledge Base", desc: "View Telegram posts and synced product catalogs" },
+      { key: "can_manage_knowledge", label: "Manage Knowledge Base", desc: "Sync new posts and inspect channel pipelines" },
+      { key: "can_view_orders", label: "View Orders", desc: "Access all incoming customer orders" },
+      { key: "can_manage_orders", label: "Manage Orders", desc: "Approve, update, or cancel order transactions" },
+    ],
+  },
+  {
+    category: "System, Analytics & Access",
+    icon: "⚙️",
+    description: "Sales metrics, system parameters, and administrative privileges",
+    permissions: [
+      { key: "can_view_analytics", label: "View Analytics", desc: "Monitor sales volume and conversion rates" },
+      { key: "can_manage_settings", label: "Manage Settings", desc: "Configure AI model, temperature, and store rules" },
+      { key: "can_manage_admins", label: "Manage Administrators", desc: "Add or remove admins and grant permissions" },
     ],
   },
 ];
@@ -558,6 +607,8 @@ function DashboardContent({
   initialTenantSlug,
 }: DashboardProps) {
   const { language, setLanguage, t } = useLanguage();
+  const permissionLabels = language === "uz" ? PERMISSION_LABELS_UZ : PERMISSION_LABELS_EN;
+  const permissionCategories = language === "uz" ? PERMISSION_CATEGORIES_UZ : PERMISSION_CATEGORIES_EN;
   const [currentUser, setCurrentUser] = useState<DashboardUser | null>(initialUser);
   const isPlatformOwner = Boolean(currentUser?.isPlatformOwner);
 
@@ -1894,7 +1945,7 @@ function DashboardContent({
     setBusy(true);
     setError("");
     try {
-      const keys = Object.keys(PERMISSION_LABELS);
+      const keys = Object.keys(permissionLabels);
       for (const k of keys) {
         if (Boolean(target.permissions?.[k]) !== targetValue) {
           await api(`/admin/admins/${telegram_user_id}/permissions`, {
@@ -2607,13 +2658,13 @@ function DashboardContent({
                 setManagingPermissionsAdmin={setManagingPermissionsAdmin}
                 onTogglePermission={handleTogglePermission}
                 busy={busy}
-                permissionLabels={PERMISSION_LABELS}
-                permissionCategories={PERMISSION_CATEGORIES}
+                permissionLabels={permissionLabels}
+                permissionCategories={permissionCategories}
               />
             )}
 
             {tab === "team" && (
-              <TeamTab permissionLabels={PERMISSION_LABELS} />
+              <TeamTab permissionLabels={permissionLabels} />
             )}
 
             {tab === "logs" && (
@@ -2631,7 +2682,7 @@ function DashboardContent({
                 appFont={appFont}
                 onSelectFont={handleSelectFont}
                 onLogout={logout}
-                permissionLabels={PERMISSION_LABELS}
+                permissionLabels={permissionLabels}
                 onNavigateToBilling={() => setTab("billing")}
               />
             )}

@@ -100,11 +100,11 @@ export function TeamTab({ permissionLabels }: TeamTabProps) {
             <table className="linear-table">
               <thead>
                 <tr>
-                  <th style={{ width: "240px" }}>{language === "uz" ? "Ruxsat Kaliti" : "Permission Key"}</th>
-                  <th>{language === "uz" ? "Tavsifi" : "Description"}</th>
-                  <th style={{ textAlign: "center", width: "110px" }}>Owner</th>
-                  <th style={{ textAlign: "center", width: "110px" }}>Admin</th>
-                  <th style={{ textAlign: "center", width: "110px" }}>Moderator</th>
+                  <th style={{ width: "240px" }}>{t("team.th_key")}</th>
+                  <th>{t("team.th_desc")}</th>
+                  <th style={{ textAlign: "center", width: "110px" }}>{t("team.th_owner")}</th>
+                  <th style={{ textAlign: "center", width: "110px" }}>{t("team.th_admin")}</th>
+                  <th style={{ textAlign: "center", width: "110px" }}>{t("team.th_moderator")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -128,20 +128,20 @@ export function TeamTab({ permissionLabels }: TeamTabProps) {
                         {label}
                       </td>
                       <td style={{ textAlign: "center" }}>
-                        <Badge variant="success">Ha</Badge>
+                        <Badge variant="success">{t("team.has_perm")}</Badge>
                       </td>
                       <td style={{ textAlign: "center" }}>
                         {adminHas ? (
-                          <Badge variant="success">Ha</Badge>
+                          <Badge variant="success">{t("team.has_perm")}</Badge>
                         ) : (
-                          <Badge variant="danger">Yo'q</Badge>
+                          <Badge variant="danger">{t("team.no_perm")}</Badge>
                         )}
                       </td>
                       <td style={{ textAlign: "center" }}>
                         {modHas ? (
-                          <Badge variant="success">Ha</Badge>
+                          <Badge variant="success">{t("team.has_perm")}</Badge>
                         ) : (
-                          <Badge variant="danger">Yo'q</Badge>
+                          <Badge variant="danger">{t("team.no_perm")}</Badge>
                         )}
                       </td>
                     </tr>

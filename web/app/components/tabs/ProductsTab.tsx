@@ -125,7 +125,7 @@ export function ProductsTab({
                     className="linear-input py-1"
                     style={{ width: "auto", fontSize: "0.78rem" }}
                   >
-                    <option value="all">Barcha toifalar</option>
+                    <option value="all">{t("products.filter_all")}</option>
                     {categories.map((cat) => (
                       <option key={cat} value={cat}>
                         {cat}
@@ -143,7 +143,7 @@ export function ProductsTab({
                 />
                 <input
                   type="text"
-                  placeholder="Mahsulot izlash..."
+                  placeholder={t("products.search_placeholder")}
                   value={productSearch}
                   onChange={(e) => setProductSearch(e.target.value)}
                   className="linear-input ps-5 py-1"
@@ -153,28 +153,28 @@ export function ProductsTab({
             </div>
           }
         >
-          <CardTitle>Tovarlar Ro'yxati ({filteredProducts.length})</CardTitle>
+          <CardTitle>{t("products.title")} ({filteredProducts.length})</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <div className="table-responsive">
             <table className="linear-table">
               <thead>
                 <tr>
-                  <th style={{ width: "90px" }}>Kodi</th>
-                  <th>Mahsulot Nomi</th>
-                  <th>Kategoriya</th>
-                  <th>Xususiyatlari (Specs)</th>
-                  <th>Narxi</th>
-                  <th>Holati</th>
-                  <th>Kafolat</th>
-                  <th style={{ textAlign: "right" }}>Amallar</th>
+                  <th style={{ width: "90px" }}>{t("products.th_sku")}</th>
+                  <th>{t("products.th_name")}</th>
+                  <th>{t("products.th_category")}</th>
+                  <th>{t("products.th_specs")}</th>
+                  <th>{t("products.th_price")}</th>
+                  <th>{t("products.th_status")}</th>
+                  <th>{t("products.th_warranty")}</th>
+                  <th style={{ textAlign: "right" }}>{t("products.th_actions")}</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredProducts.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="text-center text-secondary py-5 small">
-                      Mahsulot topilmadi. Yangi mahsulot qo'shing yoki Telegram postlaridan aniqlang.
+                      {t("products.empty_products")}
                     </td>
                   </tr>
                 ) : (
@@ -197,11 +197,11 @@ export function ProductsTab({
                       </td>
                       <td>
                         {prod.stock === "In Stock" ? (
-                          <Badge variant="success">Mavjud</Badge>
+                          <Badge variant="success">{t("products.stock_in")}</Badge>
                         ) : prod.stock === "Low Stock" ? (
-                          <Badge variant="warning">Kam qoldi</Badge>
+                          <Badge variant="warning">{t("products.stock_low")}</Badge>
                         ) : (
-                          <Badge variant="info">Buyurtmaga</Badge>
+                          <Badge variant="info">{t("products.stock_preorder")}</Badge>
                         )}
                       </td>
                       <td className="text-secondary small">{prod.warranty}</td>
@@ -211,16 +211,16 @@ export function ProductsTab({
                             variant="secondary"
                             size="xs"
                             onClick={() => setEditingProduct(prod)}
-                            title="Tahrirlash"
-                            aria-label={`${prod.name} mahsulotini tahrirlash`}
+                            title={t("products.action_edit")}
+                            aria-label={`${prod.name} ${t("products.action_edit")}`}
                             icon={<IconPencil size={13} />}
                           />
                           <Button
                             variant="danger"
                             size="xs"
                             onClick={() => onDeleteProduct(prod)}
-                            title="O'chirish"
-                            aria-label={`${prod.name} mahsulotini o'chirish`}
+                            title={t("products.action_delete")}
+                            aria-label={`${prod.name} ${t("products.action_delete")}`}
                             icon={<IconTrash size={13} />}
                           />
                         </div>

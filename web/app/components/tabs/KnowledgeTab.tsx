@@ -98,7 +98,7 @@ export function KnowledgeTab({
               disabled={busy || posts.length === 0}
               icon={<IconSparkles size={14} style={{ color: "var(--accent)" }} />}
             >
-              Mahsulotlarni aniqlash
+              {t("knowledge.btn_extract")}
             </Button>
             <Button
               variant="primary"
@@ -108,7 +108,7 @@ export function KnowledgeTab({
               loading={busy}
               icon={<IconRefresh size={14} />}
             >
-              Barcha kanallarni sinxronlash
+              {t("knowledge.btn_sync_all")}
             </Button>
           </div>
         }
@@ -117,15 +117,15 @@ export function KnowledgeTab({
       {/* Connected Channels Management Card */}
       <Card className="mb-4">
         <CardHeader>
-          <CardTitle>Ulangan Telegram Kanallar ({channels.length})</CardTitle>
+          <CardTitle>{t("knowledge.card_channels")} ({channels.length})</CardTitle>
         </CardHeader>
         <CardContent>
           {/* Add Channel Form */}
           <form onSubmit={onConnectChannel} className="d-flex gap-2 mb-3">
             <input
               type="text"
-              aria-label="Telegram kanal username yoki havolasi"
-              placeholder="Telegram kanal username yoki havolasi (@kanal_nomi yoki https://t.me/kanal_nomi)..."
+              aria-label="Telegram channel username or URL"
+              placeholder={t("knowledge.input_placeholder")}
               value={newChannelInput}
               onChange={(e) => setNewChannelInput(e.target.value)}
               disabled={busy}
@@ -137,7 +137,7 @@ export function KnowledgeTab({
               disabled={busy || !newChannelInput.trim()}
               icon={<IconPlus size={15} />}
             >
-              Kanal ulash
+              {t("knowledge.btn_connect")}
             </Button>
           </form>
 
@@ -146,18 +146,18 @@ export function KnowledgeTab({
             <table className="linear-table">
               <thead>
                 <tr>
-                  <th>Telegram Kanal</th>
-                  <th>Holati</th>
-                  <th>Postlar soni</th>
-                  <th>Oxirgi sinxron</th>
-                  <th style={{ textAlign: "right" }}>Amallar</th>
+                  <th>{t("knowledge.th_channel")}</th>
+                  <th>{t("knowledge.th_status")}</th>
+                  <th>{t("knowledge.th_posts_count")}</th>
+                  <th>{t("knowledge.th_last_sync")}</th>
+                  <th style={{ textAlign: "right" }}>{t("knowledge.th_actions")}</th>
                 </tr>
               </thead>
               <tbody>
                 {channels.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="text-center text-secondary py-4 small">
-                      Hozircha hech qanday Telegram kanal ulanmagan. Yuqoridagi maydondan kanal havolasini kiriting.
+                      {t("knowledge.empty")}
                     </td>
                   </tr>
                 ) : (
@@ -173,7 +173,7 @@ export function KnowledgeTab({
                             rel="noreferrer"
                             className="text-secondary small d-flex align-items-center gap-0.5"
                           >
-                            <IconExternalLink size={12} /> ochish
+                            <IconExternalLink size={12} /> {t("knowledge.btn_open_link")}
                           </a>
                         </div>
                       </td>
