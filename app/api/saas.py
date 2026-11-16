@@ -1,7 +1,9 @@
 """SaaS Public & Tenant Endpoints (Plans, Subscriptions, Usage, Billing, Organizations)."""
 
+import asyncio
 from datetime import datetime, timezone
 import secrets
+from typing import Optional
 import httpx
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from pydantic import BaseModel, Field
@@ -291,27 +293,48 @@ async def verify_bot_token_endpoint(
     token = req.token.strip()
     if not token or ":" not in token:
         raise HTTPException(status_code=400, detail="Noto'g'ri Telegram bot token formati")
-    async with httpx.AsyncClient(timeout=10.0) as client:
+
+    retries = 2
+    last_exc: Optional[Exception] = None
+    for attempt in range(retries):
         try:
-            resp = await client.get(f"https://api.telegram.org/bot{token}/getMe")
-            data = resp.json()
-            if not data.get("ok"):
+            async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
+                resp = await client.get(f"https://api.telegram.org/bot{token}/getMe")
+                data = resp.json()
+                if not data.get("ok"):
+                    desc = data.get("description", "Noto'g'ri bot token")
+                    return {
+                        "valid": False,
+                        "error": f"Telegram xatosi: {desc}",
+                    }
+                bot_info = data.get("result", {})
                 return {
-                    "valid": False,
-                    "error": data.get("description", "Noto'g'ri bot token"),
+                    "valid": True,
+                    "bot_id": bot_info.get("id"),
+                    "bot_name": bot_info.get("first_name"),
+                    "bot_username": bot_info.get("username"),
+                    "can_join_groups": bot_info.get("can_join_groups", False),
+                    "can_read_all_group_messages": bot_info.get("can_read_all_group_messages", False),
+                    "supports_inline_queries": bot_info.get("supports_inline_queries", False),
                 }
-            bot_info = data.get("result", {})
-            return {
-                "valid": True,
-                "bot_id": bot_info.get("id"),
-                "bot_name": bot_info.get("first_name"),
-                "bot_username": bot_info.get("username"),
-                "can_join_groups": bot_info.get("can_join_groups", False),
-                "can_read_all_group_messages": bot_info.get("can_read_all_group_messages", False),
-                "supports_inline_queries": bot_info.get("supports_inline_queries", False),
-            }
+        except (httpx.TimeoutException, httpx.ConnectError) as exc:
+            last_exc = exc
+            if attempt < retries - 1:
+                await asyncio.sleep(1.0)
+                continue
         except Exception as exc:
-            return {"valid": False, "error": f"Telegram API bilan bog'lanib bo'lmadi: {exc}"}
+            last_exc = exc
+            break
+
+    if isinstance(last_exc, httpx.TimeoutException):
+        err_msg = "Telegram serveridan javob kelmadi (Vaqt tugadi / Timeout). Iltimos, qayta urinib ko'ring."
+    elif isinstance(last_exc, httpx.ConnectError):
+        err_msg = "Telegram serveriga ulanishda tarmoq xatosi yuz berdi. Internet aloqasini tekshirib, qayta urinib ko'ring."
+    else:
+        detail = str(last_exc).strip() or (last_exc.__class__.__name__ if last_exc else "Noma'lum xatolik")
+        err_msg = f"Telegram API bilan bog'lanib bo'lmadi ({detail})"
+
+    return {"valid": False, "error": err_msg}
 
 
 @router.post("/organizations/{org_id}/set-webhook")

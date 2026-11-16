@@ -317,7 +317,12 @@ export function OnboardingModal({ isOpen, onClose, onComplete }: OnboardingModal
                 {botVerification.error && (
                   <div className="alert alert-danger d-flex align-items-center gap-2 mb-0 py-2.5">
                     <IconAlertCircle size={20} className="text-danger flex-shrink-0" />
-                    <span className="small">{botVerification.error}</span>
+                    <div className="small">
+                      <div>{botVerification.error}</div>
+                      <div className="mt-1 opacity-75" style={{ fontSize: "0.78rem" }}>
+                        💡 Token to&apos;g&apos;ri bo&apos;lsa, xavotir olmang — <strong>&quot;Davom etish &rarr;&quot;</strong> tugmasini bosib keyingi bosqichga o&apos;tishingiz mumkin.
+                      </div>
+                    </div>
                   </div>
                 )}
 

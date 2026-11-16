@@ -1,7 +1,9 @@
 """Organization onboarding, configuration, and authentication endpoints."""
 
-import httpx
+import asyncio
 from datetime import datetime, timezone
+from typing import Optional
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -293,21 +295,41 @@ async def verify_organization_bot(
     if not org.decrypted_bot_token:
         raise HTTPException(status_code=400, detail="Tashkilotda Telegram bot token kiritilmagan")
 
-    async with httpx.AsyncClient(timeout=10.0) as client:
+    retries = 2
+    last_exc: Optional[Exception] = None
+    for attempt in range(retries):
         try:
-            resp = await client.get(f"https://api.telegram.org/bot{org.decrypted_bot_token}/getMe")
-            data = resp.json()
-            if not data.get("ok"):
+            async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
+                resp = await client.get(f"https://api.telegram.org/bot{org.decrypted_bot_token}/getMe")
+                data = resp.json()
+                if not data.get("ok"):
+                    desc = data.get("description", "Noto'g'ri bot token")
+                    return {
+                        "valid": False,
+                        "error": f"Telegram xatosi: {desc}",
+                    }
+                bot_info = data.get("result", {})
                 return {
-                    "valid": False,
-                    "error": data.get("description", "Noto'g'ri bot token"),
+                    "valid": True,
+                    "bot_id": bot_info.get("id"),
+                    "bot_name": bot_info.get("first_name"),
+                    "bot_username": bot_info.get("username"),
                 }
-            bot_info = data.get("result", {})
-            return {
-                "valid": True,
-                "bot_id": bot_info.get("id"),
-                "bot_name": bot_info.get("first_name"),
-                "bot_username": bot_info.get("username"),
-            }
+        except (httpx.TimeoutException, httpx.ConnectError) as exc:
+            last_exc = exc
+            if attempt < retries - 1:
+                await asyncio.sleep(1.0)
+                continue
         except Exception as exc:
-            return {"valid": False, "error": f"Telegram API bilan ulanishda xatolik: {exc}"}
+            last_exc = exc
+            break
+
+    if isinstance(last_exc, httpx.TimeoutException):
+        err_msg = "Telegram serveridan javob kelmadi (Vaqt tugadi / Timeout). Iltimos, qayta urinib ko'ring."
+    elif isinstance(last_exc, httpx.ConnectError):
+        err_msg = "Telegram serveriga ulanishda tarmoq xatosi yuz berdi. Internet aloqasini tekshirib, qayta urinib ko'ring."
+    else:
+        detail = str(last_exc).strip() or (last_exc.__class__.__name__ if last_exc else "Noma'lum xatolik")
+        err_msg = f"Telegram API bilan bog'lanib bo'lmadi ({detail})"
+
+    return {"valid": False, "error": err_msg}
