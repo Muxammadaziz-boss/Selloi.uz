@@ -48,6 +48,7 @@ class CreateOrgRequest(BaseModel):
     plan_code: str = "start"
     telegram_bot_token: str | None = None
     telegram_channel: str | None = None
+    channel: str | None = None  # alias from onboarding payload
     ai_language: str = "uz"
     ai_personality: str | None = None
     custom_system_prompt: str | None = None
@@ -55,6 +56,10 @@ class CreateOrgRequest(BaseModel):
 
 class VerifyTokenRequest(BaseModel):
     token: str
+
+
+class VerifyChannelRequest(BaseModel):
+    channel: str
 
 
 class UpdateOrgRequest(BaseModel):
@@ -256,6 +261,7 @@ async def create_organization(
     db: AsyncSession = Depends(get_db),
 ):
     """Onboarding endpoint: create a new organization with 7-day free trial."""
+    chosen_channel = (req.telegram_channel or req.channel or "").strip() or None
     org = await create_organization_with_trial(
         db,
         user=user,
@@ -265,7 +271,7 @@ async def create_organization(
         plan_code=req.plan_code,
         trial_days=7,
         telegram_bot_token=req.telegram_bot_token,
-        telegram_channel=req.telegram_channel,
+        telegram_channel=chosen_channel,
         ai_language=req.ai_language,
         ai_personality=req.ai_personality,
         custom_system_prompt=req.custom_system_prompt,
@@ -335,6 +341,83 @@ async def verify_bot_token_endpoint(
         err_msg = f"Telegram API bilan bog'lanib bo'lmadi ({detail})"
 
     return {"valid": False, "error": err_msg}
+
+
+@router.post("/organizations/verify-channel")
+async def verify_channel_public_endpoint(
+    req: VerifyChannelRequest,
+    user: User = Depends(get_current_user),
+):
+    """Verify channel existence during onboarding using system bot token or public API."""
+    raw = req.channel.strip()
+    if not raw:
+        raise HTTPException(status_code=400, detail="Kanal username kiritilmadi")
+
+    clean = (
+        raw.replace("https://t.me/", "")
+        .replace("http://t.me/", "")
+        .replace("t.me/", "")
+        .replace("@", "")
+        .strip("/")
+    )
+    if not clean:
+        raise HTTPException(status_code=400, detail="Noto'g'ri kanal username formati")
+
+    bot_token = settings.telegram_bot_token
+    if not bot_token:
+        return {
+            "valid": True,
+            "username": clean,
+            "title": f"@{clean}",
+            "subscribers_count": None,
+            "type": "channel",
+        }
+
+    retries = 2
+    last_exc: Optional[Exception] = None
+    async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
+        for attempt in range(retries):
+            try:
+                chat_res = await client.get(f"https://api.telegram.org/bot{bot_token}/getChat?chat_id=@{clean}")
+                chat_data = chat_res.json()
+                if not chat_data.get("ok"):
+                    desc = chat_data.get("description", "Kanal topilmadi")
+                    if "chat not found" in desc.lower():
+                        return {
+                            "valid": False,
+                            "error": f"@{clean} kanali topilmadi. Kanal ochiq (public) va username to'g'ri ekanligiga ishonch hosil qiling.",
+                        }
+                    return {"valid": False, "error": f"Telegram xatosi: {desc}"}
+
+                result = chat_data.get("result", {})
+                subs_count = None
+                try:
+                    count_res = await client.get(f"https://api.telegram.org/bot{bot_token}/getChatMemberCount?chat_id=@{clean}")
+                    count_data = count_res.json()
+                    if count_data.get("ok"):
+                        subs_count = count_data.get("result")
+                except Exception:
+                    pass
+
+                return {
+                    "valid": True,
+                    "title": result.get("title") or f"@{clean}",
+                    "username": clean,
+                    "type": result.get("type", "channel"),
+                    "subscribers_count": subs_count,
+                    "description": result.get("description"),
+                }
+            except (httpx.TimeoutException, httpx.ConnectError) as exc:
+                last_exc = exc
+                if attempt < retries - 1:
+                    await asyncio.sleep(1.0)
+                    continue
+            except Exception as exc:
+                last_exc = exc
+                break
+
+    detail = str(last_exc).strip() or (last_exc.__class__.__name__ if last_exc else "Tarmoq xatosi")
+    return {"valid": False, "error": f"Telegram bilan bog'lanib bo'lmadi ({detail})"}
 
 
 @router.post("/organizations/{org_id}/set-webhook")

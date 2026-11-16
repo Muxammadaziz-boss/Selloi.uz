@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useLanguage } from "../../lib/i18n";
 import {
   IconBooks,
@@ -11,6 +11,9 @@ import {
   IconSparkles,
   IconBrandTelegram,
   IconFilter,
+  IconSearch,
+  IconCheck,
+  IconAlertCircle,
 } from "@tabler/icons-react";
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
 import { Badge } from "../ui/Badge";
@@ -65,6 +68,38 @@ export function KnowledgeTab({
   busy,
 }: KnowledgeTabProps) {
   const { language, t } = useLanguage();
+  const [verifying, setVerifying] = useState(false);
+  const [verificationResult, setVerificationResult] = useState<{
+    valid?: boolean;
+    title?: string;
+    username?: string;
+    subscribers_count?: number | null;
+    error?: string;
+  } | null>(null);
+
+  const handleVerifyChannel = async () => {
+    const raw = newChannelInput.trim();
+    if (!raw) return;
+    setVerifying(true);
+    setVerificationResult(null);
+    try {
+      const res = await fetch("/api/proxy?path=/admin/channels/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ channel: raw }),
+      });
+      const data = await res.json();
+      setVerificationResult(data);
+    } catch (err: any) {
+      setVerificationResult({
+        valid: false,
+        error: err.message || "Telegram bilan bog'lanishda xatolik",
+      });
+    } finally {
+      setVerifying(false);
+    }
+  };
+
   const filteredPosts = posts.filter(
     (p) => channelFilter === "all" || p.channel_username === channelFilter
   );
@@ -98,7 +133,7 @@ export function KnowledgeTab({
               disabled={busy || posts.length === 0}
               icon={<IconSparkles size={14} style={{ color: "var(--accent)" }} />}
             >
-              Mahsulotlarni aniqlash
+              {t("knowledge.btn_extract")}
             </Button>
             <Button
               variant="primary"
@@ -108,7 +143,7 @@ export function KnowledgeTab({
               loading={busy}
               icon={<IconRefresh size={14} />}
             >
-              Barcha kanallarni sinxronlash
+              {t("knowledge.btn_sync_all")}
             </Button>
           </div>
         }
@@ -117,28 +152,100 @@ export function KnowledgeTab({
       {/* Connected Channels Management Card */}
       <Card className="mb-4">
         <CardHeader>
-          <CardTitle>Ulangan Telegram Kanallar ({channels.length})</CardTitle>
+          <CardTitle>{t("knowledge.card_channels")} ({channels.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          {/* Add Channel Form */}
-          <form onSubmit={onConnectChannel} className="d-flex gap-2 mb-3">
-            <input
-              type="text"
-              aria-label="Telegram kanal username yoki havolasi"
-              placeholder="Telegram kanal username yoki havolasi (@kanal_nomi yoki https://t.me/kanal_nomi)..."
-              value={newChannelInput}
-              onChange={(e) => setNewChannelInput(e.target.value)}
-              disabled={busy}
-              className="linear-input flex-grow-1"
-            />
-            <Button
-              type="submit"
-              variant="primary"
-              disabled={busy || !newChannelInput.trim()}
-              icon={<IconPlus size={15} />}
-            >
-              Kanal ulash
-            </Button>
+          {/* Add Channel Form with Verification */}
+          <form
+            onSubmit={(e) => {
+              setVerificationResult(null);
+              onConnectChannel(e);
+            }}
+            className="mb-3"
+          >
+            <div className="d-flex flex-column flex-sm-row gap-2">
+              <input
+                type="text"
+                aria-label="Telegram channel username or URL"
+                placeholder={t("knowledge.input_placeholder")}
+                value={newChannelInput}
+                onChange={(e) => {
+                  setNewChannelInput(e.target.value);
+                  setVerificationResult(null);
+                }}
+                disabled={busy}
+                className="linear-input flex-grow-1"
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={busy || verifying || !newChannelInput.trim()}
+                loading={verifying}
+                onClick={handleVerifyChannel}
+                icon={<IconSearch size={15} />}
+              >
+                {t("knowledge.btn_verify")}
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={busy || !newChannelInput.trim()}
+                icon={<IconPlus size={15} />}
+              >
+                {t("knowledge.btn_connect")}
+              </Button>
+            </div>
+
+            {/* Verification Result Feedback */}
+            {verificationResult && (
+              <div className="mt-2.5">
+                {verificationResult.valid ? (
+                  <div
+                    className="p-2.5 px-3 rounded-2 d-flex align-items-center justify-content-between"
+                    style={{
+                      backgroundColor: "rgba(16, 185, 129, 0.12)",
+                      border: "1px solid rgba(16, 185, 129, 0.3)",
+                      color: "#10b981",
+                    }}
+                  >
+                    <div className="d-flex align-items-center gap-2">
+                      <IconCheck size={18} className="flex-shrink-0" />
+                      <div className="small">
+                        <strong className="text-white">{verificationResult.title}</strong>
+                        <span className="opacity-80 ms-2 font-monospace">@{verificationResult.username}</span>
+                        {verificationResult.subscribers_count != null && (
+                          <span
+                            className="ms-2 badge rounded-pill"
+                            style={{
+                              backgroundColor: "rgba(16, 185, 129, 0.2)",
+                              color: "#10b981",
+                              fontSize: "0.72rem",
+                            }}
+                          >
+                            {verificationResult.subscribers_count.toLocaleString()} {t("knowledge.subscribers")}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <span className="small text-secondary fw-medium" style={{ fontSize: "0.78rem" }}>
+                      ✓ {t("knowledge.verified_channel")}
+                    </span>
+                  </div>
+                ) : (
+                  <div
+                    className="p-2.5 px-3 rounded-2 d-flex align-items-center gap-2"
+                    style={{
+                      backgroundColor: "rgba(239, 68, 68, 0.12)",
+                      border: "1px solid rgba(239, 68, 68, 0.3)",
+                      color: "#f87171",
+                    }}
+                  >
+                    <IconAlertCircle size={18} className="flex-shrink-0" />
+                    <span className="small">{verificationResult.error || "Kanal topilmadi"}</span>
+                  </div>
+                )}
+              </div>
+            )}
           </form>
 
           {/* Channels Table */}
@@ -146,18 +253,18 @@ export function KnowledgeTab({
             <table className="linear-table">
               <thead>
                 <tr>
-                  <th>Telegram Kanal</th>
-                  <th>Holati</th>
-                  <th>Postlar soni</th>
-                  <th>Oxirgi sinxron</th>
-                  <th style={{ textAlign: "right" }}>Amallar</th>
+                  <th>{t("knowledge.th_channel")}</th>
+                  <th>{t("knowledge.th_status")}</th>
+                  <th>{t("knowledge.th_posts_count")}</th>
+                  <th>{t("knowledge.th_last_sync")}</th>
+                  <th style={{ textAlign: "right" }}>{t("knowledge.th_actions")}</th>
                 </tr>
               </thead>
               <tbody>
                 {channels.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="text-center text-secondary py-4 small">
-                      Hozircha hech qanday Telegram kanal ulanmagan. Yuqoridagi maydondan kanal havolasini kiriting.
+                      {t("knowledge.empty")}
                     </td>
                   </tr>
                 ) : (
@@ -173,7 +280,7 @@ export function KnowledgeTab({
                             rel="noreferrer"
                             className="text-secondary small d-flex align-items-center gap-0.5"
                           >
-                            <IconExternalLink size={12} /> ochish
+                            <IconExternalLink size={12} /> {t("knowledge.btn_open_link")}
                           </a>
                         </div>
                       </td>

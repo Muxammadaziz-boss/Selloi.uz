@@ -59,6 +59,10 @@ class ChannelCreate(BaseModel):
     title: str | None = None
 
 
+class ChannelVerifyRequest(BaseModel):
+    channel: str = Field(min_length=1, max_length=255)
+
+
 class ChannelSyncRequest(BaseModel):
     channel: str | None = None
 

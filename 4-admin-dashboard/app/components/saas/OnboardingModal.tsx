@@ -26,6 +26,7 @@ interface OnboardingModalProps {
     category: string;
     plan_code: string;
     telegram_bot_token?: string;
+    telegram_channel?: string;
     channel?: string;
     ai_language?: string;
     ai_personality?: string;
@@ -50,6 +51,14 @@ export function OnboardingModal({ isOpen, onClose, onComplete }: OnboardingModal
   }>({ checking: false, verified: false });
 
   const [telegramChannel, setTelegramChannel] = useState("");
+  const [channelVerification, setChannelVerification] = useState<{
+    checking: boolean;
+    verified: boolean;
+    title?: string;
+    username?: string;
+    subscribers?: number;
+    error?: string;
+  }>({ checking: false, verified: false });
   const [aiLanguage, setAiLanguage] = useState("uz");
   const [aiPersonality, setAiPersonality] = useState("Professional va do'stona sotuvchi assistent");
   const [planCode, setPlanCode] = useState("start");
@@ -91,6 +100,43 @@ export function OnboardingModal({ isOpen, onClose, onComplete }: OnboardingModal
     }
   };
 
+  const handleVerifyChannel = async () => {
+    if (!telegramChannel.trim()) return;
+    setChannelVerification({ checking: true, verified: false });
+    try {
+      const res = await fetch("/api/proxy?path=/api/organizations/verify-channel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          channel: telegramChannel.trim(),
+          bot_token: botToken.trim() || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.valid) {
+        setChannelVerification({
+          checking: false,
+          verified: true,
+          title: data.title,
+          username: data.username,
+          subscribers: data.subscribers,
+        });
+      } else {
+        setChannelVerification({
+          checking: false,
+          verified: false,
+          error: data.error || data.detail || "Kanal topilmadi yoki xatolik yuz berdi",
+        });
+      }
+    } catch (err: any) {
+      setChannelVerification({
+        checking: false,
+        verified: false,
+        error: err.message || "Telegram API bilan bog'lanib bo'lmadi",
+      });
+    }
+  };
+
   const handleNext = async () => {
     if (step < totalSteps) {
       setStep((prev) => prev + 1);
@@ -113,7 +159,8 @@ export function OnboardingModal({ isOpen, onClose, onComplete }: OnboardingModal
         category,
         plan_code: planCode,
         telegram_bot_token: botToken.trim() || undefined,
-        channel: telegramChannel,
+        telegram_channel: telegramChannel.trim() || undefined,
+        channel: telegramChannel.trim() || undefined,
         ai_language: aiLanguage,
         ai_personality: aiPersonality,
       });
@@ -412,12 +459,64 @@ export function OnboardingModal({ isOpen, onClose, onComplete }: OnboardingModal
                       className="form-control"
                       placeholder="masalan: mening_dokonim_uz"
                       value={telegramChannel}
-                      onChange={(e) => setTelegramChannel(e.target.value.replace(/^@/, ""))}
+                      onChange={(e) => {
+                        setTelegramChannel(e.target.value.replace(/^@/, ""));
+                        setChannelVerification({ checking: false, verified: false });
+                      }}
                     />
+                    <button
+                      type="button"
+                      className="btn btn-outline-primary d-flex align-items-center gap-1.5"
+                      onClick={handleVerifyChannel}
+                      disabled={channelVerification.checking || !telegramChannel.trim()}
+                    >
+                      {channelVerification.checking ? (
+                        <>
+                          <span className="spinner-border spinner-border-sm" />
+                          <span>Tekshirilmoqda...</span>
+                        </>
+                      ) : (
+                        <>
+                          <IconRefresh size={16} />
+                          <span>Tekshirish</span>
+                        </>
+                      )}
+                    </button>
                   </div>
                   <small className="form-hint">
                     Kanal postlari avtomatik tahlil qilinadi va mijozlar savol berganda rasm va narxlar taqdim etiladi.
                   </small>
+                </div>
+
+                {channelVerification.verified && (
+                  <div className="alert alert-success d-flex align-items-center gap-2 mb-0 py-2.5">
+                    <IconCheck size={20} className="text-success flex-shrink-0" />
+                    <div>
+                      <strong className="d-block text-white">Kanal muvaffaqiyatli tasdiqlandi!</strong>
+                      <span className="small text-secondary">
+                        Nomi: <strong>{channelVerification.title}</strong> • Username: <code>@{channelVerification.username}</code>
+                        {channelVerification.subscribers != null && (
+                          <> • <strong>{channelVerification.subscribers.toLocaleString()}</strong> ta obunachi</>
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {channelVerification.error && (
+                  <div className="alert alert-danger d-flex align-items-center gap-2 mb-0 py-2.5">
+                    <IconAlertCircle size={20} className="text-danger flex-shrink-0" />
+                    <div className="small">
+                      <div>{channelVerification.error}</div>
+                      <div className="mt-1 opacity-75" style={{ fontSize: "0.78rem" }}>
+                        💡 Kanal username to&apos;g&apos;ri bo&apos;lsa, <strong>&quot;Davom etish &rarr;&quot;</strong> tugmasini bosib keyingi bosqichga o&apos;tishingiz mumkin.
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="p-3 rounded bg-dark border border-secondary border-opacity-20 mt-3 small text-secondary">
+                  💡 <strong>Kanal ommaviy (public) bo'lishi tavsiya etiladi.</strong> Kanal xabarlari va mahsulot kartochkalarini AI avtomatik o&apos;qib, savol bergan mijozlarga mos rasm va narxlarni tavsiya qiladi.
                 </div>
               </div>
             )}
@@ -650,6 +749,36 @@ export function OnboardingModal({ isOpen, onClose, onComplete }: OnboardingModal
                         }}
                       >
                         Keyinroq ulanadi
+                      </span>
+                    )}
+                  </div>
+
+                  <div
+                    className="d-flex align-items-center justify-content-between py-2 border-bottom"
+                    style={{ borderColor: "rgba(255, 255, 255, 0.06)" }}
+                  >
+                    <span className="text-secondary small">Telegram Kanal:</span>
+                    {channelVerification.username || telegramChannel ? (
+                      <span
+                        className="small px-2 py-0.5 rounded fw-medium"
+                        style={{
+                          backgroundColor: "rgba(34, 158, 217, 0.15)",
+                          color: "#229ed9",
+                          fontSize: "0.78rem",
+                        }}
+                      >
+                        @{channelVerification.username || telegramChannel.replace(/^@/, "")}
+                        {channelVerification.title ? ` (${channelVerification.title})` : ""}
+                      </span>
+                    ) : (
+                      <span
+                        className="small px-2 py-0.5 rounded text-secondary"
+                        style={{
+                          backgroundColor: "rgba(255, 255, 255, 0.06)",
+                          fontSize: "0.78rem",
+                        }}
+                      >
+                        Kiritilmagan
                       </span>
                     )}
                   </div>
