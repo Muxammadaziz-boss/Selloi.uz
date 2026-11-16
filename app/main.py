@@ -17,6 +17,7 @@ from app.core.logging import get_logger, setup_logging
 from app.models import Base
 from app.services import admin_service
 from app.services.telegram import telegram
+from app.services.bot_manager import bot_manager
 
 logger = get_logger(__name__)
 
@@ -136,8 +137,10 @@ async def lifespan(application: FastAPI):
             logger.exception("setMyCommands o'rnatishda xatolik yuz berdi")
 
     maintenance_task = asyncio.create_task(_subscription_maintenance_loop())
+    await bot_manager.start()
     logger.info("Application ready")
     yield
+    await bot_manager.stop()
     maintenance_task.cancel()
     try:
         await maintenance_task

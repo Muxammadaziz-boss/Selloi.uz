@@ -12,6 +12,10 @@ import {
   IconRefresh,
   IconActivity,
   IconPhoto,
+  IconId,
+  IconShieldLock,
+  IconPhone,
+  IconMessageDots,
 } from "@tabler/icons-react";
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
 import { Badge } from "../ui/Badge";
@@ -49,6 +53,16 @@ export interface SettingsTabProps {
   webhookInfo: any;
   customPromptInput: string;
   setCustomPromptInput: (p: string) => void;
+  telegramApiIdInput?: string;
+  setTelegramApiIdInput?: (id: string) => void;
+  telegramApiHashInput?: string;
+  setTelegramApiHashInput?: (hash: string) => void;
+  telegramPhoneInput?: string;
+  setTelegramPhoneInput?: (phone: string) => void;
+  adminChatIdInput?: string;
+  setAdminChatIdInput?: (id: string) => void;
+  showApiHash?: boolean;
+  setShowApiHash?: (b: boolean) => void;
   onSaveBotSettings: () => void;
   savingOrgSettings: boolean;
   logoUrl: string;
@@ -87,6 +101,16 @@ export function SettingsTab({
   webhookInfo,
   customPromptInput,
   setCustomPromptInput,
+  telegramApiIdInput = "",
+  setTelegramApiIdInput = () => {},
+  telegramApiHashInput = "",
+  setTelegramApiHashInput = () => {},
+  telegramPhoneInput = "",
+  setTelegramPhoneInput = () => {},
+  adminChatIdInput = "",
+  setAdminChatIdInput = () => {},
+  showApiHash = false,
+  setShowApiHash = () => {},
   onSaveBotSettings,
   savingOrgSettings,
   logoUrl,
@@ -112,37 +136,37 @@ export function SettingsTab({
           {/* AI Model & Temperature Card */}
           <Card>
             <CardHeader>
-              <CardTitle>AI Dvigateli Parametrlari</CardTitle>
+              <CardTitle>{t("settings.card_ai_params")}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="d-flex flex-column gap-3">
                 <Select
-                  label="Asosiy AI Modeli"
+                  label={t("settings.label_model")}
                   value={aiModel}
                   onChange={(e) => setAiModel(e.target.value)}
                   options={[
-                    { value: "gemini-3.1-flash-lite", label: "gemini-3.1-flash-lite (Tavsiya etiladi - tez 0.7s)" },
-                    { value: "gemini-3.5-flash", label: "gemini-3.5-flash (Yuqori aniqlik va muvozanat)" },
-                    { value: "gemini-flash-latest", label: "gemini-flash-latest (Avtomatik yangi versiya)" },
+                    { value: "gemini-3.1-flash-lite", label: "gemini-3.1-flash-lite (0.7s)" },
+                    { value: "gemini-3.5-flash", label: "gemini-3.5-flash" },
+                    { value: "gemini-flash-latest", label: "gemini-flash-latest" },
                   ]}
-                  hint="Telegram xabarlariga 1-2 soniyada javob berish uchun optimallashtirilgan model."
+                  hint={t("settings.hint_model")}
                 />
 
                 <div>
                   <div className="d-flex align-items-center justify-content-between mb-1.5">
                     <div className="d-flex align-items-center gap-1.5">
                       <label className="fw-medium text-primary small m-0">
-                        Kreativlik darajasi (Temperature): <strong className="text-accent">{aiTemperature}</strong>
+                        {t("settings.label_temperature")} <strong className="text-accent">{aiTemperature}</strong>
                       </label>
                       <Tooltip
-                        title="Kreativlik (Temperature)"
-                        content="0.0 - 0.2: AI do'kon qoidalari va mahsulot narxlariga 100% qat'iy rioya qiladi (tavsiya etiladi). 0.7+: ko'proq ijodiy javoblar beradi, lekin narxlarda og'ishlar bo'lishi mumkin."
+                        title={t("settings.tooltip_temp_title")}
+                        content={t("settings.tooltip_temp_desc")}
                       />
                     </div>
                   </div>
                   <input
                     type="range"
-                    aria-label="Kreativlik darajasi (Temperature)"
+                    aria-label={t("settings.label_temperature")}
                     min="0"
                     max="1"
                     step="0.05"
@@ -152,9 +176,9 @@ export function SettingsTab({
                     style={{ accentColor: "var(--accent)" }}
                   />
                   <div className="d-flex justify-content-between text-secondary mt-1 font-monospace" style={{ fontSize: "0.72rem" }}>
-                    <span>Aniq & Faktik (0.0)</span>
-                    <span>Muvozanatli (0.2)</span>
-                    <span>Ijodiy (1.0)</span>
+                    <span>{t("settings.temp_precise")}</span>
+                    <span>{t("settings.temp_balanced")}</span>
+                    <span>{t("settings.temp_creative")}</span>
                   </div>
                 </div>
 
@@ -170,10 +194,10 @@ export function SettingsTab({
                       style={{ accentColor: "var(--accent)" }}
                     />
                     <span className="small text-primary d-flex align-items-center gap-1.5">
-                      <span>Avtomatik Takeover (Mijoz operator talab qilsa darhol insonga o'tkazish)</span>
+                      <span>{t("settings.switch_handoff")}</span>
                       <Tooltip
-                        title="Avtomatik Inson Nazorati"
-                        content="Agar mijoz 'operator', 'inson', 'telefon raqam' yoki shikoyat so'zlarini yozsa, AI suhbatni avtomatik ravishda xodimlarga o'tkazadi va javob berishni to'xtatadi."
+                        title={t("settings.tooltip_handoff_title")}
+                        content={t("settings.tooltip_handoff_desc")}
                       />
                     </span>
                   </label>
@@ -186,10 +210,10 @@ export function SettingsTab({
                       style={{ accentColor: "var(--accent)" }}
                     />
                     <span className="small text-primary d-flex align-items-center gap-1.5">
-                      <span>Dublyor tasdiqlash va typing... statusini ko'rsatish</span>
+                      <span>{t("settings.switch_typing")}</span>
                       <Tooltip
-                        title="Haqiqiy Dialog Simulyatsiyasi"
-                        content="Mijozga xabar yuborishdan oldin Telegramda 'yozmoqda...' (typing) statusini yoqadi, bu esa muloqotni insonga xos va tabiiy qiladi."
+                        title={t("settings.tooltip_typing_title")}
+                        content={t("settings.tooltip_typing_desc")}
                       />
                     </span>
                   </label>
@@ -345,6 +369,89 @@ export function SettingsTab({
                     </div>
                   </div>
                 )}
+
+                {/* Telegram MTProto / User Client & Chat Settings */}
+                <div className="pt-2 border-top" style={{ borderColor: "var(--border-subtle)" }}>
+                  <div className="d-flex align-items-center justify-content-between mb-2">
+                    <span className="fw-semibold text-primary small d-flex align-items-center gap-1.5">
+                      <IconId size={16} className="text-accent" />
+                      Telegram API & Foydalanuvchi Sozlamalari (my.telegram.org)
+                    </span>
+                    {currentOrgDetails?.telegram_api_hash_set && (
+                      <Badge variant="success" dot>API Hash O&apos;rnatilgan</Badge>
+                    )}
+                  </div>
+
+                  <div className="row g-2 mb-2">
+                    <div className="col-12 col-md-6">
+                      <label className="text-secondary small d-block mb-1" style={{ fontSize: "0.78rem" }}>
+                        Telegram API ID (App api_id)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Masalan: 20400123"
+                        value={telegramApiIdInput}
+                        onChange={(e) => setTelegramApiIdInput(e.target.value.replace(/[^0-9]/g, ""))}
+                        className="linear-input font-monospace w-100"
+                        style={{ fontSize: "0.82rem" }}
+                      />
+                    </div>
+                    <div className="col-12 col-md-6">
+                      <label className="text-secondary small d-block mb-1" style={{ fontSize: "0.78rem" }}>
+                        Telegram API HASH (App api_hash)
+                      </label>
+                      <div className="d-flex gap-1.5">
+                        <input
+                          type={showApiHash ? "text" : "password"}
+                          placeholder={currentOrgDetails?.telegram_api_hash_set ? "••••••••••••••••••••••••••••••••" : "0123456789abcdef0123456789abcdef"}
+                          value={telegramApiHashInput}
+                          onChange={(e) => setTelegramApiHashInput(e.target.value)}
+                          className="linear-input font-monospace flex-grow-1"
+                          style={{ fontSize: "0.82rem" }}
+                        />
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => setShowApiHash(!showApiHash)}
+                          icon={showApiHash ? <IconEyeOff size={14} /> : <IconEye size={14} />}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="row g-2">
+                    <div className="col-12 col-md-6">
+                      <label className="text-secondary small d-block mb-1" style={{ fontSize: "0.78rem" }}>
+                        Bog&apos;langan Telefon Raqam (User session)
+                      </label>
+                      <input
+                        type="tel"
+                        placeholder="+998901234567"
+                        value={telegramPhoneInput}
+                        onChange={(e) => setTelegramPhoneInput(e.target.value)}
+                        className="linear-input font-monospace w-100"
+                        style={{ fontSize: "0.82rem" }}
+                      />
+                    </div>
+                    <div className="col-12 col-md-6">
+                      <label className="text-secondary small d-block mb-1" style={{ fontSize: "0.78rem" }}>
+                        Admin Chat ID (Xabarnoma & Buyurtmalar)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Masalan: 6990611858"
+                        value={adminChatIdInput}
+                        onChange={(e) => setAdminChatIdInput(e.target.value.replace(/[^0-9-]/g, ""))}
+                        className="linear-input font-monospace w-100"
+                        style={{ fontSize: "0.82rem" }}
+                      />
+                    </div>
+                  </div>
+                  <div className="text-secondary small mt-1.5" style={{ fontSize: "0.72rem" }}>
+                    💡 API ID/Hash: <a href="https://my.telegram.org" target="_blank" rel="noreferrer" className="text-primary text-decoration-underline">my.telegram.org</a> saytidan olinadi. Admin Chat ID: Telegram&apos;da <code>@userinfobot</code> orqali bilib olinadi.
+                  </div>
+                </div>
 
                 {/* System Prompt Textarea */}
                 <div>

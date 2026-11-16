@@ -16,6 +16,7 @@ from app.core.logging import get_logger
 from app.core.security import encrypt_secret
 from app.models import Admin, Organization, OrganizationMember, Plan, Subscription, User
 from app.services.billing_service import billing_service
+from app.services.bot_manager import bot_manager
 from app.services.entitlement_service import entitlement_service
 from app.services.telegram import get_telegram_service
 from app.services.saas_service import (
@@ -49,6 +50,13 @@ class CreateOrgRequest(BaseModel):
     telegram_bot_token: str | None = None
     telegram_channel: str | None = None
     channel: str | None = None  # alias from onboarding payload
+    telegram_api_id: int | None = None
+    telegram_api_hash: str | None = None
+    telegram_phone: str | None = None
+    admin_chat_id: str | None = None
+    api_id: int | None = None  # alias
+    api_hash: str | None = None  # alias
+    phone: str | None = None  # alias
     ai_language: str = "uz"
     ai_personality: str | None = None
     custom_system_prompt: str | None = None
@@ -69,6 +77,10 @@ class UpdateOrgRequest(BaseModel):
     ai_personality: str | None = None
     custom_system_prompt: str | None = None
     telegram_bot_token: str | None = None
+    telegram_api_id: int | None = None
+    telegram_api_hash: str | None = None
+    telegram_phone: str | None = None
+    admin_chat_id: str | None = None
     openai_api_key: str | None = None
     gemini_api_key: str | None = None
 
@@ -262,6 +274,11 @@ async def create_organization(
 ):
     """Onboarding endpoint: create a new organization with 7-day free trial."""
     chosen_channel = (req.telegram_channel or req.channel or "").strip() or None
+    chosen_api_id = req.telegram_api_id or req.api_id
+    chosen_api_hash = (req.telegram_api_hash or req.api_hash or "").strip() or None
+    chosen_phone = (req.telegram_phone or req.phone or "").strip() or None
+    chosen_admin_chat_id = (req.admin_chat_id or "").strip() or None
+
     org = await create_organization_with_trial(
         db,
         user=user,
@@ -272,10 +289,17 @@ async def create_organization(
         trial_days=7,
         telegram_bot_token=req.telegram_bot_token,
         telegram_channel=chosen_channel,
+        telegram_api_id=chosen_api_id,
+        telegram_api_hash=chosen_api_hash,
+        telegram_phone=chosen_phone,
+        admin_chat_id=chosen_admin_chat_id,
         ai_language=req.ai_language,
         ai_personality=req.ai_personality,
         custom_system_prompt=req.custom_system_prompt,
     )
+    # Ensure bot worker is actively polling or webhook registered for this new tenant
+    asyncio.create_task(bot_manager.restart_org(org.id))
+
     return {
         "status": "created",
         "organization": {
@@ -286,6 +310,10 @@ async def create_organization(
             "trial_days": 7,
             "telegram_bot_token_set": bool(org.telegram_bot_token),
             "webhook_secret_set": bool(org.webhook_secret),
+            "telegram_api_id": org.telegram_api_id,
+            "telegram_api_hash_set": bool(org.telegram_api_hash),
+            "telegram_phone": org.telegram_phone,
+            "admin_chat_id": org.admin_chat_id,
         },
     }
 
@@ -520,6 +548,15 @@ async def update_current_organization(
         org.telegram_bot_token = encrypt_secret(tok) if tok else None
         if tok and not org.webhook_secret:
             org.webhook_secret = secrets.token_urlsafe(32)
+    if req.telegram_api_id is not None:
+        org.telegram_api_id = req.telegram_api_id
+    if req.telegram_api_hash is not None:
+        h = req.telegram_api_hash.strip() or None
+        org.telegram_api_hash = encrypt_secret(h) if h else None
+    if req.telegram_phone is not None:
+        org.telegram_phone = req.telegram_phone.strip() or None
+    if req.admin_chat_id is not None:
+        org.admin_chat_id = req.admin_chat_id.strip() or None
     if req.openai_api_key is not None:
         k = req.openai_api_key.strip() or None
         org.openai_api_key = encrypt_secret(k) if k else None
@@ -529,6 +566,7 @@ async def update_current_organization(
 
     await db.commit()
     await db.refresh(org)
+    asyncio.create_task(bot_manager.restart_org(org_id))
     return {"status": "updated", "organization": await get_organization_details(db, org_id)}
 
 

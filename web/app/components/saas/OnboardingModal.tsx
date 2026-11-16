@@ -8,11 +8,17 @@ import {
   IconBrandTelegram,
   IconBuildingSkyscraper,
   IconCheck,
+  IconEye,
+  IconEyeOff,
+  IconId,
   IconKey,
   IconLanguage,
+  IconMessageDots,
   IconPackage,
+  IconPhone,
   IconRefresh,
   IconRobot,
+  IconShieldLock,
   IconSparkles,
   IconX,
 } from "@tabler/icons-react";
@@ -28,6 +34,10 @@ interface OnboardingModalProps {
     telegram_bot_token?: string;
     telegram_channel?: string;
     channel?: string;
+    telegram_api_id?: number;
+    telegram_api_hash?: string;
+    telegram_phone?: string;
+    admin_chat_id?: string;
     ai_language?: string;
     ai_personality?: string;
   }) => Promise<void>;
@@ -59,13 +69,21 @@ export function OnboardingModal({ isOpen, onClose, onComplete }: OnboardingModal
     subscribers?: number;
     error?: string;
   }>({ checking: false, verified: false });
+
+  // Telegram MTProto / API & Chat Configuration
+  const [telegramApiId, setTelegramApiId] = useState("");
+  const [telegramApiHash, setTelegramApiHash] = useState("");
+  const [telegramPhone, setTelegramPhone] = useState("");
+  const [adminChatId, setAdminChatId] = useState("");
+  const [showApiHash, setShowApiHash] = useState(false);
+
   const [aiLanguage, setAiLanguage] = useState("uz");
   const [aiPersonality, setAiPersonality] = useState("Professional va do'stona sotuvchi assistent");
   const [planCode, setPlanCode] = useState("start");
 
   if (!isOpen) return null;
 
-  const totalSteps = 9;
+  const totalSteps = 10;
 
   const handleVerifyBotToken = async () => {
     if (!botToken.trim()) return;
@@ -161,6 +179,10 @@ export function OnboardingModal({ isOpen, onClose, onComplete }: OnboardingModal
         telegram_bot_token: botToken.trim() || undefined,
         telegram_channel: telegramChannel.trim() || undefined,
         channel: telegramChannel.trim() || undefined,
+        telegram_api_id: telegramApiId.trim() ? parseInt(telegramApiId.trim(), 10) : undefined,
+        telegram_api_hash: telegramApiHash.trim() || undefined,
+        telegram_phone: telegramPhone.trim() || undefined,
+        admin_chat_id: adminChatId.trim() || undefined,
         ai_language: aiLanguage,
         ai_personality: aiPersonality,
       });
@@ -521,11 +543,112 @@ export function OnboardingModal({ isOpen, onClose, onComplete }: OnboardingModal
               </div>
             )}
 
-            {/* Step 6: AI Language */}
+            {/* Step 6: Telegram User Client & API Credentials (my.telegram.org) */}
             {step === 6 && (
               <div className="space-y-3">
                 <div className="text-center py-2 mb-3">
-                  <h3 className="fw-bold text-white mb-1">6. AI Muloqot Tili</h3>
+                  <h3 className="fw-bold text-white mb-1">6. Telegram API va Foydalanuvchi Sozlamalari</h3>
+                  <p className="text-secondary small">
+                    Har bir do&apos;konning mustaqil Telegram API kalitlari (API ID, Hash) va buyurtma xabarnomalari uchun Admin Chat ID.
+                  </p>
+                </div>
+
+                <div className="row g-3">
+                  <div className="col-md-6">
+                    <label className="form-label">
+                      Telegram API ID <span className="text-secondary small font-monospace">(App api_id)</span>
+                    </label>
+                    <div className="input-group">
+                      <span className="input-group-text"><IconId size={18} /></span>
+                      <input
+                        type="text"
+                        className="form-control font-monospace"
+                        placeholder="Masalan: 20400123"
+                        value={telegramApiId}
+                        onChange={(e) => setTelegramApiId(e.target.value.replace(/[^0-9]/g, ""))}
+                      />
+                    </div>
+                    <small className="form-hint">my.telegram.org &rarr; API development tools bo&apos;limidan olinadi.</small>
+                  </div>
+
+                  <div className="col-md-6">
+                    <label className="form-label">
+                      Telegram API HASH <span className="text-secondary small font-monospace">(App api_hash)</span>
+                    </label>
+                    <div className="input-group">
+                      <span className="input-group-text"><IconShieldLock size={18} /></span>
+                      <input
+                        type={showApiHash ? "text" : "password"}
+                        className="form-control font-monospace"
+                        placeholder="Masalan: 0123456789abcdef0123456789abcdef"
+                        value={telegramApiHash}
+                        onChange={(e) => setTelegramApiHash(e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-outline-secondary"
+                        onClick={() => setShowApiHash(!showApiHash)}
+                        title={showApiHash ? "Yashirish" : "Ko'rsatish"}
+                      >
+                        {showApiHash ? <IconEyeOff size={16} /> : <IconEye size={16} />}
+                      </button>
+                    </div>
+                    <small className="form-hint">Serverda AES-128 bilan shifrlanadi.</small>
+                  </div>
+
+                  <div className="col-md-6">
+                    <label className="form-label">
+                      Bog&apos;langan Telefon Raqam <span className="text-secondary small">(User session uchun)</span>
+                    </label>
+                    <div className="input-group">
+                      <span className="input-group-text"><IconPhone size={18} /></span>
+                      <input
+                        type="tel"
+                        className="form-control font-monospace"
+                        placeholder="+998901234567"
+                        value={telegramPhone}
+                        onChange={(e) => setTelegramPhone(e.target.value)}
+                      />
+                    </div>
+                    <small className="form-hint">Telegram profilingizga ulangan xalqaro formatdagi raqam.</small>
+                  </div>
+
+                  <div className="col-md-6">
+                    <label className="form-label">
+                      Admin / Foydalanuvchi Chat ID <span className="text-secondary small">(Bildirishnomalar uchun)</span>
+                    </label>
+                    <div className="input-group">
+                      <span className="input-group-text"><IconMessageDots size={18} /></span>
+                      <input
+                        type="text"
+                        className="form-control font-monospace"
+                        placeholder="Masalan: 6990611858"
+                        value={adminChatId}
+                        onChange={(e) => setAdminChatId(e.target.value.replace(/[^0-9-]/g, ""))}
+                      />
+                    </div>
+                    <small className="form-hint">Yangi buyurtmalar va ogohlantirishlar shu chatga yuboriladi.</small>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded bg-dark border border-secondary border-opacity-20 mt-3 small text-secondary">
+                  <div className="fw-bold text-white mb-1">💡 Ushbu ma&apos;lumotlarni qayerdan olish mumkin?</div>
+                  <ul className="ps-3 mb-1 space-y-1">
+                    <li><strong>API ID va API HASH:</strong> <a href="https://my.telegram.org" target="_blank" rel="noreferrer" className="text-primary text-decoration-underline">my.telegram.org</a> saytiga kiring &rarr; <em>API development tools</em> bo&apos;limida yangi dastur oching.</li>
+                    <li><strong>Chat ID:</strong> Telegram&apos;da <code>@userinfobot</code> ga <code>/start</code> deb yozing, u sizning shaxsiy raqamli ID&apos;ingizni ko&apos;rsatadi.</li>
+                  </ul>
+                  <div className="mt-1 text-muted opacity-75">
+                    Agar hozir bu kalitlar mavjud bo&apos;lmasa, xavotir olmang — ularni keyinchalik <strong>Do&apos;kon Sozlamalari</strong> bo&apos;limidan istalgan payt kiritishingiz mumkin.
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Step 7: AI Language */}
+            {step === 7 && (
+              <div className="space-y-3">
+                <div className="text-center py-2 mb-3">
+                  <h3 className="fw-bold text-white mb-1">7. AI Muloqot Tili</h3>
                   <p className="text-secondary small">
                     Assistent asosan qaysi tilda mijozlar bilan muloqot qilsin?
                   </p>
@@ -560,11 +683,11 @@ export function OnboardingModal({ isOpen, onClose, onComplete }: OnboardingModal
               </div>
             )}
 
-            {/* Step 7: AI Personality & Tone */}
-            {step === 7 && (
+            {/* Step 8: AI Personality & Tone */}
+            {step === 8 && (
               <div className="space-y-3">
                 <div className="text-center py-2 mb-3">
-                  <h3 className="fw-bold text-white mb-1">7. AI Shaxsi va Muloqot Uslubi</h3>
+                  <h3 className="fw-bold text-white mb-1">8. AI Shaxsi va Muloqot Uslubi</h3>
                   <p className="text-secondary small">
                     Assistent qanday ohangda javob bersin?
                   </p>
@@ -597,11 +720,11 @@ export function OnboardingModal({ isOpen, onClose, onComplete }: OnboardingModal
               </div>
             )}
 
-            {/* Step 8: Select Initial Plan */}
-            {step === 8 && (
+            {/* Step 9: Select Initial Plan */}
+            {step === 9 && (
               <div className="space-y-3">
                 <div className="text-center py-2 mb-3">
-                  <h3 className="fw-bold text-white mb-1">8. Boshlang&apos;ich Tarifni Tanlang</h3>
+                  <h3 className="fw-bold text-white mb-1">9. Boshlang&apos;ich Tarifni Tanlang</h3>
                   <p className="text-secondary small">
                     Har bir yangi biznes uchun <strong className="text-white">7 kunlik bepul sinov muddati</strong> taqdim etiladi!
                   </p>
@@ -642,8 +765,8 @@ export function OnboardingModal({ isOpen, onClose, onComplete }: OnboardingModal
               </div>
             )}
 
-            {/* Step 9: Confirmation & Launch Trial */}
-            {step === 9 && (
+            {/* Step 10: Confirmation & Launch Trial */}
+            {step === 10 && (
               <div className="text-center py-2">
                 {/* Checkmark Circle (Fixed dimensions to prevent stretching) */}
                 <div
@@ -782,6 +905,45 @@ export function OnboardingModal({ isOpen, onClose, onComplete }: OnboardingModal
                       </span>
                     )}
                   </div>
+
+                  <div
+                    className="d-flex align-items-center justify-content-between py-2 border-bottom"
+                    style={{ borderColor: "rgba(255, 255, 255, 0.06)" }}
+                  >
+                    <span className="text-secondary small">Telegram API ID / Hash:</span>
+                    {telegramApiId ? (
+                      <span
+                        className="small px-2 py-0.5 rounded fw-medium"
+                        style={{
+                          backgroundColor: "rgba(16, 185, 129, 0.15)",
+                          color: "#10b981",
+                          fontSize: "0.78rem",
+                        }}
+                      >
+                        ID: {telegramApiId} {telegramApiHash ? "• Hash: ✓" : ""}
+                      </span>
+                    ) : (
+                      <span
+                        className="small px-2 py-0.5 rounded text-secondary"
+                        style={{
+                          backgroundColor: "rgba(255, 255, 255, 0.06)",
+                          fontSize: "0.78rem",
+                        }}
+                      >
+                        Sozlamalardan kiritiladi
+                      </span>
+                    )}
+                  </div>
+
+                  {adminChatId && (
+                    <div
+                      className="d-flex align-items-center justify-content-between py-2 border-bottom"
+                      style={{ borderColor: "rgba(255, 255, 255, 0.06)" }}
+                    >
+                      <span className="text-secondary small">Admin Chat ID:</span>
+                      <span className="font-monospace small text-white">{adminChatId}</span>
+                    </div>
+                  )}
 
                   <div
                     className="d-flex align-items-center justify-content-between py-2 border-bottom"

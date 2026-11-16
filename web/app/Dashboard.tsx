@@ -695,6 +695,11 @@ function DashboardContent({
   const [botTokenVerifying, setBotTokenVerifying] = useState(false);
   const [botTokenResult, setBotTokenResult] = useState<any>(null);
   const [customPromptInput, setCustomPromptInput] = useState("");
+  const [telegramApiIdInput, setTelegramApiIdInput] = useState("");
+  const [telegramApiHashInput, setTelegramApiHashInput] = useState("");
+  const [telegramPhoneInput, setTelegramPhoneInput] = useState("");
+  const [adminChatIdInput, setAdminChatIdInput] = useState("");
+  const [showApiHash, setShowApiHash] = useState(false);
   const [webhookSetting, setWebhookSetting] = useState(false);
   const [webhookStatusChecking, setWebhookStatusChecking] = useState(false);
   const [webhookInfo, setWebhookInfo] = useState<any>(null);
@@ -1201,6 +1206,9 @@ function DashboardContent({
           if (currentOrgRes.custom_system_prompt) {
             setCustomPromptInput(currentOrgRes.custom_system_prompt);
           }
+          setTelegramApiIdInput(currentOrgRes.telegram_api_id ? String(currentOrgRes.telegram_api_id) : "");
+          setTelegramPhoneInput(currentOrgRes.telegram_phone || "");
+          setAdminChatIdInput(currentOrgRes.admin_chat_id || "");
         }
       } catch {}
 
@@ -1375,14 +1383,27 @@ function DashboardContent({
       if (botTokenInput.trim()) {
         payload.telegram_bot_token = botTokenInput.trim();
       }
+      if (telegramApiIdInput.trim()) {
+        payload.telegram_api_id = parseInt(telegramApiIdInput.trim(), 10);
+      }
+      if (telegramApiHashInput.trim()) {
+        payload.telegram_api_hash = telegramApiHashInput.trim();
+      }
+      if (telegramPhoneInput.trim()) {
+        payload.telegram_phone = telegramPhoneInput.trim();
+      }
+      if (adminChatIdInput.trim()) {
+        payload.admin_chat_id = adminChatIdInput.trim();
+      }
       const res = await api<any>(`/api/organizations/current?organization_id=${activeOrgId}`, {
         method: "PUT",
         body: JSON.stringify(payload),
       });
       if (res.organization) {
         setCurrentOrgDetails(res.organization);
-        setSuccess("Bot va AI sozlamalari muvaffaqiyatli saqlandi!");
+        setSuccess("Bot, Telegram API va AI sozlamalari muvaffaqiyatli saqlandi!");
         setBotTokenInput("");
+        setTelegramApiHashInput("");
         setBotTokenResult(null);
       }
     } catch (err: any) {
@@ -2629,6 +2650,16 @@ function DashboardContent({
                 webhookInfo={webhookInfo}
                 customPromptInput={customPromptInput}
                 setCustomPromptInput={setCustomPromptInput}
+                telegramApiIdInput={telegramApiIdInput}
+                setTelegramApiIdInput={setTelegramApiIdInput}
+                telegramApiHashInput={telegramApiHashInput}
+                setTelegramApiHashInput={setTelegramApiHashInput}
+                telegramPhoneInput={telegramPhoneInput}
+                setTelegramPhoneInput={setTelegramPhoneInput}
+                adminChatIdInput={adminChatIdInput}
+                setAdminChatIdInput={setAdminChatIdInput}
+                showApiHash={showApiHash}
+                setShowApiHash={setShowApiHash}
                 onSaveBotSettings={handleSaveBotSettings}
                 savingOrgSettings={savingOrgSettings}
                 logoUrl={logoUrl}

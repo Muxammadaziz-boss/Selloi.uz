@@ -370,6 +370,10 @@ async def create_organization_with_trial(
     trial_days: int = 7,
     telegram_bot_token: str | None = None,
     telegram_channel: str | None = None,
+    telegram_api_id: int | None = None,
+    telegram_api_hash: str | None = None,
+    telegram_phone: str | None = None,
+    admin_chat_id: str | None = None,
     ai_language: str = "uz",
     ai_personality: str | None = None,
     custom_system_prompt: str | None = None,
@@ -387,6 +391,7 @@ async def create_organization_with_trial(
 
     webhook_secret = secrets.token_urlsafe(32)
     encrypted_token = encrypt_secret(telegram_bot_token.strip()) if telegram_bot_token and telegram_bot_token.strip() else None
+    encrypted_api_hash = encrypt_secret(telegram_api_hash.strip()) if telegram_api_hash and telegram_api_hash.strip() else None
 
     org = Organization(
         name=name.strip(),
@@ -399,6 +404,10 @@ async def create_organization_with_trial(
         custom_system_prompt=custom_system_prompt,
         telegram_bot_token=encrypted_token,
         webhook_secret=webhook_secret,
+        telegram_api_id=telegram_api_id,
+        telegram_api_hash=encrypted_api_hash,
+        telegram_phone=telegram_phone.strip() if telegram_phone else None,
+        admin_chat_id=str(admin_chat_id).strip() if admin_chat_id else None,
     )
     db.add(org)
     await db.flush()
@@ -524,6 +533,10 @@ async def get_organization_details(db: AsyncSession, organization_id: int) -> di
         "telegram_bot_token_set": bool(org.telegram_bot_token),
         "webhook_secret_set": bool(org.webhook_secret),
         "webhook_url": f"{settings.public_webhook_url.rstrip('/')}/telegram/webhook/{org.slug}" if settings.public_webhook_url else None,
+        "telegram_api_id": org.telegram_api_id,
+        "telegram_api_hash_set": bool(org.telegram_api_hash),
+        "telegram_phone": org.telegram_phone,
+        "admin_chat_id": org.admin_chat_id,
         "retention_days": org.retention_days,
         "created_at": org.created_at.isoformat() if org.created_at else None,
         "subscription": {

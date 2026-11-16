@@ -68,12 +68,25 @@ class Organization(Base):
     telegram_bot_token: Mapped[str | None] = mapped_column(Text, nullable=True, unique=True)
     webhook_secret: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
+    # Telegram MTProto / User Client credentials & Owner chat ID (per-store isolation)
+    telegram_api_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    telegram_api_hash: Mapped[str | None] = mapped_column(Text, nullable=True)  # Fernet encrypted
+    telegram_phone: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    admin_chat_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
     @property
     def decrypted_bot_token(self) -> str | None:
         if not self.telegram_bot_token:
             return None
         from app.core.security import decrypt_secret
         return decrypt_secret(self.telegram_bot_token)
+
+    @property
+    def decrypted_api_hash(self) -> str | None:
+        if not self.telegram_api_hash:
+            return None
+        from app.core.security import decrypt_secret
+        return decrypt_secret(self.telegram_api_hash)
 
     @property
     def decrypted_openai_api_key(self) -> str | None:

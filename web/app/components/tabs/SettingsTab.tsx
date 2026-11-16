@@ -12,6 +12,10 @@ import {
   IconRefresh,
   IconActivity,
   IconPhoto,
+  IconId,
+  IconShieldLock,
+  IconPhone,
+  IconMessageDots,
 } from "@tabler/icons-react";
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
 import { Badge } from "../ui/Badge";
@@ -49,6 +53,16 @@ export interface SettingsTabProps {
   webhookInfo: any;
   customPromptInput: string;
   setCustomPromptInput: (p: string) => void;
+  telegramApiIdInput?: string;
+  setTelegramApiIdInput?: (id: string) => void;
+  telegramApiHashInput?: string;
+  setTelegramApiHashInput?: (hash: string) => void;
+  telegramPhoneInput?: string;
+  setTelegramPhoneInput?: (phone: string) => void;
+  adminChatIdInput?: string;
+  setAdminChatIdInput?: (id: string) => void;
+  showApiHash?: boolean;
+  setShowApiHash?: (b: boolean) => void;
   onSaveBotSettings: () => void;
   savingOrgSettings: boolean;
   logoUrl: string;
@@ -87,6 +101,16 @@ export function SettingsTab({
   webhookInfo,
   customPromptInput,
   setCustomPromptInput,
+  telegramApiIdInput = "",
+  setTelegramApiIdInput = () => {},
+  telegramApiHashInput = "",
+  setTelegramApiHashInput = () => {},
+  telegramPhoneInput = "",
+  setTelegramPhoneInput = () => {},
+  adminChatIdInput = "",
+  setAdminChatIdInput = () => {},
+  showApiHash = false,
+  setShowApiHash = () => {},
   onSaveBotSettings,
   savingOrgSettings,
   logoUrl,
@@ -345,6 +369,89 @@ export function SettingsTab({
                     </div>
                   </div>
                 )}
+
+                {/* Telegram MTProto / User Client & Chat Settings */}
+                <div className="pt-2 border-top" style={{ borderColor: "var(--border-subtle)" }}>
+                  <div className="d-flex align-items-center justify-content-between mb-2">
+                    <span className="fw-semibold text-primary small d-flex align-items-center gap-1.5">
+                      <IconId size={16} className="text-accent" />
+                      Telegram API & Foydalanuvchi Sozlamalari (my.telegram.org)
+                    </span>
+                    {currentOrgDetails?.telegram_api_hash_set && (
+                      <Badge variant="success" dot>API Hash O&apos;rnatilgan</Badge>
+                    )}
+                  </div>
+
+                  <div className="row g-2 mb-2">
+                    <div className="col-12 col-md-6">
+                      <label className="text-secondary small d-block mb-1" style={{ fontSize: "0.78rem" }}>
+                        Telegram API ID (App api_id)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Masalan: 20400123"
+                        value={telegramApiIdInput}
+                        onChange={(e) => setTelegramApiIdInput(e.target.value.replace(/[^0-9]/g, ""))}
+                        className="linear-input font-monospace w-100"
+                        style={{ fontSize: "0.82rem" }}
+                      />
+                    </div>
+                    <div className="col-12 col-md-6">
+                      <label className="text-secondary small d-block mb-1" style={{ fontSize: "0.78rem" }}>
+                        Telegram API HASH (App api_hash)
+                      </label>
+                      <div className="d-flex gap-1.5">
+                        <input
+                          type={showApiHash ? "text" : "password"}
+                          placeholder={currentOrgDetails?.telegram_api_hash_set ? "••••••••••••••••••••••••••••••••" : "0123456789abcdef0123456789abcdef"}
+                          value={telegramApiHashInput}
+                          onChange={(e) => setTelegramApiHashInput(e.target.value)}
+                          className="linear-input font-monospace flex-grow-1"
+                          style={{ fontSize: "0.82rem" }}
+                        />
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => setShowApiHash(!showApiHash)}
+                          icon={showApiHash ? <IconEyeOff size={14} /> : <IconEye size={14} />}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="row g-2">
+                    <div className="col-12 col-md-6">
+                      <label className="text-secondary small d-block mb-1" style={{ fontSize: "0.78rem" }}>
+                        Bog&apos;langan Telefon Raqam (User session)
+                      </label>
+                      <input
+                        type="tel"
+                        placeholder="+998901234567"
+                        value={telegramPhoneInput}
+                        onChange={(e) => setTelegramPhoneInput(e.target.value)}
+                        className="linear-input font-monospace w-100"
+                        style={{ fontSize: "0.82rem" }}
+                      />
+                    </div>
+                    <div className="col-12 col-md-6">
+                      <label className="text-secondary small d-block mb-1" style={{ fontSize: "0.78rem" }}>
+                        Admin Chat ID (Xabarnoma & Buyurtmalar)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Masalan: 6990611858"
+                        value={adminChatIdInput}
+                        onChange={(e) => setAdminChatIdInput(e.target.value.replace(/[^0-9-]/g, ""))}
+                        className="linear-input font-monospace w-100"
+                        style={{ fontSize: "0.82rem" }}
+                      />
+                    </div>
+                  </div>
+                  <div className="text-secondary small mt-1.5" style={{ fontSize: "0.72rem" }}>
+                    💡 API ID/Hash: <a href="https://my.telegram.org" target="_blank" rel="noreferrer" className="text-primary text-decoration-underline">my.telegram.org</a> saytidan olinadi. Admin Chat ID: Telegram&apos;da <code>@userinfobot</code> orqali bilib olinadi.
+                  </div>
+                </div>
 
                 {/* System Prompt Textarea */}
                 <div>
