@@ -131,31 +131,66 @@ export function OnboardingModal({ isOpen, onClose, onComplete }: OnboardingModal
     <div
       className="modal modal-blur fade show d-block"
       tabIndex={-1}
-      style={{ backgroundColor: "rgba(0,0,0,0.75)", zIndex: 1060 }}
+      style={{ backgroundColor: "rgba(0,0,0,0.8)", zIndex: 1060, backdropFilter: "blur(4px)" }}
     >
       <div className="modal-dialog modal-dialog-centered modal-lg">
-        <div className="modal-content shadow-lg border border-secondary border-opacity-25" style={{ borderRadius: 18 }}>
+        <div
+          className="modal-content shadow-lg border"
+          style={{
+            backgroundColor: "var(--bg-surface, #0f141c)",
+            borderColor: "var(--border-default, rgba(255, 255, 255, 0.12))",
+            borderRadius: "16px",
+            boxShadow: "0 24px 64px rgba(0, 0, 0, 0.75)",
+            overflow: "hidden",
+          }}
+        >
           {/* Header */}
-          <div className="modal-header py-3 px-4 d-flex align-items-center justify-content-between border-bottom border-secondary border-opacity-10">
+          <div
+            className="modal-header py-3 px-4 d-flex align-items-center justify-content-between border-bottom"
+            style={{
+              borderColor: "var(--border-subtle, rgba(255, 255, 255, 0.08))",
+              backgroundColor: "var(--bg-surface-elevated, #161b22)",
+            }}
+          >
             <div className="d-flex align-items-center gap-2.5">
-              <div className="p-2 bg-primary-lt rounded-2">
-                <IconSparkles size={20} className="text-primary" />
+              <div
+                className="rounded-2 d-flex align-items-center justify-content-center"
+                style={{
+                  width: "36px",
+                  height: "36px",
+                  backgroundColor: "var(--accent-subtle, rgba(99, 102, 241, 0.15))",
+                  border: "1px solid rgba(99, 102, 241, 0.3)",
+                }}
+              >
+                <IconSparkles size={18} style={{ color: "var(--accent, #6366f1)" }} />
               </div>
               <div>
-                <h4 className="modal-title fw-bold mb-0 text-white">Yangi Do'kon Ochish (SaaS Onboarding)</h4>
-                <span className="text-secondary small">
+                <h4 className="modal-title fw-bold mb-0 text-white" style={{ fontSize: "1.05rem" }}>
+                  Yangi Do&apos;kon Ochish (SaaS Onboarding)
+                </h4>
+                <div className="text-secondary small" style={{ fontSize: "0.75rem" }}>
                   Bosqich {step} / {totalSteps} • 7 kunlik bepul sinov
-                </span>
+                </div>
               </div>
             </div>
-            <button type="button" className="btn-close" onClick={onClose} disabled={busy} />
+            <button
+              type="button"
+              className="btn-close btn-close-white"
+              onClick={onClose}
+              disabled={busy}
+              aria-label="Yopish"
+            />
           </div>
 
           {/* Progress Bar */}
-          <div className="progress progress-xs rounded-0 bg-dark">
+          <div style={{ height: "3px", backgroundColor: "rgba(255, 255, 255, 0.08)", width: "100%" }}>
             <div
-              className="progress-bar bg-primary"
-              style={{ width: `${(step / totalSteps) * 100}%`, transition: "width 0.3s ease" }}
+              style={{
+                height: "100%",
+                width: `${(step / totalSteps) * 100}%`,
+                background: "linear-gradient(90deg, #6366f1, #8b5cf6, #ec4899)",
+                transition: "width 0.3s ease",
+              }}
             />
           </div>
 
@@ -467,9 +502,9 @@ export function OnboardingModal({ isOpen, onClose, onComplete }: OnboardingModal
             {step === 8 && (
               <div className="space-y-3">
                 <div className="text-center py-2 mb-3">
-                  <h3 className="fw-bold text-white mb-1">8. Boshlang'ich Tarifni Tanlang</h3>
+                  <h3 className="fw-bold text-white mb-1">8. Boshlang&apos;ich Tarifni Tanlang</h3>
                   <p className="text-secondary small">
-                    Har bir yangi biznes uchun <strong>7 kunlik bepul sinov muddati</strong> taqdim etiladi!
+                    Har bir yangi biznes uchun <strong className="text-white">7 kunlik bepul sinov muddati</strong> taqdim etiladi!
                   </p>
                 </div>
                 <div className="row g-3">
@@ -477,67 +512,177 @@ export function OnboardingModal({ isOpen, onClose, onComplete }: OnboardingModal
                     { code: "start", name: "START", price: "$19/oy", desc: "1,000 AI xabar, 1 kanal, 2 operator" },
                     { code: "pro", name: "PRO (Ommabop)", price: "$59/oy", desc: "7,500 AI xabar, Vision, RAG, 10 operator" },
                     { code: "ultra", name: "ULTRA", price: "$149/oy", desc: "30,000 AI xabar, Premium AI, 50 operator" },
-                  ].map((pl) => (
-                    <div key={pl.code} className="col-md-4">
-                      <div
-                        className={`p-3.5 rounded-3 border h-100 d-flex flex-column justify-content-between transition-all ${
-                          planCode === pl.code
-                            ? "border-primary bg-primary-lt"
-                            : "border-secondary border-opacity-15 bg-body-tertiary"
-                        }`}
-                        onClick={() => setPlanCode(pl.code)}
-                        style={{ cursor: "pointer" }}
-                      >
-                        <div>
-                          <div className="d-flex align-items-center justify-content-between mb-1">
-                            <span className="fw-bold text-white font-monospace">{pl.name}</span>
-                            {planCode === pl.code && <IconCheck size={18} className="text-primary" />}
+                  ].map((pl) => {
+                    const isSelected = planCode === pl.code;
+                    return (
+                      <div key={pl.code} className="col-md-4">
+                        <div
+                          className="p-3.5 rounded-3 border h-100 d-flex flex-column justify-content-between transition-all"
+                          onClick={() => setPlanCode(pl.code)}
+                          style={{
+                            cursor: "pointer",
+                            backgroundColor: isSelected ? "rgba(99, 102, 241, 0.12)" : "var(--bg-surface-elevated, #161b22)",
+                            borderColor: isSelected ? "var(--accent, #6366f1)" : "var(--border-default, rgba(255, 255, 255, 0.1))",
+                            boxShadow: isSelected ? "0 0 0 1px var(--accent, #6366f1), 0 8px 24px rgba(99, 102, 241, 0.25)" : "none",
+                            borderRadius: "12px",
+                          }}
+                        >
+                          <div>
+                            <div className="d-flex align-items-center justify-content-between mb-1.5">
+                              <span className="fw-bold text-white font-monospace">{pl.name}</span>
+                              {isSelected && <IconCheck size={18} style={{ color: "var(--accent, #6366f1)" }} />}
+                            </div>
+                            <div className="fs-3 fw-bold text-success font-monospace mb-2">{pl.price}</div>
+                            <p className="text-secondary small mb-0">{pl.desc}</p>
                           </div>
-                          <div className="fs-3 fw-bold text-success font-monospace mb-2">{pl.price}</div>
-                          <p className="text-secondary small mb-0">{pl.desc}</p>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
 
             {/* Step 9: Confirmation & Launch Trial */}
             {step === 9 && (
-              <div className="text-center py-4 space-y-3">
-                <div className="p-3 bg-green-lt text-green rounded-circle d-inline-flex mb-2">
-                  <IconCheck size={36} />
+              <div className="text-center py-2">
+                {/* Checkmark Circle (Fixed dimensions to prevent stretching) */}
+                <div
+                  className="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3"
+                  style={{
+                    width: "64px",
+                    height: "64px",
+                    minWidth: "64px",
+                    minHeight: "64px",
+                    backgroundColor: "rgba(16, 185, 129, 0.15)",
+                    border: "2px solid rgba(16, 185, 129, 0.4)",
+                    color: "#10b981",
+                    boxShadow: "0 0 24px rgba(16, 185, 129, 0.25)",
+                  }}
+                >
+                  <IconCheck size={32} stroke={2.5} />
                 </div>
-                <h2 className="fw-bold text-white mb-1">Barchasi Tayyor!</h2>
-                <p className="text-secondary small max-w-md mx-auto mb-4">
-                  Sizning <strong>{businessName || "Yangi Biznes"}</strong> do'koningiz uchun 7 kunlik to'liq bepul sinov muddati faollashtirilmoqda. Hech qanday karta talab etilmaydi.
+
+                <h2 className="fw-bold text-white mb-2" style={{ fontSize: "1.45rem", letterSpacing: "-0.02em" }}>
+                  Barchasi Tayyor!
+                </h2>
+                <p className="text-secondary small mx-auto mb-4" style={{ maxWidth: "440px", lineHeight: 1.55 }}>
+                  <strong className="text-white">{businessName || "Yangi Biznes"}</strong> do&apos;koni uchun 7 kunlik to&apos;liq bepul sinov muddati faollashtirilmoqda. Bank kartasi talab etilmaydi.
                 </p>
 
-                <div className="p-3 bg-dark rounded-3 border border-secondary border-opacity-20 text-start max-w-sm mx-auto small space-y-1 mb-4">
-                  <div className="d-flex justify-content-between">
-                    <span className="text-secondary">Do'kon nomi:</span>
-                    <strong className="text-white">{businessName || "Yangi Biznes"}</strong>
+                {/* Structured Summary Card */}
+                <div
+                  className="mx-auto text-start p-3.5 mb-3"
+                  style={{
+                    maxWidth: "460px",
+                    backgroundColor: "var(--bg-surface-elevated, #161b22)",
+                    border: "1px solid var(--border-default, rgba(255, 255, 255, 0.1))",
+                    borderRadius: "14px",
+                    boxShadow: "0 8px 24px rgba(0, 0, 0, 0.3)",
+                  }}
+                >
+                  <div
+                    className="d-flex align-items-center justify-content-between py-2 border-bottom"
+                    style={{ borderColor: "rgba(255, 255, 255, 0.06)" }}
+                  >
+                    <span className="text-secondary small">Do&apos;kon nomi:</span>
+                    <strong className="text-white small">{businessName || "Yangi Biznes"}</strong>
                   </div>
-                  <div className="d-flex justify-content-between">
-                    <span className="text-secondary">Havola (Slug):</span>
-                    <strong className="text-primary font-monospace">/t/{customSlug || "biznes"}</strong>
+
+                  <div
+                    className="d-flex align-items-center justify-content-between py-2 border-bottom"
+                    style={{ borderColor: "rgba(255, 255, 255, 0.06)" }}
+                  >
+                    <span className="text-secondary small">Havola (Slug):</span>
+                    <span
+                      className="font-monospace small px-2 py-0.5 rounded"
+                      style={{
+                        backgroundColor: "var(--accent-subtle, rgba(99, 102, 241, 0.15))",
+                        color: "var(--accent, #818cf8)",
+                        fontSize: "0.78rem",
+                      }}
+                    >
+                      /t/{customSlug || "biznes"}
+                    </span>
                   </div>
-                  <div className="d-flex justify-content-between">
-                    <span className="text-secondary">Soha:</span>
-                    <strong className="text-white">{category}</strong>
+
+                  <div
+                    className="d-flex align-items-center justify-content-between py-2 border-bottom"
+                    style={{ borderColor: "rgba(255, 255, 255, 0.06)" }}
+                  >
+                    <span className="text-secondary small">Faoliyat sohasi:</span>
+                    <strong className="text-white small">{category}</strong>
                   </div>
-                  <div className="d-flex justify-content-between">
-                    <span className="text-secondary">Telegram Bot:</span>
-                    <strong className="text-white">{botVerification.bot_username ? `@${botVerification.bot_username}` : (botToken ? "Kiritilgan" : "Sozlanmagan")}</strong>
+
+                  <div
+                    className="d-flex align-items-center justify-content-between py-2 border-bottom"
+                    style={{ borderColor: "rgba(255, 255, 255, 0.06)" }}
+                  >
+                    <span className="text-secondary small">Telegram Bot:</span>
+                    {botVerification.bot_username ? (
+                      <span
+                        className="small px-2 py-0.5 rounded fw-medium"
+                        style={{
+                          backgroundColor: "rgba(34, 158, 217, 0.15)",
+                          color: "#229ed9",
+                          fontSize: "0.78rem",
+                        }}
+                      >
+                        @{botVerification.bot_username}
+                      </span>
+                    ) : botToken ? (
+                      <span
+                        className="small px-2 py-0.5 rounded fw-medium"
+                        style={{
+                          backgroundColor: "rgba(16, 185, 129, 0.15)",
+                          color: "#10b981",
+                          fontSize: "0.78rem",
+                        }}
+                      >
+                        ✓ Kiritilgan
+                      </span>
+                    ) : (
+                      <span
+                        className="small px-2 py-0.5 rounded text-secondary"
+                        style={{
+                          backgroundColor: "rgba(255, 255, 255, 0.06)",
+                          fontSize: "0.78rem",
+                        }}
+                      >
+                        Keyinroq ulanadi
+                      </span>
+                    )}
                   </div>
-                  <div className="d-flex justify-content-between">
-                    <span className="text-secondary">Tanlangan tarif:</span>
-                    <strong className="text-primary text-uppercase">{planCode} Plan</strong>
+
+                  <div
+                    className="d-flex align-items-center justify-content-between py-2 border-bottom"
+                    style={{ borderColor: "rgba(255, 255, 255, 0.06)" }}
+                  >
+                    <span className="text-secondary small">Tanlangan tarif:</span>
+                    <span
+                      className="small px-2 py-0.5 rounded fw-bold text-uppercase"
+                      style={{
+                        backgroundColor: "rgba(139, 92, 246, 0.15)",
+                        color: "#a78bfa",
+                        fontSize: "0.78rem",
+                      }}
+                    >
+                      {planCode} PLAN
+                    </span>
                   </div>
-                  <div className="d-flex justify-content-between">
-                    <span className="text-secondary">Sinov muddati:</span>
-                    <strong className="text-success">7 kun bepul</strong>
+
+                  <div className="d-flex align-items-center justify-content-between py-2">
+                    <span className="text-secondary small">Sinov muddati:</span>
+                    <span
+                      className="small px-2 py-0.5 rounded fw-bold"
+                      style={{
+                        backgroundColor: "rgba(16, 185, 129, 0.15)",
+                        color: "#10b981",
+                        fontSize: "0.78rem",
+                      }}
+                    >
+                      7 kun bepul
+                    </span>
                   </div>
                 </div>
               </div>
@@ -545,13 +690,24 @@ export function OnboardingModal({ isOpen, onClose, onComplete }: OnboardingModal
           </div>
 
           {/* Footer Controls */}
-          <div className="modal-footer py-3 px-4 d-flex align-items-center justify-content-between border-top border-secondary border-opacity-10">
+          <div
+            className="modal-footer py-3 px-4 d-flex align-items-center justify-content-between border-top"
+            style={{
+              borderColor: "var(--border-subtle, rgba(255, 255, 255, 0.08))",
+              backgroundColor: "var(--bg-surface-elevated, #161b22)",
+            }}
+          >
             {step > 1 ? (
               <button
                 type="button"
-                className="btn btn-outline-secondary d-flex align-items-center gap-1.5"
+                className="btn btn-outline-secondary d-flex align-items-center gap-1.5 px-3 py-2"
                 onClick={handleBack}
                 disabled={busy}
+                style={{
+                  borderRadius: "8px",
+                  borderColor: "var(--border-default, rgba(255, 255, 255, 0.15))",
+                  color: "var(--text-secondary, #94a3b8)",
+                }}
               >
                 <IconArrowLeft size={16} />
                 <span>Orqaga</span>
@@ -562,16 +718,25 @@ export function OnboardingModal({ isOpen, onClose, onComplete }: OnboardingModal
 
             <button
               type="button"
-              className="btn btn-primary d-flex align-items-center gap-1.5 px-4 py-2 fw-bold"
+              className="btn btn-primary d-flex align-items-center gap-2 px-4 py-2 fw-semibold"
               onClick={handleNext}
               disabled={busy || (step === 1 && !businessName.trim())}
+              style={{
+                borderRadius: "8px",
+                background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)",
+                border: "none",
+                boxShadow: "0 4px 14px rgba(99, 102, 241, 0.4)",
+              }}
             >
               {busy ? (
-                <span>Do'kon ochilmoqda...</span>
+                <>
+                  <span className="spinner-border spinner-border-sm" />
+                  <span>Do&apos;kon ochilmoqda...</span>
+                </>
               ) : step === totalSteps ? (
                 <>
                   <IconSparkles size={16} />
-                  <span>Do'konni Ochish & Sinovni Boshlash</span>
+                  <span>Do&apos;konni Ochish & Sinovni Boshlash</span>
                 </>
               ) : (
                 <>
