@@ -1,7 +1,7 @@
 # Phase 0: Security Lockdown and Tenant Isolation : Implementation Report
 
 **Project:** AI Sales Control Center  
-**Repository:** https://github.com/Muxammadaziz-boss/Telegram-Ai-saller.git  
+**Repository:** https://github.com/Muxammadaziz-boss/Selloi.uz.git  
 **Branch:** `security/phase-0-tenant-isolation`  
 **Date:** November 2026  
 **Status:** COMPLETE & VERIFIED (15/15 Security Tests Passing, 16/16 Regression Tests Passing, Next.js Build 0 Errors)

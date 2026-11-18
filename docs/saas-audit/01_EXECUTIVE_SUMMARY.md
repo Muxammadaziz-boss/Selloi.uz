@@ -1,7 +1,7 @@
 # AI SALES CONTROL CENTER : EXECUTIVE SUMMARY & SaaS READINESS AUDIT
 
 **Project:** AI Sales Control Center  
-**Repository:** `https://github.com/Muxammadaziz-boss/Telegram-Ai-saller.git`  
+**Repository:** `https://github.com/Muxammadaziz-boss/Selloi.uz.git`  
 **Branch Audited:** `main`  
 **Audit Date:** November 2026  
 **Auditor:** Principal Enterprise Architect & SaaS Security Review Board  

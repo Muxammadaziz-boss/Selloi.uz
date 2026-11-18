@@ -50,11 +50,12 @@ jobs:
           echo "ENCRYPTION_KEY=${CI_ENC_KEY}" >> $GITHUB_ENV
           echo "TELEGRAM_WEBHOOK_SECRET=${CI_TG_SECRET}" >> $GITHUB_ENV
           echo "TELEGRAM_BOT_TOKEN=${CI_TG_BOT_TOKEN}" >> $GITHUB_ENV
+          echo "ADMIN_TELEGRAM_ID=999888777" >> $GITHUB_ENV
           echo "DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/test_ci_db" >> $GITHUB_ENV
 
       - name: Validate Required CI Credentials
         run: |
-          for var in JWT_SECRET ADMIN_API_TOKEN ENCRYPTION_KEY TELEGRAM_WEBHOOK_SECRET TELEGRAM_BOT_TOKEN DATABASE_URL; do
+          for var in JWT_SECRET ADMIN_API_TOKEN ENCRYPTION_KEY TELEGRAM_WEBHOOK_SECRET TELEGRAM_BOT_TOKEN ADMIN_TELEGRAM_ID DATABASE_URL; do
             if [ -z "${!var}" ]; then
               echo "::error::CI environment variable $var is missing or empty."
               exit 1
@@ -162,13 +163,14 @@ jobs:
           echo "TELEGRAM_WEBHOOK_SECRET=${CI_TG_SECRET}" >> $GITHUB_ENV
           echo "DASHBOARD_PASSWORD=${CI_DASHBOARD_PWD}" >> $GITHUB_ENV
           echo "TELEGRAM_BOT_TOKEN=${CI_TG_BOT_TOKEN}" >> $GITHUB_ENV
+          echo "ADMIN_TELEGRAM_ID=999888777" >> $GITHUB_ENV
           echo "DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/test_ci_db" >> $GITHUB_ENV
           echo "BACKEND_URL=http://127.0.0.1:8000" >> $GITHUB_ENV
           echo "TEST_DASHBOARD_PASSWORD=${CI_DASHBOARD_PWD}" >> $GITHUB_ENV
 
       - name: Validate Required CI Credentials
         run: |
-          for var in JWT_SECRET SESSION_SECRET ADMIN_API_TOKEN ENCRYPTION_KEY TELEGRAM_WEBHOOK_SECRET DASHBOARD_PASSWORD TELEGRAM_BOT_TOKEN DATABASE_URL; do
+          for var in JWT_SECRET SESSION_SECRET ADMIN_API_TOKEN ENCRYPTION_KEY TELEGRAM_WEBHOOK_SECRET DASHBOARD_PASSWORD TELEGRAM_BOT_TOKEN ADMIN_TELEGRAM_ID DATABASE_URL; do
             if [ -z "${!var}" ]; then
               echo "::error::CI environment variable $var is missing or empty."
               exit 1
