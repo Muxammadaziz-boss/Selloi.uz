@@ -38,11 +38,11 @@ cp web/.env.example web/.env
 nano .env
 ```
 Faylda quyidagilarni to'ldiring:
-- `TELEGRAM_BOT_TOKEN` — BotFather'dan olingan bot tokeni.
-- `PUBLIC_WEBHOOK_URL` — Serveringiz domeni (masalan: `https://api.myshop.uz`).
-- `GEMINI_API_KEY` — Google AI Studio'dan olingan bepul API kalit.
-- `POSTGRES_PASSWORD` — Xavfsiz kuchli parol.
-- `DASHBOARD_PASSWORD` — Admin paneliga kirish paroli.
+- `TELEGRAM_BOT_TOKEN`: BotFather orqali olingan bot tokeni.
+- `PUBLIC_WEBHOOK_URL`: Serveringiz domeni (masalan: `https://selloi.uz`).
+- `GEMINI_API_KEY`: Google AI Studio orqali olingan API kalit.
+- `POSTGRES_PASSWORD`: Xavfsiz kuchli parol.
+- `DASHBOARD_PASSWORD`: Admin paneliga kirish paroli.
 
 ### 4-QADAM: Avtomatik Docker orqali ishga tushirish
 Biz tayyorlagan avtomatik skriptni ishga tushiring:

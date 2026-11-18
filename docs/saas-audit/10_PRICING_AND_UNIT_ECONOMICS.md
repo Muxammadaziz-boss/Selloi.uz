@@ -1,4 +1,4 @@
-# AI SALES CONTROL CENTER — PRICING ARCHITECTURE & UNIT ECONOMICS MODEL
+# AI SALES CONTROL CENTER : PRICING ARCHITECTURE & UNIT ECONOMICS MODEL
 
 **Document:** `docs/saas-audit/10_PRICING_AND_UNIT_ECONOMICS.md`  
 **Purpose:** Quantitative financial analysis, COGS (Cost of Goods Sold) modeling, Gemini API cost estimation, gross margin calculation, and pricing sustainability assessment.
@@ -108,7 +108,7 @@ We evaluate each plan under two scenarios:
 
 ## 4. Margin Collapse Vulnerabilities & Fair-Use Safeguards
 
-Despite the outstanding modeled margins (88%–93%), the platform is exposed to severe financial loss under the following conditions:
+Despite the outstanding modeled margins (88%-93%), the platform is exposed to severe financial loss under the following conditions:
 
 1. **Unmetered Infinite Chat Loops:**
    * *The Threat:* If a customer's automated Telegram bot begins talking to the merchant's AI Sales Assistant, both bots could message each other back and forth indefinitely.

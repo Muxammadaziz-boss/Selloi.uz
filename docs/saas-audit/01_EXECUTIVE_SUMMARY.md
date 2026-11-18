@@ -1,4 +1,4 @@
-# AI SALES CONTROL CENTER — EXECUTIVE SUMMARY & SaaS READINESS AUDIT
+# AI SALES CONTROL CENTER : EXECUTIVE SUMMARY & SaaS READINESS AUDIT
 
 **Project:** AI Sales Control Center  
 **Repository:** `https://github.com/Muxammadaziz-boss/Telegram-Ai-saller.git`  
@@ -13,9 +13,9 @@
 
 The **AI Sales Control Center** is currently an **advanced single-tenant proof-of-concept (POC) / early beta system** that has had preliminary multi-tenant database models and initial SaaS endpoints bolted onto it, but **lacks true architectural tenant isolation, secure user authentication, robust background processing, and commercial reliability**.
 
-While core vertical features—such as Telegram Business message listening, Gemini-powered sales conversations, intent detection, and local vector similarity search (`pgvector`)—are functioning for a single business owner (Telegram ID `6990611858`), **the system cannot be safely operated as a multi-tenant commercial SaaS in its present state**. Exposing the platform to external paying customers today would lead to immediate cross-tenant data leaks (IDOR), security compromises, and margin collapse under unmetered AI usage.
+While core vertical features - such as Telegram Business message listening, Gemini-powered sales conversations, intent detection, and local vector similarity search (`pgvector`) - are functioning for a single business owner (Telegram ID `6990611858`), **the system cannot be safely operated as a multi-tenant commercial SaaS in its present state**. Exposing the platform to external paying customers today would lead to immediate cross-tenant data leaks (IDOR), security compromises, and margin collapse under unmetered AI usage.
 
-### Maturity Radar Scorecard (0 – 100 Scale)
+### Maturity Radar Scorecard (0 - 100 Scale)
 
 | Architectural Dimension | Score | Rating | Primary Finding |
 | :--- | :---: | :---: | :--- |
@@ -34,23 +34,23 @@ While core vertical features—such as Telegram Business message listening, Gemi
 
 ## 2. Top Architectural & Security Risks (Red Flag Summary)
 
-1. **Telegram Webhook Secret Bypass (Vulnerability: Critical — CVSS 9.8):**
-   * *Location:* `app/api/webhooks.py` lines 446–450.
+1. **Telegram Webhook Secret Bypass (Vulnerability: Critical : CVSS 9.8):**
+   * *Location:* `app/api/webhooks.py` lines 446-450.
    * *Vulnerability:* The secret check is guarded by `if expected and x_telegram_bot_api_secret_token:`. If an external attacker omits the `X-Telegram-Bot-Api-Secret-Token` header completely, the check is bypassed, allowing forged messages, fake customer orders, and unauthorized AI invocations.
-2. **Global Admin Header Impersonation & Escalation (Vulnerability: Critical — CVSS 9.8):**
-   * *Location:* `app/api/admin.py` lines 44–51 & `web/app/api/proxy/route.ts` lines 18–25.
+2. **Global Admin Header Impersonation & Escalation (Vulnerability: Critical : CVSS 9.8):**
+   * *Location:* `app/api/admin.py` lines 44-51 & `web/app/api/proxy/route.ts` lines 18-25.
    * *Vulnerability:* Supplying `X-Admin-Telegram-ID: 6990611858` directly to FastAPI logs in as the Master Admin. Furthermore, Next.js proxy automatically appends the master `X-Admin-Token` to every request and accepts arbitrary `X-Organization-Id` from client headers.
-3. **Cross-Tenant Data Exposure & IDOR in Live Inbox (Vulnerability: Critical — CVSS 9.1):**
-   * *Location:* `app/api/admin.py` lines 85–150 (`/admin/overview`, `/admin/conversations`, `/admin/conversations/{id}/messages`).
+3. **Cross-Tenant Data Exposure & IDOR in Live Inbox (Vulnerability: Critical : CVSS 9.1):**
+   * *Location:* `app/api/admin.py` lines 85-150 (`/admin/overview`, `/admin/conversations`, `/admin/conversations/{id}/messages`).
    * *Vulnerability:* Queries lack `WHERE organization_id = :org_id`. Any logged-in business operator can inspect other organizations' conversations, customer identities, and take over or reply to another company's active customer chats.
 4. **Channel Ingestion Fragility & Sync Lock:**
-   * *Location:* `app/services/knowledge.py` lines 225–314.
+   * *Location:* `app/services/knowledge.py` lines 225-314.
    * *Vulnerability:* Scraping public channel previews via HTTP GET to `https://t.me/s/{channel}` captures only the last 20 posts. Private channels cannot be read. In `sync_all_channels()`, `organization_id=1` is hardcoded.
 5. **Transient In-Memory Background Tasks:**
    * *Location:* `app/api/webhooks.py` lines 365, 410, 428 (`asyncio.create_task()`).
    * *Vulnerability:* Background tasks run in the ephemeral FastAPI event loop without persistence. If the container restarts or crashes during AI processing, messages are permanently lost and Telegram is never notified because HTTP 200 OK was already returned.
 6. **Schema Drift and Alembic Disconnect:**
-   * *Location:* `app/main.py` lines 45–95 vs `alembic/versions/3d38b39cf960_init_schema.py`.
+   * *Location:* `app/main.py` lines 45-95 vs `alembic/versions/3d38b39cf960_init_schema.py`.
    * *Vulnerability:* Startup lifecycle executes non-standard raw SQL DDL statements (`ALTER TABLE ... ADD COLUMN IF NOT EXISTS`) to patch missing tables and columns. Alembic cannot reproduce or rollback the actual production database state.
 
 ---

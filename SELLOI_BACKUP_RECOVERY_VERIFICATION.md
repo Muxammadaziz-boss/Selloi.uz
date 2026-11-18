@@ -1,4 +1,4 @@
-# SELLOI.UZ — Backup & Disaster Recovery Verification Report
+# SELLOI.UZ : Backup & Disaster Recovery Verification Report
 
 **System:** Selloi Production Environment  
 **Database:** PostgreSQL 16.16 (pgvector) inside container `telegram_ai_seller-db-1`  
@@ -134,7 +134,7 @@ A non-destructive isolated restore validation was performed on the production se
 ## 4. Recovery Time & Point Objectives (RTO / RPO)
 
 - **Recovery Point Objective (RPO):** 24 hours (daily cron schedule at 03:00 UTC).
-- **Recovery Time Objective (RTO):** Approximately 5–10 minutes to decompress and stream SQL dump into PostgreSQL via `psql` and unpack the storage tarball.
+- **Recovery Time Objective (RTO):** Approximately 5-10 minutes to decompress and stream SQL dump into PostgreSQL via `psql` and unpack the storage tarball.
 
 ---
 

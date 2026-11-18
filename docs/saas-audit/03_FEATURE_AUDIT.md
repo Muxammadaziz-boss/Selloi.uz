@@ -1,4 +1,4 @@
-# AI SALES CONTROL CENTER — COMPREHENSIVE FEATURE AUDIT
+# AI SALES CONTROL CENTER : COMPREHENSIVE FEATURE AUDIT
 
 **Document:** `docs/saas-audit/03_FEATURE_AUDIT.md`  
 **Purpose:** Granular inspection and classification of every functional module across Backend, AI, Telegram, and Frontend.

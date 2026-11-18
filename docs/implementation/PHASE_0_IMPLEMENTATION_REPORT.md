@@ -1,4 +1,4 @@
-# Phase 0: Security Lockdown and Tenant Isolation — Implementation Report
+# Phase 0: Security Lockdown and Tenant Isolation : Implementation Report
 
 **Project:** AI Sales Control Center  
 **Repository:** https://github.com/Muxammadaziz-boss/Telegram-Ai-saller.git  
@@ -18,7 +18,7 @@ All vulnerabilities have been eliminated on the backend and gateway proxy layers
 
 ## 2. Security Vulnerabilities Addressed & Resolved
 
-### Task 1 — Telegram Webhook Authentication (`app/api/webhooks.py`)
+### Task 1 : Telegram Webhook Authentication (`app/api/webhooks.py`)
 - **Vulnerability:** Webhooks lacked constant-time secret comparison and permitted webhook ingestion when secrets were unconfigured or invalid.
 - **Resolution:**
   - Implemented mandatory secret validation using `hmac.compare_digest`.
@@ -27,7 +27,7 @@ All vulnerabilities have been eliminated on the backend and gateway proxy layers
   - Enforces fail-closed behavior in production (`is_production=True`) if `telegram_webhook_secret` is not configured (`500 Internal Server Error`).
   - Validation runs before any payload parsing or business processing.
 
-### Task 2 — Removal of Header-Based Admin Impersonation (`app/dependencies/auth.py`, `app/api/admin.py`)
+### Task 2 : Removal of Header-Based Admin Impersonation (`app/dependencies/auth.py`, `app/api/admin.py`)
 - **Vulnerability:** Authenticated operations trusted `X-Admin-Telegram-ID` header, permitting arbitrary identity spoofing. Insecure fallback dynamically synthesized an unpersisted "owner" admin with full permissions.
 - **Resolution:**
   - Completely removed `X-Admin-Telegram-ID` as an authentication mechanism.
@@ -35,7 +35,7 @@ All vulnerabilities have been eliminated on the backend and gateway proxy layers
   - Unauthenticated requests immediately return `401 Unauthorized`.
   - Removed unpersisted synthetic owner generation. Existing owner (`6990611858`) is resolved from the database or provisioned via persistent `ensure_owner(db)`.
 
-### Task 3 — Enforced Backend Tenant Isolation & IDOR Protection (`app/dependencies/tenant.py`, `app/api/admin.py`, `app/api/saas.py`)
+### Task 3 : Enforced Backend Tenant Isolation & IDOR Protection (`app/dependencies/tenant.py`, `app/api/admin.py`, `app/api/saas.py`)
 - **Vulnerability:** Endpoints defaulted to `organization_id=1` or trusted client-supplied `X-Organization-Id` without verifying membership. Operators could read, takeover, and reply to conversations of arbitrary tenants.
 - **Resolution:**
   - Created dependency `get_admin_tenant_id()` that extracts target tenant ID and checks caller's `OrganizationMember` membership.
@@ -52,7 +52,7 @@ All vulnerabilities have been eliminated on the backend and gateway proxy layers
     - `/admin/admins` (scoped by `organization_id`).
     - `/admin/settings` (scoped by `organization_id`).
 
-### Task 4 — Next.js Gateway Proxy Security (`web/lib/session.ts`, `web/app/api/proxy/route.ts`, `web/app/api/login/route.ts`)
+### Task 4 : Next.js Gateway Proxy Security (`web/lib/session.ts`, `web/app/api/proxy/route.ts`, `web/app/api/login/route.ts`)
 - **Vulnerability:** Gateway proxy forwarded universal master-token (`ADMIN_API_TOKEN`) for every request, accepted arbitrary client organization headers, and bypassed authentication for `/admin/users/*/avatar`.
 - **Resolution:**
   - Implemented identity-bound session tokens containing `userId`, `telegramUserId`, `role`, and `organizationId` signed via HMAC-SHA256 (`session.ts`).
@@ -60,7 +60,7 @@ All vulnerabilities have been eliminated on the backend and gateway proxy layers
   - Proxy signs and forwards a scoped Bearer JWT with the user's verified identity to the backend rather than forwarding universal master privileges.
   - Proxy strictly binds `X-Organization-Id` to verified organization context.
 
-### Task 5 — Production Secret Validation (`app/core/config.py`)
+### Task 5 : Production Secret Validation (`app/core/config.py`)
 - **Vulnerability:** Application could boot in production with default secrets, missing JWT secret, or placeholder webhook tokens.
 - **Resolution:**
   - Added Pydantic `model_validator` in `app/core/config.py`.
@@ -88,7 +88,7 @@ All vulnerabilities have been eliminated on the backend and gateway proxy layers
 | `web/app/api/login/route.ts` | Modified | Issues identity-bound sessions with verified user ID, Telegram ID, and role. |
 | `web/app/api/proxy/route.ts` | Modified | Forwards identity-bound JWTs instead of master token; requires authentication for all paths. |
 | `web/.env.example` | Modified | Updated configuration documentation for session, JWT, and backend credentials. |
-| `tests/test_phase0_security.py` | Created | 15 comprehensive automated test scenarios validating Tasks 1–5. |
+| `tests/test_phase0_security.py` | Created | 15 comprehensive automated test scenarios validating Tasks 1-5. |
 
 ---
 

@@ -1,4 +1,4 @@
-# SELLOI.UZ — Remaining Risks & Security Roadmap
+# SELLOI.UZ : Remaining Risks & Security Roadmap
 
 **Target System:** `selloi.uz` / `www.selloi.uz`  
 **Assessment Date:** 2026-11-18  
@@ -103,8 +103,8 @@
 
 | Priority | Risk ID | Action Item | Target Timeline | Impact on System |
 | :---: | :---: | :--- | :---: | :---: |
-| **P1** | `RSK-INF-001` | Set up off-host backup synchronization to S3/Cloudflare R2 | 1–3 Days | Zero downtime; DR safety |
-| **P2** | `RSK-INF-002` | Add GPG / age encryption to the backup script | 1–3 Days | Zero downtime; data protection |
+| **P1** | `RSK-INF-001` | Set up off-host backup synchronization to S3/Cloudflare R2 | 1-3 Days | Zero downtime; DR safety |
+| **P2** | `RSK-INF-002` | Add GPG / age encryption to the backup script | 1-3 Days | Zero downtime; data protection |
 | **P3** | `RSK-APP-001` | Restrict `/docs` and `/openapi.json` behind HTTP Basic Auth | 1 Week | Developer access control |
 | **P4** | `RSK-OPS-001` | Connect external synthetic uptime monitoring & alerting | 1 Week | Proactive SRE notification |
 | **P5** | `RSK-CNT-001` | Migrate container Dockerfiles to non-root `USER` execution | Next Sprint | Container hardening |

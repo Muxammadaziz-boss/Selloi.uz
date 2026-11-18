@@ -1,4 +1,4 @@
-# AI SALES CONTROL CENTER — SaaS READINESS & MULTI-TENANCY AUDIT
+# AI SALES CONTROL CENTER : SaaS READINESS & MULTI-TENANCY AUDIT
 
 **Document:** `docs/saas-audit/04_SAAS_READINESS.md`  
 **Purpose:** Evaluate the system's readiness for commercial multi-tenant operation, identify isolation gaps, and define the necessary SaaS governance layer.
@@ -37,7 +37,7 @@ The most severe flaw discovered during the audit is that **the API routing and s
 | `GET /admin/settings` | Returns global system settings, exposing system-wide secrets. | `app/api/admin.py:230-245` | Isolate settings per tenant or create a dedicated tenant settings table. |
 
 ### The Root Cause: Header-Based Tenant Resolution
-In `app/api/saas.py` lines 73–87:
+In `app/api/saas.py` lines 73-87:
 ```python
 async def resolve_organization_id(
     x_organization_id: str | None = Header(default=None),

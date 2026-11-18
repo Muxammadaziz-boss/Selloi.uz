@@ -1,4 +1,4 @@
-# AI SALES CONTROL CENTER — PRODUCT OWNER DECISION MATRIX
+# AI SALES CONTROL CENTER : PRODUCT OWNER DECISION MATRIX
 
 **Document:** `docs/saas-audit/14_DECISIONS_REQUIRED.md`  
 **Purpose:** Unresolved business, architectural, and operational decisions requiring sign-off from the Product Owner.
@@ -45,7 +45,7 @@
 ### DEC-03: Free Trial Policy & Card Requirement
 * **Context:** The current system provides a 7-day trial upon organization creation.
 * **Options:**
-  * **Option A (Require Card Upfront):** Higher quality leads, lower fraud, but reduces sign-up conversion by 60%–70%.
+  * **Option A (Require Card Upfront):** Higher quality leads, lower fraud, but reduces sign-up conversion by 60%-70%.
   * **Option B (No Card Required Upfront - Recommended):** Maximum viral sign-ups. At day 7, AI auto-replies are suspended until the merchant enters payment.
 * **Impact:** Requires automated trial expiration check in Phase 5.
 
@@ -95,9 +95,9 @@
   * **Option A (Single High-Performance VPS - Recommended for Initial Launch):**
     * Hetzner Cloud CPX51 (8 vCPU, 32GB RAM, 240GB NVMe) = **~$35/month**.
     * Runs Docker Compose: Nginx + FastAPI + Celery Workers + Redis 7 + PostgreSQL 16 + Next.js SSR.
-    * Sufficient for the first 100–300 active paying businesses.
+    * Sufficient for the first 100-300 active paying businesses.
   * **Option B (Fully Managed Cloud - AWS / Google Cloud):**
-    * Cloud Run + Cloud SQL + ElastiCache Redis = **~$250–$400/month**.
+    * Cloud Run + Cloud SQL + ElastiCache Redis = **~$250-$400/month**.
     * Highly scalable, but significantly higher upfront operational overhead.
 * **Impact:** Dictates Phase 9 infrastructure configuration.
 

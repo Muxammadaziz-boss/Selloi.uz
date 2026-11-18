@@ -1,4 +1,4 @@
-# SELLOI.UZ — Independent Post-Hardening Security Verification Report
+# SELLOI.UZ : Independent Post-Hardening Security Verification Report
 
 **Target Platform:** `selloi.uz` / `www.selloi.uz`  
 **Host:** Oracle Cloud Infrastructure VPS (`129.146.163.171`), Ubuntu 26.04.1 LTS (aarch64)  

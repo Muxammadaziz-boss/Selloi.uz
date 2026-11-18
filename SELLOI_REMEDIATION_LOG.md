@@ -1,4 +1,4 @@
-# SELLOI.UZ — Security Remediation & Change Log
+# SELLOI.UZ : Security Remediation & Change Log
 
 **Target:** `selloi.uz` Production Server (`129.146.163.171`)  
 **Date:** 2026-11-18  

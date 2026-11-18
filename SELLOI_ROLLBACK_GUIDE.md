@@ -1,4 +1,4 @@
-# SELLOI.UZ — Production Infrastructure Rollback & Disaster Recovery Guide
+# SELLOI.UZ : Production Infrastructure Rollback & Disaster Recovery Guide
 
 **Target System:** `selloi.uz` / `www.selloi.uz`  
 **Host:** Oracle Cloud VPS (`129.146.163.171`), user: `ubuntu`  

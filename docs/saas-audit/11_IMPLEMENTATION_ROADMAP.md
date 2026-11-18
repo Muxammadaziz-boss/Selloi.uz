@@ -1,4 +1,4 @@
-# AI SALES CONTROL CENTER — SAAS TRANSFORMATION ROADMAP & WBS
+# AI SALES CONTROL CENTER : SAAS TRANSFORMATION ROADMAP & WBS
 
 **Document:** `docs/saas-audit/11_IMPLEMENTATION_ROADMAP.md`  
 **Purpose:** Actionable, phase-by-phase engineering implementation roadmap and Work Breakdown Structure (WBS).
@@ -22,7 +22,7 @@ flowchart TD
 
 ---
 
-## 2. Phase 0: Security Lockdown & Tenant Isolation (Priority: P0 — Immediate)
+## 2. Phase 0: Security Lockdown & Tenant Isolation (Priority: P0 : Immediate)
 
 ### T-0.1: Fix Telegram Webhook Secret Bypass
 * **Objective:** Ensure all inbound webhook calls strictly validate the `X-Telegram-Bot-Api-Secret-Token` header.
@@ -59,7 +59,7 @@ flowchart TD
 * **Definition of Done:** `alembic upgrade head` creates the complete multi-tenant database on a clean PostgreSQL instance without errors.
 
 ### T-1.2: Purge Startup DDL Hacks from `app/main.py`
-* **Objective:** Delete lines 45–95 in `app/main.py` that execute imperative `ALTER TABLE` statements.
+* **Objective:** Delete lines 45-95 in `app/main.py` that execute imperative `ALTER TABLE` statements.
 * **Target Files:** `app/main.py`
 * **Complexity:** S (2 hours) | **Priority:** P0 | **Dependencies:** T-1.1
 * **Definition of Done:** Server startup only tests connection readiness; zero runtime DDL executed.

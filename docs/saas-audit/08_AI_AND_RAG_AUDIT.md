@@ -1,4 +1,4 @@
-# AI SALES CONTROL CENTER — AI & RAG SUBSYSTEM AUDIT
+# AI SALES CONTROL CENTER : AI & RAG SUBSYSTEM AUDIT
 
 **Document:** `docs/saas-audit/08_AI_AND_RAG_AUDIT.md`  
 **Purpose:** Technical and architectural evaluation of the AI conversational engine, Gemini model integrations, prompt design, RAG pipeline, and channel knowledge scraping.
@@ -20,10 +20,10 @@ The primary entry points are `app/services/ai.py` (sales engine) and `app/servic
 
 ### 2.1 System Prompt Design & Localization
 * **Quality:** **High (8.5 / 10).**
-* **Location:** `app/services/ai.py` lines 42–110 (`SALES_ASSISTANT_SYSTEM_PROMPT`).
+* **Location:** `app/services/ai.py` lines 42-110 (`SALES_ASSISTANT_SYSTEM_PROMPT`).
 * **Strengths:**
   * Specifically customized for the Uzbekistan retail market (supports Uzbek in Latin script, Russian, and English).
-  * Directives emphasize polite, consultative selling (salutations, asking clarifying questions regarding customer needs, offering 2–3 specific options with exact prices).
+  * Directives emphasize polite, consultative selling (salutations, asking clarifying questions regarding customer needs, offering 2-3 specific options with exact prices).
   * Enforces active order closing (asking for recipient name, phone number, and delivery city once intent is confirmed).
   * Employs guardrails against hallucinating non-existent inventory: explicitly instructs the model to state if a product is out of stock based on RAG context.
 * **Weaknesses:**
@@ -42,7 +42,7 @@ The primary entry points are `app/services/ai.py` (sales engine) and `app/servic
 ## 3. Knowledge Ingestion & Channel Scraping Reality
 
 ### 3.1 The Web Scraping Mechanism
-In `app/services/knowledge.py` lines 225–299:
+In `app/services/knowledge.py` lines 225-299:
 ```python
 async def fetch_channel_posts_html(channel_username: str, limit: int = 50) -> list[dict]:
     url = f"https://t.me/s/{channel_username}"
@@ -68,7 +68,7 @@ async def fetch_channel_posts_html(channel_username: str, limit: int = 50) -> li
 
 ### 4.1 Ingestion & Chunking
 * **Missing Document Chunking:** Entire posts (often containing long text, technical specifications, and AI-generated image descriptions) are embedded as a single string up to 10,000 characters.
-* **Embedding Loss:** Gemini's `text-embedding-004` performs best when passages are focused (100–300 tokens). Embedding an entire catalog post dilutes semantic density and degrades cosine similarity precision.
+* **Embedding Loss:** Gemini's `text-embedding-004` performs best when passages are focused (100-300 tokens). Embedding an entire catalog post dilutes semantic density and degrades cosine similarity precision.
 
 ### 4.2 Retrieval & Similarity Matching
 * Retrieval method:
@@ -103,11 +103,11 @@ async def fetch_channel_posts_html(channel_username: str, limit: int = 50) -> li
 
 | Operation | Input Tokens (Avg) | Output Tokens (Avg) | Latency (Avg) | Cost per 1,000 Invocations (Gemini Flash) |
 | :--- | :---: | :---: | :---: | :---: |
-| **Intent Detection** | ~350 | ~50 | 0.6s – 0.9s | $0.05 |
-| **Vector Embedding** | ~120 | 768 float dims | 0.2s – 0.4s | $0.003 |
-| **Sales Response Generation** | ~1,800 (with RAG) | ~250 | 1.2s – 1.8s | $0.25 |
-| **Image Vision OCR** | ~1,000 (Image) | ~200 | 1.5s – 2.5s | $0.30 |
-| **Full Turn Total** | **~2,270** | **~300** | **2.0s – 3.1s** | **~$0.30 / 1,000 turns** |
+| **Intent Detection** | ~350 | ~50 | 0.6s - 0.9s | $0.05 |
+| **Vector Embedding** | ~120 | 768 float dims | 0.2s - 0.4s | $0.003 |
+| **Sales Response Generation** | ~1,800 (with RAG) | ~250 | 1.2s - 1.8s | $0.25 |
+| **Image Vision OCR** | ~1,000 (Image) | ~200 | 1.5s - 2.5s | $0.30 |
+| **Full Turn Total** | **~2,270** | **~300** | **2.0s - 3.1s** | **~$0.30 / 1,000 turns** |
 
 ### Critical Takeaway:
 At **~$0.0003 per turn**, Gemini 2.5 Flash is extraordinarily cost-effective. Even a high-volume merchant using 7,500 messages per month incurs only **~$2.25 in raw Gemini API costs**.

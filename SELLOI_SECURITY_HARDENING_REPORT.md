@@ -1,4 +1,4 @@
-# SELLOI.UZ — Production Security Hardening Report
+# SELLOI.UZ : Production Security Hardening Report
 
 **System Name:** Selloi Platform (`selloi.uz`)  
 **Deployment Infrastructure:** Oracle Cloud Infrastructure VPS (`129.146.163.171`), Ubuntu 26.04.1 LTS  

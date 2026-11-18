@@ -203,32 +203,33 @@ async def test_saas_billing_permission_enforced():
 @pytest.mark.anyio
 async def test_organization_specific_webhook_secret():
     org_secret = "secret_for_org_custom_webhook_12345"
+    slug = f"webhook-org-test-{int(os.getpid())}"
     async with core_db.SessionLocal() as session:
         org = Organization(
             name="Webhook Org",
-            slug=f"webhook-org-test-{int(os.getpid())}",
+            slug=slug,
             webhook_secret=org_secret,
         )
         session.add(org)
         await session.commit()
 
-        transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
-            # 1. Valid org secret accepted
-            resp = await client.post(
-                f"/telegram/webhook/{org.slug}",
-                json={"update_id": 999901, "message": {}},
-                headers={"X-Telegram-Bot-Api-Secret-Token": org_secret},
-            )
-            assert resp.status_code == 200
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        # 1. Valid org secret accepted
+        resp = await client.post(
+            f"/telegram/webhook/{slug}",
+            json={"update_id": 999901, "message": {}},
+            headers={"X-Telegram-Bot-Api-Secret-Token": org_secret},
+        )
+        assert resp.status_code == 200
 
-            # 2. Invalid secret rejected
-            resp_invalid = await client.post(
-                f"/telegram/webhook/{org.slug}",
-                json={"update_id": 999902, "message": {}},
-                headers={"X-Telegram-Bot-Api-Secret-Token": "wrong_secret"},
-            )
-            assert resp_invalid.status_code == 401
+        # 2. Invalid secret rejected
+        resp_invalid = await client.post(
+            f"/telegram/webhook/{slug}",
+            json={"update_id": 999902, "message": {}},
+            headers={"X-Telegram-Bot-Api-Secret-Token": "wrong_secret"},
+        )
+        assert resp_invalid.status_code == 401
 
 
 # ===========================================================================

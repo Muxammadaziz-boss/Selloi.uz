@@ -1,4 +1,4 @@
-# SELLOI.UZ — Comprehensive Production Security Audit
+# SELLOI.UZ : Comprehensive Production Security Audit
 
 **Target System:** `selloi.uz` / `www.selloi.uz`  
 **Infrastructure Host:** Oracle Cloud VPS (`129.146.163.171`), Ubuntu 26.04.1 LTS (`resolute`), Linux Kernel 7.0.0-1015-oracle (aarch64)  
@@ -250,4 +250,4 @@ Through disciplined DevSecOps remediation, all identified critical and high vuln
 
 ### **PRODUCTION READY**
 
-All blocking vulnerabilities—including external port exposure, firewall bypassing, unauthenticated RPC daemons, absence of disaster recovery dumps, and real IP blindness—have been remediated and verified under live conditions. Selloi.uz is resilient, secured, and ready for high-load production operations.
+All blocking vulnerabilities - including external port exposure, firewall bypassing, unauthenticated RPC daemons, absence of disaster recovery dumps, and real IP blindness - have been remediated and verified under live conditions. Selloi.uz is resilient, secured, and ready for high-load production operations.
