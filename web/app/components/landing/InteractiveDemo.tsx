@@ -324,7 +324,7 @@ export default function InteractiveDemo() {
                     >
                       <CheckCircle2 size={15} /> {scenario.orderData.title}
                     </span>
-                    <span className="badge bg-success text-white" style={{ fontSize: "0.65rem" }}>
+                    <span className="badge bg-success-subtle text-success fw-semibold" style={{ fontSize: "0.65rem" }}>
                       {scenario.orderData.status}
                     </span>
                   </div>

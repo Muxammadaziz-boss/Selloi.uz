@@ -252,7 +252,7 @@ export default function FeaturesSection() {
                     <span className="small text-info fw-bold d-flex align-items-center gap-1.5">
                       <Scan size={14} /> Tahlil natijasi
                     </span>
-                    <span className="badge bg-success text-white" style={{ fontSize: "0.68rem" }}>
+                    <span className="badge bg-success-subtle text-success fw-semibold" style={{ fontSize: "0.68rem" }}>
                       99.4% Moslik
                     </span>
                   </div>
