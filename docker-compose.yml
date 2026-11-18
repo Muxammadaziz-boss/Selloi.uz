@@ -26,7 +26,7 @@ services:
       DATABASE_URL: postgresql+asyncpg://sales:${POSTGRES_PASSWORD:-change_this_local_password}@db:5432/aisales
       STORAGE_DIR: /app/storage
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     volumes:
       - ./storage:/app/storage
     depends_on:
@@ -41,7 +41,7 @@ services:
     environment:
       BACKEND_URL: http://api:8000
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     depends_on:
       - api
 
