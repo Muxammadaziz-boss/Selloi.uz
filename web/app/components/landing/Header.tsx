@@ -26,7 +26,7 @@ export default function Header({
     const handleScroll = () => {
       setScrolled(window.scrollY > 20);
 
-      // Simple active section detection
+      // Section tracker
       const sections = NAV_ITEMS.filter((i) => i.href.startsWith("#")).map((i) =>
         i.href.substring(1)
       );
@@ -51,33 +51,35 @@ export default function Header({
       className="position-sticky top-0 w-100"
       style={{
         zIndex: 100,
-        backgroundColor: scrolled ? "rgba(7, 6, 15, 0.88)" : "transparent",
+        backgroundColor: scrolled ? "rgba(5, 4, 10, 0.88)" : "transparent",
         backdropFilter: scrolled ? "blur(20px)" : "none",
         WebkitBackdropFilter: scrolled ? "blur(20px)" : "none",
-        borderBottom: scrolled ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid transparent",
+        borderBottom: scrolled
+          ? "1px solid var(--s-glass-border)"
+          : "1px solid transparent",
         transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
       }}
     >
-      <div className="selloi-container py-3 d-flex align-items-center justify-content-between">
+      <div className="s-container py-3 d-flex align-items-center justify-content-between">
         {/* Brand Logo */}
         <Link
           href="/"
-          className="d-flex align-items-center gap-2 text-decoration-none"
+          className="d-flex align-items-center gap-2.5 text-decoration-none"
         >
           <div
             className="d-flex align-items-center justify-content-center"
             style={{
-              width: "38px",
-              height: "38px",
+              width: "40px",
+              height: "40px",
               borderRadius: "12px",
-              background: "linear-gradient(135deg, #A855F7 0%, #6B21A8 100%)",
-              boxShadow: "0 0 24px rgba(168, 85, 247, 0.5), inset 0 0 8px rgba(255, 255, 255, 0.4)",
+              background: "linear-gradient(135deg, var(--s-purple-bright) 0%, var(--s-purple) 100%)",
+              boxShadow: "0 0 24px var(--s-purple-glow), inset 0 0 8px rgba(255, 255, 255, 0.4)",
               border: "1px solid rgba(255, 255, 255, 0.3)",
             }}
           >
             <span
               style={{
-                fontSize: "1.25rem",
+                fontSize: "1.3rem",
                 fontWeight: 900,
                 color: "#FFFFFF",
                 lineHeight: 1,
@@ -88,13 +90,13 @@ export default function Header({
           </div>
           <span
             style={{
-              fontSize: "1.25rem",
+              fontSize: "1.3rem",
               fontWeight: 800,
               letterSpacing: "-0.5px",
               color: "#FFFFFF",
             }}
           >
-            Selloi<span style={{ color: "#C084FC" }}>.uz</span>
+            Selloi<span style={{ color: "var(--s-purple-soft)" }}>.uz</span>
           </span>
         </Link>
 
@@ -111,7 +113,7 @@ export default function Header({
                 style={{
                   fontSize: "0.92rem",
                   fontWeight: 500,
-                  color: isActive ? "#FFFFFF" : "#CBD5E1",
+                  color: isActive ? "#FFFFFF" : "var(--s-text-secondary)",
                   transition: "color 0.2s ease",
                 }}
               >
@@ -121,7 +123,7 @@ export default function Header({
                     className="position-absolute bottom-0 start-0 w-100"
                     style={{
                       height: "2px",
-                      background: "linear-gradient(90deg, #A855F7, #38BDF8)",
+                      background: "linear-gradient(90deg, var(--s-purple-bright), var(--s-cyan))",
                       borderRadius: "2px",
                     }}
                   />
@@ -133,22 +135,22 @@ export default function Header({
 
         {/* Actions & Language Selector */}
         <div className="d-none d-md-flex align-items-center gap-3">
-          {/* Language Switcher Placeholder (UZ / RU / EN) */}
+          {/* Language Switcher */}
           <div className="position-relative">
             <button
               onClick={() => setLangDropdownOpen(!langDropdownOpen)}
               className="d-flex align-items-center gap-1.5 px-2.5 py-1.5"
               style={{
                 background: "rgba(255, 255, 255, 0.05)",
-                border: "1px solid rgba(255, 255, 255, 0.12)",
+                border: "1px solid var(--s-glass-border)",
                 borderRadius: "8px",
-                color: "#E2E8F0",
+                color: "var(--s-text-primary)",
                 fontSize: "0.82rem",
                 cursor: "pointer",
               }}
               title="Tilni tanlash (UZ/RU/EN)"
             >
-              <Globe size={13} color="#A855F7" />
+              <Globe size={13} color="var(--s-purple-soft)" />
               <span className="fw-semibold">{currentLang}</span>
             </button>
 
@@ -156,9 +158,9 @@ export default function Header({
               <div
                 className="position-absolute end-0 mt-2 py-1"
                 style={{
-                  width: "90px",
-                  background: "rgba(16, 17, 30, 0.96)",
-                  border: "1px solid rgba(168, 85, 247, 0.3)",
+                  width: "100px",
+                  background: "rgba(17, 15, 29, 0.96)",
+                  border: "1px solid var(--s-glass-border-hover)",
                   borderRadius: "10px",
                   backdropFilter: "blur(16px)",
                   boxShadow: "0 10px 25px rgba(0,0,0,0.5)",
@@ -175,7 +177,7 @@ export default function Header({
                     className="w-100 text-start px-3 py-1.5 border-0 bg-transparent"
                     style={{
                       fontSize: "0.82rem",
-                      color: currentLang === lang ? "#C084FC" : "#94A3B8",
+                      color: currentLang === lang ? "var(--s-purple-soft)" : "var(--s-text-muted)",
                       fontWeight: currentLang === lang ? 700 : 400,
                       cursor: "pointer",
                     }}
@@ -190,7 +192,7 @@ export default function Header({
           {isAuthenticated ? (
             <Link
               href="/dashboard"
-              className="selloi-btn-secondary py-2 px-3"
+              className="s-btn-secondary py-2 px-3"
               style={{ fontSize: "0.88rem" }}
             >
               <span>Boshqaruv paneli</span>
@@ -199,7 +201,7 @@ export default function Header({
           ) : (
             <button
               onClick={onOpenLogin}
-              className="selloi-btn-secondary py-2 px-3"
+              className="s-btn-secondary py-2 px-3"
               style={{ fontSize: "0.88rem" }}
             >
               Kirish
@@ -208,7 +210,7 @@ export default function Header({
 
           <button
             onClick={onOpenOnboarding}
-            className="selloi-btn-primary py-2 px-3.5"
+            className="s-btn-primary py-2 px-3.5"
             style={{ fontSize: "0.88rem" }}
           >
             <Sparkles size={15} />
@@ -220,7 +222,7 @@ export default function Header({
         <div className="d-flex d-md-none align-items-center gap-2">
           <button
             onClick={onOpenOnboarding}
-            className="selloi-btn-primary py-1.5 px-3"
+            className="s-btn-primary py-1.5 px-3"
             style={{ fontSize: "0.8rem" }}
           >
             Boshlash
@@ -230,7 +232,7 @@ export default function Header({
             className="btn btn-dark p-2"
             style={{
               background: "rgba(255,255,255,0.06)",
-              border: "1px solid rgba(255,255,255,0.12)",
+              border: "1px solid var(--s-glass-border)",
               color: "#FFFFFF",
             }}
             aria-label="Menyuni ochish"
@@ -243,10 +245,11 @@ export default function Header({
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
         <div
-          className="d-md-none border-top border-secondary border-opacity-25 px-4 py-4"
+          className="d-md-none border-top px-4 py-4"
           style={{
-            background: "rgba(7, 6, 15, 0.98)",
+            background: "rgba(5, 4, 10, 0.98)",
             backdropFilter: "blur(24px)",
+            borderColor: "var(--s-glass-border) !important",
           }}
         >
           <nav className="d-flex flex-column gap-3 mb-4">
@@ -256,10 +259,14 @@ export default function Header({
                 href={item.href}
                 onClick={() => setMobileMenuOpen(false)}
                 className="text-decoration-none py-1.5 d-flex align-items-center justify-content-between"
-                style={{ fontSize: "1.05rem", fontWeight: 500, color: "#E2E8F0" }}
+                style={{
+                  fontSize: "1.05rem",
+                  fontWeight: 500,
+                  color: "var(--s-text-primary)",
+                }}
               >
                 <span>{item.label}</span>
-                <ArrowRight size={14} color="#A855F7" />
+                <ArrowRight size={14} color="var(--s-purple-soft)" />
               </a>
             ))}
           </nav>
@@ -284,7 +291,7 @@ export default function Header({
             {isAuthenticated ? (
               <Link
                 href="/dashboard"
-                className="selloi-btn-secondary text-center py-2"
+                className="s-btn-secondary text-center py-2"
               >
                 Boshqaruv paneli
               </Link>
@@ -294,7 +301,7 @@ export default function Header({
                   setMobileMenuOpen(false);
                   onOpenLogin();
                 }}
-                className="selloi-btn-secondary text-center py-2"
+                className="s-btn-secondary text-center py-2"
               >
                 Kirish
               </button>
@@ -304,7 +311,7 @@ export default function Header({
                 setMobileMenuOpen(false);
                 onOpenOnboarding();
               }}
-              className="selloi-btn-primary text-center py-2.5"
+              className="s-btn-primary text-center py-2.5"
             >
               <Sparkles size={16} />
               <span>7 kun bepul boshlash</span>

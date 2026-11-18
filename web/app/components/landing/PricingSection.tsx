@@ -10,6 +10,7 @@ import {
   ArrowRight,
   ShieldCheck,
   Sparkles,
+  Zap,
 } from "lucide-react";
 
 interface PricingSectionProps {
@@ -21,56 +22,63 @@ export default function PricingSection({ onOpenOnboarding }: PricingSectionProps
   const [showComparison, setShowComparison] = useState(false);
 
   return (
-    <section id="tariflar" className="selloi-section position-relative">
-      <div className="selloi-container">
+    <section id="tariflar" className="s-section position-relative">
+      {/* Background Glow */}
+      <div
+        className="position-absolute"
+        style={{
+          top: "40%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          width: "800px",
+          height: "400px",
+          background:
+            "radial-gradient(ellipse 60% 40% at 50% 50%, rgba(147, 3, 197, 0.1), transparent 70%)",
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      />
+
+      <div className="s-container position-relative" style={{ zIndex: 2 }}>
         {/* Section Header */}
         <div className="text-center mb-5">
           <div className="mb-3">
-            <span className="selloi-pill-badge">
+            <span className="s-pill">
+              <Sparkles size={13} />
               <span>TARIFLAR</span>
             </span>
           </div>
-          <h2 className="selloi-section-title mb-3 text-white">
-            Sizning biznesingiz uchun mos tarifni tanlang
+          <h2 className="s-heading-section mb-3">
+            Biznesingiz uchun{" "}
+            <span className="s-gradient-purple">mos tarifni tanlang</span>
           </h2>
-          <p
-            className="text-secondary mx-auto mb-4"
-            style={{ maxWidth: "620px", fontSize: "1.08rem", color: "#CBD5E1" }}
-          >
-            Har qanday hajmda savdo qiluvchi Telegram do‘konlar uchun moslashuvchan narxlar. Barcha tariflarda 7 kun bepul sinov!
+          <p className="s-body-lg mx-auto mb-4" style={{ maxWidth: "620px" }}>
+            Har qanday hajmda savdo qiluvchi Telegram do‘konlar uchun moslashuvchan narxlar.
+            Barcha tariflarda 7 kun bepul sinov!
           </p>
 
           {/* Billing Switcher (Monthly vs Annual) */}
-          <div
-            className="d-inline-flex align-items-center gap-1.5 p-1 rounded-2"
-            style={{ background: "#0E1019", border: "1px solid rgba(255, 255, 255, 0.08)" }}
-          >
+          <div className="s-pricing-toggle">
             <button
               onClick={() => setIsAnnual(false)}
-              className={`btn btn-sm rounded-2 px-3 py-1.5 fw-semibold ${
-                !isAnnual ? "btn-primary text-white" : "text-secondary"
-              }`}
-              style={{
-                fontSize: "0.82rem",
-                background: !isAnnual ? "#7C3AED" : "transparent",
-                border: "none",
-              }}
+              className={!isAnnual ? "active" : ""}
             >
               Oylik to‘lov
             </button>
             <button
               onClick={() => setIsAnnual(true)}
-              className={`btn btn-sm rounded-2 px-3 py-1.5 fw-semibold d-flex align-items-center gap-1.5 ${
-                isAnnual ? "btn-primary text-white" : "text-secondary"
-              }`}
-              style={{
-                fontSize: "0.82rem",
-                background: isAnnual ? "#7C3AED" : "transparent",
-                border: "none",
-              }}
+              className={isAnnual ? "active" : ""}
             >
               <span>Yillik to‘lov</span>
-              <span className="badge bg-success text-white" style={{ fontSize: "0.65rem" }}>
+              <span
+                className="badge rounded-pill ms-1.5"
+                style={{
+                  background: isAnnual ? "rgba(255,255,255,0.2)" : "rgba(16, 185, 129, 0.2)",
+                  color: isAnnual ? "#FFFFFF" : "var(--s-emerald)",
+                  fontSize: "0.68rem",
+                  padding: "2px 8px",
+                }}
+              >
                 2 oy bepul [TO‘LDIRING]
               </span>
             </button>
@@ -89,28 +97,32 @@ export default function PricingSection({ onOpenOnboarding }: PricingSectionProps
                 className={`col-lg-4 d-flex ${isPro ? "order-first order-lg-0" : ""}`}
               >
                 <div
-                  className="selloi-card w-100 p-4 p-xl-5 d-flex flex-column justify-content-between position-relative"
+                  className={`s-glass-card w-100 p-4 p-xl-5 d-flex flex-column justify-content-between position-relative ${
+                    isPro ? "s-glow-purple" : ""
+                  }`}
                   style={{
-                    background: isPro ? "#111322" : "#0E1019",
                     borderColor: isPro
-                      ? "rgba(168, 85, 247, 0.45)"
-                      : "rgba(255, 255, 255, 0.08)",
-                    boxShadow: isPro
-                      ? "0 16px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15)"
-                      : "0 8px 24px rgba(0, 0, 0, 0.35)",
+                      ? "var(--s-purple-bright)"
+                      : "var(--s-glass-border)",
                     transform: isPro ? "scale(1.02)" : "none",
                     zIndex: isPro ? 2 : 1,
+                    background: isPro
+                      ? "rgba(22, 18, 38, 0.85)"
+                      : "rgba(19, 17, 34, 0.65)",
                   }}
                 >
                   {/* Pro Recommended Ribbon */}
                   {isPro && (
                     <div className="position-absolute top-0 end-0 mt-3 me-3">
                       <span
-                        className="badge bg-purple text-white px-2.5 py-1 rounded-1 fw-bold"
+                        className="s-pill"
                         style={{
-                          background: "#7C3AED",
+                          background: "linear-gradient(180deg, var(--s-purple-bright) 0%, var(--s-purple) 100%)",
+                          color: "#FFFFFF",
+                          border: "none",
                           fontSize: "0.72rem",
                           letterSpacing: "0.04em",
+                          boxShadow: "0 2px 10px var(--s-purple-glow)",
                         }}
                       >
                         ★ TAVSIYA ETILADI
@@ -122,26 +134,29 @@ export default function PricingSection({ onOpenOnboarding }: PricingSectionProps
                     {/* Plan Header */}
                     <div className="mb-3">
                       <h3
-                        className="fw-bold mb-1 text-white"
-                        style={{ fontSize: "1.35rem", letterSpacing: "-0.3px" }}
+                        className="s-heading-card text-white mb-1"
+                        style={{ fontSize: "1.35rem" }}
                       >
                         {plan.name}
                       </h3>
                       <p
-                        className="text-secondary small mb-3"
-                        style={{ color: "#94A3B8", minHeight: "36px" }}
+                        className="s-body small mb-3"
+                        style={{ minHeight: "36px" }}
                       >
                         {plan.tagline}
                       </p>
                     </div>
 
                     {/* Price Block */}
-                    <div className="mb-4 pb-3 border-bottom border-secondary border-opacity-25">
+                    <div
+                      className="mb-4 pb-3"
+                      style={{ borderBottom: "1px solid var(--s-glass-border)" }}
+                    >
                       <div className="d-flex align-items-baseline gap-2">
                         <span
                           className="fw-extrabold text-white"
                           style={{
-                            fontSize: "clamp(1.9rem, 2.8vw, 2.5rem)",
+                            fontSize: "clamp(2rem, 3vw, 2.5rem)",
                             letterSpacing: "-0.03em",
                             lineHeight: 1,
                           }}
@@ -149,13 +164,13 @@ export default function PricingSection({ onOpenOnboarding }: PricingSectionProps
                           {price}
                         </span>
                         {price !== "Kelishuv asosida" && (
-                          <span className="text-secondary small">
+                          <span className="small" style={{ color: "var(--s-text-muted)" }}>
                             {plan.priceNote}
                           </span>
                         )}
                       </div>
                       <div className="mt-2 d-flex align-items-center gap-1.5">
-                        <ShieldCheck size={13} color="#10B981" />
+                        <ShieldCheck size={14} color="var(--s-emerald)" />
                         <span className="small text-success fw-medium" style={{ fontSize: "0.8rem" }}>
                           {plan.trialBadge}
                         </span>
@@ -169,7 +184,7 @@ export default function PricingSection({ onOpenOnboarding }: PricingSectionProps
                           key={i}
                           className="d-flex align-items-start gap-2.5 small"
                           style={{
-                            color: f.included ? "#E2E8F0" : "#64748B",
+                            color: f.included ? "#E2E8F0" : "var(--s-text-muted)",
                           }}
                         >
                           <div
@@ -183,12 +198,17 @@ export default function PricingSection({ onOpenOnboarding }: PricingSectionProps
                             }}
                           >
                             {f.included ? (
-                              <Check size={11} color="#10B981" />
+                              <Check size={11} color="var(--s-emerald)" />
                             ) : (
-                              <X size={11} color="#64748B" />
+                              <X size={11} color="var(--s-text-dim)" />
                             )}
                           </div>
-                          <span style={{ textDecoration: f.included ? "none" : "line-through", fontSize: "0.86rem" }}>
+                          <span
+                            style={{
+                              textDecoration: f.included ? "none" : "line-through",
+                              fontSize: "0.86rem",
+                            }}
+                          >
                             {f.name}
                           </span>
                         </div>
@@ -200,8 +220,8 @@ export default function PricingSection({ onOpenOnboarding }: PricingSectionProps
                   <div>
                     <button
                       onClick={onOpenOnboarding}
-                      className={`w-100 py-2.5 ${
-                        isPro ? "selloi-btn-primary" : "selloi-btn-secondary"
+                      className={`w-100 ${
+                        isPro ? "s-btn-primary" : "s-btn-secondary"
                       }`}
                       style={{ fontSize: "0.95rem" }}
                     >
@@ -219,7 +239,7 @@ export default function PricingSection({ onOpenOnboarding }: PricingSectionProps
         <div className="text-center mb-4">
           <button
             onClick={() => setShowComparison(!showComparison)}
-            className="selloi-btn-secondary px-3.5 py-2 d-inline-flex align-items-center gap-2"
+            className="s-btn-secondary px-3.5 py-2 d-inline-flex align-items-center gap-2"
             style={{ fontSize: "0.88rem" }}
           >
             <span>
@@ -234,14 +254,10 @@ export default function PricingSection({ onOpenOnboarding }: PricingSectionProps
         {/* Comparison Table */}
         {showComparison && (
           <div
-            className="p-4 p-md-5 rounded-3 mt-3"
-            style={{
-              background: "#0E1019",
-              border: "1px solid rgba(255, 255, 255, 0.08)",
-              overflowX: "auto",
-            }}
+            className="p-4 p-md-5 rounded-4 mt-3 s-glass-card"
+            style={{ overflowX: "auto" }}
           >
-            <table className="selloi-comparison-table">
+            <table className="s-comparison-table">
               <thead>
                 <tr>
                   <th style={{ width: "40%", color: "#FFFFFF", fontSize: "0.95rem" }}>
@@ -250,10 +266,10 @@ export default function PricingSection({ onOpenOnboarding }: PricingSectionProps
                   <th style={{ width: "20%", textAlign: "center", color: "#FFFFFF", fontSize: "0.95rem" }}>
                     START
                   </th>
-                  <th style={{ width: "20%", textAlign: "center", color: "#C084FC", fontSize: "0.95rem" }}>
+                  <th style={{ width: "20%", textAlign: "center", color: "var(--s-purple-soft)", fontSize: "0.95rem" }}>
                     PRO (Tavsiya)
                   </th>
-                  <th style={{ width: "20%", textAlign: "center", color: "#38BDF8", fontSize: "0.95rem" }}>
+                  <th style={{ width: "20%", textAlign: "center", color: "var(--s-cyan)", fontSize: "0.95rem" }}>
                     ULTRA
                   </th>
                 </tr>
@@ -266,10 +282,10 @@ export default function PricingSection({ onOpenOnboarding }: PricingSectionProps
                         colSpan={4}
                         className="fw-bold text-uppercase pt-4 pb-2"
                         style={{
-                          color: "#C084FC",
+                          color: "var(--s-purple-soft)",
                           fontSize: "0.74rem",
                           letterSpacing: "0.06em",
-                          borderBottom: "1px solid rgba(168, 85, 247, 0.2)",
+                          borderBottom: "1px solid rgba(180, 74, 255, 0.2)",
                         }}
                       >
                         {cat.category}
@@ -281,20 +297,20 @@ export default function PricingSection({ onOpenOnboarding }: PricingSectionProps
                         <td className="text-center small py-2.5">
                           {typeof row.start === "boolean" ? (
                             row.start ? (
-                              <Check size={15} color="#10B981" className="mx-auto" />
+                              <Check size={15} color="var(--s-emerald)" className="mx-auto" />
                             ) : (
-                              <X size={15} color="#64748B" className="mx-auto" />
+                              <X size={15} color="var(--s-text-dim)" className="mx-auto" />
                             )
                           ) : (
-                            <span className="text-secondary">{row.start}</span>
+                            <span style={{ color: "var(--s-text-muted)" }}>{row.start}</span>
                           )}
                         </td>
                         <td className="text-center small py-2.5 fw-semibold text-white">
                           {typeof row.pro === "boolean" ? (
                             row.pro ? (
-                              <Check size={15} color="#10B981" className="mx-auto" />
+                              <Check size={15} color="var(--s-emerald)" className="mx-auto" />
                             ) : (
-                              <X size={15} color="#64748B" className="mx-auto" />
+                              <X size={15} color="var(--s-text-dim)" className="mx-auto" />
                             )
                           ) : (
                             <span className="text-white">{row.pro}</span>
@@ -303,9 +319,9 @@ export default function PricingSection({ onOpenOnboarding }: PricingSectionProps
                         <td className="text-center small py-2.5 fw-semibold text-info">
                           {typeof row.ultra === "boolean" ? (
                             row.ultra ? (
-                              <Check size={15} color="#10B981" className="mx-auto" />
+                              <Check size={15} color="var(--s-emerald)" className="mx-auto" />
                             ) : (
-                              <X size={15} color="#64748B" className="mx-auto" />
+                              <X size={15} color="var(--s-text-dim)" className="mx-auto" />
                             )
                           ) : (
                             <span>{row.ultra}</span>

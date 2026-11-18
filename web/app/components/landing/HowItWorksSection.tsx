@@ -1,125 +1,170 @@
 "use client";
 
 import React from "react";
-import { UserPlus, Send, Bot, Zap } from "lucide-react";
-import { HOW_IT_WORKS_STEPS } from "./data";
+import { UserPlus, Send, Bot, Sparkles, Zap, ArrowRight, ShieldCheck } from "lucide-react";
 
 export default function HowItWorksSection() {
-  const getIcon = (iconName: string) => {
-    switch (iconName) {
-      case "user-plus":
-        return <UserPlus size={22} color="#C084FC" />;
-      case "send":
-        return <Send size={22} color="#38BDF8" />;
-      case "bot":
-        return <Bot size={22} color="#34D399" />;
-      default:
-        return <Zap size={22} color="#C084FC" />;
-    }
-  };
+  const steps = [
+    {
+      step: "01",
+      title: "Ro‘yxatdan o‘ting",
+      description: "1 daqiqada o‘z do‘kon hisobingizni oching va qulay boshqaruv paneliga kiring.",
+      badge: "1 daqiqa",
+      icon: UserPlus,
+      color: "var(--s-purple-soft)",
+      bg: "rgba(180, 74, 255, 0.15)",
+    },
+    {
+      step: "02",
+      title: "Telegram'ni ulang",
+      description: "Bot tokeningizni kiriting va do‘kon kanalingizni ko‘rsating. Katalog avtomatik o‘qiladi.",
+      badge: "Avtomatik sinxronizatsiya",
+      icon: Send,
+      color: "var(--s-cyan)",
+      bg: "rgba(56, 189, 248, 0.15)",
+    },
+    {
+      step: "03",
+      title: "AI sotuvchini faollashtiring",
+      description: "AI sotuvchingiz mijozlaringiz bilan kechayu kunduz professional muloqotni boshlaydi.",
+      badge: "24/7 faol",
+      icon: Bot,
+      color: "var(--s-emerald)",
+      bg: "rgba(16, 185, 129, 0.15)",
+    },
+  ];
 
   return (
-    <section id="boshlash" className="selloi-section position-relative">
-      <div className="selloi-container">
+    <section id="boshlash" className="s-section position-relative overflow-hidden">
+      {/* Background Volumetric Glow */}
+      <div
+        className="position-absolute"
+        style={{
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          width: "900px",
+          height: "450px",
+          background:
+            "radial-gradient(ellipse 60% 40% at 50% 50%, rgba(147, 3, 197, 0.1), transparent 70%)",
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      />
+
+      <div className="s-container position-relative" style={{ zIndex: 2 }}>
         {/* Section Header */}
         <div className="text-center mb-5">
           <div className="mb-3">
-            <span className="selloi-pill-badge">
-              <Zap size={12} />
-              <span>BOSHLASH</span>
+            <span className="s-pill">
+              <Sparkles size={13} />
+              <span>3 ODDIY QADAM</span>
             </span>
           </div>
-          <h2 className="selloi-section-title mb-3 text-white">
-            Selloi bilan boshlash juda oson
+          <h2 className="s-heading-section mb-3">
+            Selloi bilan boshlash{" "}
+            <span className="s-gradient-purple">juda oson</span>
           </h2>
-          <p
-            className="text-secondary mx-auto"
-            style={{ maxWidth: "600px", fontSize: "1.08rem", color: "#CBD5E1" }}
-          >
-            Hech qanday murakkab texnik sozlamalarsiz, 3 ta oddiy qadamda AI sotuvchingizni Telegram do‘koningizga ulang.
+          <p className="s-body-lg mx-auto" style={{ maxWidth: "600px" }}>
+            Hech qanday murakkab texnik sozlamalarsiz, 3 ta oddiy qadamda AI sotuvchingizni
+            Telegram do‘koningizga ulang.
           </p>
         </div>
 
-        {/* Connected 3-Step Horizontal Timeline */}
-        <div className="position-relative py-2">
-          {/* Subtle horizontal connector line on desktop */}
+        {/* Cinematic 3-Step Journey Connected Through Animated Energy Path */}
+        <div className="position-relative py-3">
+          {/* Animated Purple Energy Path Line on desktop */}
           <div
             className="d-none d-lg-block position-absolute"
             style={{
-              top: "40px",
-              left: "18%",
-              right: "18%",
-              height: "1px",
-              background: "linear-gradient(90deg, rgba(124, 58, 237, 0.3) 0%, rgba(168, 85, 247, 0.7) 50%, rgba(56, 189, 248, 0.4) 100%)",
+              top: "60px",
+              left: "16%",
+              right: "16%",
+              height: "2px",
+              background:
+                "linear-gradient(90deg, rgba(147,3,197,0.3) 0%, rgba(180,74,255,0.8) 50%, rgba(56,189,248,0.5) 100%)",
+              boxShadow: "0 0 16px rgba(180,74,255,0.4)",
               zIndex: 1,
             }}
           />
 
           <div className="row g-4 position-relative z-2">
-            {HOW_IT_WORKS_STEPS.map((item) => (
-              <div key={item.step} className="col-lg-4 text-center">
-                {/* Step Circle Badge */}
-                <div
-                  className="mx-auto mb-4 d-flex align-items-center justify-content-center"
-                  style={{
-                    width: "50px",
-                    height: "50px",
-                    borderRadius: "50%",
-                    background: "#161826",
-                    color: "#FFFFFF",
-                    fontWeight: 800,
-                    fontSize: "1.05rem",
-                    border: "1px solid rgba(168, 85, 247, 0.4)",
-                    boxShadow: "0 4px 14px rgba(0,0,0,0.4)",
-                  }}
-                >
-                  {item.step}
-                </div>
-
-                {/* Step Card */}
-                <div
-                  className="selloi-card p-4 mx-auto h-100 d-flex flex-column justify-content-between"
-                  style={{
-                    maxWidth: "360px",
-                    minHeight: "210px",
-                    background: "#0E1019",
-                  }}
-                >
-                  <div>
-                    <div
-                      className="mx-auto mb-3 d-flex align-items-center justify-content-center"
+            {steps.map((item, idx) => {
+              const Icon = item.icon;
+              return (
+                <div key={item.step} className="col-lg-4 text-center">
+                  {/* Floating 3D Step Orb */}
+                  <div
+                    className="mx-auto mb-4 d-flex align-items-center justify-content-center position-relative"
+                    style={{
+                      width: "64px",
+                      height: "64px",
+                      borderRadius: "50%",
+                      background: "rgba(19, 17, 34, 0.95)",
+                      border: "1px solid rgba(180, 74, 255, 0.4)",
+                      boxShadow: "0 8px 24px rgba(0,0,0,0.6), 0 0 20px rgba(147,3,197,0.25)",
+                    }}
+                  >
+                    <span
                       style={{
-                        width: "44px",
-                        height: "44px",
-                        borderRadius: "10px",
-                        background: "#161826",
-                        border: "1px solid rgba(255, 255, 255, 0.08)",
+                        fontWeight: 900,
+                        fontSize: "1.15rem",
+                        color: "#FFFFFF",
+                        letterSpacing: "-0.5px",
                       }}
                     >
-                      {getIcon(item.icon)}
-                    </div>
-                    <h3
-                      className="fw-bold mb-2 text-white"
-                      style={{ fontSize: "1.15rem", letterSpacing: "-0.2px" }}
-                    >
-                      {item.title}
-                    </h3>
-                    <p
-                      className="text-secondary mb-3"
-                      style={{ fontSize: "0.9rem", lineHeight: 1.55, color: "#CBD5E1" }}
-                    >
-                      {item.description}
-                    </p>
-                  </div>
-
-                  <div>
-                    <span className="badge bg-purple-subtle text-purple border border-purple-subtle" style={{ fontSize: "0.72rem", padding: "4px 8px" }}>
-                      {item.badge}
+                      {item.step}
                     </span>
                   </div>
+
+                  {/* Glass Card */}
+                  <div
+                    className="s-glass-card p-4 mx-auto h-100 d-flex flex-column justify-content-between"
+                    style={{
+                      maxWidth: "380px",
+                      minHeight: "240px",
+                    }}
+                  >
+                    <div>
+                      <div
+                        className="mx-auto mb-3 d-flex align-items-center justify-content-center"
+                        style={{
+                          width: "48px",
+                          height: "48px",
+                          borderRadius: "14px",
+                          background: item.bg,
+                          color: item.color,
+                          border: "1px solid rgba(255,255,255,0.08)",
+                        }}
+                      >
+                        <Icon size={24} />
+                      </div>
+                      <h3
+                        className="s-heading-card text-white mb-2"
+                        style={{ fontSize: "1.15rem" }}
+                      >
+                        {item.title}
+                      </h3>
+                      <p className="s-body small mb-3">
+                        {item.description}
+                      </p>
+                    </div>
+
+                    <div>
+                      <span
+                        className="s-pill"
+                        style={{
+                          padding: "3px 12px",
+                          fontSize: "0.72rem",
+                        }}
+                      >
+                        {item.badge}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>

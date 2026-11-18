@@ -15,6 +15,8 @@ import {
   TrendingUp,
   Sparkles,
   Layers,
+  ShieldCheck,
+  Bot,
 } from "lucide-react";
 
 export default function FeaturesSection() {
@@ -40,65 +42,72 @@ export default function FeaturesSection() {
   };
 
   return (
-    <section id="imkoniyatlar" className="selloi-section position-relative">
-      <div className="selloi-container">
+    <section id="imkoniyatlar" className="s-section position-relative">
+      <div className="s-container">
         {/* Section Header */}
         <div className="text-center mb-5">
           <div className="mb-3">
-            <span className="selloi-pill-badge">
+            <span className="s-pill">
+              <Sparkles size={13} />
               <span>IMKONIYATLAR</span>
             </span>
           </div>
-          <h2 className="selloi-section-title mb-3 text-white">
-            Telegram savdosini avtomatlashtirishning yangi standarti
+          <h2 className="s-heading-section mb-3">
+            Telegram savdosining{" "}
+            <span className="s-gradient-purple">yangi standarti</span>
           </h2>
           <p
-            className="text-secondary mx-auto"
-            style={{ maxWidth: "620px", fontSize: "1.08rem", color: "#CBD5E1" }}
+            className="s-body-lg mx-auto"
+            style={{ maxWidth: "640px" }}
           >
-            Har bir mijozga darhol javob bering, fotosuratdan tovarlarni toping va to‘lovlarni qabul qiling — dasturchilarsiz va 24/7 rejimida.
+            Har bir mijozga darhol javob bering, fotosuratdan tovarlarni toping va
+            to‘lovlarni qabul qiling — dasturchilarsiz va 24/7 rejimida.
           </p>
         </div>
 
-        {/* Bento Grid */}
-        <div className="selloi-bento-grid">
-          {/* Bento Card 1: AI Chat (Span 7) — Interactive Multi-Language Showcase */}
-          <div className="selloi-bento-span-7">
-            <div
-              className="selloi-card h-100 p-4 p-md-5 d-flex flex-column justify-content-between"
-              style={{ background: "#0E1019" }}
-            >
+        {/* Bento Grid with Floating Glass Architecture */}
+        <div className="s-bento">
+          {/* Card 1: AI Chat (Span 7) — Interactive Multi-Language Showcase */}
+          <div className="s-bento-7">
+            <div className="s-glass-card h-100 p-4 p-md-5 d-flex flex-column justify-content-between">
               <div>
                 <div className="d-flex align-items-center justify-content-between mb-4">
-                  <div className="d-flex align-items-center gap-2.5">
+                  <div className="d-flex align-items-center gap-3">
                     <div
                       className="d-flex align-items-center justify-content-center"
                       style={{
-                        width: "38px",
-                        height: "38px",
-                        borderRadius: "10px",
-                        background: "#181A28",
-                        border: "1px solid rgba(168, 85, 247, 0.3)",
-                        color: "#C084FC",
+                        width: "42px",
+                        height: "42px",
+                        borderRadius: "12px",
+                        background: "rgba(180, 74, 255, 0.15)",
+                        border: "1px solid rgba(180, 74, 255, 0.35)",
+                        color: "var(--s-purple-soft)",
                       }}
                     >
-                      <MessageSquare size={18} />
+                      <MessageSquare size={20} />
                     </div>
-                    <span className="fw-bold text-white" style={{ fontSize: "1.1rem" }}>
-                      AI Chat — Ko‘p tilli tabiiy muloqot
-                    </span>
+                    <div>
+                      <h3 className="s-heading-card text-white mb-0">
+                        AI Chat — Ko‘p tilli muloqot
+                      </h3>
+                      <span className="small" style={{ color: "var(--s-text-muted)" }}>
+                        Tabiiy tilda aqlli suhbatlashuv
+                      </span>
+                    </div>
                   </div>
-                  <span className="badge bg-purple-subtle text-purple" style={{ fontSize: "0.72rem" }}>
+                  <span className="s-pill" style={{ padding: "3px 10px", fontSize: "0.72rem" }}>
                     Multi-LLM
                   </span>
                 </div>
 
-                <p className="text-secondary mb-4" style={{ color: "#CBD5E1", fontSize: "0.95rem" }}>
-                  O‘zbek tili (lotin va kirill), rus hamda ingliz tillarida haqiqiy xarid maslahatchisidek erkin muloqot qiladi. Shevalar, xatolar va so‘zlashuv uslubini to‘liq tushunadi.
+                <p className="s-body mb-4" style={{ maxWidth: "580px" }}>
+                  O‘zbek tili (lotin va kirill), rus hamda ingliz tillarida haqiqiy xarid
+                  maslahatchisidek erkin muloqot qiladi. Shevalar, xatolar va so‘zlashuv
+                  uslubini to‘liq tushunadi.
                 </p>
 
                 {/* Interactive Language Selector Tabs */}
-                <div className="d-flex flex-wrap gap-1.5 mb-3">
+                <div className="d-flex flex-wrap gap-2 mb-3">
                   {[
                     { id: "uz-lat", label: "🇺🇿 O‘zbekcha (Lotin)" },
                     { id: "uz-kir", label: "🇺🇿 Ўзбекча (Кирилл)" },
@@ -108,14 +117,17 @@ export default function FeaturesSection() {
                     <button
                       key={tab.id}
                       onClick={() => setChatLang(tab.id as any)}
-                      className={`btn btn-sm px-2.5 py-1 rounded-2 ${
-                        chatLang === tab.id
-                          ? "btn-primary text-white"
-                          : "btn-dark text-secondary border border-secondary border-opacity-25"
-                      }`}
+                      className="px-3 py-1.5 rounded-pill border-0"
                       style={{
                         fontSize: "0.78rem",
-                        background: chatLang === tab.id ? "#7C3AED" : "transparent",
+                        fontWeight: 600,
+                        background:
+                          chatLang === tab.id
+                            ? "linear-gradient(180deg, var(--s-purple-bright) 0%, var(--s-purple) 100%)"
+                            : "rgba(255, 255, 255, 0.05)",
+                        color: chatLang === tab.id ? "#FFFFFF" : "var(--s-text-muted)",
+                        cursor: "pointer",
+                        transition: "all 0.15s ease",
                       }}
                     >
                       {tab.label}
@@ -123,34 +135,50 @@ export default function FeaturesSection() {
                   ))}
                 </div>
 
-                {/* Simulated Live Chat Response in Selected Language */}
+                {/* Simulated Live Chat Response */}
                 <div
-                  className="p-3 rounded-3"
+                  className="p-3 rounded-4"
                   style={{
-                    background: "#080911",
-                    border: "1px solid rgba(255, 255, 255, 0.08)",
+                    background: "rgba(7, 6, 15, 0.7)",
+                    border: "1px solid var(--s-glass-border)",
                   }}
                 >
-                  {/* Customer line */}
                   <div className="d-flex justify-content-end mb-2">
                     <div
-                      className="p-2 px-3 small rounded-3"
-                      style={{ background: "#241D44", color: "#FFFFFF", maxWidth: "90%" }}
+                      className="p-2.5 px-3.5 small rounded-4"
+                      style={{
+                        background: "rgba(42, 32, 80, 0.7)",
+                        border: "1px solid rgba(180, 74, 255, 0.3)",
+                        color: "#FFFFFF",
+                        maxWidth: "88%",
+                      }}
                     >
                       {chatExamples[chatLang].customer}
                     </div>
                   </div>
-                  {/* AI line */}
                   <div className="d-flex align-items-start gap-2">
                     <div
                       className="d-flex align-items-center justify-content-center flex-shrink-0"
-                      style={{ width: "22px", height: "22px", borderRadius: "50%", background: "#7C3AED", color: "#FFF", fontSize: "0.65rem", fontWeight: 700 }}
+                      style={{
+                        width: "24px",
+                        height: "24px",
+                        borderRadius: "50%",
+                        background: "var(--s-purple)",
+                        color: "#FFF",
+                        fontSize: "0.68rem",
+                        fontWeight: 700,
+                      }}
                     >
                       S
                     </div>
                     <div
-                      className="p-2 px-3 small rounded-3 text-light"
-                      style={{ background: "#131522", border: "1px solid rgba(255,255,255,0.06)", maxWidth: "90%" }}
+                      className="p-2.5 px-3.5 small rounded-4"
+                      style={{
+                        background: "rgba(20, 22, 36, 0.8)",
+                        border: "1px solid rgba(255,255,255,0.06)",
+                        color: "#F1F5F9",
+                        maxWidth: "88%",
+                      }}
                     >
                       {chatExamples[chatLang].ai}
                     </div>
@@ -158,216 +186,255 @@ export default function FeaturesSection() {
                 </div>
               </div>
 
-              <div className="pt-3 mt-4 border-top border-secondary border-opacity-25 d-flex align-items-center justify-content-between small text-secondary">
+              <div
+                className="pt-3 mt-4 d-flex align-items-center justify-content-between small"
+                style={{
+                  borderTop: "1px solid var(--s-glass-border)",
+                  color: "var(--s-text-muted)",
+                }}
+              >
                 <span>✓ Do‘koningiz xarakteriga mos ohang (tone of voice)</span>
                 <span className="text-success fw-medium">Real-vaqt sinov</span>
               </div>
             </div>
           </div>
 
-          {/* Bento Card 2: AI Vision (Span 5) — Computer Vision Product Scanning */}
-          <div className="selloi-bento-span-5">
-            <div
-              className="selloi-card h-100 p-4 p-md-5 d-flex flex-column justify-content-between"
-              style={{ background: "#0E1019" }}
-            >
+          {/* Card 2: AI Vision (Span 5) — Computer Vision Product Scanning */}
+          <div className="s-bento-5">
+            <div className="s-glass-card h-100 p-4 p-md-5 d-flex flex-column justify-content-between">
               <div>
                 <div className="d-flex align-items-center justify-content-between mb-4">
-                  <div className="d-flex align-items-center gap-2.5">
+                  <div className="d-flex align-items-center gap-3">
                     <div
                       className="d-flex align-items-center justify-content-center"
                       style={{
-                        width: "38px",
-                        height: "38px",
-                        borderRadius: "10px",
-                        background: "#181A28",
-                        border: "1px solid rgba(56, 189, 248, 0.3)",
-                        color: "#38BDF8",
+                        width: "42px",
+                        height: "42px",
+                        borderRadius: "12px",
+                        background: "rgba(56, 189, 248, 0.15)",
+                        border: "1px solid rgba(56, 189, 248, 0.35)",
+                        color: "var(--s-cyan)",
                       }}
                     >
-                      <Camera size={18} />
+                      <Camera size={20} />
                     </div>
-                    <span className="fw-bold text-white" style={{ fontSize: "1.1rem" }}>
-                      AI Vision — Rasmdan tovar tanish
-                    </span>
+                    <div>
+                      <h3 className="s-heading-card text-white mb-0">
+                        AI Vision
+                      </h3>
+                      <span className="small" style={{ color: "var(--s-text-muted)" }}>
+                        Rasmdan tovar tanish
+                      </span>
+                    </div>
                   </div>
-                  <span className="badge bg-info-subtle text-info" style={{ fontSize: "0.72rem" }}>
+                  <span className="s-pill s-pill-blue" style={{ padding: "3px 10px", fontSize: "0.72rem" }}>
                     CV 2.0
                   </span>
                 </div>
 
-                <p className="text-secondary mb-3" style={{ color: "#CBD5E1", fontSize: "0.95rem" }}>
-                  Mijoz yuborgan fotosuratni tahlil qilib, kanalingiz katalogidagi aynan o‘sha modelni 0.8 soniyada topadi.
+                <p className="s-body mb-3">
+                  Mijoz yuborgan fotosuratni tahlil qilib, kanalingiz katalogidagi aynan
+                  o‘sha modelni 0.8 soniyada topadi.
                 </p>
 
                 {/* Laser Scanning Product Card */}
                 <div
-                  className="p-3 rounded-3 position-relative overflow-hidden mb-2"
+                  className="p-3 rounded-4 position-relative overflow-hidden mb-2"
                   style={{
-                    background: "#080911",
-                    border: "1px solid rgba(56, 189, 248, 0.25)",
+                    background: "rgba(7, 6, 15, 0.7)",
+                    border: "1px solid rgba(56, 189, 248, 0.3)",
                   }}
                 >
-                  <div className="selloi-laser-line" />
+                  <div className="s-laser-line" />
 
                   <div className="d-flex align-items-center justify-content-between mb-2">
                     <span className="small text-info fw-bold d-flex align-items-center gap-1.5">
                       <Scan size={14} /> Tahlil natijasi
                     </span>
-                    <span className="badge bg-success text-white" style={{ fontSize: "0.65rem" }}>
+                    <span className="badge bg-success text-white" style={{ fontSize: "0.68rem" }}>
                       99.4% Moslik
                     </span>
                   </div>
 
-                  <div className="d-flex flex-column gap-1.5 small" style={{ fontSize: "0.8rem" }}>
+                  <div className="d-flex flex-column gap-1.5 small" style={{ fontSize: "0.82rem" }}>
                     <div className="d-flex justify-content-between">
-                      <span className="text-secondary">Tovar:</span>
+                      <span style={{ color: "var(--s-text-muted)" }}>Tovar:</span>
                       <span className="text-white fw-medium">Air Runner Sneakers</span>
                     </div>
                     <div className="d-flex justify-content-between">
-                      <span className="text-secondary">Rangi / O‘lcham:</span>
+                      <span style={{ color: "var(--s-text-muted)" }}>Rangi / O‘lcham:</span>
                       <span className="text-white">Midnight Black (42)</span>
                     </div>
                     <div className="d-flex justify-content-between">
-                      <span className="text-secondary">Ombor zaxirasi:</span>
+                      <span style={{ color: "var(--s-text-muted)" }}>Ombor zaxirasi:</span>
                       <span className="text-success fw-bold">3 dona mavjud</span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="pt-3 mt-3 border-top border-secondary border-opacity-25 small text-secondary">
+              <div
+                className="pt-3 mt-3 small"
+                style={{
+                  borderTop: "1px solid var(--s-glass-border)",
+                  color: "var(--s-text-muted)",
+                }}
+              >
                 <span>Kiyim, poyabzal, sumka va gadjetlarni 100% taniydi</span>
               </div>
             </div>
           </div>
 
-          {/* Bento Card 3: Telegram Sync (Span 4) */}
-          <div className="selloi-bento-span-4">
-            <div
-              className="selloi-card h-100 p-4 d-flex flex-column justify-content-between"
-              style={{ background: "#0E1019" }}
-            >
+          {/* Card 3: Telegram Sync (Span 4) */}
+          <div className="s-bento-4">
+            <div className="s-glass-card h-100 p-4 d-flex flex-column justify-content-between">
               <div>
                 <div
                   className="d-flex align-items-center justify-content-center mb-3"
                   style={{
-                    width: "38px",
-                    height: "38px",
-                    borderRadius: "10px",
-                    background: "#181A28",
+                    width: "40px",
+                    height: "40px",
+                    borderRadius: "12px",
+                    background: "rgba(56, 189, 248, 0.15)",
                     border: "1px solid rgba(56, 189, 248, 0.3)",
-                    color: "#38BDF8",
+                    color: "var(--s-cyan)",
                   }}
                 >
                   <Send size={18} />
                 </div>
-                <h4 className="fw-bold text-white mb-2" style={{ fontSize: "1.1rem" }}>
-                  Telegram Sync
-                </h4>
-                <p className="text-secondary small mb-3" style={{ color: "#94A3B8" }}>
+                <h4 className="s-heading-card text-white mb-2">Telegram Sync</h4>
+                <p className="s-body small mb-3">
                   Kanalingizdagi postlar va fotosuratlarni avtomatik o‘qib, AI xotirasiga kiritadi.
                 </p>
 
                 <div
-                  className="p-2.5 rounded-2 d-flex align-items-center justify-content-between small"
-                  style={{ background: "#080911", border: "1px solid rgba(255,255,255,0.06)" }}
+                  className="p-2.5 rounded-3 d-flex align-items-center justify-content-between small"
+                  style={{
+                    background: "rgba(7, 6, 15, 0.7)",
+                    border: "1px solid var(--s-glass-border)",
+                  }}
                 >
-                  <span className="text-secondary">Kanal posti</span>
-                  <ArrowRight size={14} color="#38BDF8" />
+                  <span style={{ color: "var(--s-text-muted)" }}>Kanal posti</span>
+                  <ArrowRight size={14} color="var(--s-cyan)" />
                   <span className="text-white fw-medium">Katalog tovari</span>
                 </div>
               </div>
 
-              <div className="pt-3 mt-3 border-top border-secondary border-opacity-25 small text-success">
+              <div
+                className="pt-3 mt-3 small text-success"
+                style={{ borderTop: "1px solid var(--s-glass-border)" }}
+              >
                 ✓ Post qo‘shilganda darhol yangilanadi
               </div>
             </div>
           </div>
 
-          {/* Bento Card 4: Smart Orders CRM (Span 4) */}
-          <div className="selloi-bento-span-4">
-            <div
-              className="selloi-card h-100 p-4 d-flex flex-column justify-content-between"
-              style={{ background: "#0E1019" }}
-            >
+          {/* Card 4: Smart Orders CRM (Span 4) */}
+          <div className="s-bento-4">
+            <div className="s-glass-card h-100 p-4 d-flex flex-column justify-content-between">
               <div>
                 <div
                   className="d-flex align-items-center justify-content-center mb-3"
                   style={{
-                    width: "38px",
-                    height: "38px",
-                    borderRadius: "10px",
-                    background: "#181A28",
+                    width: "40px",
+                    height: "40px",
+                    borderRadius: "12px",
+                    background: "rgba(16, 185, 129, 0.15)",
                     border: "1px solid rgba(16, 185, 129, 0.3)",
-                    color: "#34D399",
+                    color: "var(--s-emerald)",
                   }}
                 >
                   <ShoppingCart size={18} />
                 </div>
-                <h4 className="fw-bold text-white mb-2" style={{ fontSize: "1.1rem" }}>
-                  Smart Orders CRM
-                </h4>
-                <p className="text-secondary small mb-3" style={{ color: "#94A3B8" }}>
+                <h4 className="s-heading-card text-white mb-2">Smart Orders CRM</h4>
+                <p className="s-body small mb-3">
                   Mijozdan ism, telefon va manzilni yig‘adi, buyurtmani boshqaruv paneliga yuboradi.
                 </p>
 
                 <div
-                  className="p-2.5 rounded-2 d-flex align-items-center justify-content-between small"
-                  style={{ background: "#080911", border: "1px solid rgba(16,185,129,0.2)" }}
+                  className="p-2.5 rounded-3 d-flex align-items-center justify-content-between small"
+                  style={{
+                    background: "rgba(7, 6, 15, 0.7)",
+                    border: "1px solid rgba(16, 185, 129, 0.25)",
+                  }}
                 >
-                  <span className="text-secondary">#1044 buyurtma</span>
+                  <span style={{ color: "var(--s-text-muted)" }}>#1044 buyurtma</span>
                   <span className="badge bg-success-subtle text-success">Qabul qilindi</span>
                 </div>
               </div>
 
-              <div className="pt-3 mt-3 border-top border-secondary border-opacity-25 small text-secondary">
+              <div
+                className="pt-3 mt-3 small"
+                style={{
+                  borderTop: "1px solid var(--s-glass-border)",
+                  color: "var(--s-text-muted)",
+                }}
+              >
                 <span>Mijozlar bazasi va yetkazib berish nazorati</span>
               </div>
             </div>
           </div>
 
-          {/* Bento Card 5: Click & Payme (Span 4) */}
-          <div className="selloi-bento-span-4">
-            <div
-              className="selloi-card h-100 p-4 d-flex flex-column justify-content-between"
-              style={{ background: "#0E1019" }}
-            >
+          {/* Card 5: Click & Payme (Span 4) */}
+          <div className="s-bento-4">
+            <div className="s-glass-card h-100 p-4 d-flex flex-column justify-content-between">
               <div>
                 <div
                   className="d-flex align-items-center justify-content-center mb-3"
                   style={{
-                    width: "38px",
-                    height: "38px",
-                    borderRadius: "10px",
-                    background: "#181A28",
-                    border: "1px solid rgba(251, 191, 36, 0.3)",
-                    color: "#FBBF24",
+                    width: "40px",
+                    height: "40px",
+                    borderRadius: "12px",
+                    background: "rgba(245, 158, 11, 0.15)",
+                    border: "1px solid rgba(245, 158, 11, 0.3)",
+                    color: "var(--s-amber)",
                   }}
                 >
                   <CreditCard size={18} />
                 </div>
-                <h4 className="fw-bold text-white mb-2" style={{ fontSize: "1.1rem" }}>
-                  Click & Payme To‘lovlar
-                </h4>
-                <p className="text-secondary small mb-3" style={{ color: "#94A3B8" }}>
+                <h4 className="s-heading-card text-white mb-2">Click & Payme</h4>
+                <p className="s-body small mb-3">
                   Xaridor buyurtma berishi bilan bot to‘lov havolasini yuboradi va statusni yangilaydi.
                 </p>
 
                 <div className="d-flex gap-2">
-                  <span className="badge bg-dark border border-secondary border-opacity-25 text-light px-2.5 py-1.5 small">
+                  <span
+                    className="badge border px-2.5 py-1.5 small text-light"
+                    style={{
+                      background: "rgba(255,255,255,0.05)",
+                      borderColor: "var(--s-glass-border)",
+                    }}
+                  >
                     Click Up
                   </span>
-                  <span className="badge bg-dark border border-secondary border-opacity-25 text-light px-2.5 py-1.5 small">
+                  <span
+                    className="badge border px-2.5 py-1.5 small text-light"
+                    style={{
+                      background: "rgba(255,255,255,0.05)",
+                      borderColor: "var(--s-glass-border)",
+                    }}
+                  >
                     Payme
                   </span>
-                  <span className="badge bg-dark border border-secondary border-opacity-25 text-light px-2.5 py-1.5 small">
-                    Uzcard / Humo
+                  <span
+                    className="badge border px-2.5 py-1.5 small text-light"
+                    style={{
+                      background: "rgba(255,255,255,0.05)",
+                      borderColor: "var(--s-glass-border)",
+                    }}
+                  >
+                    Humo / Uzcard
                   </span>
                 </div>
               </div>
 
-              <div className="pt-3 mt-3 border-top border-secondary border-opacity-25 small text-secondary">
+              <div
+                className="pt-3 mt-3 small"
+                style={{
+                  borderTop: "1px solid var(--s-glass-border)",
+                  color: "var(--s-text-muted)",
+                }}
+              >
                 <span>Avtomatik hisob-faktura va chek</span>
               </div>
             </div>

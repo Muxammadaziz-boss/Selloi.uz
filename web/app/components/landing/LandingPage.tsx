@@ -16,6 +16,7 @@ import Footer from "./Footer";
 import StickyMobileCTA from "./StickyMobileCTA";
 import { OnboardingModal } from "../saas/OnboardingModal";
 import { X, Lock, ArrowRight, AlertCircle } from "lucide-react";
+import "./immersive.css";
 import "./landing.css";
 
 interface LandingPageProps {
@@ -84,10 +85,10 @@ export default function LandingPage({ isAuthenticated = false }: LandingPageProp
   };
 
   return (
-    <div className="selloi-landing-root">
-      {/* Studio Lighting & Subtle Grid Texture */}
-      <div className="selloi-studio-spotlight" />
-      <div className="selloi-grid-texture" />
+    <div className="immersive-root selloi-landing-root">
+      {/* Cinematic Deep Space Lighting & Star Grid Texture */}
+      <div className="immersive-atmosphere" />
+      <div className="immersive-grid" />
 
       {/* 1. Header & Navigation (Sticky, Language Selector, Section Tracker) */}
       <Header
@@ -97,38 +98,38 @@ export default function LandingPage({ isAuthenticated = false }: LandingPageProp
       />
 
       <main>
-        {/* 2. Hero Section with High-Fidelity Telegram Showcase */}
+        {/* 2. Hero Section with 3D WebGL AI Intelligence Core */}
         <HeroSection onOpenOnboarding={() => setIsOnboardingOpen(true)} />
 
         {/* 3. Precision Trust & Key Metrics Strip */}
         <TrustBar />
 
-        {/* 4. Sales Storytelling Process (3-Step Large Visual Scenes) */}
+        {/* 4. Sales Storytelling Process (3-Step 3D Interactive Story) */}
         <StorytellingSection />
 
-        {/* 5. Features Section (Precision Bento Grid) */}
+        {/* 5. Features Section (Floating Glass Bento Grid) */}
         <FeaturesSection />
 
         {/* 6. Interactive Demo ("Sinab ko‘ring" Live Telegram Simulator) */}
         <InteractiveDemo />
 
-        {/* 7. How It Works Timeline ("BOSHLASH" 3 Steps) */}
+        {/* 7. How It Works Timeline ("BOSHLASH" 3 Steps with Energy Path) */}
         <HowItWorksSection />
 
-        {/* 8. Social Proof (Partner Logos & Real Testimonials) */}
+        {/* 8. Social Proof (Partner Logos & Verified Testimonials) */}
         <SocialProofSection />
 
         {/* 9. Dedicated Full-Width Pricing Section with Comparison Matrix */}
         <PricingSection onOpenOnboarding={() => setIsOnboardingOpen(true)} />
 
-        {/* 10. Dedicated Full-Width FAQ Section */}
+        {/* 10. Dedicated Full-Width FAQ Section (Expandable Glass Accordion) */}
         <FAQSection />
 
-        {/* 11. Final High-Impact Conversion Call-to-Action */}
+        {/* 11. Final High-Impact Conversion Call-to-Action with 3D Core */}
         <FinalCTA onOpenOnboarding={() => setIsOnboardingOpen(true)} />
       </main>
 
-      {/* 12. 5-Column Professional Footer */}
+      {/* 12. Minimal Elegant Footer */}
       <Footer />
 
       {/* 13. Mobile Floating Sticky Bottom CTA */}
@@ -147,19 +148,19 @@ export default function LandingPage({ isAuthenticated = false }: LandingPageProp
           className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
           style={{
             zIndex: 1050,
-            background: "rgba(0, 0, 0, 0.78)",
-            backdropFilter: "blur(14px)",
+            background: "rgba(0, 0, 0, 0.8)",
+            backdropFilter: "blur(16px)",
           }}
           onClick={() => setIsLoginModalOpen(false)}
         >
           <div
-            className="p-4 mx-3 rounded-4"
+            className="p-4 mx-3 rounded-4 s-glass-card"
             style={{
               width: "100%",
               maxWidth: "420px",
-              background: "#11121C",
-              border: "1px solid rgba(168, 85, 247, 0.35)",
-              boxShadow: "0 25px 60px rgba(0, 0, 0, 0.7)",
+              background: "rgba(17, 15, 29, 0.95)",
+              border: "1px solid var(--s-glass-border-hover)",
+              boxShadow: "0 25px 60px rgba(0, 0, 0, 0.8), 0 0 40px var(--s-purple-glow)",
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -172,8 +173,8 @@ export default function LandingPage({ isAuthenticated = false }: LandingPageProp
                     width: "32px",
                     height: "32px",
                     borderRadius: "8px",
-                    background: "rgba(124, 58, 237, 0.25)",
-                    color: "#C084FC",
+                    background: "rgba(180, 74, 255, 0.2)",
+                    color: "var(--s-purple-soft)",
                   }}
                 >
                   <Lock size={16} />
@@ -224,7 +225,7 @@ export default function LandingPage({ isAuthenticated = false }: LandingPageProp
                 <button
                   type="button"
                   onClick={() => setIsLoginModalOpen(false)}
-                  className="selloi-btn-secondary py-2 px-3"
+                  className="s-btn-secondary py-2 px-3"
                   style={{ fontSize: "0.85rem" }}
                 >
                   Bekor qilish
@@ -232,7 +233,7 @@ export default function LandingPage({ isAuthenticated = false }: LandingPageProp
                 <button
                   type="submit"
                   disabled={loginLoading}
-                  className="selloi-btn-primary py-2 px-4"
+                  className="s-btn-primary py-2 px-4"
                   style={{ fontSize: "0.85rem" }}
                 >
                   {loginLoading ? "Tekshirilmoqda..." : "Kirish"}
