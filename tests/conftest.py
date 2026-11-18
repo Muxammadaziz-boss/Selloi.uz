@@ -23,6 +23,12 @@ def initialize_test_database():
                 await saas_service.seed_plans_and_defaults(db)
                 await admin_service.ensure_owner(db)
                 await db.commit()
+            async with engine.begin() as conn:
+                for tbl in ["organizations", "users", "organization_members", "plans", "subscriptions"]:
+                    try:
+                        await conn.execute(text(f"SELECT setval(pg_get_serial_sequence('{tbl}', 'id'), COALESCE((SELECT MAX(id) FROM {tbl}), 0) + 1, false)"))
+                    except Exception:
+                        pass
             await engine.dispose()
         except Exception as e:
             # In unit environments without live DB, ignore connection errors

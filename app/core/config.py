@@ -120,6 +120,8 @@ class Settings(BaseSettings):
                 self.encryption_key = "MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE="
             if not self.admin_telegram_id:
                 self.admin_telegram_id = 999888777
+            if not self.public_webhook_url:
+                self.public_webhook_url = "https://selloi.uz"
 
         return self
 
