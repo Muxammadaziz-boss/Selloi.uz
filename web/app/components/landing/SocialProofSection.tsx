@@ -1,19 +1,15 @@
 "use client";
 
 import React, { useState } from "react";
-import { TESTIMONIALS, PARTNER_LOGOS } from "./data";
-import { Star, Quote, CheckCircle2, Store, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
+import { useLanguage } from "@/app/lib/i18n";
+import { TESTIMONIALS_BY_LANG, PARTNER_LOGOS } from "./data";
+import { LANDING_CONTENT_BY_LANG } from "./landingContent";
+import { Star, Quote, CheckCircle2, Store, Sparkles } from "lucide-react";
 
 export default function SocialProofSection() {
-  const [activeIndex, setActiveIndex] = useState(0);
-
-  const nextCard = () => {
-    setActiveIndex((prev) => (prev >= TESTIMONIALS.length - 1 ? 0 : prev + 1));
-  };
-
-  const prevCard = () => {
-    setActiveIndex((prev) => (prev <= 0 ? TESTIMONIALS.length - 1 : prev - 1));
-  };
+  const { language } = useLanguage();
+  const testimonials = TESTIMONIALS_BY_LANG[language] || TESTIMONIALS_BY_LANG.uz;
+  const proofContent = (LANDING_CONTENT_BY_LANG[language] || LANDING_CONTENT_BY_LANG.uz).socialProof;
 
   return (
     <section className="s-section position-relative overflow-hidden">
@@ -28,7 +24,7 @@ export default function SocialProofSection() {
               fontSize: "var(--s-text-xs)",
             }}
           >
-            Telegram tarmog‘idagi faol do‘konlar va hamkorlar
+            {proofContent.partnerLabel}
           </p>
 
           <div className="d-flex flex-wrap align-items-center justify-content-center gap-2.5 gap-md-3">
@@ -65,21 +61,21 @@ export default function SocialProofSection() {
           <div className="mb-3">
             <span className="s-pill">
               <Sparkles size={13} />
-              <span>FIKRLAR VA NATIJALAR</span>
+              <span>{proofContent.badge}</span>
             </span>
           </div>
           <h2 className="s-heading-section mb-3">
-            Do‘kon egalarining{" "}
-            <span className="s-gradient-purple">haqiqiy tajribalari</span>
+            {proofContent.headingPrefix}{" "}
+            <span className="s-gradient-purple">{proofContent.headingHighlight}</span>
           </h2>
           <p className="s-body-lg mx-auto" style={{ maxWidth: "600px" }}>
-            Biznesini avtomatlashtirgan va savdolarini oshirgan tadbirkorlar natijalari.
+            {proofContent.subtitle}
           </p>
         </div>
 
         {/* 3D Cards Grid / Carousel */}
         <div className="row g-4 justify-content-center">
-          {TESTIMONIALS.map((t, idx) => (
+          {testimonials.map((t) => (
             <div key={t.id} className="col-lg-4">
               <div
                 className="s-glass-card h-100 p-4 p-md-5 d-flex flex-column justify-content-between position-relative"

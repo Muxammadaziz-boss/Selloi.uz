@@ -1,38 +1,30 @@
 "use client";
 
 import React from "react";
-import { UserPlus, Send, Bot, Sparkles, Zap, ArrowRight, ShieldCheck } from "lucide-react";
+import { useLanguage } from "@/app/lib/i18n";
+import { HOW_IT_WORKS_BY_LANG } from "./data";
+import { LANDING_CONTENT_BY_LANG } from "./landingContent";
+import { UserPlus, Send, Bot, Sparkles } from "lucide-react";
 
 export default function HowItWorksSection() {
-  const steps = [
-    {
-      step: "01",
-      title: "Ro‘yxatdan o‘ting",
-      description: "1 daqiqada o‘z do‘kon hisobingizni oching va qulay boshqaruv paneliga kiring.",
-      badge: "1 daqiqa",
-      icon: UserPlus,
-      color: "var(--s-purple-soft)",
-      bg: "rgba(180, 74, 255, 0.15)",
-    },
-    {
-      step: "02",
-      title: "Telegram'ni ulang",
-      description: "Bot tokeningizni kiriting va do‘kon kanalingizni ko‘rsating. Katalog avtomatik o‘qiladi.",
-      badge: "Avtomatik sinxronizatsiya",
-      icon: Send,
-      color: "var(--s-cyan)",
-      bg: "rgba(56, 189, 248, 0.15)",
-    },
-    {
-      step: "03",
-      title: "AI sotuvchini faollashtiring",
-      description: "AI sotuvchingiz mijozlaringiz bilan kechayu kunduz professional muloqotni boshlaydi.",
-      badge: "24/7 faol",
-      icon: Bot,
-      color: "var(--s-emerald)",
-      bg: "rgba(16, 185, 129, 0.15)",
-    },
+  const { language } = useLanguage();
+  const stepsData = HOW_IT_WORKS_BY_LANG[language] || HOW_IT_WORKS_BY_LANG.uz;
+  const howContent = (LANDING_CONTENT_BY_LANG[language] || LANDING_CONTENT_BY_LANG.uz).howItWorks;
+
+  const icons = [UserPlus, Send, Bot];
+  const colors = ["var(--s-purple-soft)", "var(--s-cyan)", "var(--s-emerald)"];
+  const bgs = [
+    "rgba(180, 74, 255, 0.15)",
+    "rgba(56, 189, 248, 0.15)",
+    "rgba(16, 185, 129, 0.15)",
   ];
+
+  const steps = stepsData.map((item, idx) => ({
+    ...item,
+    icon: icons[idx] || Bot,
+    color: colors[idx] || "var(--s-purple-soft)",
+    bg: bgs[idx] || "rgba(180, 74, 255, 0.15)",
+  }));
 
   return (
     <section id="boshlash" className="s-section position-relative overflow-hidden">
@@ -58,16 +50,15 @@ export default function HowItWorksSection() {
           <div className="mb-3">
             <span className="s-pill">
               <Sparkles size={13} />
-              <span>3 ODDIY QADAM</span>
+              <span>{howContent.badge}</span>
             </span>
           </div>
           <h2 className="s-heading-section mb-3">
-            Selloi bilan boshlash{" "}
-            <span className="s-gradient-purple">juda oson</span>
+            {howContent.headingPrefix}{" "}
+            <span className="s-gradient-purple">{howContent.headingHighlight}</span>
           </h2>
           <p className="s-body-lg mx-auto" style={{ maxWidth: "600px" }}>
-            Hech qanday murakkab texnik sozlamalarsiz, 3 ta oddiy qadamda AI sotuvchingizni
-            Telegram do‘koningizga ulang.
+            {howContent.subtitle}
           </p>
         </div>
 

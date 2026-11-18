@@ -1,10 +1,14 @@
 "use client";
 
 import React from "react";
-import { TRUST_METRICS } from "./data";
+import { useLanguage } from "@/app/lib/i18n";
+import { TRUST_METRICS_BY_LANG } from "./data";
 import { Clock, Globe, Target, Zap } from "lucide-react";
 
 export default function TrustBar() {
+  const { language } = useLanguage();
+  const metrics = TRUST_METRICS_BY_LANG[language] || TRUST_METRICS_BY_LANG.uz;
+
   const getIcon = (index: number) => {
     switch (index) {
       case 0:
@@ -29,11 +33,11 @@ export default function TrustBar() {
           }}
         >
           <div className="row g-4 align-items-center">
-            {TRUST_METRICS.map((metric, idx) => (
+            {metrics.map((metric, idx) => (
               <div
                 key={metric.value}
                 className={`col-6 col-md-3 ${
-                  idx !== TRUST_METRICS.length - 1
+                  idx !== metrics.length - 1
                     ? "border-end-md border-secondary border-opacity-25"
                     : ""
                 }`}

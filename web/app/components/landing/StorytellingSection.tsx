@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useLanguage } from "@/app/lib/i18n";
+import { LANDING_CONTENT_BY_LANG } from "./landingContent";
 import {
   MessageSquare,
   Camera,
@@ -17,6 +19,9 @@ import {
 } from "lucide-react";
 
 export default function StorytellingSection() {
+  const { language } = useLanguage();
+  const story = (LANDING_CONTENT_BY_LANG[language] || LANDING_CONTENT_BY_LANG.uz).storytelling;
+
   const [activeStep, setActiveStep] = useState<number>(2);
   const [isHovered, setIsHovered] = useState(false);
 
@@ -58,19 +63,18 @@ export default function StorytellingSection() {
           <div className="mb-3">
             <span className="s-pill">
               <Sparkles size={13} />
-              <span>3D SOTUV JARAYONI</span>
+              <span>{story.badge}</span>
             </span>
           </div>
           <h2 className="s-heading-section mb-3">
-            Savdo jarayoni 3 bosqichli{" "}
-            <span className="s-gradient-purple">AI intellekti</span> orqali
+            {story.headingPrefix}{" "}
+            <span className="s-gradient-purple">{story.headingHighlight}</span>
           </h2>
           <p
             className="s-body-lg mx-auto"
             style={{ maxWidth: "640px" }}
           >
-            Mijoz bilan birinchi salomlashishdan tortib, fotosuratni tanish va
-            buyurtma rasmiylashtirishgacha — barchasi soniyalar ichida avtomatik.
+            {story.subtitle}
           </p>
 
           {/* Interactive Stage Selector Tabs */}
@@ -82,9 +86,9 @@ export default function StorytellingSection() {
             }}
           >
             {[
-              { num: 1, label: "01 • AI Suhbat", icon: MessageSquare },
-              { num: 2, label: "02 • AI Vision Tahlil", icon: Camera },
-              { num: 3, label: "03 • Smart Buyurtma", icon: CheckCircle2 },
+              { num: 1, label: story.tab1, icon: MessageSquare },
+              { num: 2, label: story.tab2, icon: Camera },
+              { num: 3, label: story.tab3, icon: CheckCircle2 },
             ].map((st) => {
               const Icon = st.icon;
               const isActive = activeStep === st.num;
@@ -182,10 +186,10 @@ export default function StorytellingSection() {
                     </div>
                     <div>
                       <h3 className="s-heading-card text-white mb-0">
-                        AI Suhbat
+                        {story.stage1Title}
                       </h3>
                       <p className="mb-0 small" style={{ color: "var(--s-text-muted)" }}>
-                        Tabiiy tilda muloqot
+                        {story.stage1Sub}
                       </p>
                     </div>
                   </div>
@@ -225,7 +229,7 @@ export default function StorytellingSection() {
                         border: "1px solid rgba(255,255,255,0.06)",
                       }}
                     >
-                      Assalomu alaykum! Shu naushnikdan bormi, sifati qanaqa?
+                      {story.stage1UserMsg}
                       <div className="text-end mt-1 text-white-50" style={{ fontSize: "0.65rem" }}>
                         12:40 • Yetkazildi ✓✓
                       </div>
@@ -257,7 +261,7 @@ export default function StorytellingSection() {
                         maxWidth: "88%",
                       }}
                     >
-                      Va alaykum assalom! Ha, 'Pro Wireless ANC' modelimiz omborda bor. 40 soat zaryad ushlaydi, shovqinni 95% to‘sadi. Narxi 320,000 so‘m. 🎧
+                      {story.stage1AiMsg}
                     </div>
                   </div>
                 </div>
@@ -272,8 +276,8 @@ export default function StorytellingSection() {
                   color: "var(--s-text-muted)",
                 }}
               >
-                <span>O‘zbek (lotin/kirill), rus, ingliz</span>
-                <span className="text-success fw-medium">Javob: 0.6s</span>
+                <span>{story.stage1Footer}</span>
+                <span className="text-success fw-medium">{story.stage1Latency}</span>
               </div>
             </div>
           </div>
@@ -319,10 +323,10 @@ export default function StorytellingSection() {
                     </div>
                     <div>
                       <h3 className="s-heading-card text-white mb-0">
-                        AI Vision
+                        {story.stage2Title}
                       </h3>
                       <p className="mb-0 small" style={{ color: "var(--s-text-muted)" }}>
-                        Fotosurat tahlili va tanish
+                        {story.stage2Sub}
                       </p>
                     </div>
                   </div>
@@ -356,25 +360,25 @@ export default function StorytellingSection() {
                           className="position-absolute top-0 start-0 m-1.5 p-1 badge bg-dark text-info"
                           style={{ fontSize: "0.6rem" }}
                         >
-                          <Scan size={9} className="me-1" /> 98.4%
+                          <Scan size={9} className="me-1" /> {story.stage2Result}
                         </div>
                       </div>
                     </div>
 
                     <div className="col-7">
                       <div className="d-flex flex-column gap-1.5 small" style={{ fontSize: "0.78rem" }}>
-                        <div className="fw-bold text-white">Gaming Naushnik</div>
+                        <div className="fw-bold text-white">{story.stage2Product}</div>
                         <div className="d-flex align-items-center gap-1.5" style={{ color: "var(--s-text-secondary)" }}>
                           <Check size={12} color="var(--s-emerald)" />
-                          <span>Katalogdan topildi</span>
+                          <span>{story.stage2Found}</span>
                         </div>
                         <div className="d-flex align-items-center gap-1.5" style={{ color: "var(--s-text-secondary)" }}>
                           <Check size={12} color="var(--s-emerald)" />
-                          <span>Midnight Black</span>
+                          <span>{story.stage2Color}</span>
                         </div>
                         <div className="d-flex align-items-center gap-1.5" style={{ color: "var(--s-text-secondary)" }}>
                           <Check size={12} color="var(--s-emerald)" />
-                          <span>12 dona mavjud</span>
+                          <span>{story.stage2Stock}</span>
                         </div>
                       </div>
                     </div>
@@ -391,8 +395,8 @@ export default function StorytellingSection() {
                   color: "var(--s-text-muted)",
                 }}
               >
-                <span>Multimodal neyrotarmoq</span>
-                <span className="text-info fw-medium">Aniqlik: 99.4%</span>
+                <span>{story.stage2Footer}</span>
+                <span className="text-info fw-medium">{story.stage2Accuracy}</span>
               </div>
             </div>
           </div>
@@ -438,10 +442,10 @@ export default function StorytellingSection() {
                     </div>
                     <div>
                       <h3 className="s-heading-card text-white mb-0">
-                        Smart Buyurtma
+                        {story.stage3Title}
                       </h3>
                       <p className="mb-0 small" style={{ color: "var(--s-text-muted)" }}>
-                        Avtomatik rasmiylashtirish
+                        {story.stage3Sub}
                       </p>
                     </div>
                   </div>
@@ -470,29 +474,29 @@ export default function StorytellingSection() {
                       className="fw-bold text-success d-flex align-items-center gap-1.5"
                       style={{ fontSize: "0.82rem" }}
                     >
-                      <CheckCircle2 size={14} /> Buyurtma #1043
+                      <CheckCircle2 size={14} /> {story.stage3Order}
                     </span>
                     <span className="badge bg-success-subtle text-success" style={{ fontSize: "0.68rem" }}>
-                      Tasdiqlandi
+                      {story.stage3Status}
                     </span>
                   </div>
 
                   <div className="d-flex flex-column gap-1.5 small" style={{ fontSize: "0.8rem" }}>
                     <div className="d-flex justify-content-between">
                       <span style={{ color: "var(--s-text-muted)" }}>Mahsulot:</span>
-                      <span className="text-white">Gaming naushnik x 1</span>
+                      <span className="text-white">{story.stage3ItemLabel}</span>
                     </div>
                     <div className="d-flex justify-content-between">
                       <span style={{ color: "var(--s-text-muted)" }}>Mijoz:</span>
-                      <span className="text-white">+998 90 ••• •• 45</span>
+                      <span className="text-white">{story.stage3CustomerLabel}</span>
                     </div>
                     <div className="d-flex justify-content-between">
                       <span style={{ color: "var(--s-text-muted)" }}>Manzil:</span>
-                      <span className="text-white">Toshkent, Chilonzor</span>
+                      <span className="text-white">{story.stage3AddressLabel}</span>
                     </div>
                     <div className="d-flex justify-content-between pt-1 border-top border-secondary border-opacity-25">
                       <span style={{ color: "var(--s-text-muted)" }}>To‘lov:</span>
-                      <span className="text-success fw-bold">320,000 so‘m (Click)</span>
+                      <span className="text-success fw-bold">{story.stage3PaymentLabel}</span>
                     </div>
                   </div>
                 </div>
@@ -507,7 +511,7 @@ export default function StorytellingSection() {
                   color: "var(--s-text-muted)",
                 }}
               >
-                <span>Avtomatik chek & faktura</span>
+                <span>{story.stage3Footer}</span>
                 <span className="text-success fw-medium">Click, Payme</span>
               </div>
             </div>

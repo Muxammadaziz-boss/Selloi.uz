@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { DEMO_SCENARIOS } from "./data";
+import { useLanguage } from "@/app/lib/i18n";
+import { DEMO_SCENARIOS_BY_LANG } from "./data";
+import { LANDING_CONTENT_BY_LANG } from "./landingContent";
 import {
   Send,
   CheckCheck,
@@ -14,13 +16,24 @@ import {
 } from "lucide-react";
 
 export default function InteractiveDemo() {
-  const [activeScenarioId, setActiveScenarioId] = useState(DEMO_SCENARIOS[0].id);
+  const { language } = useLanguage();
+  const scenarios = DEMO_SCENARIOS_BY_LANG[language] || DEMO_SCENARIOS_BY_LANG.uz;
+  const demoContent = (LANDING_CONTENT_BY_LANG[language] || LANDING_CONTENT_BY_LANG.uz).demo;
+
+  const [activeScenarioId, setActiveScenarioId] = useState(scenarios[0].id);
   const [isTyping, setIsTyping] = useState(false);
   const [displayedResponse, setDisplayedResponse] = useState("");
   const [showOrder, setShowOrder] = useState(false);
 
   const scenario =
-    DEMO_SCENARIOS.find((s) => s.id === activeScenarioId) || DEMO_SCENARIOS[0];
+    scenarios.find((s) => s.id === activeScenarioId) || scenarios[0];
+
+  // If scenario id doesn't match on language change, default to first
+  useEffect(() => {
+    if (!scenarios.some((s) => s.id === activeScenarioId)) {
+      setActiveScenarioId(scenarios[0].id);
+    }
+  }, [scenarios, activeScenarioId]);
 
   // Animate simulated typing when switching scenarios
   useEffect(() => {
@@ -63,18 +76,18 @@ export default function InteractiveDemo() {
           <div className="mb-3">
             <span className="s-pill">
               <Sparkles size={13} />
-              <span>INTERAKTIV DEMO</span>
+              <span>{demoContent.badge}</span>
             </span>
           </div>
           <h2 className="s-heading-section mb-3">
-            Selloi AI qanday ishlashini{" "}
-            <span className="s-gradient-purple">o‘zingiz sinab ko‘ring</span>
+            {demoContent.headingPrefix}{" "}
+            <span className="s-gradient-purple">{demoContent.headingHighlight}</span>
           </h2>
           <p
             className="s-body-lg mx-auto"
             style={{ maxWidth: "620px" }}
           >
-            Haqiqiy xaridor vaziyatini tanlang va botning tezkor, muloyim javobini jonli ko‘ring.
+            {demoContent.subtitle}
           </p>
         </div>
 
@@ -96,7 +109,7 @@ export default function InteractiveDemo() {
             className="p-3 d-flex flex-wrap gap-2 border-bottom border-secondary border-opacity-25"
             style={{ background: "rgba(17, 15, 29, 0.9)" }}
           >
-            {DEMO_SCENARIOS.map((sc) => {
+            {scenarios.map((sc) => {
               const isActive = sc.id === activeScenarioId;
               return (
                 <button
@@ -158,12 +171,12 @@ export default function InteractiveDemo() {
                       className="d-inline-block rounded-circle bg-success"
                       style={{ width: "6px", height: "6px" }}
                     />
-                    24/7 onlayn • Javob: 0.6 soniya
+                    {demoContent.onlineStatus}
                   </div>
                 </div>
               </div>
               <span className="s-pill" style={{ padding: "4px 12px", fontSize: "0.72rem" }}>
-                Jonli sinov
+                {demoContent.liveBadge}
               </span>
             </div>
 
@@ -233,7 +246,7 @@ export default function InteractiveDemo() {
                     }}
                   >
                     <span className="small text-secondary" style={{ fontSize: "0.8rem" }}>
-                      AI javob yozmoqda
+                      {demoContent.typingStatus}
                     </span>
                     <div className="s-typing-dots">
                       <span />
@@ -283,7 +296,7 @@ export default function InteractiveDemo() {
                           fontSize: "0.7rem",
                         }}
                       >
-                        <ShoppingBag size={10} className="me-1" /> Avtomatik javob
+                        <ShoppingBag size={10} className="me-1" /> {demoContent.autoReplyBadge}
                       </span>
                       <span className="small" style={{ fontSize: "0.68rem", color: "var(--s-text-muted)" }}>
                         12:44
@@ -340,7 +353,7 @@ export default function InteractiveDemo() {
               }}
             >
               <span className="small ps-2" style={{ fontSize: "0.82rem", color: "var(--s-text-muted)" }}>
-                Yuqoridagi ssenariylardan birini tanlang yoki o‘z do‘koningizni ulab sinang...
+                {demoContent.inputPlaceholder}
               </span>
               <div
                 className="d-flex align-items-center justify-content-center rounded-circle"

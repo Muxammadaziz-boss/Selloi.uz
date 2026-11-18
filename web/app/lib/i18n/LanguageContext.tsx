@@ -22,7 +22,7 @@ export function LanguageProvider({
   useEffect(() => {
     try {
       const savedLang = localStorage.getItem(STORAGE_KEY_LANGUAGE) as Language | null;
-      if (savedLang === "uz" || savedLang === "en") {
+      if (savedLang === "uz" || savedLang === "ru" || savedLang === "en") {
         setLanguageState(savedLang);
         document.documentElement.setAttribute("lang", savedLang);
       } else {

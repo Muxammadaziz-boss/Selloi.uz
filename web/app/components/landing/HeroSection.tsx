@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import ThreeAICore from "./ThreeAICore";
+import { useLanguage } from "@/app/lib/i18n";
+import { LANDING_CONTENT_BY_LANG } from "./landingContent";
 import {
   ArrowRight,
   Send,
@@ -18,6 +20,9 @@ interface HeroSectionProps {
 }
 
 export default function HeroSection({ onOpenOnboarding }: HeroSectionProps) {
+  const { language } = useLanguage();
+  const hero = (LANDING_CONTENT_BY_LANG[language] || LANDING_CONTENT_BY_LANG.uz).hero;
+
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const heroRef = useRef<HTMLElement | null>(null);
 
@@ -70,15 +75,15 @@ export default function HeroSection({ onOpenOnboarding }: HeroSectionProps) {
             <div className="mb-4">
               <span className="s-pill">
                 <Sparkles size={13} />
-                <span>INTELLIGENCE IN MOTION</span>
+                <span>{hero.badge}</span>
               </span>
             </div>
 
             {/* Headline */}
             <h1 className="s-heading-hero mb-4">
-              Telegram do‘koningiz uchun{" "}
+              {hero.headlinePrefix}{" "}
               <span className="s-gradient-purple d-block">
-                24/7 ishlovchi AI sotuvchi.
+                {hero.headlineHighlight}
               </span>
             </h1>
 
@@ -87,19 +92,18 @@ export default function HeroSection({ onOpenOnboarding }: HeroSectionProps) {
               className="s-body-lg mb-5"
               style={{ maxWidth: "540px", color: "var(--s-text-secondary)" }}
             >
-              Mijozlaringiz bilan muloqot qiladigan, mahsulotlarni taniydigan va
-              buyurtmalarni avtomatik boshqaradigan yangi avlod sun’iy intellekti.
+              {hero.description}
             </p>
 
             {/* CTA Buttons */}
             <div className="d-flex flex-wrap align-items-center gap-3 mb-5">
               <button onClick={onOpenOnboarding} className="s-btn-primary">
-                <span>7 kun bepul boshlash</span>
+                <span>{hero.primaryCta}</span>
                 <ArrowRight size={16} />
               </button>
 
               <a href="#imkoniyatlar" className="s-btn-secondary">
-                <span>Imkoniyatlarni ko‘rish</span>
+                <span>{hero.secondaryCta}</span>
               </a>
             </div>
 
@@ -124,7 +128,7 @@ export default function HeroSection({ onOpenOnboarding }: HeroSectionProps) {
                 >
                   <CheckCircle2 size={13} />
                 </div>
-                <span>O‘zbek tilida erkin</span>
+                <span>{hero.trust1}</span>
               </div>
 
               <div className="d-flex align-items-center gap-2">
@@ -139,7 +143,7 @@ export default function HeroSection({ onOpenOnboarding }: HeroSectionProps) {
                 >
                   <Send size={11} />
                 </div>
-                <span>Telegram Bot & Kanal</span>
+                <span>{hero.trust2}</span>
               </div>
 
               <div className="d-flex align-items-center gap-2">
@@ -154,7 +158,7 @@ export default function HeroSection({ onOpenOnboarding }: HeroSectionProps) {
                 >
                   <Zap size={11} />
                 </div>
-                <span>Kredit karta talab etilmaydi</span>
+                <span>{hero.trust3}</span>
               </div>
             </div>
           </div>
@@ -206,7 +210,7 @@ export default function HeroSection({ onOpenOnboarding }: HeroSectionProps) {
                 </div>
                 <div className="small">
                   <div className="fw-semibold text-white" style={{ fontSize: "0.8rem" }}>
-                    "Qora oversize xudi bormi?"
+                    {hero.floatingCard1Msg}
                   </div>
                   <div
                     className="d-flex align-items-center gap-1 mt-0.5"
@@ -246,10 +250,10 @@ export default function HeroSection({ onOpenOnboarding }: HeroSectionProps) {
                 </div>
                 <div>
                   <div className="fw-bold text-white" style={{ fontSize: "0.78rem" }}>
-                    AI Vision: 99.4%
+                    {hero.floatingCard2Title}
                   </div>
                   <div style={{ fontSize: "0.68rem", color: "var(--s-cyan)" }}>
-                    Rasm tahlil qilindi
+                    {hero.floatingCard2Sub}
                   </div>
                 </div>
               </div>
@@ -275,7 +279,7 @@ export default function HeroSection({ onOpenOnboarding }: HeroSectionProps) {
                     className="fw-bold text-success d-flex align-items-center gap-1"
                     style={{ fontSize: "0.78rem" }}
                   >
-                    <CheckCircle2 size={13} /> Buyurtma #1042
+                    <CheckCircle2 size={13} /> {hero.floatingCard3Title}
                   </span>
                   <span
                     className="badge rounded-pill text-success"
@@ -284,17 +288,17 @@ export default function HeroSection({ onOpenOnboarding }: HeroSectionProps) {
                       fontSize: "0.65rem",
                     }}
                   >
-                    Avtomatik
+                    {hero.floatingCard3Status}
                   </span>
                 </div>
                 <div
                   className="text-white fw-medium"
                   style={{ fontSize: "0.8rem" }}
                 >
-                  Hoodie L • 240,000 so‘m
+                  {hero.floatingCard3Sub}
                 </div>
                 <div style={{ fontSize: "0.7rem", color: "var(--s-text-muted)" }}>
-                  Click orqali to‘landi
+                  Click • Payme
                 </div>
               </div>
 
@@ -315,7 +319,7 @@ export default function HeroSection({ onOpenOnboarding }: HeroSectionProps) {
               >
                 <ShoppingBag size={14} color="var(--s-purple-soft)" />
                 <span className="fw-semibold text-white" style={{ fontSize: "0.76rem" }}>
-                  Katalog sinxronlangan
+                  {hero.floatingCard4}
                 </span>
               </div>
             </div>
@@ -325,7 +329,7 @@ export default function HeroSection({ onOpenOnboarding }: HeroSectionProps) {
 
       {/* Subtle Animated Scroll Indicator */}
       <div className="s-scroll-indicator">
-        <span>IMKONIYATLAR</span>
+        <span>{hero.scrollIndicator}</span>
         <div className="s-scroll-line" />
       </div>
     </section>

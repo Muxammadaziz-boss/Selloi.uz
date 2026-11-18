@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
+import { useLanguage } from "@/app/lib/i18n";
+import { LANDING_CONTENT_BY_LANG } from "./landingContent";
 import {
   MessageSquare,
   Camera,
@@ -20,6 +22,9 @@ import {
 } from "lucide-react";
 
 export default function FeaturesSection() {
+  const { language } = useLanguage();
+  const feat = (LANDING_CONTENT_BY_LANG[language] || LANDING_CONTENT_BY_LANG.uz).features;
+
   const [chatLang, setChatLang] = useState<"uz-lat" | "uz-kir" | "ru" | "en">("uz-lat");
 
   const chatExamples = {
@@ -49,19 +54,18 @@ export default function FeaturesSection() {
           <div className="mb-3">
             <span className="s-pill">
               <Sparkles size={13} />
-              <span>IMKONIYATLAR</span>
+              <span>{feat.badge}</span>
             </span>
           </div>
           <h2 className="s-heading-section mb-3">
-            Telegram savdosining{" "}
-            <span className="s-gradient-purple">yangi standarti</span>
+            {feat.headingPrefix}{" "}
+            <span className="s-gradient-purple">{feat.headingHighlight}</span>
           </h2>
           <p
             className="s-body-lg mx-auto"
             style={{ maxWidth: "640px" }}
           >
-            Har bir mijozga darhol javob bering, fotosuratdan tovarlarni toping va
-            to‘lovlarni qabul qiling — dasturchilarsiz va 24/7 rejimida.
+            {feat.subtitle}
           </p>
         </div>
 
@@ -88,10 +92,10 @@ export default function FeaturesSection() {
                     </div>
                     <div>
                       <h3 className="s-heading-card text-white mb-0">
-                        AI Chat — Ko‘p tilli muloqot
+                        {feat.chatTitle}
                       </h3>
                       <span className="small" style={{ color: "var(--s-text-muted)" }}>
-                        Tabiiy tilda aqlli suhbatlashuv
+                        {feat.chatSubtitle}
                       </span>
                     </div>
                   </div>
@@ -101,9 +105,7 @@ export default function FeaturesSection() {
                 </div>
 
                 <p className="s-body mb-4" style={{ maxWidth: "580px" }}>
-                  O‘zbek tili (lotin va kirill), rus hamda ingliz tillarida haqiqiy xarid
-                  maslahatchisidek erkin muloqot qiladi. Shevalar, xatolar va so‘zlashuv
-                  uslubini to‘liq tushunadi.
+                  {feat.chatDescription}
                 </p>
 
                 {/* Interactive Language Selector Tabs */}
@@ -193,8 +195,8 @@ export default function FeaturesSection() {
                   color: "var(--s-text-muted)",
                 }}
               >
-                <span>✓ Do‘koningiz xarakteriga mos ohang (tone of voice)</span>
-                <span className="text-success fw-medium">Real-vaqt sinov</span>
+                <span>{feat.chatTone}</span>
+                <span className="text-success fw-medium">{feat.chatLiveBadge}</span>
               </div>
             </div>
           </div>
@@ -220,10 +222,10 @@ export default function FeaturesSection() {
                     </div>
                     <div>
                       <h3 className="s-heading-card text-white mb-0">
-                        AI Vision
+                        {feat.visionTitle}
                       </h3>
                       <span className="small" style={{ color: "var(--s-text-muted)" }}>
-                        Rasmdan tovar tanish
+                        {feat.visionSubtitle}
                       </span>
                     </div>
                   </div>
@@ -233,8 +235,7 @@ export default function FeaturesSection() {
                 </div>
 
                 <p className="s-body mb-3">
-                  Mijoz yuborgan fotosuratni tahlil qilib, kanalingiz katalogidagi aynan
-                  o‘sha modelni 0.8 soniyada topadi.
+                  {feat.visionDescription}
                 </p>
 
                 {/* Laser Scanning Product Card */}
@@ -280,7 +281,7 @@ export default function FeaturesSection() {
                   color: "var(--s-text-muted)",
                 }}
               >
-                <span>Kiyim, poyabzal, sumka va gadjetlarni 100% taniydi</span>
+                <span>{feat.visionFooter}</span>
               </div>
             </div>
           </div>
@@ -302,9 +303,9 @@ export default function FeaturesSection() {
                 >
                   <Send size={18} />
                 </div>
-                <h4 className="s-heading-card text-white mb-2">Telegram Sync</h4>
+                <h4 className="s-heading-card text-white mb-2">{feat.syncTitle}</h4>
                 <p className="s-body small mb-3">
-                  Kanalingizdagi postlar va fotosuratlarni avtomatik o‘qib, AI xotirasiga kiritadi.
+                  {feat.syncSubtitle}
                 </p>
 
                 <div
@@ -314,9 +315,9 @@ export default function FeaturesSection() {
                     border: "1px solid var(--s-glass-border)",
                   }}
                 >
-                  <span style={{ color: "var(--s-text-muted)" }}>Kanal posti</span>
+                  <span style={{ color: "var(--s-text-muted)" }}>{feat.syncPost}</span>
                   <ArrowRight size={14} color="var(--s-cyan)" />
-                  <span className="text-white fw-medium">Katalog tovari</span>
+                  <span className="text-white fw-medium">{feat.syncProduct}</span>
                 </div>
               </div>
 
@@ -324,7 +325,7 @@ export default function FeaturesSection() {
                 className="pt-3 mt-3 small text-success"
                 style={{ borderTop: "1px solid var(--s-glass-border)" }}
               >
-                ✓ Post qo‘shilganda darhol yangilanadi
+                {feat.syncFooter}
               </div>
             </div>
           </div>
@@ -346,9 +347,9 @@ export default function FeaturesSection() {
                 >
                   <ShoppingCart size={18} />
                 </div>
-                <h4 className="s-heading-card text-white mb-2">Smart Orders CRM</h4>
+                <h4 className="s-heading-card text-white mb-2">{feat.crmTitle}</h4>
                 <p className="s-body small mb-3">
-                  Mijozdan ism, telefon va manzilni yig‘adi, buyurtmani boshqaruv paneliga yuboradi.
+                  {feat.crmSubtitle}
                 </p>
 
                 <div
@@ -370,7 +371,7 @@ export default function FeaturesSection() {
                   color: "var(--s-text-muted)",
                 }}
               >
-                <span>Mijozlar bazasi va yetkazib berish nazorati</span>
+                <span>{feat.crmFooter}</span>
               </div>
             </div>
           </div>
@@ -392,9 +393,9 @@ export default function FeaturesSection() {
                 >
                   <CreditCard size={18} />
                 </div>
-                <h4 className="s-heading-card text-white mb-2">Click & Payme</h4>
+                <h4 className="s-heading-card text-white mb-2">{feat.payTitle}</h4>
                 <p className="s-body small mb-3">
-                  Xaridor buyurtma berishi bilan bot to‘lov havolasini yuboradi va statusni yangilaydi.
+                  {feat.paySubtitle}
                 </p>
 
                 <div className="d-flex gap-2">
@@ -435,7 +436,7 @@ export default function FeaturesSection() {
                   color: "var(--s-text-muted)",
                 }}
               >
-                <span>Avtomatik hisob-faktura va chek</span>
+                <span>{feat.payFooter}</span>
               </div>
             </div>
           </div>

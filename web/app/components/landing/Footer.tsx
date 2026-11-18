@@ -2,9 +2,16 @@
 
 import React from "react";
 import Link from "next/link";
-import { Send, Youtube, Github, Instagram, Heart, Globe, ExternalLink } from "lucide-react";
+import { useLanguage } from "@/app/lib/i18n";
+import { LANDING_CONTENT_BY_LANG } from "./landingContent";
+import { NAV_ITEMS_BY_LANG } from "./data";
+import { Send, Youtube, Instagram, Heart, ExternalLink } from "lucide-react";
 
 export default function Footer() {
+  const { language } = useLanguage();
+  const footerContent = (LANDING_CONTENT_BY_LANG[language] || LANDING_CONTENT_BY_LANG.uz).footer;
+  const navItems = NAV_ITEMS_BY_LANG[language] || NAV_ITEMS_BY_LANG.uz;
+
   return (
     <footer
       className="position-relative pt-5 pb-4 border-top"
@@ -43,49 +50,30 @@ export default function Footer() {
               className="s-body mb-4"
               style={{ maxWidth: "320px", color: "var(--s-text-muted)" }}
             >
-              Telegram do‘konlari uchun sun’iy intellekt sotuvchisi va to‘liq savdo
-              avtomatlashtirish platformasi.
+              {footerContent.slogan}
             </p>
             <div className="d-flex align-items-center gap-2 small">
               <span className="s-pill" style={{ padding: "2px 8px", fontSize: "0.68rem" }}>
                 SaaS v3.0 3D
               </span>
               <span style={{ color: "var(--s-text-muted)" }}>•</span>
-              <span className="text-success">Barcha xizmatlar 24/7 faol</span>
+              <span className="text-success">{footerContent.statusBadge}</span>
             </div>
           </div>
 
           {/* Navigation Links */}
           <div className="col-6 col-md-3 col-lg-2">
             <h4 className="fw-bold mb-3 text-white" style={{ fontSize: "0.95rem" }}>
-              Navigatsiya
+              {footerContent.colNav}
             </h4>
             <ul className="list-unstyled d-flex flex-column gap-2 mb-0" style={{ fontSize: "0.88rem" }}>
-              <li>
-                <a href="#imkoniyatlar" className="text-secondary text-decoration-none">
-                  Imkoniyatlar
-                </a>
-              </li>
-              <li>
-                <a href="#sotuv-jarayoni" className="text-secondary text-decoration-none">
-                  Qanday ishlaydi?
-                </a>
-              </li>
-              <li>
-                <a href="#boshlash" className="text-secondary text-decoration-none">
-                  Boshlash
-                </a>
-              </li>
-              <li>
-                <a href="#tariflar" className="text-secondary text-decoration-none">
-                  Tariflar
-                </a>
-              </li>
-              <li>
-                <a href="#faq" className="text-secondary text-decoration-none">
-                  FAQ
-                </a>
-              </li>
+              {navItems.map((item) => (
+                <li key={item.href}>
+                  <a href={item.href} className="text-secondary text-decoration-none">
+                    {item.label}
+                  </a>
+                </li>
+              ))}
               <li>
                 <a
                   href="/docs"
@@ -102,7 +90,7 @@ export default function Footer() {
           {/* Integrations */}
           <div className="col-6 col-md-3 col-lg-2">
             <h4 className="fw-bold mb-3 text-white" style={{ fontSize: "0.95rem" }}>
-              Integratsiyalar
+              {footerContent.colIntegrations}
             </h4>
             <ul className="list-unstyled d-flex flex-column gap-2 mb-0" style={{ fontSize: "0.88rem" }}>
               <li>
@@ -126,7 +114,7 @@ export default function Footer() {
           {/* Support & Contact Links */}
           <div className="col-6 col-md-3 col-lg-2">
             <h4 className="fw-bold mb-3 text-white" style={{ fontSize: "0.95rem" }}>
-              Yordam & Aloqa
+              {footerContent.colSupport}
             </h4>
             <ul className="list-unstyled d-flex flex-column gap-2 mb-0" style={{ fontSize: "0.88rem" }}>
               <li>
@@ -151,7 +139,7 @@ export default function Footer() {
           {/* Legal & Social Links */}
           <div className="col-6 col-md-3 col-lg-2">
             <h4 className="fw-bold mb-3 text-white" style={{ fontSize: "0.95rem" }}>
-              Huquqiy
+              {footerContent.colLegal}
             </h4>
             <ul className="list-unstyled d-flex flex-column gap-2 mb-3" style={{ fontSize: "0.88rem" }}>
               <li>
@@ -222,10 +210,10 @@ export default function Footer() {
           }}
         >
           <div>
-            © {new Date().getFullYear()} Selloi.uz. Barcha huquqlar himoyalangan.
+            © {new Date().getFullYear()} Selloi.uz. {footerContent.rights}
           </div>
           <div className="d-flex align-items-center gap-1.5">
-            <span>O‘zbekistonda yaratilgan</span>
+            <span>{footerContent.madeIn}</span>
             <Heart size={13} color="#F43F5E" fill="#F43F5E" />
           </div>
         </div>

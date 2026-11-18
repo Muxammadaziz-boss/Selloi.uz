@@ -1,10 +1,16 @@
 "use client";
 
 import React, { useState } from "react";
-import { FAQ_ITEMS } from "./data";
-import { ChevronDown, HelpCircle, MessageCircle, Send, Sparkles } from "lucide-react";
+import { useLanguage } from "@/app/lib/i18n";
+import { FAQ_ITEMS_BY_LANG } from "./data";
+import { LANDING_CONTENT_BY_LANG } from "./landingContent";
+import { ChevronDown, MessageCircle, Send, Sparkles } from "lucide-react";
 
 export default function FAQSection() {
+  const { language } = useLanguage();
+  const faqItems = FAQ_ITEMS_BY_LANG[language] || FAQ_ITEMS_BY_LANG.uz;
+  const faqContent = (LANDING_CONTENT_BY_LANG[language] || LANDING_CONTENT_BY_LANG.uz).faq;
+
   const [openId, setOpenId] = useState<string | null>("faq-1");
 
   const toggleAccordion = (id: string) => {
@@ -19,23 +25,22 @@ export default function FAQSection() {
           <div className="mb-3">
             <span className="s-pill">
               <Sparkles size={13} />
-              <span>SAVOLLAR & JAVOBLAR</span>
+              <span>{faqContent.badge}</span>
             </span>
           </div>
           <h2 className="s-heading-section mb-3">
-            Ko‘p so‘raladigan{" "}
-            <span className="s-gradient-purple">savollar</span>
+            {faqContent.headingPrefix}{" "}
+            <span className="s-gradient-purple">{faqContent.headingHighlight}</span>
           </h2>
           <p className="s-body-lg mx-auto" style={{ maxWidth: "600px" }}>
-            Telegram do‘koningizni avtomatlashtirish va Selloi platformasi haqida
-            eng ko‘p beriladigan savollarga aniq javoblar.
+            {faqContent.subtitle}
           </p>
         </div>
 
         {/* Accordion Container */}
         <div className="mx-auto" style={{ maxWidth: "860px" }}>
           <div className="d-flex flex-column gap-3">
-            {FAQ_ITEMS.map((faq) => {
+            {faqItems.map((faq) => {
               const isOpen = openId === faq.id;
 
               return (
@@ -110,10 +115,10 @@ export default function FAQSection() {
               </div>
               <div>
                 <div className="fw-bold text-white" style={{ fontSize: "0.98rem" }}>
-                  Boshqa savollaringiz bormi?
+                  {faqContent.supportTitle}
                 </div>
                 <div className="small" style={{ color: "var(--s-text-muted)" }}>
-                  Bizning mutaxassislarimiz har doim yordamga tayyor.
+                  {faqContent.supportDesc}
                 </div>
               </div>
             </div>
@@ -125,7 +130,7 @@ export default function FAQSection() {
               style={{ fontSize: "0.88rem" }}
             >
               <Send size={14} color="var(--s-cyan)" />
-              <span>Telegramda yozish</span>
+              <span>{faqContent.supportBtn}</span>
             </a>
           </div>
         </div>

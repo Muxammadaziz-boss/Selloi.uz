@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useLanguage } from "@/app/lib/i18n";
+import { LANDING_CONTENT_BY_LANG } from "./landingContent";
 import { Sparkles, ArrowRight } from "lucide-react";
 
 interface StickyMobileCTAProps {
@@ -8,6 +10,9 @@ interface StickyMobileCTAProps {
 }
 
 export default function StickyMobileCTA({ onOpenOnboarding }: StickyMobileCTAProps) {
+  const { language } = useLanguage();
+  const cta = (LANDING_CONTENT_BY_LANG[language] || LANDING_CONTENT_BY_LANG.uz).mobileSticky;
+
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -29,7 +34,7 @@ export default function StickyMobileCTA({ onOpenOnboarding }: StickyMobileCTAPro
           Selloi AI
         </span>
         <span className="small" style={{ fontSize: "0.72rem", color: "var(--s-purple-soft)" }}>
-          7 kun bepul sinov
+          {cta.trial}
         </span>
       </div>
 
@@ -39,7 +44,7 @@ export default function StickyMobileCTA({ onOpenOnboarding }: StickyMobileCTAPro
         style={{ fontSize: "0.85rem", borderRadius: "100px" }}
       >
         <Sparkles size={14} />
-        <span>Boshlash</span>
+        <span>{cta.start}</span>
         <ArrowRight size={13} />
       </button>
     </div>

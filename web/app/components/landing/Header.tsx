@@ -2,7 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { NAV_ITEMS } from "./data";
+import { useLanguage } from "@/app/lib/i18n";
+import { Language } from "@/app/lib/i18n/types";
+import { NAV_ITEMS_BY_LANG } from "./data";
+import { LANDING_CONTENT_BY_LANG } from "./landingContent";
 import { Sparkles, Menu, X, ArrowRight, Globe } from "lucide-react";
 
 interface HeaderProps {
@@ -16,9 +19,12 @@ export default function Header({
   onOpenLogin,
   isAuthenticated = false,
 }: HeaderProps) {
+  const { language, setLanguage } = useLanguage();
+  const navItems = NAV_ITEMS_BY_LANG[language] || NAV_ITEMS_BY_LANG.uz;
+  const content = (LANDING_CONTENT_BY_LANG[language] || LANDING_CONTENT_BY_LANG.uz).header;
+
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [currentLang, setCurrentLang] = useState<"UZ" | "RU" | "EN">("UZ");
   const [langDropdownOpen, setLangDropdownOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("");
 
@@ -27,7 +33,7 @@ export default function Header({
       setScrolled(window.scrollY > 20);
 
       // Section tracker
-      const sections = NAV_ITEMS.filter((i) => i.href.startsWith("#")).map((i) =>
+      const sections = navItems.filter((i) => i.href.startsWith("#")).map((i) =>
         i.href.substring(1)
       );
       for (const sec of sections) {
@@ -44,7 +50,7 @@ export default function Header({
 
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [navItems]);
 
   return (
     <header
@@ -102,7 +108,7 @@ export default function Header({
 
         {/* Desktop Navigation */}
         <nav className="d-none d-lg-flex align-items-center gap-4">
-          {NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const isAnchor = item.href.startsWith("#");
             const isActive = isAnchor && activeSection === item.href.substring(1);
             return (
@@ -148,17 +154,17 @@ export default function Header({
                 fontSize: "0.82rem",
                 cursor: "pointer",
               }}
-              title="Tilni tanlash (UZ/RU/EN)"
+              title={content.languageLabel}
             >
               <Globe size={13} color="var(--s-purple-soft)" />
-              <span className="fw-semibold">{currentLang}</span>
+              <span className="fw-semibold">{language.toUpperCase()}</span>
             </button>
 
             {langDropdownOpen && (
               <div
                 className="position-absolute end-0 mt-2 py-1"
                 style={{
-                  width: "100px",
+                  width: "110px",
                   background: "rgba(17, 15, 29, 0.96)",
                   border: "1px solid var(--s-glass-border-hover)",
                   borderRadius: "10px",
@@ -167,22 +173,28 @@ export default function Header({
                   zIndex: 110,
                 }}
               >
-                {(["UZ", "RU", "EN"] as const).map((lang) => (
+                {(
+                  [
+                    { code: "uz", label: "O‘zbek" },
+                    { code: "ru", label: "Русский" },
+                    { code: "en", label: "English" },
+                  ] as const
+                ).map((item) => (
                   <button
-                    key={lang}
+                    key={item.code}
                     onClick={() => {
-                      setCurrentLang(lang);
+                      setLanguage(item.code);
                       setLangDropdownOpen(false);
                     }}
                     className="w-100 text-start px-3 py-1.5 border-0 bg-transparent"
                     style={{
                       fontSize: "0.82rem",
-                      color: currentLang === lang ? "var(--s-purple-soft)" : "var(--s-text-muted)",
-                      fontWeight: currentLang === lang ? 700 : 400,
+                      color: language === item.code ? "var(--s-purple-soft)" : "var(--s-text-muted)",
+                      fontWeight: language === item.code ? 700 : 400,
                       cursor: "pointer",
                     }}
                   >
-                    {lang === "UZ" ? "O‘zbek" : lang === "RU" ? "Русский" : "English"}
+                    {item.label}
                   </button>
                 ))}
               </div>
@@ -195,7 +207,7 @@ export default function Header({
               className="s-btn-secondary py-2 px-3"
               style={{ fontSize: "0.88rem" }}
             >
-              <span>Boshqaruv paneli</span>
+              <span>{content.dashboardBtn}</span>
               <ArrowRight size={15} />
             </Link>
           ) : (
@@ -204,7 +216,7 @@ export default function Header({
               className="s-btn-secondary py-2 px-3"
               style={{ fontSize: "0.88rem" }}
             >
-              Kirish
+              {content.loginBtn}
             </button>
           )}
 
@@ -214,7 +226,7 @@ export default function Header({
             style={{ fontSize: "0.88rem" }}
           >
             <Sparkles size={15} />
-            <span>Do‘kon ochish</span>
+            <span>{content.createStoreBtn}</span>
           </button>
         </div>
 
@@ -225,7 +237,7 @@ export default function Header({
             className="s-btn-primary py-1.5 px-3"
             style={{ fontSize: "0.8rem" }}
           >
-            Boshlash
+            {content.startBtn}
           </button>
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -253,7 +265,7 @@ export default function Header({
           }}
         >
           <nav className="d-flex flex-column gap-3 mb-4">
-            {NAV_ITEMS.map((item) => (
+            {navItems.map((item) => (
               <a
                 key={item.href}
                 href={item.href}
@@ -272,16 +284,22 @@ export default function Header({
           </nav>
 
           <div className="d-flex align-items-center justify-content-between py-2 border-top border-secondary border-opacity-25 mb-3">
-            <span className="text-secondary small">Til:</span>
+            <span className="text-secondary small">{content.languageLabel}:</span>
             <div className="d-flex gap-1">
-              {(["UZ", "RU", "EN"] as const).map((lang) => (
+              {(
+                [
+                  { code: "uz", label: "UZ" },
+                  { code: "ru", label: "RU" },
+                  { code: "en", label: "EN" },
+                ] as const
+              ).map((item) => (
                 <button
-                  key={lang}
-                  onClick={() => setCurrentLang(lang)}
-                  className={`btn btn-sm ${currentLang === lang ? "btn-primary" : "btn-outline-secondary"}`}
+                  key={item.code}
+                  onClick={() => setLanguage(item.code)}
+                  className={`btn btn-sm ${language === item.code ? "btn-primary" : "btn-outline-secondary"}`}
                   style={{ fontSize: "0.75rem", padding: "2px 8px" }}
                 >
-                  {lang}
+                  {item.label}
                 </button>
               ))}
             </div>
@@ -293,7 +311,7 @@ export default function Header({
                 href="/dashboard"
                 className="s-btn-secondary text-center py-2"
               >
-                Boshqaruv paneli
+                {content.dashboardBtn}
               </Link>
             ) : (
               <button
@@ -303,7 +321,7 @@ export default function Header({
                 }}
                 className="s-btn-secondary text-center py-2"
               >
-                Kirish
+                {content.loginBtn}
               </button>
             )}
             <button
@@ -314,7 +332,7 @@ export default function Header({
               className="s-btn-primary text-center py-2.5"
             >
               <Sparkles size={16} />
-              <span>7 kun bepul boshlash</span>
+              <span>{content.startBtn}</span>
             </button>
           </div>
         </div>

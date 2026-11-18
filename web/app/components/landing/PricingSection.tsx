@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import { ADVANCED_PRICING_PLANS, COMPARISON_FEATURES } from "./data";
+import { useLanguage } from "@/app/lib/i18n";
+import { PRICING_PLANS_BY_LANG, COMPARISON_BY_LANG } from "./data";
+import { LANDING_CONTENT_BY_LANG } from "./landingContent";
 import {
   Check,
   X,
@@ -18,6 +20,11 @@ interface PricingSectionProps {
 }
 
 export default function PricingSection({ onOpenOnboarding }: PricingSectionProps) {
+  const { language } = useLanguage();
+  const plans = PRICING_PLANS_BY_LANG[language] || PRICING_PLANS_BY_LANG.uz;
+  const comparison = COMPARISON_BY_LANG[language] || COMPARISON_BY_LANG.uz;
+  const pricingContent = (LANDING_CONTENT_BY_LANG[language] || LANDING_CONTENT_BY_LANG.uz).pricing;
+
   const [isAnnual, setIsAnnual] = useState(false);
   const [showComparison, setShowComparison] = useState(false);
 
@@ -45,16 +52,15 @@ export default function PricingSection({ onOpenOnboarding }: PricingSectionProps
           <div className="mb-3">
             <span className="s-pill">
               <Sparkles size={13} />
-              <span>TARIFLAR</span>
+              <span>{pricingContent.badge}</span>
             </span>
           </div>
           <h2 className="s-heading-section mb-3">
-            Biznesingiz uchun{" "}
-            <span className="s-gradient-purple">mos tarifni tanlang</span>
+            {pricingContent.headingPrefix}{" "}
+            <span className="s-gradient-purple">{pricingContent.headingHighlight}</span>
           </h2>
           <p className="s-body-lg mx-auto mb-4" style={{ maxWidth: "620px" }}>
-            Har qanday hajmda savdo qiluvchi Telegram do‘konlar uchun moslashuvchan narxlar.
-            Barcha tariflarda 7 kun bepul sinov!
+            {pricingContent.subtitle}
           </p>
 
           {/* Billing Switcher (Monthly vs Annual) */}
@@ -63,13 +69,13 @@ export default function PricingSection({ onOpenOnboarding }: PricingSectionProps
               onClick={() => setIsAnnual(false)}
               className={!isAnnual ? "active" : ""}
             >
-              Oylik to‘lov
+              {pricingContent.monthly}
             </button>
             <button
               onClick={() => setIsAnnual(true)}
               className={isAnnual ? "active" : ""}
             >
-              <span>Yillik to‘lov</span>
+              <span>{pricingContent.annual}</span>
               <span
                 className="badge rounded-pill ms-1.5"
                 style={{
@@ -79,7 +85,7 @@ export default function PricingSection({ onOpenOnboarding }: PricingSectionProps
                   padding: "2px 8px",
                 }}
               >
-                2 oy bepul [TO‘LDIRING]
+                {pricingContent.annualGift}
               </span>
             </button>
           </div>
@@ -87,7 +93,7 @@ export default function PricingSection({ onOpenOnboarding }: PricingSectionProps
 
         {/* 3 Pricing Cards Grid */}
         <div className="row g-4 align-items-stretch justify-content-center mb-5">
-          {ADVANCED_PRICING_PLANS.map((plan) => {
+          {plans.map((plan) => {
             const isPro = plan.isPopular;
             const price = isAnnual ? plan.annualPrice : plan.monthlyPrice;
 
@@ -125,7 +131,7 @@ export default function PricingSection({ onOpenOnboarding }: PricingSectionProps
                           boxShadow: "0 2px 10px var(--s-purple-glow)",
                         }}
                       >
-                        ★ TAVSIYA ETILADI
+                        {pricingContent.recommended}
                       </span>
                     </div>
                   )}
@@ -244,8 +250,8 @@ export default function PricingSection({ onOpenOnboarding }: PricingSectionProps
           >
             <span>
               {showComparison
-                ? "Solishtirish jadvalini yopish"
-                : "Barcha tariflarni to‘liq solishtirish"}
+                ? pricingContent.compareClose
+                : pricingContent.compareOpen}
             </span>
             {showComparison ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
           </button>
@@ -261,13 +267,13 @@ export default function PricingSection({ onOpenOnboarding }: PricingSectionProps
               <thead>
                 <tr>
                   <th style={{ width: "40%", color: "#FFFFFF", fontSize: "0.95rem" }}>
-                    Imkoniyatlar va funksiyalar
+                    {pricingContent.thFeature}
                   </th>
                   <th style={{ width: "20%", textAlign: "center", color: "#FFFFFF", fontSize: "0.95rem" }}>
                     START
                   </th>
                   <th style={{ width: "20%", textAlign: "center", color: "var(--s-purple-soft)", fontSize: "0.95rem" }}>
-                    PRO (Tavsiya)
+                    PRO ({pricingContent.recommended})
                   </th>
                   <th style={{ width: "20%", textAlign: "center", color: "var(--s-cyan)", fontSize: "0.95rem" }}>
                     ULTRA
@@ -275,7 +281,7 @@ export default function PricingSection({ onOpenOnboarding }: PricingSectionProps
                 </tr>
               </thead>
               <tbody>
-                {COMPARISON_FEATURES.map((cat, ci) => (
+                {comparison.map((cat, ci) => (
                   <React.Fragment key={ci}>
                     <tr>
                       <td

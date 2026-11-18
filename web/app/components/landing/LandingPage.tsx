@@ -15,6 +15,8 @@ import FinalCTA from "./FinalCTA";
 import Footer from "./Footer";
 import StickyMobileCTA from "./StickyMobileCTA";
 import { OnboardingModal } from "../saas/OnboardingModal";
+import { LanguageProvider, useLanguage } from "@/app/lib/i18n";
+import { LANDING_CONTENT_BY_LANG } from "./landingContent";
 import { X, Lock, ArrowRight, AlertCircle } from "lucide-react";
 import "./immersive.css";
 import "./landing.css";
@@ -23,7 +25,11 @@ interface LandingPageProps {
   isAuthenticated?: boolean;
 }
 
-export default function LandingPage({ isAuthenticated = false }: LandingPageProps) {
+function LandingPageInner({ isAuthenticated = false }: LandingPageProps) {
+  const { language } = useLanguage();
+  const content = LANDING_CONTENT_BY_LANG[language] || LANDING_CONTENT_BY_LANG.uz;
+  const modalText = content.loginModal;
+
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [loginPassword, setLoginPassword] = useState("");
@@ -75,10 +81,10 @@ export default function LandingPage({ isAuthenticated = false }: LandingPageProp
         window.location.href = "/dashboard";
       } else {
         const data = await res.json().catch(() => ({}));
-        setLoginError(data.detail || "Parol noto‘g‘ri kiritildi");
+        setLoginError(data.detail || modalText.errorDefault);
       }
     } catch {
-      setLoginError("Server bilan bog‘lanishda xatolik");
+      setLoginError(modalText.errorDefault);
     } finally {
       setLoginLoading(false);
     }
@@ -180,7 +186,7 @@ export default function LandingPage({ isAuthenticated = false }: LandingPageProp
                   <Lock size={16} />
                 </div>
                 <h4 className="fw-bold mb-0 text-white" style={{ fontSize: "1.05rem" }}>
-                  Boshqaruvga kirish
+                  {modalText.title}
                 </h4>
               </div>
               <button
@@ -207,12 +213,12 @@ export default function LandingPage({ isAuthenticated = false }: LandingPageProp
             <form onSubmit={handleLoginSubmit}>
               <div className="mb-3">
                 <label className="form-label text-secondary small">
-                  Platforma parolini kiriting:
+                  {modalText.label}
                 </label>
                 <input
                   type="password"
                   className="form-control bg-dark border-secondary border-opacity-25 text-white"
-                  placeholder="••••••••••••"
+                  placeholder={modalText.placeholder || "••••••••••••"}
                   value={loginPassword}
                   onChange={(e) => setLoginPassword(e.target.value)}
                   required
@@ -228,7 +234,7 @@ export default function LandingPage({ isAuthenticated = false }: LandingPageProp
                   className="s-btn-secondary py-2 px-3"
                   style={{ fontSize: "0.85rem" }}
                 >
-                  Bekor qilish
+                  {modalText.cancel}
                 </button>
                 <button
                   type="submit"
@@ -236,7 +242,7 @@ export default function LandingPage({ isAuthenticated = false }: LandingPageProp
                   className="s-btn-primary py-2 px-4"
                   style={{ fontSize: "0.85rem" }}
                 >
-                  {loginLoading ? "Tekshirilmoqda..." : "Kirish"}
+                  {loginLoading ? modalText.loading : modalText.submit}
                   <ArrowRight size={15} />
                 </button>
               </div>
@@ -245,5 +251,13 @@ export default function LandingPage({ isAuthenticated = false }: LandingPageProp
         </div>
       )}
     </div>
+  );
+}
+
+export default function LandingPage({ isAuthenticated = false }: LandingPageProps) {
+  return (
+    <LanguageProvider initialLanguage="uz">
+      <LandingPageInner isAuthenticated={isAuthenticated} />
+    </LanguageProvider>
   );
 }

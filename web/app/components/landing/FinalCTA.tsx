@@ -2,6 +2,8 @@
 
 import React from "react";
 import ThreeAICore from "./ThreeAICore";
+import { useLanguage } from "@/app/lib/i18n";
+import { LANDING_CONTENT_BY_LANG } from "./landingContent";
 import { ArrowRight, ShieldCheck, Zap, Sparkles } from "lucide-react";
 
 interface FinalCTAProps {
@@ -9,6 +11,9 @@ interface FinalCTAProps {
 }
 
 export default function FinalCTA({ onOpenOnboarding }: FinalCTAProps) {
+  const { language } = useLanguage();
+  const ctaContent = (LANDING_CONTENT_BY_LANG[language] || LANDING_CONTENT_BY_LANG.uz).finalCta;
+
   return (
     <section className="s-section position-relative overflow-hidden">
       <div className="s-container position-relative" style={{ zIndex: 2 }}>
@@ -59,7 +64,7 @@ export default function FinalCTA({ onOpenOnboarding }: FinalCTAProps) {
               <div className="mb-3">
                 <span className="s-pill">
                   <Sparkles size={13} />
-                  <span>24/7 AVTOMATIK SAVDO</span>
+                  <span>{ctaContent.badge}</span>
                 </span>
               </div>
 
@@ -67,9 +72,9 @@ export default function FinalCTA({ onOpenOnboarding }: FinalCTAProps) {
                 className="s-heading-section text-white mb-3"
                 style={{ fontSize: "clamp(2rem, 3.8vw, 3rem)" }}
               >
-                Biznesingizni yangi avlod{" "}
+                {ctaContent.headingPrefix}{" "}
                 <span className="s-gradient-purple d-block">
-                  AI bilan rivojlantiring.
+                  {ctaContent.headingHighlight}
                 </span>
               </h2>
 
@@ -77,21 +82,20 @@ export default function FinalCTA({ onOpenOnboarding }: FinalCTAProps) {
                 className="s-body-lg mb-4"
                 style={{ maxWidth: "560px", color: "var(--s-text-secondary)" }}
               >
-                Kechasi ham, dam olish kunlarida ham barcha xaridorlarga professional xizmat
-                ko‘rsating va buyurtmalarni avtomatik qabul qiling.
+                {ctaContent.subtitle}
               </p>
 
               <div className="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start gap-4 small">
                 <span className="d-flex align-items-center gap-1.5 text-light">
-                  <ShieldCheck size={16} color="var(--s-emerald)" /> 7 kun bepul sinov
+                  <ShieldCheck size={16} color="var(--s-emerald)" /> {ctaContent.trust1}
                 </span>
                 <span style={{ color: "var(--s-text-muted)" }}>•</span>
                 <span className="d-flex align-items-center gap-1.5 text-light">
-                  <Zap size={16} color="var(--s-cyan)" /> 2 daqiqada sozlash
+                  <Zap size={16} color="var(--s-cyan)" /> {ctaContent.trust2}
                 </span>
                 <span style={{ color: "var(--s-text-muted)" }}>•</span>
                 <span style={{ color: "var(--s-text-secondary)" }}>
-                  Kredit karta talab etilmaydi
+                  {ctaContent.trust3}
                 </span>
               </div>
             </div>
@@ -102,7 +106,7 @@ export default function FinalCTA({ onOpenOnboarding }: FinalCTAProps) {
                 className="s-btn-primary px-4 py-3"
                 style={{ fontSize: "1.05rem" }}
               >
-                <span>7 kun bepul boshlash</span>
+                <span>{ctaContent.primaryCta}</span>
                 <ArrowRight size={18} />
               </button>
             </div>
