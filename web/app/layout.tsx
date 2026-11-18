@@ -3,8 +3,33 @@ import "@tabler/core/dist/css/tabler.min.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "AI Sales Control",
-  description: "Telegram Business AI sales management dashboard",
+  metadataBase: new URL("https://selloi.uz"),
+  title: {
+    default: "Selloi — Telegram do‘konlari uchun AI sotuvchi",
+    template: "%s | Selloi",
+  },
+  description:
+    "Selloi — O‘zbekiston Telegram do‘konlari uchun 24/7 ishlaydigan sun’iy intellekt sotuvchisi. Mijozlarga o‘zbek tilida javob beradi, mahsulotlarni taniydi va buyurtmalarni qabul qiladi.",
+  applicationName: "Selloi",
+  alternates: { canonical: "/" },
+  openGraph: {
+    title: "Selloi — Telegram do‘konlari uchun AI sotuvchi",
+    description: "Telegram do‘koningizda mijozlarga 24/7 xizmat ko‘rsatadigan AI sotuvchi.",
+    url: "https://selloi.uz/",
+    siteName: "Selloi",
+    locale: "uz_UZ",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Selloi — Telegram do‘konlari uchun AI sotuvchi",
+    description: "Telegram do‘koningizda mijozlarga 24/7 xizmat ko‘rsatadigan AI sotuvchi.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true },
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
