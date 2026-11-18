@@ -54,7 +54,7 @@ export default function Footer() {
             </p>
             <div className="d-flex align-items-center gap-2 small">
               <span className="s-pill" style={{ padding: "2px 8px", fontSize: "0.68rem" }}>
-                SaaS v3.0 3D
+                Selloi Cloud v3.0
               </span>
               <span style={{ color: "var(--s-text-muted)" }}>•</span>
               <span className="text-success">{footerContent.statusBadge}</span>

@@ -71,7 +71,7 @@ export default function FeaturesSection() {
 
         {/* Bento Grid with Floating Glass Architecture */}
         <div className="s-bento">
-          {/* Card 1: AI Chat (Span 7) — Interactive Multi-Language Showcase */}
+          {/* Card 1: AI Chat (Span 7): Interactive Multi-Language Showcase */}
           <div className="s-bento-7">
             <div className="s-glass-card h-100 p-4 p-md-5 d-flex flex-column justify-content-between">
               <div>
@@ -83,8 +83,8 @@ export default function FeaturesSection() {
                         width: "42px",
                         height: "42px",
                         borderRadius: "12px",
-                        background: "rgba(180, 74, 255, 0.15)",
-                        border: "1px solid rgba(180, 74, 255, 0.35)",
+                        background: "rgba(99, 102, 241, 0.15)",
+                        border: "1px solid rgba(99, 102, 241, 0.35)",
                         color: "var(--s-purple-soft)",
                       }}
                     >
@@ -149,8 +149,8 @@ export default function FeaturesSection() {
                     <div
                       className="p-2.5 px-3.5 small rounded-4"
                       style={{
-                        background: "rgba(42, 32, 80, 0.7)",
-                        border: "1px solid rgba(180, 74, 255, 0.3)",
+                        background: "#1E293B",
+                        border: "1px solid rgba(255, 255, 255, 0.08)",
                         color: "#FFFFFF",
                         maxWidth: "88%",
                       }}
@@ -201,7 +201,7 @@ export default function FeaturesSection() {
             </div>
           </div>
 
-          {/* Card 2: AI Vision (Span 5) — Computer Vision Product Scanning */}
+          {/* Card 2: AI Vision (Span 5): Computer Vision Product Scanning */}
           <div className="s-bento-5">
             <div className="s-glass-card h-100 p-4 p-md-5 d-flex flex-column justify-content-between">
               <div>

@@ -51,7 +51,7 @@ export default function StorytellingSection() {
           width: "900px",
           height: "500px",
           background:
-            "radial-gradient(ellipse 60% 40% at 50% 50%, rgba(147, 3, 197, 0.1), transparent 70%)",
+            "radial-gradient(ellipse 60% 40% at 50% 50%, rgba(99, 102, 241, 0.06), transparent 70%)",
           pointerEvents: "none",
           zIndex: 0,
         }}
@@ -126,7 +126,7 @@ export default function StorytellingSection() {
             style={{
               width: "100%",
               height: "100%",
-              background: "linear-gradient(90deg, rgba(147,3,197,0.2) 0%, rgba(65,105,255,0.6) 50%, rgba(16,185,129,0.4) 100%)",
+              background: "linear-gradient(90deg, rgba(99,102,241,0.2) 0%, rgba(56,189,248,0.5) 50%, rgba(16,185,129,0.4) 100%)",
             }}
           />
           <div
@@ -143,9 +143,9 @@ export default function StorytellingSection() {
           />
         </div>
 
-        {/* 3 Step 3D Interactive Visual Cards */}
+        {/* 3 Step Interactive Visual Cards */}
         <div className="row g-4 align-items-stretch position-relative">
-          {/* STAGE 01 — AI CONVERSATION */}
+          {/* STAGE 01: AI CONVERSATION */}
           <div className="col-lg-4 d-flex">
             <div
               className={`s-glass-card w-100 p-4 p-xl-4 d-flex flex-column justify-content-between ${
@@ -158,7 +158,7 @@ export default function StorytellingSection() {
                     : "var(--s-glass-border)",
                 boxShadow:
                   activeStep === 1
-                    ? "0 16px 40px rgba(0,0,0,0.6), 0 0 30px rgba(147, 3, 197, 0.2)"
+                    ? "0 16px 40px rgba(0,0,0,0.6), 0 0 24px rgba(99, 102, 241, 0.2)"
                     : undefined,
                 transform: activeStep === 1 ? "translateY(-4px)" : undefined,
                 cursor: "pointer",
@@ -175,8 +175,8 @@ export default function StorytellingSection() {
                         width: "42px",
                         height: "42px",
                         borderRadius: "12px",
-                        background: "rgba(180, 74, 255, 0.15)",
-                        border: "1px solid rgba(180, 74, 255, 0.35)",
+                        background: "rgba(99, 102, 241, 0.15)",
+                        border: "1px solid rgba(99, 102, 241, 0.35)",
                         color: "var(--s-purple-soft)",
                         fontWeight: 800,
                         fontSize: "0.95rem",
@@ -254,8 +254,8 @@ export default function StorytellingSection() {
                     <div
                       className="p-2.5 px-3 rounded-4"
                       style={{
-                        background: "rgba(35, 18, 55, 0.8)",
-                        border: "1px solid rgba(180, 74, 255, 0.35)",
+                        background: "#111624",
+                        border: "1px solid rgba(99, 102, 241, 0.25)",
                         fontSize: "0.84rem",
                         color: "#FFFFFF",
                         maxWidth: "88%",
@@ -282,7 +282,7 @@ export default function StorytellingSection() {
             </div>
           </div>
 
-          {/* STAGE 02 — AI VISION */}
+          {/* STAGE 02: AI VISION */}
           <div className="col-lg-4 d-flex">
             <div
               className={`s-glass-card w-100 p-4 p-xl-4 d-flex flex-column justify-content-between ${
@@ -401,7 +401,7 @@ export default function StorytellingSection() {
             </div>
           </div>
 
-          {/* STAGE 03 — SMART ORDER */}
+          {/* STAGE 03: SMART ORDER */}
           <div className="col-lg-4 d-flex">
             <div
               className={`s-glass-card w-100 p-4 p-xl-4 d-flex flex-column justify-content-between ${

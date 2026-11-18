@@ -14,7 +14,7 @@ export default function HowItWorksSection() {
   const icons = [UserPlus, Send, Bot];
   const colors = ["var(--s-purple-soft)", "var(--s-cyan)", "var(--s-emerald)"];
   const bgs = [
-    "rgba(180, 74, 255, 0.15)",
+    "rgba(99, 102, 241, 0.15)",
     "rgba(56, 189, 248, 0.15)",
     "rgba(16, 185, 129, 0.15)",
   ];
@@ -23,7 +23,7 @@ export default function HowItWorksSection() {
     ...item,
     icon: icons[idx] || Bot,
     color: colors[idx] || "var(--s-purple-soft)",
-    bg: bgs[idx] || "rgba(180, 74, 255, 0.15)",
+    bg: bgs[idx] || "rgba(99, 102, 241, 0.15)",
   }));
 
   return (
@@ -38,7 +38,7 @@ export default function HowItWorksSection() {
           width: "900px",
           height: "450px",
           background:
-            "radial-gradient(ellipse 60% 40% at 50% 50%, rgba(147, 3, 197, 0.1), transparent 70%)",
+            "radial-gradient(ellipse 60% 40% at 50% 50%, rgba(99, 102, 241, 0.06), transparent 70%)",
           pointerEvents: "none",
           zIndex: 0,
         }}
@@ -73,8 +73,8 @@ export default function HowItWorksSection() {
               right: "16%",
               height: "2px",
               background:
-                "linear-gradient(90deg, rgba(147,3,197,0.3) 0%, rgba(180,74,255,0.8) 50%, rgba(56,189,248,0.5) 100%)",
-              boxShadow: "0 0 16px rgba(180,74,255,0.4)",
+                "linear-gradient(90deg, rgba(99,102,241,0.2) 0%, rgba(99,102,241,0.6) 50%, rgba(56,189,248,0.4) 100%)",
+              boxShadow: "0 0 10px rgba(99,102,241,0.25)",
               zIndex: 1,
             }}
           />
@@ -84,16 +84,16 @@ export default function HowItWorksSection() {
               const Icon = item.icon;
               return (
                 <div key={item.step} className="col-lg-4 text-center">
-                  {/* Floating 3D Step Orb */}
+                  {/* Floating Step Number */}
                   <div
                     className="mx-auto mb-4 d-flex align-items-center justify-content-center position-relative"
                     style={{
-                      width: "64px",
-                      height: "64px",
+                      width: "60px",
+                      height: "60px",
                       borderRadius: "50%",
-                      background: "rgba(19, 17, 34, 0.95)",
-                      border: "1px solid rgba(180, 74, 255, 0.4)",
-                      boxShadow: "0 8px 24px rgba(0,0,0,0.6), 0 0 20px rgba(147,3,197,0.25)",
+                      background: "#0E121A",
+                      border: "1px solid rgba(255, 255, 255, 0.12)",
+                      boxShadow: "0 8px 24px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08)",
                     }}
                   >
                     <span

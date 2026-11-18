@@ -52,7 +52,7 @@ export default function FAQSection() {
                       ? "var(--s-purple-bright)"
                       : "var(--s-glass-border)",
                     boxShadow: isOpen
-                      ? "0 10px 30px rgba(147, 3, 197, 0.15)"
+                      ? "0 10px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06)"
                       : "none",
                   }}
                 >
@@ -72,7 +72,7 @@ export default function FAQSection() {
                         height: "32px",
                         borderRadius: "50%",
                         background: isOpen
-                          ? "rgba(180, 74, 255, 0.2)"
+                          ? "rgba(99, 102, 241, 0.18)"
                           : "rgba(255, 255, 255, 0.05)",
                         color: isOpen ? "var(--s-purple-soft)" : "var(--s-text-muted)",
                         transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
@@ -98,7 +98,7 @@ export default function FAQSection() {
           <div
             className="p-4 rounded-4 mt-5 d-flex flex-column flex-sm-row align-items-center justify-content-between gap-3 text-center text-sm-start s-glass-card"
             style={{
-              borderColor: "rgba(180, 74, 255, 0.35)",
+              borderColor: "rgba(255, 255, 255, 0.1)",
             }}
           >
             <div className="d-flex align-items-center gap-3">

@@ -40,7 +40,7 @@ export default function PricingSection({ onOpenOnboarding }: PricingSectionProps
           width: "800px",
           height: "400px",
           background:
-            "radial-gradient(ellipse 60% 40% at 50% 50%, rgba(147, 3, 197, 0.1), transparent 70%)",
+            "radial-gradient(ellipse 60% 40% at 50% 50%, rgba(99, 102, 241, 0.06), transparent 70%)",
           pointerEvents: "none",
           zIndex: 0,
         }}
@@ -291,7 +291,7 @@ export default function PricingSection({ onOpenOnboarding }: PricingSectionProps
                           color: "var(--s-purple-soft)",
                           fontSize: "0.74rem",
                           letterSpacing: "0.06em",
-                          borderBottom: "1px solid rgba(180, 74, 255, 0.2)",
+                          borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
                         }}
                       >
                         {cat.category}

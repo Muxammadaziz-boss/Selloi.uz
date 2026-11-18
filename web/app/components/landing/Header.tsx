@@ -57,7 +57,7 @@ export default function Header({
       className="position-sticky top-0 w-100"
       style={{
         zIndex: 100,
-        backgroundColor: scrolled ? "rgba(5, 4, 10, 0.88)" : "transparent",
+        backgroundColor: scrolled ? "rgba(7, 8, 11, 0.92)" : "transparent",
         backdropFilter: scrolled ? "blur(20px)" : "none",
         WebkitBackdropFilter: scrolled ? "blur(20px)" : "none",
         borderBottom: scrolled

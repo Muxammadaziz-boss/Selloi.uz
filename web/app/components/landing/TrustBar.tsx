@@ -28,9 +28,6 @@ export default function TrustBar() {
       <div className="s-container">
         <div
           className="p-4 p-md-4 rounded-4 s-glass-card"
-          style={{
-            background: "rgba(17, 15, 29, 0.75)",
-          }}
         >
           <div className="row g-4 align-items-center">
             {metrics.map((metric, idx) => (

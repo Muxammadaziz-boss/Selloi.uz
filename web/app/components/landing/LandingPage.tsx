@@ -92,7 +92,7 @@ function LandingPageInner({ isAuthenticated = false }: LandingPageProps) {
 
   return (
     <div className="immersive-root selloi-landing-root">
-      {/* Cinematic Deep Space Lighting & Star Grid Texture */}
+      {/* Precision Ambient Atmosphere & Grid Texture */}
       <div className="immersive-atmosphere" />
       <div className="immersive-grid" />
 
@@ -104,22 +104,22 @@ function LandingPageInner({ isAuthenticated = false }: LandingPageProps) {
       />
 
       <main>
-        {/* 2. Hero Section with 3D WebGL AI Intelligence Core */}
+        {/* 2. Hero Section with Telegram Autonomous Sales Engine Showcase */}
         <HeroSection onOpenOnboarding={() => setIsOnboardingOpen(true)} />
 
         {/* 3. Precision Trust & Key Metrics Strip */}
         <TrustBar />
 
-        {/* 4. Sales Storytelling Process (3-Step 3D Interactive Story) */}
+        {/* 4. Sales Storytelling Process (3-Stage Workflow) */}
         <StorytellingSection />
 
-        {/* 5. Features Section (Floating Glass Bento Grid) */}
+        {/* 5. Features Section (Precision Bento Grid) */}
         <FeaturesSection />
 
-        {/* 6. Interactive Demo ("Sinab ko‘ring" Live Telegram Simulator) */}
+        {/* 6. Interactive Demo (Live Telegram Simulator) */}
         <InteractiveDemo />
 
-        {/* 7. How It Works Timeline ("BOSHLASH" 3 Steps with Energy Path) */}
+        {/* 7. How It Works Timeline (3 Simple Steps) */}
         <HowItWorksSection />
 
         {/* 8. Social Proof (Partner Logos & Verified Testimonials) */}
@@ -131,7 +131,7 @@ function LandingPageInner({ isAuthenticated = false }: LandingPageProps) {
         {/* 10. Dedicated Full-Width FAQ Section (Expandable Glass Accordion) */}
         <FAQSection />
 
-        {/* 11. Final High-Impact Conversion Call-to-Action with 3D Core */}
+        {/* 11. Final High-Impact Conversion Call-to-Action */}
         <FinalCTA onOpenOnboarding={() => setIsOnboardingOpen(true)} />
       </main>
 
@@ -179,7 +179,7 @@ function LandingPageInner({ isAuthenticated = false }: LandingPageProps) {
                     width: "32px",
                     height: "32px",
                     borderRadius: "8px",
-                    background: "rgba(180, 74, 255, 0.2)",
+                    background: "rgba(99, 102, 241, 0.15)",
                     color: "var(--s-purple-soft)",
                   }}
                 >

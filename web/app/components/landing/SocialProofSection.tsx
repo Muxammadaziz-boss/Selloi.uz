@@ -91,7 +91,7 @@ export default function SocialProofSection() {
                         width: "36px",
                         height: "36px",
                         borderRadius: "10px",
-                        background: "rgba(180, 74, 255, 0.15)",
+                        background: "rgba(99, 102, 241, 0.15)",
                         color: "var(--s-purple-soft)",
                       }}
                     >
@@ -141,7 +141,7 @@ export default function SocialProofSection() {
                   <span
                     className="badge rounded-pill"
                     style={{
-                      background: "rgba(180, 74, 255, 0.15)",
+                      background: "rgba(99, 102, 241, 0.15)",
                       color: "var(--s-purple-soft)",
                       fontSize: "0.7rem",
                       padding: "4px 10px",

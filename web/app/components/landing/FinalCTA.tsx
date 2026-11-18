@@ -1,10 +1,9 @@
 "use client";
 
 import React from "react";
-import ThreeAICore from "./ThreeAICore";
 import { useLanguage } from "@/app/lib/i18n";
 import { LANDING_CONTENT_BY_LANG } from "./landingContent";
-import { ArrowRight, ShieldCheck, Zap, Sparkles } from "lucide-react";
+import { ArrowRight, ShieldCheck, Zap, Sparkles, CheckCircle2 } from "lucide-react";
 
 interface FinalCTAProps {
   onOpenOnboarding: () => void;
@@ -20,42 +19,22 @@ export default function FinalCTA({ onOpenOnboarding }: FinalCTAProps) {
         <div
           className="p-5 p-md-5 rounded-4 position-relative overflow-hidden s-glass-card"
           style={{
-            borderColor: "rgba(180, 74, 255, 0.4)",
+            borderColor: "rgba(255, 255, 255, 0.12)",
             boxShadow:
-              "0 24px 60px rgba(0, 0, 0, 0.7), 0 0 80px rgba(147, 3, 197, 0.2)",
-            background: "rgba(17, 15, 29, 0.85)",
+              "0 24px 60px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.08)",
+            background: "linear-gradient(180deg, #0F1420 0%, #0A0D15 100%)",
           }}
         >
-          {/* Glowing 3D AI Core in Background */}
+          {/* Subtle Top Specular Ambient Line */}
           <div
             className="position-absolute"
             style={{
-              top: "50%",
-              right: "-5%",
-              transform: "translateY(-50%)",
-              width: "480px",
-              height: "480px",
-              opacity: 0.65,
+              top: 0,
+              left: "20%",
+              right: "20%",
+              height: "1px",
+              background: "linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.4), transparent)",
               pointerEvents: "none",
-              zIndex: 1,
-            }}
-          >
-            <ThreeAICore intensity={0.8} />
-          </div>
-
-          {/* Volumetric Radial Glow */}
-          <div
-            className="position-absolute"
-            style={{
-              top: "50%",
-              left: "40%",
-              transform: "translate(-50%, -50%)",
-              width: "600px",
-              height: "400px",
-              background:
-                "radial-gradient(ellipse 60% 40% at 50% 50%, rgba(147, 3, 197, 0.2), transparent 70%)",
-              pointerEvents: "none",
-              zIndex: 0,
             }}
           />
 
@@ -70,7 +49,7 @@ export default function FinalCTA({ onOpenOnboarding }: FinalCTAProps) {
 
               <h2
                 className="s-heading-section text-white mb-3"
-                style={{ fontSize: "clamp(2rem, 3.8vw, 3rem)" }}
+                style={{ fontSize: "clamp(2rem, 3.6vw, 2.75rem)" }}
               >
                 {ctaContent.headingPrefix}{" "}
                 <span className="s-gradient-purple d-block">
@@ -87,11 +66,11 @@ export default function FinalCTA({ onOpenOnboarding }: FinalCTAProps) {
 
               <div className="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start gap-4 small">
                 <span className="d-flex align-items-center gap-1.5 text-light">
-                  <ShieldCheck size={16} color="var(--s-emerald)" /> {ctaContent.trust1}
+                  <CheckCircle2 size={15} color="var(--s-emerald)" /> {ctaContent.trust1}
                 </span>
                 <span style={{ color: "var(--s-text-muted)" }}>•</span>
                 <span className="d-flex align-items-center gap-1.5 text-light">
-                  <Zap size={16} color="var(--s-cyan)" /> {ctaContent.trust2}
+                  <Zap size={15} color="var(--s-blue-soft)" /> {ctaContent.trust2}
                 </span>
                 <span style={{ color: "var(--s-text-muted)" }}>•</span>
                 <span style={{ color: "var(--s-text-secondary)" }}>

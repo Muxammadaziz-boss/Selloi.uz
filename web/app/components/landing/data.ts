@@ -308,7 +308,7 @@ export const TESTIMONIALS_BY_LANG: Record<Language, TestimonialItem[]> = {
     {
       id: "test-3",
       quote:
-        "Selloi platformasining eng katta yutug‘i — o‘zbek tilini jonli va tushunib gaplashishi. Mijozlarimiz bot bilan emas, tirik maslahatchi bilan suhbatlashayotgandek his qiladi.",
+        "Selloi platformasining eng katta yutug'i shundaki, u o'zbek tilida tabiiy va erkin muloqot qiladi. Mijozlarimiz bot bilan emas, tirik maslahatchi bilan suhbatlashayotgandek his qiladi.",
       author: "[TO‘LDIRING: Do‘kon egasi ismi]",
       role: "Kosmetika & Parfyumeriya do‘koni",
       channel: "@[TO‘LDIRING_KANAL]",
@@ -337,7 +337,7 @@ export const TESTIMONIALS_BY_LANG: Record<Language, TestimonialItem[]> = {
     {
       id: "test-3",
       quote:
-        "Главный плюс Selloi — живое общение на русском и узбекском. Клиенты уверены, что общаются с внимательным продавцом, а не с роботом.",
+        "Главный плюс Selloi заключается в живом общении на русском и узбекском языках. Клиенты уверены, что общаются с внимательным продавцом, а не с роботом.",
       author: "[ЗАПОЛНИТЬ: Владелец магазина]",
       role: "Магазин косметики и парфюмерии",
       channel: "@[КАНАЛ]",
@@ -734,13 +734,13 @@ export const FAQ_ITEMS_BY_LANG: Record<Language, FAQItem[]> = {
       id: "faq-1",
       question: "Dasturchi yoki IT mutaxassis yollashim shartmi?",
       answer:
-        "Mutlaqo yo‘q! Selloi platformasi aynan texnik bilimi bo‘lmagan do‘kon egalari uchun yaratilgan. Boshqaruv panelimizdan Telegram bot tokeningizni kiritasiz va kanalingizni ko‘rsatasiz — tizim qolgan barcha ishlarni 2 daqiqa ichida avtomatik sozlaydi.",
+        "Mutlaqo yo‘q! Selloi platformasi aynan texnik bilimi bo‘lmagan do‘kon egalari uchun yaratilgan. Boshqaruv panelimizdan Telegram bot tokeningizni kiritasiz va kanalingizni ko‘rsatasiz: tizim qolgan barcha ishlarni 2 daqiqa ichida avtomatik sozlaydi.",
     },
     {
       id: "faq-2",
       question: "AI sotuvchi qaysi tillarni tushunadi va qanday gaplashadi?",
       answer:
-        "Selloi AI o‘zbek tilini mukammal biladi — lotin va kirill yozuvlaridagi xabarlarni, so‘zlashuv uslubi va qisqartmalarni erkin tushunadi. Shuningdek, rus va ingliz tillarida ham professional xarid maslahatchisidek erkin muloqot qiladi.",
+        "Selloi AI o‘zbek tilini mukammal biladi: lotin va kirill yozuvlaridagi xabarlarni, so‘zlashuv uslubi va qisqartmalarni erkin tushunadi. Shuningdek, rus va ingliz tillarida ham professional xarid maslahatchisidek erkin muloqot qiladi.",
     },
     {
       id: "faq-3",
@@ -778,7 +778,7 @@ export const FAQ_ITEMS_BY_LANG: Record<Language, FAQItem[]> = {
       id: "faq-1",
       question: "Нужно ли нанимать программиста для настройки?",
       answer:
-        "Вовсе нет! Платформа Selloi создана для предпринимателей без технических знаний. В панели управления введите токен вашего Telegram-бота и укажите канал — система автоматически настроит работу за 2 минуты.",
+        "Вовсе нет! Платформа Selloi создана для предпринимателей без технических знаний. В панели управления введите токен вашего Telegram-бота и укажите канал: система автоматически настроит работу за 2 минуты.",
     },
     {
       id: "faq-2",
@@ -822,7 +822,7 @@ export const FAQ_ITEMS_BY_LANG: Record<Language, FAQItem[]> = {
       id: "faq-1",
       question: "Do I need developers or technical skills to get started?",
       answer:
-        "Not at all! Selloi is built for non-technical business owners. Simply paste your Telegram bot token and connect your store channel in the dashboard — our engine configures everything automatically in under 2 minutes.",
+        "Not at all! Selloi is built for non-technical business owners. Simply paste your Telegram bot token and connect your store channel in the dashboard: our engine configures everything automatically in under 2 minutes.",
     },
     {
       id: "faq-2",

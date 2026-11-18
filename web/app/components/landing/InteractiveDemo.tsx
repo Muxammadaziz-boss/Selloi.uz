@@ -64,7 +64,7 @@ export default function InteractiveDemo() {
           width: "800px",
           height: "500px",
           background:
-            "radial-gradient(ellipse 60% 40% at 50% 50%, rgba(180, 74, 255, 0.08), transparent 70%)",
+            "radial-gradient(ellipse 60% 40% at 50% 50%, rgba(99, 102, 241, 0.06), transparent 70%)",
           pointerEvents: "none",
           zIndex: 0,
         }}
@@ -96,18 +96,18 @@ export default function InteractiveDemo() {
           className="mx-auto rounded-4 overflow-hidden position-relative"
           style={{
             maxWidth: "880px",
-            background: "rgba(11, 9, 19, 0.85)",
-            border: "1px solid rgba(180, 74, 255, 0.3)",
+            background: "#0B0E14",
+            border: "1px solid rgba(255, 255, 255, 0.1)",
             backdropFilter: "blur(24px)",
             WebkitBackdropFilter: "blur(24px)",
             boxShadow:
-              "0 24px 60px rgba(0, 0, 0, 0.7), 0 0 50px rgba(147, 3, 197, 0.15)",
+              "0 24px 60px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.06)",
           }}
         >
           {/* Top Scenario Navigation Bar */}
           <div
             className="p-3 d-flex flex-wrap gap-2 border-bottom border-secondary border-opacity-25"
-            style={{ background: "rgba(17, 15, 29, 0.9)" }}
+            style={{ background: "#0E121A" }}
           >
             {scenarios.map((sc) => {
               const isActive = sc.id === activeScenarioId;
@@ -162,7 +162,7 @@ export default function InteractiveDemo() {
                 <div>
                   <div className="fw-bold text-white d-flex align-items-center gap-1.5" style={{ fontSize: "0.95rem" }}>
                     <span>Selloi AI Assistant</span>
-                    <span className="badge rounded-pill" style={{ background: "rgba(180,74,255,0.2)", color: "var(--s-purple-soft)", fontSize: "0.65rem" }}>
+                    <span className="badge rounded-pill" style={{ background: "rgba(99,102,241,0.2)", color: "var(--s-purple-soft)", fontSize: "0.65rem" }}>
                       Bot
                     </span>
                   </div>
@@ -188,8 +188,8 @@ export default function InteractiveDemo() {
                   className="p-3 px-3.5 rounded-4"
                   style={{
                     maxWidth: "80%",
-                    background: "rgba(42, 32, 80, 0.8)",
-                    border: "1px solid rgba(180, 74, 255, 0.35)",
+                    background: "#1E293B",
+                    border: "1px solid rgba(255, 255, 255, 0.1)",
                     borderRadius: "16px 16px 3px 16px",
                     color: "#FFFFFF",
                     fontSize: "0.92rem",
@@ -291,7 +291,7 @@ export default function InteractiveDemo() {
                       <span
                         className="badge rounded-pill"
                         style={{
-                          background: "rgba(180, 74, 255, 0.15)",
+                          background: "rgba(99, 102, 241, 0.15)",
                           color: "var(--s-purple-soft)",
                           fontSize: "0.7rem",
                         }}
