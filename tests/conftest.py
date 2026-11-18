@@ -18,6 +18,7 @@ def initialize_test_database():
             async with engine.begin() as conn:
                 await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
                 await conn.run_sync(Base.metadata.create_all)
+            await engine.dispose()
         except Exception as e:
             # In unit environments without live DB, ignore connection errors
             print(f"[pytest conftest] Test database initialization note: {e}")

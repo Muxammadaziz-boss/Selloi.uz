@@ -27,8 +27,8 @@ apt install -y git curl ufw
 ### 2-QADAM: Git orqali loyihani yuklab olish
 ```bash
 cd /var/www
-git clone https://github.com/sizning-repo/telegram-ai-agent.git
-cd telegram-ai-agent
+git clone https://github.com/Muxammadaziz-boss/Selloi.uz.git
+cd Selloi.uz
 ```
 
 ### 3-QADAM: Muhit o'zgaruvchilarini sozlash (.env)
@@ -80,7 +80,7 @@ systemctl restart nginx
 
 ### 3. Bepul SSL (Let's Encrypt) sertifikatini olish:
 ```bash
-certbot --nginx -d myshop.uz -d api.myshop.uz -d shop.myshop.uz
+certbot --nginx -d selloi.uz -d www.selloi.uz
 ```
 
 ---
@@ -89,8 +89,8 @@ certbot --nginx -d myshop.uz -d api.myshop.uz -d shop.myshop.uz
 
 Kodingizga o'zgartirish kiritganingizda serverda shunchaki:
 ```bash
-cd /var/www/telegram-ai-agent
-git pull
+cd /var/www/selloi
+git pull origin frontend/linear-redesign
 docker compose up -d --build
 ```
 Konteynerlar 0 sekund to'xtash bilan (zero downtime) yangilanadi.

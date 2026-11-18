@@ -185,15 +185,15 @@ async def test_saas_billing_permission_enforced():
             "X-Organization-Id": str(org.id),
         }
 
-        transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
-            resp = await client.post(
-                "/api/subscription/upgrade",
-                json={"new_plan_code": "pro", "billing_cycle": "monthly"},
-                headers=headers,
-            )
-            assert resp.status_code == 403
-            assert "can_manage_billing" in resp.json()["detail"]
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        resp = await client.post(
+            "/api/subscription/upgrade",
+            json={"new_plan_code": "pro", "billing_cycle": "monthly"},
+            headers=headers,
+        )
+        assert resp.status_code == 403
+        assert "can_manage_billing" in resp.json()["detail"]
 
 
 # ===========================================================================
