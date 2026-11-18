@@ -62,7 +62,7 @@ export default function HeroSection({ onOpenOnboarding }: HeroSectionProps) {
           width: "680px",
           height: "420px",
           background:
-            "radial-gradient(ellipse 60% 45% at 50% 50%, rgba(99, 102, 241, 0.09), transparent 75%)",
+            "radial-gradient(ellipse 60% 45% at 50% 50%, rgba(230, 161, 90, 0.06), transparent 75%)",
           pointerEvents: "none",
           zIndex: 0,
         }}
@@ -232,16 +232,16 @@ export default function HeroSection({ onOpenOnboarding }: HeroSectionProps) {
                 </div>
 
                 {/* Chat Stream Body */}
-                <div className="p-3 p-md-4 d-flex flex-column gap-3" style={{ background: "#090B10" }}>
+                <div className="p-3 p-md-4 d-flex flex-column gap-3" style={{ background: "#090909" }}>
                   {/* Message 1: Customer Inquiry with Photo */}
                   <div className="d-flex flex-column align-items-end">
                     <div
                       className="p-3 rounded-3"
                       style={{
                         maxWidth: "82%",
-                        background: "#1E293B",
-                        border: "1px solid rgba(255, 255, 255, 0.08)",
-                        color: "#F8FAFC",
+                        background: "#171717",
+                        border: "1px solid var(--border-subtle)",
+                        color: "#F4F4F4",
                         fontSize: "13px",
                         lineHeight: 1.5,
                       }}
@@ -250,8 +250,8 @@ export default function HeroSection({ onOpenOnboarding }: HeroSectionProps) {
                       <div
                         className="d-flex align-items-center gap-2 p-2 rounded-2 mb-2"
                         style={{
-                          background: "rgba(15, 23, 42, 0.7)",
-                          border: "1px solid rgba(255, 255, 255, 0.06)",
+                          background: "#111111",
+                          border: "1px solid var(--border-subtle)",
                         }}
                       >
                         <div
@@ -259,8 +259,8 @@ export default function HeroSection({ onOpenOnboarding }: HeroSectionProps) {
                           style={{
                             width: "32px",
                             height: "32px",
-                            background: "rgba(56, 189, 248, 0.15)",
-                            color: "var(--s-blue-soft)",
+                            background: "rgba(131, 174, 234, 0.15)",
+                            color: "var(--info)",
                           }}
                         >
                           <Camera size={16} />
@@ -278,7 +278,7 @@ export default function HeroSection({ onOpenOnboarding }: HeroSectionProps) {
                         style={{ fontSize: "10px", color: "var(--s-text-muted)" }}
                       >
                         <span>14:20</span>
-                        <CheckCheck size={12} color="#38BDF8" />
+                        <CheckCheck size={12} color="var(--info)" />
                       </div>
                     </div>
                   </div>
@@ -289,26 +289,26 @@ export default function HeroSection({ onOpenOnboarding }: HeroSectionProps) {
                       className="p-3 rounded-3"
                       style={{
                         maxWidth: "88%",
-                        background: "#111624",
-                        border: "1px solid rgba(99, 102, 241, 0.25)",
-                        color: "#F8FAFC",
+                        background: "#111111",
+                        border: "1px solid var(--border-subtle)",
+                        color: "#F4F4F4",
                         fontSize: "13px",
                         lineHeight: 1.5,
-                        boxShadow: "0 4px 16px rgba(0, 0, 0, 0.35)",
+                        boxShadow: "0 4px 16px rgba(0, 0, 0, 0.45)",
                       }}
                     >
                       <div className="d-flex align-items-center justify-content-between mb-2 pb-1 border-bottom border-secondary border-opacity-25">
                         <span
                           className="d-flex align-items-center gap-1.5 fw-semibold"
-                          style={{ fontSize: "11px", color: "var(--s-purple-soft)" }}
+                          style={{ fontSize: "11px", color: "var(--s-accent)" }}
                         >
                           <Zap size={12} /> Javob vaqti: 0.8s
                         </span>
                         <span
                           className="badge"
                           style={{
-                            background: "rgba(56, 189, 248, 0.15)",
-                            color: "#38BDF8",
+                            background: "var(--info-subtle)",
+                            color: "var(--info-text)",
                             fontSize: "10px",
                           }}
                         >
@@ -324,8 +324,8 @@ export default function HeroSection({ onOpenOnboarding }: HeroSectionProps) {
                       <div
                         className="p-2.5 rounded-2 d-flex align-items-center justify-content-between"
                         style={{
-                          background: "rgba(17, 24, 39, 0.85)",
-                          border: "1px solid rgba(255, 255, 255, 0.08)",
+                          background: "#171717",
+                          border: "1px solid var(--border-subtle)",
                         }}
                       >
                         <div className="d-flex align-items-center gap-2.5">
@@ -334,8 +334,8 @@ export default function HeroSection({ onOpenOnboarding }: HeroSectionProps) {
                             style={{
                               width: "36px",
                               height: "36px",
-                              background: "rgba(99, 102, 241, 0.15)",
-                              color: "var(--s-purple-soft)",
+                              background: "var(--accent-subtle)",
+                              color: "var(--accent)",
                             }}
                           >
                             <ShoppingBag size={18} />
@@ -390,8 +390,8 @@ export default function HeroSection({ onOpenOnboarding }: HeroSectionProps) {
                         <span
                           className="badge"
                           style={{
-                            background: "rgba(16, 185, 129, 0.15)",
-                            color: "#10B981",
+                            background: "var(--success-subtle)",
+                            color: "var(--success-text)",
                             fontSize: "10px",
                           }}
                         >
@@ -409,9 +409,9 @@ export default function HeroSection({ onOpenOnboarding }: HeroSectionProps) {
                         <span
                           className="badge py-1.5 px-2.5 rounded"
                           style={{
-                            background: "rgba(56, 189, 248, 0.15)",
-                            color: "#38BDF8",
-                            border: "1px solid rgba(56, 189, 248, 0.3)",
+                            background: "#171717",
+                            color: "#F4F4F4",
+                            border: "1px solid var(--border-default)",
                             fontSize: "10px",
                             cursor: "pointer",
                           }}
@@ -421,9 +421,9 @@ export default function HeroSection({ onOpenOnboarding }: HeroSectionProps) {
                         <span
                           className="badge py-1.5 px-2.5 rounded"
                           style={{
-                            background: "rgba(99, 102, 241, 0.15)",
-                            color: "#818CF8",
-                            border: "1px solid rgba(99, 102, 241, 0.3)",
+                            background: "#171717",
+                            color: "#F4F4F4",
+                            border: "1px solid var(--border-default)",
                             fontSize: "10px",
                             cursor: "pointer",
                           }}

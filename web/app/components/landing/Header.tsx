@@ -57,7 +57,7 @@ export default function Header({
       className="position-sticky top-0 w-100"
       style={{
         zIndex: 100,
-        backgroundColor: scrolled ? "rgba(7, 8, 11, 0.92)" : "transparent",
+        backgroundColor: scrolled ? "rgba(9, 9, 9, 0.94)" : "transparent",
         backdropFilter: scrolled ? "blur(20px)" : "none",
         WebkitBackdropFilter: scrolled ? "blur(20px)" : "none",
         borderBottom: scrolled
@@ -75,19 +75,19 @@ export default function Header({
           <div
             className="d-flex align-items-center justify-content-center"
             style={{
-              width: "40px",
-              height: "40px",
-              borderRadius: "12px",
-              background: "linear-gradient(135deg, var(--s-purple-bright) 0%, var(--s-purple) 100%)",
-              boxShadow: "0 0 24px var(--s-purple-glow), inset 0 0 8px rgba(255, 255, 255, 0.4)",
-              border: "1px solid rgba(255, 255, 255, 0.3)",
+              width: "36px",
+              height: "36px",
+              borderRadius: "8px",
+              background: "var(--s-accent)",
+              boxShadow: "0 1px 3px rgba(0, 0, 0, 0.5)",
+              border: "1px solid rgba(255, 255, 255, 0.2)",
             }}
           >
             <span
               style={{
-                fontSize: "1.3rem",
-                fontWeight: 900,
-                color: "#FFFFFF",
+                fontSize: "1.15rem",
+                fontWeight: 800,
+                color: "#090909",
                 lineHeight: 1,
               }}
             >
@@ -96,13 +96,13 @@ export default function Header({
           </div>
           <span
             style={{
-              fontSize: "1.3rem",
+              fontSize: "1.25rem",
               fontWeight: 800,
               letterSpacing: "-0.5px",
-              color: "#FFFFFF",
+              color: "#F4F4F4",
             }}
           >
-            Selloi<span style={{ color: "var(--s-purple-soft)" }}>.uz</span>
+            Selloi<span style={{ color: "var(--s-accent)" }}>.uz</span>
           </span>
         </Link>
 

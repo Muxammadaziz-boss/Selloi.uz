@@ -64,7 +64,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           }}
         />
       </head>
-      <body className="theme-dark" style={{ backgroundColor: "#0c0d12", color: "#f8fafc" }} suppressHydrationWarning>{children}</body>
+      <body className="theme-dark" style={{ backgroundColor: "var(--bg-canvas)", color: "var(--text-primary)" }} suppressHydrationWarning>{children}</body>
     </html>
   );
 }

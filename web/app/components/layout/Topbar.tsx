@@ -99,7 +99,7 @@ export function Topbar({
         <button
           type="button"
           onClick={onToggleMobileNav}
-          className="btn btn-ghost-secondary p-1 d-lg-none d-flex align-items-center justify-content-center flex-shrink-0"
+          className="btn btn-ghost-secondary p-1 d-md-none d-flex align-items-center justify-content-center flex-shrink-0"
           style={{
             width: "36px",
             height: "36px",
@@ -376,10 +376,13 @@ export function Topbar({
           )}
         </button>
 
-        {/* Language Switcher Toggle */}
+        {/* Language Switcher Toggle (UZ -> RU -> EN) */}
         <button
           type="button"
-          onClick={() => setLanguage(language === "uz" ? "en" : "uz")}
+          onClick={() => {
+            const cycle: Record<string, "uz" | "ru" | "en"> = { uz: "ru", ru: "en", en: "uz" };
+            setLanguage(cycle[language] || "uz");
+          }}
           className="btn-icon rounded-2 border transition-fast d-flex align-items-center justify-content-center"
           style={{
             backgroundColor: "var(--bg-surface-elevated)",
@@ -396,10 +399,10 @@ export function Topbar({
             alignItems: "center",
             justifyContent: "center",
           }}
-          title={language === "uz" ? "Switch to English" : "O'zbek tiliga o'tish"}
-          aria-label={language === "uz" ? "Switch to English" : "O'zbek tiliga o'tish"}
+          title={`Til: ${language.toUpperCase()} (bosing)`}
+          aria-label={`Til: ${language.toUpperCase()}`}
         >
-          {language === "uz" ? "UZ" : "EN"}
+          {language.toUpperCase()}
         </button>
 
         {/* Admin Profile Dropdown */}

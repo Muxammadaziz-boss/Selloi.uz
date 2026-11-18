@@ -105,7 +105,7 @@ export function KnowledgeTab({
   );
 
   const formatTime = (ts?: string | null) => {
-    if (!ts) return "—";
+    if (!ts) return "-";
     try {
       const d = new Date(ts);
       return d.toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -401,7 +401,7 @@ export function KnowledgeTab({
                             <IconExternalLink size={12} /> Post
                           </a>
                         ) : (
-                          <span className="text-secondary small">—</span>
+                          <span className="text-secondary small">-</span>
                         )}
                       </td>
                       <td style={{ textAlign: "right" }}>

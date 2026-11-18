@@ -1,14 +1,14 @@
 {
   "metadata": {
     "suite": "playwright_e2e_suite",
-    "timestamp": "2026-11-16T13:44:08.012Z",
-    "commitSha": "b0cd19fd855e3e90ab88e533dce07043f22d139d",
+    "timestamp": "2026-11-18T18:31:36.387Z",
+    "commitSha": "5c73ec40decdb022338f7cdf43c339d1b1e20522",
     "nodeVersion": "v24.20.0",
     "platform": "win32",
     "arch": "x64",
     "targetUrl": "http://localhost:3000",
     "credentialSource": "env_file",
-    "browserVersion": "157.0.8103.78"
+    "browserVersion": "157.0.8103.80"
   },
   "authentication": {
     "admin_login_success": {
@@ -19,81 +19,81 @@
   "tab_transitions": {
     "hash_overview_navigation": {
       "status": "PASSED",
-      "details": "Navigated to http://localhost:3000/#overview"
+      "details": "Navigated to http://localhost:3000/dashboard#overview"
     },
     "hash_inbox_navigation": {
       "status": "PASSED",
-      "details": "Navigated to http://localhost:3000/#inbox"
+      "details": "Navigated to http://localhost:3000/dashboard#inbox"
     },
     "hash_knowledge_navigation": {
       "status": "PASSED",
-      "details": "Navigated to http://localhost:3000/#knowledge"
+      "details": "Navigated to http://localhost:3000/dashboard#knowledge"
     },
     "hash_products_navigation": {
       "status": "PASSED",
-      "details": "Navigated to http://localhost:3000/#products"
+      "details": "Navigated to http://localhost:3000/dashboard#products"
     },
     "hash_orders_navigation": {
       "status": "PASSED",
-      "details": "Navigated to http://localhost:3000/#orders"
+      "details": "Navigated to http://localhost:3000/dashboard#orders"
     },
     "hash_customers_navigation": {
       "status": "PASSED",
-      "details": "Navigated to http://localhost:3000/#customers"
+      "details": "Navigated to http://localhost:3000/dashboard#customers"
     },
     "hash_analytics_navigation": {
       "status": "PASSED",
-      "details": "Navigated to http://localhost:3000/#analytics"
+      "details": "Navigated to http://localhost:3000/dashboard#analytics"
     },
     "hash_settings_navigation": {
       "status": "PASSED",
-      "details": "Navigated to http://localhost:3000/#settings"
+      "details": "Navigated to http://localhost:3000/dashboard#settings"
     },
     "hash_admins_navigation": {
       "status": "PASSED",
-      "details": "Navigated to http://localhost:3000/#admins"
+      "details": "Navigated to http://localhost:3000/dashboard#admins"
     },
     "hash_team_navigation": {
       "status": "PASSED",
-      "details": "Navigated to http://localhost:3000/#team"
+      "details": "Navigated to http://localhost:3000/dashboard#team"
     },
     "hash_logs_navigation": {
       "status": "PASSED",
-      "details": "Navigated to http://localhost:3000/#logs"
+      "details": "Navigated to http://localhost:3000/dashboard#logs"
     },
     "hash_profile_navigation": {
       "status": "PASSED",
-      "details": "Navigated to http://localhost:3000/#profile"
+      "details": "Navigated to http://localhost:3000/dashboard#profile"
     },
     "hash_usage_navigation": {
       "status": "PASSED",
-      "details": "Navigated to http://localhost:3000/#usage"
+      "details": "Navigated to http://localhost:3000/dashboard#usage"
     },
     "hash_billing_navigation": {
       "status": "PASSED",
-      "details": "Navigated to http://localhost:3000/#billing"
+      "details": "Navigated to http://localhost:3000/dashboard#billing"
     },
     "hash_pricing_navigation": {
       "status": "PASSED",
-      "details": "Navigated to http://localhost:3000/#pricing"
+      "details": "Navigated to http://localhost:3000/dashboard#pricing"
     },
     "hash_platform_navigation": {
       "status": "PASSED",
-      "details": "Navigated to http://localhost:3000/#platform"
+      "details": "Navigated to http://localhost:3000/dashboard#platform"
     }
   },
   "browser_history": {
     "history_back_to_products": {
       "status": "PASSED",
-      "details": "URL: http://localhost:3000/#products"
+      "details": "URL: http://localhost:3000/dashboard#products"
     },
     "history_back_to_overview": {
       "status": "PASSED",
-      "details": "URL: http://localhost:3000/#overview"
+      "details": "URL: http://localhost:3000/dashboard#overview"
     },
     "history_forward_to_products": {
       "status": "PASSED",
-      "details": "URL: http://localhost:3000/#products"
+      "details": "URL: http://localhost:3000/dashboard#products"
     }
   },
   "platform_tenant_navigation": {
@@ -159,7 +159,7 @@
     },
     "dark_charcoal_card_surface": {
       "status": "PASSED",
-      "details": "Card background: rgb(23, 23, 23)"
+      "details": "Card background: rgb(17, 17, 17)"
     },
     "no_glassmorphism_in_premium": {
       "status": "PASSED",
@@ -183,14 +183,64 @@
   "keyboard_navigation": {
     "tab_traverses_focus_elements": {
       "status": "PASSED",
-      "details": "Focused tags: BUTTON -> BUTTON"
+      "details": "Focused tags: A -> A"
     }
   },
   "console_errors": [
     "Failed to load resource: the server responded with a status of 404 (Not Found)",
     "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
     "Failed to load resource: the server responded with a status of 404 (Not Found)",
-    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+    "Failed to load resource: the server responded with a status of 502 (Bad Gateway)"
   ],
   "failed_requests": [
     {

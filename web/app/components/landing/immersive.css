@@ -6,52 +6,59 @@
 
 /* ── Design Tokens ── */
 :root {
-  /* Backgrounds: Neutral Obsidian Slate */
-  --s-bg-void: #07080B;
-  --s-bg-deep: #0B0E14;
-  --s-bg-surface: #0E121A;
-  --s-bg-card: rgba(14, 18, 26, 0.85);
-  --s-bg-card-solid: #10141F;
-  --s-bg-elevated: #151A27;
+  /* Backgrounds: Obsidian & Carbon Engineered Foundation */
+  --s-bg-void: #090909;
+  --s-bg-deep: #0D0D0D;
+  --s-bg-surface: #111111;
+  --s-bg-card: rgba(17, 17, 17, 0.92);
+  --s-bg-card-solid: #111111;
+  --s-bg-elevated: #171717;
 
-  /* Restrained Accent: Precision Indigo / Violet */
-  --s-purple: #6366F1;
-  --s-purple-bright: #818CF8;
-  --s-purple-soft: #A5B4FC;
-  --s-purple-dim: #4F46E5;
-  --s-purple-glow: rgba(99, 102, 241, 0.22);
+  /* Restrained Selloi Accent: Warm Bronze Gold (#E6A15A) */
+  --s-accent: #E6A15A;
+  --s-accent-bright: #F0B373;
+  --s-accent-soft: #F7D4AB;
+  --s-accent-dim: #D49049;
+  --s-accent-glow: rgba(230, 161, 90, 0.14);
+
+  /* Legacy aliases redirected to warm bronze gold accent */
+  --s-purple: #E6A15A;
+  --s-purple-bright: #F0B373;
+  --s-purple-soft: #F7D4AB;
+  --s-purple-dim: #D49049;
+  --s-purple-glow: rgba(230, 161, 90, 0.14);
 
   /* Telegram & Status Accents */
-  --s-blue: #0284C7;
-  --s-blue-soft: #38BDF8;
-  --s-cyan: #06B6D4;
-  --s-emerald: #10B981;
-  --s-amber: #F59E0B;
-  --s-red: #EF4444;
+  --s-blue: #83AEEA;
+  --s-blue-soft: #A3C6F5;
+  --s-cyan: #70D1E6;
+  --s-emerald: #A0CA92;
+  --s-amber: #E8B66A;
+  --s-red: #E47777;
 
-  /* Typography */
-  --s-text-primary: #FFFFFF;
-  --s-text-secondary: #94A3B8;
-  --s-text-muted: #64748B;
-  --s-text-dim: #475569;
+  /* Typography (WCAG 2.1 AA Compliant >= 4.5:1 against #090909 and #111111) */
+  --s-text-primary: #F4F4F4;
+  --s-text-secondary: #CBD5E1;
+  --s-text-muted: #A1A1B2;
+  --s-text-dim: #9494A6;
 
   /* Hairline Borders & Glass */
-  --s-glass-border: rgba(255, 255, 255, 0.08);
-  --s-glass-border-hover: rgba(255, 255, 255, 0.16);
-  --s-glass-bg: rgba(14, 18, 26, 0.72);
+  --s-glass-border: #292929;
+  --s-glass-border-hover: #3A3A3A;
+  --s-glass-bg: rgba(17, 17, 17, 0.85);
   --s-glass-blur: 16px;
 
-  /* Radii */
-  --s-radius-sm: 6px;
+  /* Master Radii */
+  --s-radius-sm: 5px;
   --s-radius-md: 10px;
-  --s-radius-lg: 16px;
-  --s-radius-xl: 24px;
+  --s-radius-lg: 14px;
+  --s-radius-xl: 18px;
   --s-radius-pill: 9999px;
 
-  /* Shadows: Layered & Crisp with Specular Inset */
-  --s-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.35), 0 8px 24px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  --s-shadow-elevated: 0 16px 40px -8px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  --s-shadow-glow: 0 0 32px rgba(99, 102, 241, 0.15);
+  /* Shadows: Layered & Crisp with Hairline Specular Edge */
+  --s-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.45), 0 8px 24px -4px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  --s-shadow-elevated: 0 16px 40px -8px rgba(0, 0, 0, 0.75), 0 0 0 1px #292929, inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --s-shadow-glow: 0 0 24px rgba(230, 161, 90, 0.12);
 
   /* Motion */
   --s-ease: cubic-bezier(0.16, 1, 0.3, 1);
@@ -61,7 +68,8 @@
   --s-duration-slow: 350ms;
 
   /* Typography Scale */
-  --s-font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --s-font: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --s-font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, monospace;
   --s-text-xs: 0.75rem;
   --s-text-sm: 0.875rem;
   --s-text-base: 1rem;
@@ -192,8 +200,10 @@
   background-clip: text;
 }
 
+.s-gradient-gold,
+.s-gradient-accent,
 .s-gradient-purple {
-  background: linear-gradient(135deg, #FFFFFF 20%, var(--s-purple-soft) 80%, var(--s-purple-bright) 100%);
+  background: linear-gradient(135deg, #FFFFFF 25%, var(--s-accent-soft) 70%, var(--s-accent) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -510,17 +520,18 @@
   border-radius: var(--s-radius-pill);
   border: none;
   font-size: var(--s-text-sm);
-  font-weight: 550;
+  font-weight: 600;
   cursor: pointer;
   transition: all var(--s-duration-fast) var(--s-ease);
   background: transparent;
-  color: var(--s-text-muted);
+  color: var(--s-text-secondary);
 }
 
 .s-pricing-toggle button.active {
-  background: var(--s-purple);
-  color: #FFFFFF;
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);
+  background: var(--s-accent);
+  color: #090909; /* WCAG AAA 9.4:1 contrast on #E6A15A */
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
 }
 
 /* ── FAQ Accordion ── */
@@ -600,4 +611,46 @@
 
 @media (min-width: 769px) {
   .s-hide-desktop { display: none !important; }
+}
+
+/* ── Immersive Dark Landing High-Contrast Guarantees (WCAG 2.1 AA) ── */
+.immersive-root .badge {
+  color: var(--s-text-primary) !important;
+}
+
+.immersive-root .text-secondary,
+.immersive-root a.text-secondary,
+.immersive-root span.text-secondary,
+.immersive-root div.text-secondary,
+.immersive-root p.text-secondary {
+  color: var(--s-text-secondary) !important;
+}
+
+.immersive-root .text-tertiary {
+  color: var(--s-text-muted) !important;
+}
+
+.immersive-root .text-success,
+.immersive-root span.text-success,
+.immersive-root div.text-success {
+  color: #A0CA92 !important;
+}
+
+.immersive-root .text-info,
+.immersive-root span.text-info,
+.immersive-root a.text-info,
+.immersive-root div.text-info {
+  color: #83AEEA !important;
+}
+
+.immersive-root .text-warning,
+.immersive-root span.text-warning,
+.immersive-root div.text-warning {
+  color: #E8B66A !important;
+}
+
+.immersive-root .text-danger,
+.immersive-root span.text-danger,
+.immersive-root div.text-danger {
+  color: #E47777 !important;
 }

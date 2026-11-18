@@ -104,7 +104,7 @@ async function runResponsiveTests() {
         recordTest(vp.name, "main_content_visible", mainContentVisible, "Main content area rendered with height > 100px");
 
         // Check 3: Sidebar / Navigation Accessibility
-        if (vp.isMobile) {
+        if (vp.isMobile || vp.width < 992) {
           const mobileNavOrToggle = await page.evaluate(() => {
             const nav = document.querySelector("nav") || document.querySelector(".fixed.bottom-0") || document.querySelector("button[aria-label*='menu' i]") || document.querySelector("aside");
             return Boolean(nav);

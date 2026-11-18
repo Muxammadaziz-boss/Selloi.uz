@@ -170,7 +170,8 @@ export default function Footer() {
               >
                 <Send size={15} />
               </a>
-              <div
+              <span
+                role="img"
                 className="d-flex align-items-center justify-content-center text-secondary"
                 style={{
                   width: "34px",
@@ -182,8 +183,9 @@ export default function Footer() {
                 aria-label="YouTube"
               >
                 <Youtube size={15} />
-              </div>
-              <div
+              </span>
+              <span
+                role="img"
                 className="d-flex align-items-center justify-content-center text-secondary"
                 style={{
                   width: "34px",
@@ -195,7 +197,7 @@ export default function Footer() {
                 aria-label="Instagram"
               >
                 <Instagram size={15} />
-              </div>
+              </span>
             </div>
           </div>
         </div>

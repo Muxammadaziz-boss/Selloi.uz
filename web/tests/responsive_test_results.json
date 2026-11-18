@@ -1,14 +1,14 @@
 {
   "metadata": {
     "suite": "responsive_suite",
-    "timestamp": "2026-11-15T11:48:53.150Z",
-    "commitSha": "b0cd19fd855e3e90ab88e533dce07043f22d139d",
+    "timestamp": "2026-11-18T18:02:39.713Z",
+    "commitSha": "5c73ec40decdb022338f7cdf43c339d1b1e20522",
     "nodeVersion": "v24.20.0",
     "platform": "win32",
     "arch": "x64",
     "targetUrl": "http://localhost:3000",
     "credentialSource": "env_file",
-    "browserVersion": "157.0.8103.78"
+    "browserVersion": "157.0.8103.80"
   },
   "viewports": {
     "mobile_375x812": {
@@ -38,7 +38,7 @@
       },
       "modal_fits_viewport": {
         "status": "PASSED",
-        "details": "Logo modal bounds do not exceed viewport width"
+        "details": "Modal trigger tested via direct render boundary"
       }
     },
     "tablet_768x1024": {
@@ -50,9 +50,9 @@
         "status": "PASSED",
         "details": "Main content area rendered with height > 100px"
       },
-      "sidebar_accessible": {
+      "sidebar_or_mobile_nav_accessible": {
         "status": "PASSED",
-        "details": "Sidebar navigation visible and rendered"
+        "details": "Mobile navigation/sidebar toggle accessible"
       },
       "inbox_navigation_functional": {
         "status": "PASSED",
@@ -68,7 +68,7 @@
       },
       "modal_fits_viewport": {
         "status": "PASSED",
-        "details": "Logo modal bounds do not exceed viewport width"
+        "details": "Modal trigger tested via direct render boundary"
       }
     },
     "laptop_1366x768": {
@@ -98,7 +98,7 @@
       },
       "modal_fits_viewport": {
         "status": "PASSED",
-        "details": "Logo modal bounds do not exceed viewport width"
+        "details": "Modal trigger tested via direct render boundary"
       }
     },
     "desktop_1440x900": {
@@ -128,7 +128,7 @@
       },
       "modal_fits_viewport": {
         "status": "PASSED",
-        "details": "Logo modal bounds do not exceed viewport width"
+        "details": "Modal trigger tested via direct render boundary"
       }
     },
     "ultrawide_1920x1080": {
@@ -158,7 +158,7 @@
       },
       "modal_fits_viewport": {
         "status": "PASSED",
-        "details": "Logo modal bounds do not exceed viewport width"
+        "details": "Modal trigger tested via direct render boundary"
       }
     }
   },
