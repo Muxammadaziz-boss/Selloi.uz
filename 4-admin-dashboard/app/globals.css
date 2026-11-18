@@ -444,166 +444,87 @@ body {
   align-items: center;
   justify-content: center;
   position: relative;
-  background-color: #07090e;
+  background-color: var(--bg-canvas, #090a0f);
   padding: 1.5rem;
   overflow: hidden;
 }
 
-/* Atmospheric Ambient Glow Orbs */
-.auth-ambient-orb-1 {
-  position: absolute;
-  top: 8%;
-  left: 20%;
-  width: 520px;
-  height: 520px;
-  background: radial-gradient(circle, rgba(99, 102, 241, 0.18) 0%, rgba(99, 102, 241, 0) 70%);
-  filter: blur(85px);
-  pointer-events: none;
-  border-radius: 50%;
-  animation: floatOrb 12s ease-in-out infinite alternate;
-  z-index: 0;
-}
-
-.auth-ambient-orb-2 {
-  position: absolute;
-  bottom: 12%;
-  right: 20%;
-  width: 480px;
-  height: 480px;
-  background: radial-gradient(circle, rgba(14, 165, 233, 0.14) 0%, rgba(59, 130, 246, 0) 70%);
-  filter: blur(80px);
-  pointer-events: none;
-  border-radius: 50%;
-  animation: floatOrb 15s ease-in-out infinite alternate-reverse;
-  z-index: 0;
-}
-
-@keyframes floatOrb {
-  0% {
-    transform: translate(0, 0) scale(1);
-  }
-  100% {
-    transform: translate(30px, 20px) scale(1.08);
-  }
-}
-
-/* Micro-dots background grid overlay */
+/* Restrained ambient surface (no neon blobs or distracting grids) */
+.auth-ambient-orb-1,
+.auth-ambient-orb-2,
 .auth-mesh-grid {
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px);
-  background-size: 28px 28px;
-  mask-image: radial-gradient(ellipse at center, black 40%, transparent 80%);
-  -webkit-mask-image: radial-gradient(ellipse at center, black 40%, transparent 80%);
-  pointer-events: none;
-  z-index: 1;
+  display: none;
 }
 
 .auth-content-container {
   position: relative;
   z-index: 2;
   width: 100%;
-  max-width: 440px;
+  max-width: 420px;
 }
 
-/* Glowing Logo Squircle */
+/* Clean Brand Logo Presentation */
 .auth-logo-halo {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 1.25rem;
+  margin-bottom: 1rem;
 }
 
 .auth-logo-halo::after {
-  content: '';
-  position: absolute;
-  inset: -8px;
-  border-radius: 26px;
-  background: radial-gradient(circle, rgba(124, 58, 237, 0.45) 0%, rgba(59, 130, 246, 0.2) 50%, transparent 75%);
-  filter: blur(16px);
-  z-index: -1;
-  transition: all 0.3s ease;
-}
-
-.auth-logo-halo:hover::after {
-  inset: -12px;
-  filter: blur(20px);
-  background: radial-gradient(circle, rgba(139, 92, 246, 0.6) 0%, rgba(56, 189, 248, 0.3) 60%, transparent 80%);
+  display: none;
 }
 
 .auth-brand-title {
-  background: linear-gradient(180deg, #ffffff 10%, #cbd5e1 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  font-weight: 800;
+  color: var(--text-primary, #f8fafc);
+  font-weight: 700;
   letter-spacing: -0.025em;
-  font-size: 1.85rem;
-  line-height: 1.2;
+  font-size: 1.5rem;
+  line-height: 1.25;
 }
 
 .auth-version-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.3rem 0.85rem;
-  border-radius: 9999px;
-  background: rgba(99, 102, 241, 0.08);
-  border: 1px solid rgba(99, 102, 241, 0.22);
-  color: #a5b4fc;
-  font-size: 0.78rem;
-  font-weight: 500;
-  backdrop-filter: blur(8px);
+  display: none;
 }
 
-/* Glassmorphism Luxury Card */
+/* Linear/Stripe Restrained Dark Surface Card */
 .auth-card-modern {
-  background: rgba(14, 18, 30, 0.76);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 22px;
-  box-shadow: 
-    0 24px 60px -12px rgba(0, 0, 0, 0.85),
-    0 0 0 1px rgba(255, 255, 255, 0.04),
-    0 0 35px -5px rgba(99, 102, 241, 0.1);
+  background: var(--bg-surface, #12141a);
+  border: 1px solid var(--border-default, rgba(255, 255, 255, 0.1));
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.6);
   position: relative;
   overflow: hidden;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  transition: border-color var(--transition-fast, 120ms ease);
 }
 
 .auth-card-modern::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 15%;
-  right: 15%;
-  height: 1.5px;
-  background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.8), rgba(56, 189, 248, 0.8), transparent);
+  display: none;
 }
 
-/* Unified Telegram ID Profile Box */
+/* Clean Telegram ID Input Box */
 .auth-tg-profile-box {
   display: flex;
   align-items: center;
-  gap: 0.85rem;
-  padding: 0.65rem 0.85rem;
-  background: rgba(255, 255, 255, 0.035);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  border-radius: 14px;
-  transition: all 0.2s ease;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-canvas, #090a0f);
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  border-radius: var(--radius-md, 8px);
+  transition: border-color 150ms ease, box-shadow 150ms ease;
 }
 
 .auth-tg-profile-box:focus-within {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.22), 0 0 20px rgba(99, 102, 241, 0.12);
+  background: var(--bg-surface-elevated, #161820);
+  border-color: var(--accent, #5e6ad2);
+  box-shadow: 0 0 0 2px var(--accent-subtle, rgba(94, 106, 210, 0.2));
 }
 
 .auth-tg-avatar-wrap {
   position: relative;
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
   flex-shrink: 0;
 }
 
@@ -612,38 +533,35 @@ body {
   height: 100%;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid #6366f1;
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+  border: 1px solid var(--border-default, rgba(255, 255, 255, 0.15));
 }
 
 .auth-tg-status-dot {
   position: absolute;
   bottom: 0;
   right: 0;
-  width: 11px;
-  height: 11px;
-  background-color: #22c55e;
-  border: 2px solid #0e121e;
+  width: 9px;
+  height: 9px;
+  background-color: var(--success, #10b981);
+  border: 1.5px solid var(--bg-surface, #12141a);
   border-radius: 50%;
-  box-shadow: 0 0 6px #22c55e;
 }
 
 /* Modern Input Box */
 .auth-input-modern {
   display: flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.035);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  border-radius: 14px;
-  padding: 0 0.85rem;
-  height: 48px;
-  transition: all 0.2s ease;
+  background: var(--bg-canvas, #090a0f);
+  border: 1px solid var(--border-default, rgba(255, 255, 255, 0.1));
+  border-radius: var(--radius-md, 8px);
+  padding: 0 0.75rem;
+  height: 44px;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
 }
 
 .auth-input-modern:focus-within {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.22), 0 0 20px rgba(99, 102, 241, 0.12);
+  border-color: var(--accent, #5e6ad2);
+  box-shadow: 0 0 0 2px var(--accent-subtle, rgba(94, 106, 210, 0.2));
 }
 
 .auth-input-modern input {
@@ -652,28 +570,27 @@ body {
   border: none !important;
   outline: none !important;
   box-shadow: none !important;
-  color: #f8fafc;
+  color: var(--text-primary, #f8fafc);
   padding: 0 0.5rem;
-  font-size: 0.95rem;
+  font-size: 0.92rem;
 }
 
 .auth-input-modern input::placeholder {
-  color: #64748b;
-  font-size: 0.88rem;
+  color: var(--text-tertiary, #9aa1ac);
+  font-size: 0.85rem;
 }
 
-/* High-Energy Gradient Submit Button */
+/* Professional Solid Primary Action Button */
 .btn-auth-gradient {
-  background: linear-gradient(135deg, #2563eb 0%, #4f46e5 50%, #7c3aed 100%);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 14px;
-  height: 48px;
+  background: var(--accent, #5e6ad2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md, 8px);
+  height: 44px;
   font-weight: 600;
-  font-size: 0.98rem;
-  letter-spacing: 0.015em;
+  font-size: 0.92rem;
+  letter-spacing: 0.01em;
   color: #ffffff;
-  box-shadow: 0 8px 24px -4px rgba(79, 70, 229, 0.45), 0 0 16px rgba(37, 99, 235, 0.2);
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: background-color 150ms ease, transform 150ms ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -681,32 +598,38 @@ body {
 }
 
 .btn-auth-gradient:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 30px -4px rgba(79, 70, 229, 0.65), 0 0 25px rgba(37, 99, 235, 0.35);
-  filter: brightness(1.08);
+  background: var(--accent-hover, #6d79e2);
   color: #ffffff;
 }
 
 .btn-auth-gradient:active:not(:disabled) {
-  transform: translateY(0);
+  transform: translateY(1px);
+  background: var(--accent-active, #535ec0);
 }
 
 .btn-auth-gradient:disabled {
-  opacity: 0.55;
+  opacity: 0.5;
   cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
 }
 
-/* Security Footnote Pill */
+/* Accessibility & Touch Target Defaults */
+@media (pointer: coarse) {
+  .btn, button.btn, .linear-input, .auth-input-modern {
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 .auth-security-badge {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  padding: 0.4rem 0.9rem;
-  border-radius: 9999px;
-  color: rgba(255, 255, 255, 0.55);
-  font-size: 0.78rem;
-  backdrop-filter: blur(8px);
+  display: none;
 }
 
 .app-brand-logo-container {

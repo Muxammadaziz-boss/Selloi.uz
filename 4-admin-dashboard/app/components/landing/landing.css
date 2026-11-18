@@ -1,0 +1,364 @@
+/* ==========================================================================
+   SELLOI.UZ — REFINED SAAS DESIGN SYSTEM
+   Linear, Vercel & Stripe Grade SaaS Aesthetics
+   Clean, High-Contrast, Minimalist, No "AI Template" Slop
+   ========================================================================== */
+
+:root {
+  /* Core Backgrounds */
+  --selloi-bg: #08090E;
+  --selloi-bg-subtle: #0D0E16;
+  --selloi-bg-card: #11121C;
+  --selloi-bg-card-hover: #161825;
+
+  /* Accent: Refined Royal Purple (Linear/Raycast style) */
+  --selloi-primary: #7C3AED;
+  --selloi-primary-hover: #8B5CF6;
+  --selloi-primary-dark: #6D28D9;
+  --selloi-primary-glow: rgba(124, 58, 237, 0.18);
+
+  /* Accents */
+  --selloi-cyan: #38BDF8;
+  --selloi-emerald: #10B981;
+  --selloi-amber: #F59E0B;
+
+  /* High-Contrast Typography */
+  --selloi-text-primary: #FFFFFF;
+  --selloi-text-secondary: #CBD5E1;
+  --selloi-text-muted: #94A3B8;
+  --selloi-text-dim: #64748B;
+
+  /* Precision Borders (1px sharp hairline) */
+  --selloi-border: rgba(255, 255, 255, 0.08);
+  --selloi-border-hover: rgba(168, 85, 247, 0.35);
+  --selloi-border-subtle: rgba(255, 255, 255, 0.04);
+
+  /* Radii */
+  --selloi-radius-sm: 8px;
+  --selloi-radius-md: 12px;
+  --selloi-radius-lg: 18px;
+  --selloi-radius-xl: 24px;
+  --selloi-radius-pill: 9999px;
+
+  /* Typography */
+  --selloi-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", "Plus Jakarta Sans", sans-serif;
+}
+
+/* Base Root Container */
+.selloi-landing-root {
+  background-color: var(--selloi-bg);
+  color: var(--selloi-text-primary);
+  font-family: var(--selloi-font-family);
+  min-height: 100vh;
+  position: relative;
+  overflow-x: clip;
+  width: 100%;
+  line-height: 1.6;
+}
+
+/* Subtle Studio Spotlight (Single refined radial at the top, not blurry blobs) */
+.selloi-studio-spotlight {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 1200px;
+  height: 580px;
+  background: radial-gradient(ellipse 65% 55% at 50% 0%, rgba(124, 58, 237, 0.18), transparent 75%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Subtle Grid Texture */
+.selloi-grid-texture {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 20%, #000 30%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 20%, #000 30%, transparent 80%);
+}
+
+/* Container Constraint */
+.selloi-container {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 24px;
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-width: 768px) {
+  .selloi-container {
+    padding: 0 16px;
+  }
+}
+
+/* Section Spacing System */
+.selloi-section {
+  padding-top: 100px;
+  padding-bottom: 100px;
+  position: relative;
+}
+
+@media (max-width: 768px) {
+  .selloi-section {
+    padding-top: 60px;
+    padding-bottom: 60px;
+  }
+}
+
+/* Precision Typography */
+.selloi-section-title {
+  font-size: clamp(1.85rem, 3.6vw, 2.75rem);
+  letter-spacing: -0.035em;
+  font-weight: 800;
+  line-height: 1.18;
+}
+
+.selloi-gradient-text {
+  background: linear-gradient(180deg, #FFFFFF 20%, #CBD5E1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
+}
+
+.selloi-gradient-purple {
+  background: linear-gradient(135deg, #C084FC 0%, #A855F7 60%, #818CF8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
+}
+
+/* Linear-style Muted Pill Badge */
+.selloi-pill-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 14px;
+  border-radius: var(--selloi-radius-pill);
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: rgba(124, 58, 237, 0.1);
+  color: #D8B4FE;
+  border: 1px solid rgba(168, 85, 247, 0.25);
+}
+
+.selloi-pill-cyan {
+  background: rgba(56, 189, 248, 0.1);
+  color: #7DD3FC;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+}
+
+/* SaaS Precision Buttons (Linear / Stripe Quality) */
+.selloi-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(180deg, #8B5CF6 0%, #7C3AED 100%);
+  color: #FFFFFF;
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 12px 24px;
+  border-radius: var(--selloi-radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 4px 16px rgba(124, 58, 237, 0.35);
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.selloi-btn-primary:hover {
+  background: linear-gradient(180deg, #9333EA 0%, #8B5CF6 100%);
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 6px 20px rgba(124, 58, 237, 0.5);
+  transform: translateY(-1px);
+  color: #FFFFFF;
+}
+
+.selloi-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #11121C;
+  color: #F1F5F9;
+  font-weight: 500;
+  font-size: 0.95rem;
+  padding: 12px 24px;
+  border-radius: var(--selloi-radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  text-decoration: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.selloi-btn-secondary:hover {
+  background: #171926;
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #FFFFFF;
+  transform: translateY(-1px);
+}
+
+/* Card Surface (Precision Dark Surface, NOT washed-out blurry glass) */
+.selloi-card {
+  background: var(--selloi-bg-card);
+  border: 1px solid var(--selloi-border);
+  border-radius: var(--selloi-radius-lg);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.selloi-card:hover {
+  border-color: var(--selloi-border-hover);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+/* Bento Grid System */
+.selloi-bento-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 20px;
+}
+
+.selloi-bento-span-7 {
+  grid-column: span 7;
+}
+
+.selloi-bento-span-5 {
+  grid-column: span 5;
+}
+
+.selloi-bento-span-4 {
+  grid-column: span 4;
+}
+
+.selloi-bento-span-6 {
+  grid-column: span 6;
+}
+
+@media (max-width: 992px) {
+  .selloi-bento-span-7,
+  .selloi-bento-span-5,
+  .selloi-bento-span-4,
+  .selloi-bento-span-6 {
+    grid-column: span 12;
+  }
+}
+
+/* Realistic Typing Indicator Animation */
+.selloi-typing-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.selloi-typing-dots span {
+  width: 5px;
+  height: 5px;
+  background: #C084FC;
+  border-radius: 50%;
+  animation: typingBounce 1.4s infinite ease-in-out both;
+}
+
+.selloi-typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+.selloi-typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+.selloi-typing-dots span:nth-child(3) { animation-delay: 0s; }
+
+@keyframes typingBounce {
+  0%, 80%, 100% { transform: scale(0); opacity: 0.4; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+/* Laser Scan Animation for AI Vision */
+@keyframes laserScan {
+  0% { top: 0%; opacity: 0.8; }
+  50% { top: 100%; opacity: 1; }
+  100% { top: 0%; opacity: 0.8; }
+}
+
+.selloi-laser-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #38BDF8, #A855F7, transparent);
+  box-shadow: 0 0 10px #38BDF8;
+  animation: laserScan 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Mobile Sticky Bottom CTA Bar */
+.selloi-mobile-sticky-cta {
+  display: none;
+  position: fixed;
+  bottom: 16px;
+  left: 16px;
+  right: 16px;
+  z-index: 1040;
+  background: rgba(17, 18, 28, 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(168, 85, 247, 0.4);
+  border-radius: var(--selloi-radius-pill);
+  padding: 8px 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  animation: slideUpBottom 0.3s ease forwards;
+}
+
+@media (max-width: 768px) {
+  .selloi-mobile-sticky-cta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+@keyframes slideUpBottom {
+  from { transform: translateY(100px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Comparison Table Styling */
+.selloi-comparison-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.selloi-comparison-table th,
+.selloi-comparison-table td {
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.selloi-comparison-table tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

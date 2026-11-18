@@ -117,142 +117,139 @@ export function OverviewTab({
       {/* 4 Linear KPI Metrics */}
       <div className="row g-3 mb-4">
         {/* Total Conversations */}
+        {/* Total Chats */}
         <div className="col-12 col-sm-6 col-lg-3">
           <div
-            className="linear-card p-3 cursor-pointer transition-all h-100"
+            className="linear-card p-3.5 cursor-pointer transition-all h-100 d-flex flex-column justify-content-between"
             onClick={() => onNavigateTab("inbox", "all")}
           >
-            <div className="d-flex align-items-center justify-content-between mb-2">
-              <span className="text-secondary small fw-medium text-uppercase" style={{ fontSize: "0.7rem", letterSpacing: "0.04em" }}>
-                {t("overview.stat_total_chats")}
-              </span>
-              <Badge variant="accent">
-                <IconMessageDots size={12} />
-              </Badge>
-            </div>
-            {loading ? (
-              <div className="skeleton-shimmer skeleton-title w-50 mb-2 mt-1" />
-            ) : (
-              <div className="display-6 fw-bold text-primary mb-1" style={{ fontSize: "1.75rem", letterSpacing: "-0.02em" }}>
-                {totalConversations}
+            <div>
+              <div className="d-flex align-items-center justify-content-between mb-2">
+                <span className="text-secondary small fw-medium text-uppercase" style={{ fontSize: "0.7rem", letterSpacing: "0.04em" }}>
+                  {t("overview.stat_total_chats")}
+                </span>
+                <Badge variant="accent">
+                  <IconMessageDots size={12} />
+                </Badge>
               </div>
-            )}
+              {loading ? (
+                <div className="skeleton-shimmer skeleton-title w-50 mb-2 mt-1" style={{ height: "28px" }} />
+              ) : (
+                <div className="display-6 fw-bold text-primary mb-1" style={{ fontSize: "1.75rem", letterSpacing: "-0.02em" }}>
+                  {totalConversations}
+                </div>
+              )}
+            </div>
             {loading ? (
               <div className="skeleton-shimmer skeleton-text w-75 mt-1" />
             ) : (
-              <div className="text-secondary small d-flex align-items-center justify-content-between">
+              <div className="text-secondary small d-flex align-items-center justify-content-between pt-2 border-top" style={{ borderColor: "var(--border-subtle)", fontSize: "0.78rem" }}>
                 <span>{t("overview.stat_total_chats_desc")}</span>
                 <span className="text-primary fw-medium">100%</span>
               </div>
             )}
-            <div className="mt-2" style={{ height: "4px", backgroundColor: "var(--border-subtle)", borderRadius: "2px", overflow: "hidden" }}>
-              <div style={{ width: "100%", height: "100%", backgroundColor: "var(--accent)" }} />
-            </div>
           </div>
         </div>
 
         {/* AI Active */}
         <div className="col-12 col-sm-6 col-lg-3">
           <div
-            className="linear-card p-3 cursor-pointer transition-all h-100"
+            className="linear-card p-3.5 cursor-pointer transition-all h-100 d-flex flex-column justify-content-between"
             onClick={() => onNavigateTab("inbox", "ai")}
           >
-            <div className="d-flex align-items-center justify-content-between mb-2">
-              <span className="text-secondary small fw-medium text-uppercase" style={{ fontSize: "0.7rem", letterSpacing: "0.04em" }}>
-                {t("overview.stat_ai_active")}
-              </span>
-              <Badge variant="success">
-                <IconRobot size={12} />
-              </Badge>
-            </div>
-            {loading ? (
-              <div className="skeleton-shimmer skeleton-title w-50 mb-2 mt-1" />
-            ) : (
-              <div className="display-6 fw-bold text-primary mb-1" style={{ fontSize: "1.75rem", letterSpacing: "-0.02em" }}>
-                {aiActiveCount}
+            <div>
+              <div className="d-flex align-items-center justify-content-between mb-2">
+                <span className="text-secondary small fw-medium text-uppercase" style={{ fontSize: "0.7rem", letterSpacing: "0.04em" }}>
+                  {t("overview.stat_ai_active")}
+                </span>
+                <Badge variant="success">
+                  <IconRobot size={12} />
+                </Badge>
               </div>
-            )}
+              {loading ? (
+                <div className="skeleton-shimmer skeleton-title w-50 mb-2 mt-1" style={{ height: "28px" }} />
+              ) : (
+                <div className="display-6 fw-bold text-primary mb-1" style={{ fontSize: "1.75rem", letterSpacing: "-0.02em" }}>
+                  {aiActiveCount}
+                </div>
+              )}
+            </div>
             {loading ? (
               <div className="skeleton-shimmer skeleton-text w-75 mt-1" />
             ) : (
-              <div className="text-secondary small d-flex align-items-center justify-content-between">
+              <div className="text-secondary small d-flex align-items-center justify-content-between pt-2 border-top" style={{ borderColor: "var(--border-subtle)", fontSize: "0.78rem" }}>
                 <span>{t("overview.stat_ai_active_desc")}</span>
                 <span className="text-success fw-medium">{aiPercentage}%</span>
               </div>
             )}
-            <div className="mt-2" style={{ height: "4px", backgroundColor: "var(--border-subtle)", borderRadius: "2px", overflow: "hidden" }}>
-              <div style={{ width: `${aiPercentage}%`, height: "100%", backgroundColor: "var(--success)" }} />
-            </div>
           </div>
         </div>
 
         {/* Human Takeover */}
         <div className="col-12 col-sm-6 col-lg-3">
           <div
-            className="linear-card p-3 cursor-pointer transition-all h-100"
+            className="linear-card p-3.5 cursor-pointer transition-all h-100 d-flex flex-column justify-content-between"
             onClick={() => onNavigateTab("inbox", "human")}
           >
-            <div className="d-flex align-items-center justify-content-between mb-2">
-              <span className="text-secondary small fw-medium text-uppercase" style={{ fontSize: "0.7rem", letterSpacing: "0.04em" }}>
-                {t("overview.stat_takeover")}
-              </span>
-              <Badge variant="warning">
-                <IconHeadset size={12} />
-              </Badge>
-            </div>
-            {loading ? (
-              <div className="skeleton-shimmer skeleton-title w-50 mb-2 mt-1" />
-            ) : (
-              <div className="display-6 fw-bold text-primary mb-1" style={{ fontSize: "1.75rem", letterSpacing: "-0.02em" }}>
-                {takeoverCount}
+            <div>
+              <div className="d-flex align-items-center justify-content-between mb-2">
+                <span className="text-secondary small fw-medium text-uppercase" style={{ fontSize: "0.7rem", letterSpacing: "0.04em" }}>
+                  {t("overview.stat_takeover")}
+                </span>
+                <Badge variant="warning">
+                  <IconHeadset size={12} />
+                </Badge>
               </div>
-            )}
+              {loading ? (
+                <div className="skeleton-shimmer skeleton-title w-50 mb-2 mt-1" style={{ height: "28px" }} />
+              ) : (
+                <div className="display-6 fw-bold text-primary mb-1" style={{ fontSize: "1.75rem", letterSpacing: "-0.02em" }}>
+                  {takeoverCount}
+                </div>
+              )}
+            </div>
             {loading ? (
               <div className="skeleton-shimmer skeleton-text w-75 mt-1" />
             ) : (
-              <div className="text-secondary small d-flex align-items-center justify-content-between">
+              <div className="text-secondary small d-flex align-items-center justify-content-between pt-2 border-top" style={{ borderColor: "var(--border-subtle)", fontSize: "0.78rem" }}>
                 <span>{t("overview.stat_takeover_desc")}</span>
                 <span className="text-warning fw-medium">{humanPercentage}%</span>
               </div>
             )}
-            <div className="mt-2" style={{ height: "4px", backgroundColor: "var(--border-subtle)", borderRadius: "2px", overflow: "hidden" }}>
-              <div style={{ width: `${humanPercentage}%`, height: "100%", backgroundColor: "var(--warning)" }} />
-            </div>
           </div>
         </div>
 
         {/* Knowledge Base Posts */}
         <div className="col-12 col-sm-6 col-lg-3">
           <div
-            className="linear-card p-3 cursor-pointer transition-all h-100"
+            className="linear-card p-3.5 cursor-pointer transition-all h-100 d-flex flex-column justify-content-between"
             onClick={() => onNavigateTab("knowledge")}
           >
-            <div className="d-flex align-items-center justify-content-between mb-2">
-              <span className="text-secondary small fw-medium text-uppercase" style={{ fontSize: "0.7rem", letterSpacing: "0.04em" }}>
-                {t("overview.stat_posts")}
-              </span>
-              <Badge variant="info">
-                <IconBooks size={12} />
-              </Badge>
-            </div>
-            {loading ? (
-              <div className="skeleton-shimmer skeleton-title w-50 mb-2 mt-1" />
-            ) : (
-              <div className="display-6 fw-bold text-primary mb-1" style={{ fontSize: "1.75rem", letterSpacing: "-0.02em" }}>
-                {totalPosts}
+            <div>
+              <div className="d-flex align-items-center justify-content-between mb-2">
+                <span className="text-secondary small fw-medium text-uppercase" style={{ fontSize: "0.7rem", letterSpacing: "0.04em" }}>
+                  {t("overview.stat_posts")}
+                </span>
+                <Badge variant="info">
+                  <IconBooks size={12} />
+                </Badge>
               </div>
-            )}
+              {loading ? (
+                <div className="skeleton-shimmer skeleton-title w-50 mb-2 mt-1" style={{ height: "28px" }} />
+              ) : (
+                <div className="display-6 fw-bold text-primary mb-1" style={{ fontSize: "1.75rem", letterSpacing: "-0.02em" }}>
+                  {totalPosts}
+                </div>
+              )}
+            </div>
             {loading ? (
               <div className="skeleton-shimmer skeleton-text w-75 mt-1" />
             ) : (
-              <div className="text-secondary small d-flex align-items-center justify-content-between">
+              <div className="text-secondary small d-flex align-items-center justify-content-between pt-2 border-top" style={{ borderColor: "var(--border-subtle)", fontSize: "0.78rem" }}>
                 <span>{t("overview.stat_posts_desc")}</span>
                 <span className="text-primary fw-medium">{channels.length} {language === "uz" ? "ta" : "channels"}</span>
               </div>
             )}
-            <div className="mt-2" style={{ height: "4px", backgroundColor: "var(--border-subtle)", borderRadius: "2px", overflow: "hidden" }}>
-              <div style={{ width: "100%", height: "100%", backgroundColor: "var(--info)" }} />
-            </div>
           </div>
         </div>
       </div>
@@ -266,9 +263,9 @@ export function OverviewTab({
               actions={
                 <Button
                   variant="ghost"
-                  size="xs"
+                  size="sm"
                   onClick={() => onNavigateTab("inbox")}
-                  icon={<IconArrowUpRight size={13} />}
+                  icon={<IconArrowUpRight size={14} />}
                 >
                   {t("overview.view_all")}
                 </Button>
@@ -441,9 +438,9 @@ export function OverviewTab({
               actions={
                 <Button
                   variant="ghost"
-                  size="xs"
+                  size="sm"
                   onClick={() => onNavigateTab("orders")}
-                  icon={<IconArrowUpRight size={13} />}
+                  icon={<IconArrowUpRight size={14} />}
                 >
                   {t("overview.btn_view_catalog")}
                 </Button>

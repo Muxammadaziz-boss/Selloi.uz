@@ -11,6 +11,7 @@ import {
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
+import { EmptyState } from "../ui/EmptyState";
 import { PageHeader } from "../layout/PageHeader";
 
 export interface CustomerConversationItem {
@@ -26,12 +27,14 @@ export interface CustomersTabProps {
   conversations: CustomerConversationItem[];
   onSelectConversation: (id: number) => void;
   onNavigateInbox: () => void;
+  loading?: boolean;
 }
 
 export function CustomersTab({
   conversations,
   onSelectConversation,
   onNavigateInbox,
+  loading = false,
 }: CustomersTabProps) {
   const { language, t } = useLanguage();
   const [search, setSearch] = useState("");
@@ -78,7 +81,7 @@ export function CustomersTab({
               />
               <input
                 type="text"
-                placeholder="Mijoz yoki username izlash..."
+                placeholder={t("customers.search_placeholder")}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="linear-input ps-5 py-1"
@@ -87,26 +90,52 @@ export function CustomersTab({
             </div>
           }
         >
-          <CardTitle>Mijozlar Ro'yxati ({filtered.length})</CardTitle>
+          <CardTitle>{t("customers.card_title")} ({loading ? "..." : filtered.length})</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <div className="table-responsive">
             <table className="linear-table">
               <thead>
                 <tr>
-                  <th>Mijoz Nomi</th>
-                  <th>Username</th>
-                  <th>Chat ID</th>
-                  <th>Holati</th>
-                  <th>Oxirgi Muloqot</th>
-                  <th style={{ textAlign: "right" }}>Amal</th>
+                  <th>{t("customers.th_name")}</th>
+                  <th>{t("customers.th_username")}</th>
+                  <th className="d-none d-sm-table-cell">{t("customers.th_chat_id")}</th>
+                  <th>{t("customers.th_status")}</th>
+                  <th className="d-none d-md-table-cell">{t("customers.th_last_active")}</th>
+                  <th style={{ textAlign: "right" }}>{t("customers.th_action")}</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.length === 0 ? (
+                {loading ? (
+                  [...Array(5)].map((_, i) => (
+                    <tr key={`skel-cust-${i}`}>
+                      <td>
+                        <div className="d-flex align-items-center gap-2">
+                          <div className="skeleton-shimmer" style={{ width: 30, height: 30, borderRadius: "50%" }} />
+                          <div className="skeleton-shimmer skeleton-text w-50" style={{ height: 14 }} />
+                        </div>
+                      </td>
+                      <td><div className="skeleton-shimmer skeleton-text w-50" style={{ height: 12 }} /></td>
+                      <td className="d-none d-sm-table-cell"><div className="skeleton-shimmer skeleton-text w-50" style={{ height: 12 }} /></td>
+                      <td><div className="skeleton-shimmer skeleton-text w-50" style={{ height: 18, borderRadius: 10 }} /></td>
+                      <td className="d-none d-md-table-cell"><div className="skeleton-shimmer skeleton-text w-50" style={{ height: 12 }} /></td>
+                      <td style={{ textAlign: "right" }}>
+                        <div className="skeleton-shimmer skeleton-text ms-auto" style={{ width: 80, height: 28, borderRadius: 6 }} />
+                      </td>
+                    </tr>
+                  ))
+                ) : filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="text-center text-secondary py-5 small">
-                      Mijozlar ma'lumotlari topilmadi
+                    <td colSpan={6} className="p-0 border-0">
+                      <EmptyState
+                        icon={<IconUsers size={32} />}
+                        title={search.trim() ? "Mijoz topilmadi" : "Hozircha mijozlar mavjud emas"}
+                        description={
+                          search.trim()
+                            ? `"${search}" so'rovi bo'yicha hech qanday mijoz topilmadi.`
+                            : "Telegram botingizga mijozlar xabar yozganda yoki buyurtma berganda, ular bu yerda avtomatik paydo bo'ladi."
+                        }
+                      />
                     </td>
                   </tr>
                 ) : (
@@ -115,7 +144,7 @@ export function CustomersTab({
                       <td>
                         <div className="d-flex align-items-center gap-2">
                           <div
-                            className="rounded-circle d-flex align-items-center justify-content-center text-primary fw-bold"
+                            className="rounded-circle d-flex align-items-center justify-content-center text-primary fw-bold flex-shrink-0"
                             style={{
                               width: "30px",
                               height: "30px",
@@ -125,23 +154,25 @@ export function CustomersTab({
                           >
                             {c.customer_name ? c.customer_name.charAt(0).toUpperCase() : "M"}
                           </div>
-                          <span className="fw-medium text-primary small">{c.customer_name}</span>
+                          <span className="fw-medium text-primary small text-truncate" style={{ maxWidth: 160 }}>
+                            {c.customer_name}
+                          </span>
                         </div>
                       </td>
                       <td className="text-secondary small">
                         {c.username ? `@${c.username}` : "—"}
                       </td>
-                      <td className="font-monospace text-secondary small">
+                      <td className="font-monospace text-secondary small d-none d-sm-table-cell">
                         {c.chat_id}
                       </td>
                       <td>
                         {c.status === "ai_active" ? (
-                          <Badge variant="success" dot>AI Boshqaruvida</Badge>
+                          <Badge variant="success" dot>{t("customers.status_ai")}</Badge>
                         ) : (
-                          <Badge variant="warning" dot>Operator Qabulida</Badge>
+                          <Badge variant="warning" dot>{t("customers.status_operator")}</Badge>
                         )}
                       </td>
-                      <td className="text-secondary small">
+                      <td className="text-secondary small d-none d-md-table-cell">
                         <span className="d-flex align-items-center gap-1">
                           <IconClock size={12} />
                           {formatTime(c.last_message_at)}
@@ -150,14 +181,14 @@ export function CustomersTab({
                       <td style={{ textAlign: "right" }}>
                         <Button
                           variant="secondary"
-                          size="xs"
+                          size="sm"
                           onClick={() => {
                             onSelectConversation(c.id);
                             onNavigateInbox();
                           }}
-                          icon={<IconMessageDots size={13} />}
+                          icon={<IconMessageDots size={14} />}
                         >
-                          Chatga o'tish
+                          {t("customers.btn_open_chat")}
                         </Button>
                       </td>
                     </tr>

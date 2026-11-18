@@ -14,6 +14,7 @@ import {
   IconCheck,
   IconSparkles,
   IconUser,
+  IconMenu2,
 } from "@tabler/icons-react";
 
 export interface OrganizationItem {
@@ -43,6 +44,8 @@ export interface TopbarProps {
   onOpenProfile: () => void;
   isPlatformOwner?: boolean;
   onOpenCommandPalette?: () => void;
+  onToggleMobileNav?: () => void;
+  onSwitchZone?: (zone: "store" | "platform") => void;
 }
 
 export function Topbar({
@@ -64,6 +67,8 @@ export function Topbar({
   onOpenProfile,
   isPlatformOwner = false,
   onOpenCommandPalette,
+  onToggleMobileNav,
+  onSwitchZone,
 }: TopbarProps) {
   const { language, setLanguage, t } = useLanguage();
   const [showOrgMenu, setShowOrgMenu] = useState(false);
@@ -88,28 +93,47 @@ export function Topbar({
         zIndex: 1010,
       }}
     >
-      {/* Left: Store Selector & Breadcrumb */}
-      <div className="d-flex align-items-center gap-3">
+      {/* Left: Mobile Nav Toggle + Store Selector & Breadcrumb */}
+      <div className="d-flex align-items-center gap-2 gap-sm-3 overflow-hidden">
+        {/* Mobile Hamburger Drawer Trigger */}
+        <button
+          type="button"
+          onClick={onToggleMobileNav}
+          className="btn btn-ghost-secondary p-1 d-lg-none d-flex align-items-center justify-content-center flex-shrink-0"
+          style={{
+            width: "36px",
+            height: "36px",
+            color: "var(--text-secondary)",
+            border: "1px solid var(--border-subtle)",
+            borderRadius: "var(--radius-sm)",
+          }}
+          aria-label="Menyuni ochish"
+          title="Menyu"
+        >
+          <IconMenu2 size={18} />
+        </button>
+
         {/* Tenant Store Dropdown */}
         <div className="position-relative">
           <button
             type="button"
             onClick={() => setShowOrgMenu(!showOrgMenu)}
-            className="d-flex align-items-center gap-2 px-2.5 py-1.5 rounded-2 border text-start transition-all"
+            className="d-flex align-items-center gap-1.5 gap-sm-2 px-2 py-1.5 rounded-2 border text-start transition-all"
             style={{
               backgroundColor: "var(--bg-surface-elevated)",
               borderColor: "var(--border-default)",
               color: "var(--text-primary)",
               fontSize: "0.82rem",
               cursor: "pointer",
+              maxWidth: "200px",
             }}
           >
-            <IconBuildingStore size={15} style={{ color: "var(--accent)" }} />
-            <span className="fw-medium text-truncate" style={{ maxWidth: "140px" }}>
+            <IconBuildingStore size={15} style={{ color: "var(--accent)" }} className="flex-shrink-0" />
+            <span className="fw-medium text-truncate" style={{ maxWidth: "110px" }}>
               {currentOrg.name}
             </span>
             <span
-              className="badge rounded-pill text-uppercase"
+              className="badge rounded-pill text-uppercase d-none d-sm-inline-flex"
               style={{
                 fontSize: "0.62rem",
                 padding: "2px 6px",
@@ -119,7 +143,7 @@ export function Topbar({
             >
               {currentOrg.plan || "PRO"}
             </span>
-            <IconChevronDown size={13} style={{ color: "var(--text-secondary)" }} />
+            <IconChevronDown size={13} style={{ color: "var(--text-secondary)" }} className="flex-shrink-0" />
           </button>
 
           {/* Org Dropdown Menu */}
@@ -134,12 +158,35 @@ export function Topbar({
                 className="position-absolute start-0 mt-1 py-1 rounded-2 border shadow-lg"
                 style={{
                   top: "100%",
-                  minWidth: "220px",
+                  minWidth: "240px",
                   backgroundColor: "var(--bg-surface-elevated)",
                   borderColor: "var(--border-default)",
                   zIndex: 1030,
                 }}
               >
+                {/* Platform Owner Mode Link */}
+                {isPlatformOwner && onSwitchZone && (
+                  <div className="p-1 border-bottom" style={{ borderColor: "var(--border-subtle)" }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowOrgMenu(false);
+                        onSwitchZone("platform");
+                      }}
+                      className="d-flex align-items-center gap-2 w-100 px-2.5 py-1.5 rounded text-start border-0 fw-medium transition-fast"
+                      style={{
+                        backgroundColor: "var(--accent-subtle)",
+                        color: "var(--accent-text)",
+                        fontSize: "0.78rem",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <IconBuildingStore size={14} />
+                      <span>Platform Owner (Barcha do'konlar)</span>
+                    </button>
+                  </div>
+                )}
+
                 <div
                   className="px-3 py-1.5 text-uppercase fw-semibold"
                   style={{

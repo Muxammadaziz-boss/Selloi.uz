@@ -22,6 +22,7 @@ import {
   IconChevronLeft,
   IconChevronRight,
   IconSparkles,
+  IconX,
 } from "@tabler/icons-react";
 
 export type NavTabId =
@@ -75,6 +76,8 @@ export interface SidebarProps {
   ordersCount?: number;
   logoUrl?: string;
   onOpenLogoModal?: () => void;
+  mobileOpen?: boolean;
+  onCloseMobile?: () => void;
 }
 
 export function Sidebar({
@@ -94,6 +97,8 @@ export function Sidebar({
   ordersCount = 0,
   logoUrl = "/logo.svg",
   onOpenLogoModal,
+  mobileOpen = false,
+  onCloseMobile,
 }: SidebarProps) {
   const { t } = useLanguage();
 
@@ -184,84 +189,124 @@ export function Sidebar({
   const navGroups = zone === "platform" ? platformNavGroups : storeNavGroups;
 
   return (
-    <aside
-      className="d-flex flex-column border-end flex-shrink-0 sidebar-container"
-      style={{
-        width: collapsed ? "64px" : "var(--sidebar-width, 240px)",
-        minWidth: collapsed ? "64px" : "var(--sidebar-width, 240px)",
-        height: "100vh",
-        position: "sticky",
-        top: 0,
-        backgroundColor: "var(--bg-surface)",
-        borderColor: "var(--border-subtle)",
-        transition: "width var(--transition-base), min-width var(--transition-base)",
-        zIndex: 1020,
-        userSelect: "none",
-      }}
-    >
-      {/* Brand Header */}
-      <div
-        className="d-flex align-items-center justify-content-between px-3 py-3 border-bottom"
-        style={{ borderColor: "var(--border-subtle)", height: "60px" }}
-      >
+    <>
+      {/* Mobile Drawer Backdrop */}
+      {mobileOpen && (
         <div
-          className="d-flex align-items-center gap-2.5 overflow-hidden cursor-pointer"
-          onClick={onOpenLogoModal}
-          title={t("sidebar.change_logo")}
+          className="d-lg-none position-fixed"
+          style={{
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.7)",
+            backdropFilter: "blur(4px)",
+            WebkitBackdropFilter: "blur(4px)",
+            zIndex: 1040,
+          }}
+          onClick={onCloseMobile}
+          aria-hidden="true"
+        />
+      )}
+
+      <aside
+        className={`d-flex flex-column border-end flex-shrink-0 sidebar-container ${
+          mobileOpen ? "d-flex position-fixed start-0 top-0 bottom-0 shadow-lg" : "d-none d-lg-flex"
+        }`}
+        style={{
+          width: mobileOpen ? "270px" : collapsed ? "64px" : "var(--sidebar-width, 240px)",
+          minWidth: mobileOpen ? "270px" : collapsed ? "64px" : "var(--sidebar-width, 240px)",
+          height: "100vh",
+          position: mobileOpen ? "fixed" : "sticky",
+          top: 0,
+          left: 0,
+          backgroundColor: "var(--bg-surface)",
+          borderColor: "var(--border-subtle)",
+          transition: "width var(--transition-base), min-width var(--transition-base)",
+          zIndex: mobileOpen ? 1050 : 1020,
+          userSelect: "none",
+        }}
+      >
+        {/* Brand Header */}
+        <div
+          className="d-flex align-items-center justify-content-between px-3 py-3 border-bottom"
+          style={{ borderColor: "var(--border-subtle)", height: "60px" }}
         >
           <div
-            className="d-flex align-items-center justify-content-center rounded-2 flex-shrink-0"
-            style={{
-              width: "32px",
-              height: "32px",
-              background: "rgba(94, 106, 210, 0.12)",
-              border: "1px solid var(--accent-border)",
-            }}
+            className="d-flex align-items-center gap-2.5 overflow-hidden cursor-pointer"
+            onClick={onOpenLogoModal}
+            title={t("sidebar.change_logo")}
           >
-            <img
-              src={logoUrl}
-              alt="Logo"
-              style={{ width: "20px", height: "20px", objectFit: "contain" }}
-              onError={(e) => {
-                (e.currentTarget as HTMLImageElement).src = "/logo.svg";
+            <div
+              className="d-flex align-items-center justify-content-center rounded-2 flex-shrink-0"
+              style={{
+                width: "32px",
+                height: "32px",
+                background: "rgba(94, 106, 210, 0.12)",
+                border: "1px solid var(--accent-border)",
               }}
-            />
-          </div>
-          {!collapsed && (
-            <div className="d-flex flex-column overflow-hidden text-truncate">
-              <span
-                className="fw-bold text-primary text-truncate lh-1"
-                style={{ fontSize: "0.88rem", letterSpacing: "-0.01em" }}
-              >
-                {zone === "platform" ? "Platform Owner" : storeName}
-              </span>
-              <span
-                className="text-secondary small mt-1"
-                style={{ fontSize: "0.68rem", letterSpacing: "0.02em" }}
-              >
-                {zone === "platform" ? "Super Admin Mode" : "Telegram AI Agent"}
-              </span>
+            >
+              <img
+                src={logoUrl}
+                alt="Logo"
+                style={{ width: "20px", height: "20px", objectFit: "contain" }}
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).src = "/logo.svg";
+                }}
+              />
             </div>
-          )}
-        </div>
+            {(!collapsed || mobileOpen) && (
+              <div className="d-flex flex-column overflow-hidden text-truncate">
+                <span
+                  className="fw-bold text-primary text-truncate lh-1"
+                  style={{ fontSize: "0.88rem", letterSpacing: "-0.01em" }}
+                >
+                  {zone === "platform" ? "Platform Owner" : storeName}
+                </span>
+                <span
+                  className="text-secondary small mt-1"
+                  style={{ fontSize: "0.68rem", letterSpacing: "0.02em" }}
+                >
+                  {zone === "platform" ? "Super Admin Mode" : "Telegram AI Agent"}
+                </span>
+              </div>
+            )}
+          </div>
 
-        {/* Sidebar Collapse Toggle Button */}
-        <button
-          type="button"
-          onClick={onToggleCollapse}
-          className="btn btn-sm p-1 d-none d-lg-flex align-items-center justify-content-center rounded"
-          style={{
-            background: "transparent",
-            color: "var(--text-secondary)",
-            border: "1px solid var(--border-subtle)",
-            width: "24px",
-            height: "24px",
-          }}
-          title={collapsed ? (t("common.expand", { defaultValue: "Kengaytirish" })) : (t("common.collapse", { defaultValue: "Yig'ish" }))}
-        >
-          {collapsed ? <IconChevronRight size={14} /> : <IconChevronLeft size={14} />}
-        </button>
-      </div>
+          {/* Desktop Sidebar Collapse Toggle Button */}
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            className="btn btn-sm p-1 d-none d-lg-flex align-items-center justify-content-center rounded"
+            style={{
+              background: "transparent",
+              color: "var(--text-secondary)",
+              border: "1px solid var(--border-subtle)",
+              width: "24px",
+              height: "24px",
+            }}
+            title={collapsed ? (t("common.expand", { defaultValue: "Kengaytirish" })) : (t("common.collapse", { defaultValue: "Yig'ish" }))}
+          >
+            {collapsed ? <IconChevronRight size={14} /> : <IconChevronLeft size={14} />}
+          </button>
+
+          {/* Mobile Drawer Close Button */}
+          <button
+            type="button"
+            onClick={onCloseMobile}
+            className="btn btn-sm p-1 d-flex d-lg-none align-items-center justify-content-center rounded"
+            style={{
+              background: "transparent",
+              color: "var(--text-secondary)",
+              border: "1px solid var(--border-subtle)",
+              width: "28px",
+              height: "28px",
+            }}
+            aria-label="Menyuni yopish"
+          >
+            <IconX size={16} />
+          </button>
+        </div>
 
       {/* Platform Owner Mode Switcher */}
       {isPlatformOwner && !collapsed && (
@@ -356,6 +401,7 @@ export function Sidebar({
                         }
                         onSelectTab(item.id);
                       }
+                      onCloseMobile?.();
                     }}
                     className={`nav-link-item ${
                       isActive ? "active fw-medium" : "text-secondary"
@@ -458,5 +504,6 @@ export function Sidebar({
         </div>
       )}
     </aside>
+    </>
   );
 }

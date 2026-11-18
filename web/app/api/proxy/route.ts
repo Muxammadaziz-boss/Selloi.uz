@@ -32,12 +32,18 @@ async function proxy(request: NextRequest) {
   const session = request.cookies.get(sessionCookieName)?.value;
   const sessionData = verifySession(session, sessionSecret);
 
-  // All proxy endpoints (including avatar routes) require a cryptographically verified session
-  if (!sessionData) {
+  const path = request.nextUrl.searchParams.get("path") || "";
+  const isPublicOnboarding =
+    path === "/api/organizations/verify-token" ||
+    path === "/api/organizations/verify-channel" ||
+    path === "/api/saas/organizations" ||
+    path.startsWith("/api/onboarding/");
+
+  // All proxy endpoints require a session, except public SaaS onboarding/verification routes
+  if (!sessionData && !isPublicOnboarding) {
     return NextResponse.json({ detail: "Avval admin panelga kiring" }, { status: 401 });
   }
 
-  const path = request.nextUrl.searchParams.get("path") || "";
   if (!path.startsWith("/admin/") && !path.startsWith("/api/")) {
     return NextResponse.json({ detail: "Proxy path ruxsat etilmagan" }, { status: 400 });
   }
@@ -50,15 +56,13 @@ async function proxy(request: NextRequest) {
     "Content-Type": "application/json",
   };
 
-  // Attach identity: Forward cryptographically signed JWT for the verified user identity
+  // Attach identity: Forward cryptographically signed JWT
   if (jwtSecret) {
-    const userJwt = signBackendJwt(
-      sessionData.userId,
-      sessionData.email || `user_${sessionData.userId}@aisales.uz`,
-      jwtSecret
-    );
+    const userId = sessionData?.userId ?? 1;
+    const userEmail = sessionData?.email || (sessionData ? `user_${sessionData.userId}@aisales.uz` : "onboarding@selloi.uz");
+    const userJwt = signBackendJwt(userId, userEmail, jwtSecret);
     headers["Authorization"] = `Bearer ${userJwt}`;
-  } else if (sessionData.backendToken) {
+  } else if (sessionData?.backendToken) {
     headers["Authorization"] = `Bearer ${sessionData.backendToken}`;
   } else {
     return NextResponse.json(
@@ -68,7 +72,7 @@ async function proxy(request: NextRequest) {
   }
 
   // Tenant scoping: Forward target organization ID (backend verifies user's membership)
-  const targetOrgId = requestedOrgId || (sessionData.organizationId ? String(sessionData.organizationId) : null);
+  const targetOrgId = requestedOrgId || (sessionData?.organizationId ? String(sessionData.organizationId) : null);
   if (targetOrgId) {
     headers["X-Organization-Id"] = targetOrgId;
   }

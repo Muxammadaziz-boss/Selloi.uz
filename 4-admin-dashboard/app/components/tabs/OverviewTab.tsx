@@ -100,7 +100,7 @@ export function OverviewTab({
         breadcrumbs={t("breadcrumb.overview")}
         title={t("overview.title")}
         description={t("overview.subtitle")}
-        badge={{ text: language === "uz" ? "Jonli sinxron (6s)" : "Real-time sync (6s)", variant: "success" }}
+        badge={{ text: t("overview.badge_sync"), variant: "success" }}
         actions={
           <Button
             variant="secondary"
@@ -109,7 +109,7 @@ export function OverviewTab({
             loading={loading}
             icon={<IconRefresh size={14} />}
           >
-            {language === "uz" ? "Yangilash" : "Refresh"}
+            {t("overview.btn_refresh")}
           </Button>
         }
       />
@@ -117,142 +117,139 @@ export function OverviewTab({
       {/* 4 Linear KPI Metrics */}
       <div className="row g-3 mb-4">
         {/* Total Conversations */}
+        {/* Total Chats */}
         <div className="col-12 col-sm-6 col-lg-3">
           <div
-            className="linear-card p-3 cursor-pointer transition-all h-100"
+            className="linear-card p-3.5 cursor-pointer transition-all h-100 d-flex flex-column justify-content-between"
             onClick={() => onNavigateTab("inbox", "all")}
           >
-            <div className="d-flex align-items-center justify-content-between mb-2">
-              <span className="text-secondary small fw-medium text-uppercase" style={{ fontSize: "0.7rem", letterSpacing: "0.04em" }}>
-                Jami Suhbatlar
-              </span>
-              <Badge variant="accent">
-                <IconMessageDots size={12} />
-              </Badge>
-            </div>
-            {loading ? (
-              <div className="skeleton-shimmer skeleton-title w-50 mb-2 mt-1" />
-            ) : (
-              <div className="display-6 fw-bold text-primary mb-1" style={{ fontSize: "1.75rem", letterSpacing: "-0.02em" }}>
-                {totalConversations}
+            <div>
+              <div className="d-flex align-items-center justify-content-between mb-2">
+                <span className="text-secondary small fw-medium text-uppercase" style={{ fontSize: "0.7rem", letterSpacing: "0.04em" }}>
+                  {t("overview.stat_total_chats")}
+                </span>
+                <Badge variant="accent">
+                  <IconMessageDots size={12} />
+                </Badge>
               </div>
-            )}
+              {loading ? (
+                <div className="skeleton-shimmer skeleton-title w-50 mb-2 mt-1" style={{ height: "28px" }} />
+              ) : (
+                <div className="display-6 fw-bold text-primary mb-1" style={{ fontSize: "1.75rem", letterSpacing: "-0.02em" }}>
+                  {totalConversations}
+                </div>
+              )}
+            </div>
             {loading ? (
               <div className="skeleton-shimmer skeleton-text w-75 mt-1" />
             ) : (
-              <div className="text-secondary small d-flex align-items-center justify-content-between">
-                <span>Mijozlar bilan aloqa</span>
+              <div className="text-secondary small d-flex align-items-center justify-content-between pt-2 border-top" style={{ borderColor: "var(--border-subtle)", fontSize: "0.78rem" }}>
+                <span>{t("overview.stat_total_chats_desc")}</span>
                 <span className="text-primary fw-medium">100%</span>
               </div>
             )}
-            <div className="mt-2" style={{ height: "4px", backgroundColor: "var(--border-subtle)", borderRadius: "2px", overflow: "hidden" }}>
-              <div style={{ width: "100%", height: "100%", backgroundColor: "var(--accent)" }} />
-            </div>
           </div>
         </div>
 
         {/* AI Active */}
         <div className="col-12 col-sm-6 col-lg-3">
           <div
-            className="linear-card p-3 cursor-pointer transition-all h-100"
+            className="linear-card p-3.5 cursor-pointer transition-all h-100 d-flex flex-column justify-content-between"
             onClick={() => onNavigateTab("inbox", "ai")}
           >
-            <div className="d-flex align-items-center justify-content-between mb-2">
-              <span className="text-secondary small fw-medium text-uppercase" style={{ fontSize: "0.7rem", letterSpacing: "0.04em" }}>
-                AI Boshqaruvida
-              </span>
-              <Badge variant="success">
-                <IconRobot size={12} />
-              </Badge>
-            </div>
-            {loading ? (
-              <div className="skeleton-shimmer skeleton-title w-50 mb-2 mt-1" />
-            ) : (
-              <div className="display-6 fw-bold text-primary mb-1" style={{ fontSize: "1.75rem", letterSpacing: "-0.02em" }}>
-                {aiActiveCount}
+            <div>
+              <div className="d-flex align-items-center justify-content-between mb-2">
+                <span className="text-secondary small fw-medium text-uppercase" style={{ fontSize: "0.7rem", letterSpacing: "0.04em" }}>
+                  {t("overview.stat_ai_active")}
+                </span>
+                <Badge variant="success">
+                  <IconRobot size={12} />
+                </Badge>
               </div>
-            )}
+              {loading ? (
+                <div className="skeleton-shimmer skeleton-title w-50 mb-2 mt-1" style={{ height: "28px" }} />
+              ) : (
+                <div className="display-6 fw-bold text-primary mb-1" style={{ fontSize: "1.75rem", letterSpacing: "-0.02em" }}>
+                  {aiActiveCount}
+                </div>
+              )}
+            </div>
             {loading ? (
               <div className="skeleton-shimmer skeleton-text w-75 mt-1" />
             ) : (
-              <div className="text-secondary small d-flex align-items-center justify-content-between">
-                <span>Avtomatik javob</span>
+              <div className="text-secondary small d-flex align-items-center justify-content-between pt-2 border-top" style={{ borderColor: "var(--border-subtle)", fontSize: "0.78rem" }}>
+                <span>{t("overview.stat_ai_active_desc")}</span>
                 <span className="text-success fw-medium">{aiPercentage}%</span>
               </div>
             )}
-            <div className="mt-2" style={{ height: "4px", backgroundColor: "var(--border-subtle)", borderRadius: "2px", overflow: "hidden" }}>
-              <div style={{ width: `${aiPercentage}%`, height: "100%", backgroundColor: "var(--success)" }} />
-            </div>
           </div>
         </div>
 
         {/* Human Takeover */}
         <div className="col-12 col-sm-6 col-lg-3">
           <div
-            className="linear-card p-3 cursor-pointer transition-all h-100"
+            className="linear-card p-3.5 cursor-pointer transition-all h-100 d-flex flex-column justify-content-between"
             onClick={() => onNavigateTab("inbox", "human")}
           >
-            <div className="d-flex align-items-center justify-content-between mb-2">
-              <span className="text-secondary small fw-medium text-uppercase" style={{ fontSize: "0.7rem", letterSpacing: "0.04em" }}>
-                Operator Qabulida
-              </span>
-              <Badge variant="warning">
-                <IconHeadset size={12} />
-              </Badge>
-            </div>
-            {loading ? (
-              <div className="skeleton-shimmer skeleton-title w-50 mb-2 mt-1" />
-            ) : (
-              <div className="display-6 fw-bold text-primary mb-1" style={{ fontSize: "1.75rem", letterSpacing: "-0.02em" }}>
-                {takeoverCount}
+            <div>
+              <div className="d-flex align-items-center justify-content-between mb-2">
+                <span className="text-secondary small fw-medium text-uppercase" style={{ fontSize: "0.7rem", letterSpacing: "0.04em" }}>
+                  {t("overview.stat_takeover")}
+                </span>
+                <Badge variant="warning">
+                  <IconHeadset size={12} />
+                </Badge>
               </div>
-            )}
+              {loading ? (
+                <div className="skeleton-shimmer skeleton-title w-50 mb-2 mt-1" style={{ height: "28px" }} />
+              ) : (
+                <div className="display-6 fw-bold text-primary mb-1" style={{ fontSize: "1.75rem", letterSpacing: "-0.02em" }}>
+                  {takeoverCount}
+                </div>
+              )}
+            </div>
             {loading ? (
               <div className="skeleton-shimmer skeleton-text w-75 mt-1" />
             ) : (
-              <div className="text-secondary small d-flex align-items-center justify-content-between">
-                <span>Inson nazorati</span>
+              <div className="text-secondary small d-flex align-items-center justify-content-between pt-2 border-top" style={{ borderColor: "var(--border-subtle)", fontSize: "0.78rem" }}>
+                <span>{t("overview.stat_takeover_desc")}</span>
                 <span className="text-warning fw-medium">{humanPercentage}%</span>
               </div>
             )}
-            <div className="mt-2" style={{ height: "4px", backgroundColor: "var(--border-subtle)", borderRadius: "2px", overflow: "hidden" }}>
-              <div style={{ width: `${humanPercentage}%`, height: "100%", backgroundColor: "var(--warning)" }} />
-            </div>
           </div>
         </div>
 
         {/* Knowledge Base Posts */}
         <div className="col-12 col-sm-6 col-lg-3">
           <div
-            className="linear-card p-3 cursor-pointer transition-all h-100"
+            className="linear-card p-3.5 cursor-pointer transition-all h-100 d-flex flex-column justify-content-between"
             onClick={() => onNavigateTab("knowledge")}
           >
-            <div className="d-flex align-items-center justify-content-between mb-2">
-              <span className="text-secondary small fw-medium text-uppercase" style={{ fontSize: "0.7rem", letterSpacing: "0.04em" }}>
-                Telegram Postlar
-              </span>
-              <Badge variant="info">
-                <IconBooks size={12} />
-              </Badge>
-            </div>
-            {loading ? (
-              <div className="skeleton-shimmer skeleton-title w-50 mb-2 mt-1" />
-            ) : (
-              <div className="display-6 fw-bold text-primary mb-1" style={{ fontSize: "1.75rem", letterSpacing: "-0.02em" }}>
-                {totalPosts}
+            <div>
+              <div className="d-flex align-items-center justify-content-between mb-2">
+                <span className="text-secondary small fw-medium text-uppercase" style={{ fontSize: "0.7rem", letterSpacing: "0.04em" }}>
+                  {t("overview.stat_posts")}
+                </span>
+                <Badge variant="info">
+                  <IconBooks size={12} />
+                </Badge>
               </div>
-            )}
+              {loading ? (
+                <div className="skeleton-shimmer skeleton-title w-50 mb-2 mt-1" style={{ height: "28px" }} />
+              ) : (
+                <div className="display-6 fw-bold text-primary mb-1" style={{ fontSize: "1.75rem", letterSpacing: "-0.02em" }}>
+                  {totalPosts}
+                </div>
+              )}
+            </div>
             {loading ? (
               <div className="skeleton-shimmer skeleton-text w-75 mt-1" />
             ) : (
-              <div className="text-secondary small d-flex align-items-center justify-content-between">
-                <span>Faol kanallar</span>
-                <span className="text-primary fw-medium">{channels.length} ta</span>
+              <div className="text-secondary small d-flex align-items-center justify-content-between pt-2 border-top" style={{ borderColor: "var(--border-subtle)", fontSize: "0.78rem" }}>
+                <span>{t("overview.stat_posts_desc")}</span>
+                <span className="text-primary fw-medium">{channels.length} {language === "uz" ? "ta" : "channels"}</span>
               </div>
             )}
-            <div className="mt-2" style={{ height: "4px", backgroundColor: "var(--border-subtle)", borderRadius: "2px", overflow: "hidden" }}>
-              <div style={{ width: "100%", height: "100%", backgroundColor: "var(--info)" }} />
-            </div>
           </div>
         </div>
       </div>
@@ -266,33 +263,33 @@ export function OverviewTab({
               actions={
                 <Button
                   variant="ghost"
-                  size="xs"
+                  size="sm"
                   onClick={() => onNavigateTab("inbox")}
-                  icon={<IconArrowUpRight size={13} />}
+                  icon={<IconArrowUpRight size={14} />}
                 >
-                  Hammasini ko'rish
+                  {t("overview.view_all")}
                 </Button>
               }
             >
-              <CardTitle>So'nggi Mijoz Yozishmalari</CardTitle>
+              <CardTitle>{t("overview.recent_conversations")}</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               {conversations.length === 0 ? (
                 <EmptyState
                   icon={<IconMessageDots size={32} />}
-                  title="Hozircha suhbatlar yo'q"
-                  description="Telegram bot orqali mijozlar yozganda jonli xabarlar shu yerda aks etadi."
+                  title={t("overview.empty_conversations_title")}
+                  description={t("overview.empty_conversations_desc")}
                 />
               ) : (
                 <div className="table-responsive">
                   <table className="linear-table">
                     <thead>
                       <tr>
-                        <th>Mijoz</th>
-                        <th>Holati</th>
-                        <th>Sabab / Izoh</th>
-                        <th>Vaqti</th>
-                        <th style={{ textAlign: "right" }}>Amal</th>
+                        <th>{t("overview.th_customer")}</th>
+                        <th>{t("overview.th_status")}</th>
+                        <th>{t("overview.th_reason")}</th>
+                        <th>{t("overview.th_time")}</th>
+                        <th style={{ textAlign: "right" }}>{t("overview.th_action")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -324,16 +321,16 @@ export function OverviewTab({
                           <td>
                             {conv.status === "ai_active" ? (
                               <Badge variant="success" dot>
-                                AI Faol
+                                {t("topbar.ai_online")}
                               </Badge>
                             ) : (
                               <Badge variant="warning" dot>
-                                Operator
+                                {t("topbar.role_moderator")}
                               </Badge>
                             )}
                           </td>
                           <td className="text-secondary small text-truncate" style={{ maxWidth: "200px" }}>
-                            {conv.handoff_reason || "Mijoz maslahat so'radi"}
+                            {conv.handoff_reason || (language === "uz" ? "Mijoz maslahat so'radi" : "Customer inquiry")}
                           </td>
                           <td className="text-secondary small">
                             <span className="d-flex align-items-center gap-1">
@@ -350,7 +347,7 @@ export function OverviewTab({
                                 onNavigateTab("inbox");
                               }}
                             >
-                              Ochish
+                              {t("overview.btn_open")}
                             </Button>
                           </td>
                         </tr>
@@ -441,20 +438,20 @@ export function OverviewTab({
               actions={
                 <Button
                   variant="ghost"
-                  size="xs"
+                  size="sm"
                   onClick={() => onNavigateTab("orders")}
-                  icon={<IconArrowUpRight size={13} />}
+                  icon={<IconArrowUpRight size={14} />}
                 >
-                  Katalog
+                  {t("overview.btn_view_catalog")}
                 </Button>
               }
             >
-              <CardTitle>So'nggi Buyurtmalar ({totalOrders})</CardTitle>
+              <CardTitle>{t("overview.recent_orders_title")} ({totalOrders})</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               {orders.length === 0 ? (
                 <div className="p-3 text-center text-secondary small">
-                  Hozircha buyurtmalar mavjud emas
+                  {t("overview.empty_orders")}
                 </div>
               ) : (
                 <div className="d-flex flex-column">

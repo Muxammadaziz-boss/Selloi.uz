@@ -16,6 +16,7 @@ import {
   IconShieldLock,
   IconPhone,
   IconMessageDots,
+  IconInfoCircle,
 } from "@tabler/icons-react";
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
 import { Badge } from "../ui/Badge";
@@ -448,8 +449,11 @@ export function SettingsTab({
                       />
                     </div>
                   </div>
-                  <div className="text-secondary small mt-1.5" style={{ fontSize: "0.72rem" }}>
-                    💡 API ID/Hash: <a href="https://my.telegram.org" target="_blank" rel="noreferrer" className="text-primary text-decoration-underline">my.telegram.org</a> saytidan olinadi. Admin Chat ID: Telegram&apos;da <code>@userinfobot</code> orqali bilib olinadi.
+                  <div className="text-secondary small mt-1.5 d-flex align-items-center gap-1.5" style={{ fontSize: "0.74rem" }}>
+                    <IconInfoCircle size={14} className="text-secondary flex-shrink-0" />
+                    <span>
+                      API ID/Hash: <a href="https://my.telegram.org" target="_blank" rel="noreferrer" className="text-primary text-decoration-underline">my.telegram.org</a> saytidan olinadi. Admin Chat ID: Telegram&apos;da <code>@userinfobot</code> orqali bilib olinadi.
+                    </span>
                   </div>
                 </div>
 
@@ -559,7 +563,7 @@ export function SettingsTab({
 
                 <Button
                   variant="ghost"
-                  size="xs"
+                  size="sm"
                   className="w-100"
                   onClick={() => {
                     onSaveLogoUrl("/logo.svg");

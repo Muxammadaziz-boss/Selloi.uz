@@ -343,9 +343,13 @@ export function PlatformOwnerTab({
                     </span>
                     <Badge variant="success">Real-time</Badge>
                   </div>
-                  <div className="fs-2 fw-bold font-monospace mb-1" style={{ color: "var(--success-text)" }}>
-                    ${metrics?.mrr_usd?.toFixed(2) || "0.00"}
-                  </div>
+                  {loading ? (
+                    <div className="skeleton-shimmer skeleton-title w-50 mb-1 mt-1" style={{ height: "28px" }} />
+                  ) : (
+                    <div className="fs-2 fw-bold font-monospace mb-1" style={{ color: "var(--success-text)" }}>
+                      ${metrics?.mrr_usd?.toFixed(2) || "0.00"}
+                    </div>
+                  )}
                 </div>
                 <div className="text-secondary small mt-2 pt-2 border-top" style={{ borderColor: "var(--border-subtle)", fontSize: "0.78rem" }}>
                   Yillik prognoz (ARR): <strong className="text-primary font-monospace">${metrics?.arr_usd?.toFixed(2) || "0.00"}</strong>
@@ -362,9 +366,13 @@ export function PlatformOwnerTab({
                     </span>
                     <Badge variant="accent">Margin</Badge>
                   </div>
-                  <div className="fs-2 fw-bold font-monospace mb-1 text-primary">
-                    {metrics?.gross_margin_percent?.toFixed(1) || "100"}%
-                  </div>
+                  {loading ? (
+                    <div className="skeleton-shimmer skeleton-title w-50 mb-1 mt-1" style={{ height: "28px" }} />
+                  ) : (
+                    <div className="fs-2 fw-bold font-monospace mb-1 text-primary">
+                      {metrics?.gross_margin_percent?.toFixed(1) || "100"}%
+                    </div>
+                  )}
                 </div>
                 <div className="text-secondary small mt-2 pt-2 border-top" style={{ borderColor: "var(--border-subtle)", fontSize: "0.78rem" }}>
                   ARPU: <strong className="font-monospace" style={{ color: "var(--info-text)" }}>${metrics?.arpu_usd?.toFixed(2) || "0.00"}</strong> / mijoz
@@ -381,9 +389,13 @@ export function PlatformOwnerTab({
                     </span>
                     <Badge variant="warning">Compute Cost</Badge>
                   </div>
-                  <div className="fs-2 fw-bold font-monospace mb-1" style={{ color: "var(--warning-text)" }}>
-                    ${metrics?.total_ai_cost_usd?.toFixed(2) || "0.00"}
-                  </div>
+                  {loading ? (
+                    <div className="skeleton-shimmer skeleton-title w-50 mb-1 mt-1" style={{ height: "28px" }} />
+                  ) : (
+                    <div className="fs-2 fw-bold font-monospace mb-1" style={{ color: "var(--warning-text)" }}>
+                      ${metrics?.total_ai_cost_usd?.toFixed(2) || "0.00"}
+                    </div>
+                  )}
                 </div>
                 <div className="text-secondary small mt-2 pt-2 border-top" style={{ borderColor: "var(--border-subtle)", fontSize: "0.78rem" }}>
                   Bu oy: <strong className="text-primary font-monospace">{metrics?.total_ai_messages_this_month?.toLocaleString() || "0"}</strong> ta xabar
@@ -400,10 +412,14 @@ export function PlatformOwnerTab({
                     </span>
                     <Badge variant="info">Tenants</Badge>
                   </div>
-                  <div className="fs-2 fw-bold font-monospace mb-1 text-primary">
-                    {(metrics?.total_organizations ?? organizations.length) || 0}{" "}
-                    <span className="text-secondary small fs-5 fw-normal">ta</span>
-                  </div>
+                  {loading ? (
+                    <div className="skeleton-shimmer skeleton-title w-50 mb-1 mt-1" style={{ height: "28px" }} />
+                  ) : (
+                    <div className="fs-2 fw-bold font-monospace mb-1 text-primary">
+                      {(metrics?.total_organizations ?? organizations.length) || 0}{" "}
+                      <span className="text-secondary small fs-5 fw-normal">ta</span>
+                    </div>
+                  )}
                 </div>
                 <div className="text-secondary small mt-2 pt-2 border-top" style={{ borderColor: "var(--border-subtle)", fontSize: "0.78rem" }}>
                   Faol: <strong style={{ color: "var(--success-text)" }}>{(metrics?.active_subscriptions ?? organizations.filter(o => o.subscription_status === "active").length) || 0} ta</strong> • Sinov: {metrics?.trial_organizations || 0} ta
@@ -422,9 +438,10 @@ export function PlatformOwnerTab({
                       <Button
                         variant="ghost"
                         size="sm"
+                        icon={<IconArrowRight size={14} />}
                         onClick={() => onSwitchSubTab("stores")}
                       >
-                        Barcha do'konlar ➜
+                        Barcha do'konlar
                       </Button>
                     )
                   }
@@ -444,7 +461,21 @@ export function PlatformOwnerTab({
                       </tr>
                     </thead>
                     <tbody>
-                      {organizations.length === 0 ? (
+                      {loading ? (
+                        [...Array(4)].map((_, idx) => (
+                          <tr key={`skel-store-${idx}`}>
+                            <td>
+                              <div className="skeleton-shimmer skeleton-text w-75 mb-1" style={{ height: "13px" }} />
+                              <div className="skeleton-shimmer skeleton-text w-50" style={{ height: "10px" }} />
+                            </td>
+                            <td><div className="skeleton-shimmer skeleton-text w-50" style={{ height: "18px", borderRadius: "10px" }} /></td>
+                            <td><div className="skeleton-shimmer skeleton-text w-50" style={{ height: "13px" }} /></td>
+                            <td><div className="skeleton-shimmer skeleton-text w-50" style={{ height: "13px" }} /></td>
+                            <td><div className="skeleton-shimmer skeleton-text w-50" style={{ height: "13px" }} /></td>
+                            <td className="text-end"><div className="skeleton-shimmer skeleton-text ms-auto" style={{ width: "90px", height: "30px", borderRadius: "6px" }} /></td>
+                          </tr>
+                        ))
+                      ) : organizations.length === 0 ? (
                         <tr>
                           <td colSpan={6} className="text-center py-4 text-secondary">
                             Hozircha faol do'konlar mavjud emas.
@@ -481,7 +512,7 @@ export function PlatformOwnerTab({
                                   icon={<IconArrowRight size={14} />}
                                   onClick={() => onEnterStore(org)}
                                 >
-                                  Kirish
+                                  Do'konga kirish
                                 </Button>
                               )}
                             </td>
@@ -576,114 +607,134 @@ export function PlatformOwnerTab({
                 </tr>
               </thead>
               <tbody>
-                {filteredOrgs.map((org) => (
-                  <tr key={org.id}>
-                    <td>
-                      <div className="d-flex align-items-center gap-2">
-                        <div
-                          className="d-flex align-items-center justify-content-center rounded-2 flex-shrink-0"
-                          style={{
-                            width: "28px",
-                            height: "28px",
-                            backgroundColor: "var(--accent-subtle)",
-                            color: "var(--accent-text)",
-                          }}
-                        >
-                          <IconBuildingSkyscraper size={16} />
-                        </div>
-                        <div>
-                          <div className="fw-semibold text-primary">{org.name}</div>
-                          <div className="text-secondary small font-monospace" style={{ fontSize: "0.72rem" }}>
-                            #{org.id} • {org.slug}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="text-secondary small">{org.category || "Retail"}</td>
-                    <td>
-                      <Badge variant="accent">{org.plan.toUpperCase()}</Badge>
-                    </td>
-                    <td>
-                      <Badge
-                        variant={
-                          org.subscription_status === "active"
-                            ? "success"
-                            : org.subscription_status === "trialing"
-                            ? "info"
-                            : "danger"
-                        }
-                      >
-                        {org.subscription_status}
-                      </Badge>
-                    </td>
-                    <td className="font-monospace text-secondary small">
-                      {org.conversations_count ?? "—"} ta
-                    </td>
-                    <td className="font-monospace fw-bold" style={{ color: "var(--success-text)" }}>
-                      ${org.monthly_revenue_usd}
-                    </td>
-                    <td className="font-monospace" style={{ color: "var(--warning-text)" }}>
-                      ${org.monthly_ai_cost_usd}
-                    </td>
-                    <td className="font-monospace fw-semibold text-primary small">
-                      {org.gross_margin_percent}%
-                    </td>
-                    <td className="text-end">
-                      <div className="d-flex align-items-center justify-content-end gap-1.5">
-                        {onEnterStore && (
-                          <Button
-                            variant="primary"
-                            size="sm"
-                            icon={<IconArrowRight size={14} />}
-                            onClick={() => onEnterStore(org)}
-                            title="Do'kon ichiga kirish"
-                          >
-                            Kirish
-                          </Button>
-                        )}
-                        {onUpdateStoreStatus && (
-                          <button
-                            type="button"
-                            className="linear-btn linear-btn-secondary py-1 px-2"
-                            onClick={() =>
-                              onUpdateStoreStatus(
-                                org.id,
-                                org.subscription_status === "active" ? "suspended" : "active"
-                              )
-                            }
-                            title={
-                              org.subscription_status === "active"
-                                ? "Do'konni vaqtincha to'xtatish"
-                                : "Do'konni faollashtirish"
-                            }
-                          >
-                            {org.subscription_status === "active" ? (
-                              <IconPlayerPause size={14} style={{ color: "var(--warning)" }} />
-                            ) : (
-                              <IconPlayerPlay size={14} style={{ color: "var(--success)" }} />
-                            )}
-                          </button>
-                        )}
-                        {onDeleteStore && org.id !== 1 && (
-                          <button
-                            type="button"
-                            className="linear-btn linear-btn-danger py-1 px-2"
-                            onClick={() => onDeleteStore(org.id)}
-                            title="Do'konni o'chirish"
-                          >
-                            <IconTrash size={14} />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {filteredOrgs.length === 0 && (
+                {loading ? (
+                  [...Array(5)].map((_, idx) => (
+                    <tr key={`skel-store-full-${idx}`}>
+                      <td>
+                        <div className="skeleton-shimmer skeleton-text w-75 mb-1" style={{ height: "14px" }} />
+                        <div className="skeleton-shimmer skeleton-text w-50" style={{ height: "10px" }} />
+                      </td>
+                      <td><div className="skeleton-shimmer skeleton-text w-50" style={{ height: "12px" }} /></td>
+                      <td><div className="skeleton-shimmer skeleton-text w-50" style={{ height: "18px", borderRadius: "10px" }} /></td>
+                      <td><div className="skeleton-shimmer skeleton-text w-50" style={{ height: "18px", borderRadius: "10px" }} /></td>
+                      <td><div className="skeleton-shimmer skeleton-text w-50" style={{ height: "12px" }} /></td>
+                      <td><div className="skeleton-shimmer skeleton-text w-50" style={{ height: "14px" }} /></td>
+                      <td><div className="skeleton-shimmer skeleton-text w-50" style={{ height: "14px" }} /></td>
+                      <td><div className="skeleton-shimmer skeleton-text w-50" style={{ height: "14px" }} /></td>
+                      <td className="text-end">
+                        <div className="skeleton-shimmer skeleton-text ms-auto" style={{ width: "110px", height: "30px", borderRadius: "6px" }} />
+                      </td>
+                    </tr>
+                  ))
+                ) : filteredOrgs.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="text-center py-4 text-secondary">
+                    <td colSpan={9} className="text-center py-5 text-secondary">
                       Mos keluvchi do'kon topilmadi
                     </td>
                   </tr>
+                ) : (
+                  filteredOrgs.map((org) => (
+                    <tr key={org.id}>
+                      <td>
+                        <div className="d-flex align-items-center gap-2">
+                          <div
+                            className="d-flex align-items-center justify-content-center rounded-2 flex-shrink-0"
+                            style={{
+                              width: "28px",
+                              height: "28px",
+                              backgroundColor: "var(--accent-subtle)",
+                              color: "var(--accent-text)",
+                            }}
+                          >
+                            <IconBuildingSkyscraper size={16} />
+                          </div>
+                          <div>
+                            <div className="fw-semibold text-primary">{org.name}</div>
+                            <div className="text-secondary small font-monospace" style={{ fontSize: "0.72rem" }}>
+                              #{org.id} • {org.slug}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="text-secondary small">{org.category || "Retail"}</td>
+                      <td>
+                        <Badge variant="accent">{org.plan.toUpperCase()}</Badge>
+                      </td>
+                      <td>
+                        <Badge
+                          variant={
+                            org.subscription_status === "active"
+                              ? "success"
+                              : org.subscription_status === "trialing"
+                              ? "info"
+                              : "danger"
+                          }
+                        >
+                          {org.subscription_status}
+                        </Badge>
+                      </td>
+                      <td className="font-monospace text-secondary small">
+                        {org.conversations_count ?? "—"} ta
+                      </td>
+                      <td className="font-monospace fw-bold" style={{ color: "var(--success-text)" }}>
+                        ${org.monthly_revenue_usd}
+                      </td>
+                      <td className="font-monospace" style={{ color: "var(--warning-text)" }}>
+                        ${org.monthly_ai_cost_usd}
+                      </td>
+                      <td className="font-monospace fw-semibold text-primary small">
+                        {org.gross_margin_percent}%
+                      </td>
+                      <td className="text-end">
+                        <div className="d-flex align-items-center justify-content-end gap-1.5">
+                          {onEnterStore && (
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              icon={<IconArrowRight size={14} />}
+                              onClick={() => onEnterStore(org)}
+                              title="Do'kon ichiga kirish"
+                            >
+                              Do'konga kirish
+                            </Button>
+                          )}
+                          {onUpdateStoreStatus && (
+                            <button
+                              type="button"
+                              className="linear-btn linear-btn-secondary py-1 px-2"
+                              onClick={() =>
+                                onUpdateStoreStatus(
+                                  org.id,
+                                  org.subscription_status === "active" ? "suspended" : "active"
+                                )
+                              }
+                              title={
+                                org.subscription_status === "active"
+                                  ? "Do'konni vaqtincha to'xtatish"
+                                  : "Do'konni faollashtirish"
+                              }
+                            >
+                              {org.subscription_status === "active" ? (
+                                <IconPlayerPause size={14} style={{ color: "var(--warning)" }} />
+                              ) : (
+                                <IconPlayerPlay size={14} style={{ color: "var(--success)" }} />
+                              )}
+                            </button>
+                          )}
+                          {onDeleteStore && org.id !== 1 && (
+                            <button
+                              type="button"
+                              className="linear-btn linear-btn-danger py-1 px-2"
+                              onClick={() => onDeleteStore(org.id)}
+                              title="Do'konni o'chirish"
+                            >
+                              <IconTrash size={14} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
                 )}
               </tbody>
             </table>

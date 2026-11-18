@@ -72,6 +72,7 @@ export function AppShell({
 }: AppShellProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   // Global Command Palette Shortcut: ⌘K or Ctrl+K
   useEffect(() => {
@@ -87,17 +88,26 @@ export function AppShell({
 
   return (
     <div className="d-flex w-100" style={{ minHeight: "100vh", backgroundColor: "var(--bg-canvas)" }}>
-      {/* Desktop / Collapsible Sidebar */}
+      {/* Desktop & Mobile Drawer Sidebar */}
       <Sidebar
         activeTab={activeTab}
-        onSelectTab={onSelectTab}
+        onSelectTab={(tabId) => {
+          onSelectTab(tabId);
+          setMobileNavOpen(false);
+        }}
         collapsed={collapsed}
         onToggleCollapse={() => setCollapsed(!collapsed)}
         isPlatformOwner={isPlatformOwner}
         zone={zone}
-        onSwitchZone={onSwitchZone}
+        onSwitchZone={(z) => {
+          onSwitchZone(z);
+          setMobileNavOpen(false);
+        }}
         platformSubTab={platformSubTab}
-        onSelectPlatformSubTab={onSelectPlatformSubTab}
+        onSelectPlatformSubTab={(sub) => {
+          onSelectPlatformSubTab?.(sub);
+          setMobileNavOpen(false);
+        }}
         storesCount={storesCount}
         storeName={storeName}
         unreadCount={unreadCount}
@@ -105,6 +115,8 @@ export function AppShell({
         ordersCount={ordersCount}
         logoUrl={logoUrl}
         onOpenLogoModal={onOpenLogoModal}
+        mobileOpen={mobileNavOpen}
+        onCloseMobile={() => setMobileNavOpen(false)}
       />
 
       {/* Main Content View with Topbar */}
@@ -128,6 +140,8 @@ export function AppShell({
           onOpenProfile={() => onSelectTab("profile")}
           isPlatformOwner={isPlatformOwner}
           onOpenCommandPalette={() => setCommandPaletteOpen(true)}
+          onToggleMobileNav={() => setMobileNavOpen((prev) => !prev)}
+          onSwitchZone={onSwitchZone}
         />
 
         {/* Tab Page Workspace */}
