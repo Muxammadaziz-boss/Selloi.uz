@@ -68,7 +68,7 @@
   --s-duration-slow: 350ms;
 
   /* Typography Scale */
-  --s-font: 'Quicksand', var(--font-quicksand), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --s-font: 'Quicksand', sans-serif;
   --s-font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, monospace;
   --s-text-xs: 0.75rem;
   --s-text-sm: 0.875rem;

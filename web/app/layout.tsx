@@ -122,6 +122,13 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="uz" data-bs-theme="dark" className="theme-dark" suppressHydrationWarning>
       <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300..700&display=swap');`,
+          }}
+        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{

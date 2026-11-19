@@ -24,7 +24,7 @@ export const FONT_OPTIONS = [
     id: "quicksand",
     name: "Quicksand",
     subtitle: "Modern Geometric Rounded Sans",
-    fontFamily: "'Quicksand', var(--font-quicksand), sans-serif",
+    fontFamily: "'Quicksand', sans-serif",
     styleTag: "Modern & Clean",
     imagePreview: null,
     isNew: true,

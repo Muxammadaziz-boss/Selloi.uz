@@ -1,6 +1,6 @@
 {
   "suite": "hybrid_pricing_e2e_suite",
-  "timestamp": "2026-11-19T15:34:59.169Z",
+  "timestamp": "2026-11-19T16:54:57.726Z",
   "tests": {
     "public_pricing_section_present": {
       "status": "PASSED",
