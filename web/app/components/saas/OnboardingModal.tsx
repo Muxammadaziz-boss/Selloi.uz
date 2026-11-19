@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   IconAlertCircle,
   IconArrowLeft,
@@ -22,6 +22,7 @@ import {
   IconSparkles,
   IconX,
 } from "@tabler/icons-react";
+import { getPublicPlans, PublicPlan } from "../../lib/api";
 
 interface OnboardingModalProps {
   isOpen: boolean;
@@ -80,6 +81,27 @@ export function OnboardingModal({ isOpen, onClose, onComplete }: OnboardingModal
   const [aiLanguage, setAiLanguage] = useState("uz");
   const [aiPersonality, setAiPersonality] = useState("Professional va do'stona sotuvchi assistent");
   const [planCode, setPlanCode] = useState("start");
+  const [currency, setCurrency] = useState<"USD" | "UZS">("USD");
+  const [availablePlans, setAvailablePlans] = useState<PublicPlan[]>([]);
+  const [loadingPlans, setLoadingPlans] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setLoadingPlans(true);
+      getPublicPlans(currency, "monthly")
+        .then((res) => {
+          if (res && res.plans) {
+            const pub = res.plans.filter((p) => p.is_public !== false);
+            setAvailablePlans(pub);
+            if (pub.length > 0 && !pub.some((p) => p.code === planCode)) {
+              setPlanCode(pub[0].code);
+            }
+          }
+        })
+        .catch(() => {})
+        .finally(() => setLoadingPlans(false));
+    }
+  }, [isOpen, currency]);
 
   if (!isOpen) return null;
 
@@ -424,7 +446,7 @@ export function OnboardingModal({ isOpen, onClose, onComplete }: OnboardingModal
                     <div className="small">
                       <div>{botVerification.error}</div>
                       <div className="mt-1 opacity-75" style={{ fontSize: "0.78rem" }}>
-                        💡 Token to&apos;g&apos;ri bo&apos;lsa, xavotir olmang — <strong>&quot;Davom etish &rarr;&quot;</strong> tugmasini bosib keyingi bosqichga o&apos;tishingiz mumkin.
+                        💡 Token to&apos;g&apos;ri bo&apos;lsa, xavotir olmang: <strong>&quot;Davom etish &rarr;&quot;</strong> tugmasini bosib keyingi bosqichga o&apos;tishingiz mumkin.
                       </div>
                     </div>
                   </div>
@@ -638,7 +660,7 @@ export function OnboardingModal({ isOpen, onClose, onComplete }: OnboardingModal
                     <li><strong>Chat ID:</strong> Telegram&apos;da <code>@userinfobot</code> ga <code>/start</code> deb yozing, u sizning shaxsiy raqamli ID&apos;ingizni ko&apos;rsatadi.</li>
                   </ul>
                   <div className="mt-1 text-muted opacity-75">
-                    Agar hozir bu kalitlar mavjud bo&apos;lmasa, xavotir olmang — ularni keyinchalik <strong>Do&apos;kon Sozlamalari</strong> bo&apos;limidan istalgan payt kiritishingiz mumkin.
+                    Agar hozir bu kalitlar mavjud bo&apos;lmasa, xavotir olmang: ularni keyinchalik <strong>Do&apos;kon Sozlamalari</strong> bo&apos;limidan istalgan payt kiritishingiz mumkin.
                   </div>
                 </div>
               </div>
@@ -723,19 +745,58 @@ export function OnboardingModal({ isOpen, onClose, onComplete }: OnboardingModal
             {/* Step 9: Select Initial Plan */}
             {step === 9 && (
               <div className="space-y-3">
-                <div className="text-center py-2 mb-3">
+                <div className="text-center py-2 mb-2">
                   <h3 className="fw-bold text-white mb-1">9. Boshlang&apos;ich Tarifni Tanlang</h3>
-                  <p className="text-secondary small">
+                  <p className="text-secondary small mb-2">
                     Har bir yangi biznes uchun <strong className="text-white">7 kunlik bepul sinov muddati</strong> taqdim etiladi!
                   </p>
+                  {/* Currency Switcher */}
+                  <div
+                    className="d-inline-flex align-items-center p-1 rounded-pill"
+                    style={{
+                      background: "rgba(255, 255, 255, 0.05)",
+                      border: "1px solid rgba(255, 255, 255, 0.1)",
+                    }}
+                  >
+                    <button
+                      type="button"
+                      className={`btn btn-sm rounded-pill px-3 py-1 border-0 fw-semibold transition-all ${
+                        currency === "USD" ? "text-white" : "text-secondary"
+                      }`}
+                      style={{
+                        background: currency === "USD" ? "var(--accent, #6366f1)" : "transparent",
+                        fontSize: "0.78rem",
+                      }}
+                      onClick={() => setCurrency("USD")}
+                    >
+                      USD ($)
+                    </button>
+                    <button
+                      type="button"
+                      className={`btn btn-sm rounded-pill px-3 py-1 border-0 fw-semibold transition-all ${
+                        currency === "UZS" ? "text-white" : "text-secondary"
+                      }`}
+                      style={{
+                        background: currency === "UZS" ? "var(--accent, #6366f1)" : "transparent",
+                        fontSize: "0.78rem",
+                      }}
+                      onClick={() => setCurrency("UZS")}
+                    >
+                      UZS (so&apos;m)
+                    </button>
+                  </div>
                 </div>
+
                 <div className="row g-3">
-                  {[
-                    { code: "start", name: "START", price: "$19/oy", desc: "1,000 AI xabar, 1 kanal, 2 operator" },
-                    { code: "pro", name: "PRO (Ommabop)", price: "$59/oy", desc: "7,500 AI xabar, Vision, RAG, 10 operator" },
-                    { code: "ultra", name: "ULTRA", price: "$149/oy", desc: "30,000 AI xabar, Premium AI, 50 operator" },
-                  ].map((pl) => {
+                  {(availablePlans.length > 0 ? availablePlans : [
+                    { code: "start", name: "START", price_monthly_formatted: "$19", price_monthly_uzs_formatted: "245 000 so'm", description: "1,000 AI xabar, 1 kanal, 2 operator" },
+                    { code: "pro", name: "PRO", price_monthly_formatted: "$59", price_monthly_uzs_formatted: "760 000 so'm", description: "7,500 AI xabar, Vision, RAG, 10 operator" },
+                    { code: "ultra", name: "ULTRA", price_monthly_formatted: "$149", price_monthly_uzs_formatted: "1 900 000 so'm", description: "30,000 AI xabar, Premium AI, 50 operator" },
+                  ]).map((pl: any) => {
                     const isSelected = planCode === pl.code;
+                    const priceFormatted = currency === "USD"
+                      ? `${pl.price_monthly_formatted || "$" + (pl.price_monthly || 19)}/oy`
+                      : `${pl.price_monthly_uzs_formatted || (pl.price_monthly_uzs ? (pl.price_monthly_uzs / 100).toLocaleString("uz-UZ") + " so'm" : "245 000 so'm")}/oy`;
                     return (
                       <div key={pl.code} className="col-md-4">
                         <div
@@ -754,8 +815,8 @@ export function OnboardingModal({ isOpen, onClose, onComplete }: OnboardingModal
                               <span className="fw-bold text-white font-monospace">{pl.name}</span>
                               {isSelected && <IconCheck size={18} style={{ color: "var(--accent, #6366f1)" }} />}
                             </div>
-                            <div className="fs-3 fw-bold text-success font-monospace mb-2">{pl.price}</div>
-                            <p className="text-secondary small mb-0">{pl.desc}</p>
+                            <div className="fs-3 fw-bold text-success font-monospace mb-2">{priceFormatted}</div>
+                            <p className="text-secondary small mb-0">{pl.description || pl.desc}</p>
                           </div>
                         </div>
                       </div>

@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useLanguage } from "@/app/lib/i18n";
 import { PRICING_PLANS_BY_LANG, COMPARISON_BY_LANG } from "./data";
 import { LANDING_CONTENT_BY_LANG } from "./landingContent";
+import { getPublicPlans, PublicPlan } from "@/app/lib/api";
 import {
   Check,
   X,
@@ -12,7 +13,7 @@ import {
   ArrowRight,
   ShieldCheck,
   Sparkles,
-  Zap,
+  RefreshCw,
 } from "lucide-react";
 
 interface PricingSectionProps {
@@ -21,15 +22,45 @@ interface PricingSectionProps {
 
 export default function PricingSection({ onOpenOnboarding }: PricingSectionProps) {
   const { language } = useLanguage();
-  const plans = PRICING_PLANS_BY_LANG[language] || PRICING_PLANS_BY_LANG.uz;
+  const staticPlans = PRICING_PLANS_BY_LANG[language] || PRICING_PLANS_BY_LANG.uz;
   const comparison = COMPARISON_BY_LANG[language] || COMPARISON_BY_LANG.uz;
   const pricingContent = (LANDING_CONTENT_BY_LANG[language] || LANDING_CONTENT_BY_LANG.uz).pricing;
 
   const [isAnnual, setIsAnnual] = useState(false);
+  const [currency, setCurrency] = useState<"USD" | "UZS">("USD");
   const [showComparison, setShowComparison] = useState(false);
 
+  // Dynamic API state
+  const [apiPlans, setApiPlans] = useState<PublicPlan[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState("");
+
+  const loadPlans = useCallback(async () => {
+    setLoading(true);
+    setFetchError("");
+    try {
+      const res = await getPublicPlans(currency, isAnnual ? "yearly" : "monthly");
+      if (res && res.plans) {
+        // Filter only public plans
+        setApiPlans(res.plans.filter((p) => p.is_public !== false));
+      }
+    } catch (err: any) {
+      setFetchError(err.message || "Narxlarni yuklashda xatolik yuz berdi");
+    } finally {
+      setLoading(false);
+    }
+  }, [currency, isAnnual]);
+
+  useEffect(() => {
+    loadPlans();
+  }, [loadPlans]);
+
   return (
-    <section id="tariflar" className="s-section position-relative">
+    <section
+      id="tariflar"
+      className="s-section position-relative overflow-hidden"
+      style={{ overflow: "hidden" }}
+    >
       {/* Background Glow */}
       <div
         className="position-absolute"
@@ -37,7 +68,8 @@ export default function PricingSection({ onOpenOnboarding }: PricingSectionProps
           top: "40%",
           left: "50%",
           transform: "translate(-50%, -50%)",
-          width: "800px",
+          width: "100%",
+          maxWidth: "800px",
           height: "400px",
           background:
             "radial-gradient(ellipse 60% 40% at 50% 50%, rgba(99, 102, 241, 0.06), transparent 70%)",
@@ -63,39 +95,143 @@ export default function PricingSection({ onOpenOnboarding }: PricingSectionProps
             {pricingContent.subtitle}
           </p>
 
-          {/* Billing Switcher (Monthly vs Annual) */}
-          <div className="s-pricing-toggle">
-            <button
-              onClick={() => setIsAnnual(false)}
-              className={!isAnnual ? "active" : ""}
-            >
-              {pricingContent.monthly}
-            </button>
-            <button
-              onClick={() => setIsAnnual(true)}
-              className={isAnnual ? "active" : ""}
-            >
-              <span>{pricingContent.annual}</span>
-              <span
-                className="badge rounded-pill ms-1.5"
-                style={{
-                  background: isAnnual ? "rgba(255,255,255,0.2)" : "rgba(16, 185, 129, 0.2)",
-                  color: isAnnual ? "#FFFFFF" : "var(--s-emerald)",
-                  fontSize: "0.68rem",
-                  padding: "2px 8px",
-                }}
+          {/* Switchers Row: Billing Cycle & Currency Switcher */}
+          <div className="d-flex flex-wrap align-items-center justify-content-center gap-3 mb-2">
+            {/* Billing Switcher (Monthly vs Annual) */}
+            <div className="s-pricing-toggle">
+              <button
+                type="button"
+                onClick={() => setIsAnnual(false)}
+                className={!isAnnual ? "active" : ""}
+                aria-pressed={!isAnnual}
               >
-                {pricingContent.annualGift}
-              </span>
-            </button>
+                {pricingContent.monthly}
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsAnnual(true)}
+                className={isAnnual ? "active" : ""}
+                aria-pressed={isAnnual}
+              >
+                <span>{pricingContent.annual}</span>
+                <span
+                  className="badge rounded-pill ms-1.5"
+                  style={{
+                    background: isAnnual ? "rgba(255,255,255,0.2)" : "rgba(16, 185, 129, 0.2)",
+                    color: isAnnual ? "#FFFFFF" : "var(--s-emerald)",
+                    fontSize: "0.68rem",
+                    padding: "2px 8px",
+                  }}
+                >
+                  {pricingContent.annualGift}
+                </span>
+              </button>
+            </div>
+
+            {/* Currency Switcher: USD ($) vs UZS (so'm) */}
+            <div
+              className="d-inline-flex align-items-center p-1 rounded-pill"
+              style={{
+                background: "rgba(255, 255, 255, 0.05)",
+                border: "1px solid rgba(255, 255, 255, 0.1)",
+              }}
+              role="group"
+              aria-label="Valyutani tanlash"
+            >
+              <button
+                type="button"
+                className={`btn btn-sm rounded-pill px-3 py-1 border-0 fw-semibold transition-all ${
+                  currency === "USD"
+                    ? "text-white"
+                    : "text-secondary"
+                }`}
+                style={{
+                  background: currency === "USD" ? "var(--s-purple, #6366f1)" : "transparent",
+                  fontSize: "0.8rem",
+                }}
+                onClick={() => setCurrency("USD")}
+              >
+                USD ($)
+              </button>
+              <button
+                type="button"
+                className={`btn btn-sm rounded-pill px-3 py-1 border-0 fw-semibold transition-all ${
+                  currency === "UZS"
+                    ? "text-white"
+                    : "text-secondary"
+                }`}
+                style={{
+                  background: currency === "UZS" ? "var(--s-purple, #6366f1)" : "transparent",
+                  fontSize: "0.8rem",
+                }}
+                onClick={() => setCurrency("UZS")}
+              >
+                UZS (so&apos;m)
+              </button>
+            </div>
           </div>
         </div>
 
+        {/* Error Notification with Retry */}
+        {fetchError && (
+          <div
+            className="p-3 rounded-3 mb-4 mx-auto text-center d-flex align-items-center justify-content-center gap-2"
+            style={{
+              maxWidth: "520px",
+              background: "rgba(239, 68, 68, 0.1)",
+              border: "1px solid rgba(239, 68, 68, 0.2)",
+              color: "#fca5a5",
+              fontSize: "0.85rem",
+            }}
+          >
+            <span>{fetchError}</span>
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-danger py-0 px-2 d-inline-flex align-items-center gap-1"
+              onClick={loadPlans}
+            >
+              <RefreshCw size={12} />
+              Qayta urinish
+            </button>
+          </div>
+        )}
+
         {/* 3 Pricing Cards Grid */}
         <div className="row g-4 align-items-stretch justify-content-center mb-5">
-          {plans.map((plan) => {
+          {staticPlans.map((plan) => {
             const isPro = plan.isPopular;
-            const price = isAnnual ? plan.annualPrice : plan.monthlyPrice;
+
+            // Match dynamic API plan
+            const matchedApiPlan = apiPlans.find(
+              (p) => p.code.toLowerCase() === plan.id.toLowerCase()
+            );
+
+            // Compute dynamic price display
+            let displayPrice: string;
+            let displayNote: string;
+
+            if (matchedApiPlan) {
+              if (currency === "USD") {
+                displayPrice = isAnnual
+                  ? matchedApiPlan.price_yearly_formatted
+                  : matchedApiPlan.price_monthly_formatted;
+                displayNote = isAnnual ? "USD / yil" : "USD / oy";
+              } else {
+                displayPrice = isAnnual
+                  ? matchedApiPlan.price_yearly_uzs_formatted
+                  : matchedApiPlan.price_monthly_uzs_formatted;
+                displayNote = isAnnual ? "/ yil" : "/ oy";
+              }
+            } else {
+              // Safe fallback while loading or if not matched
+              displayPrice =
+                plan.id === "start"
+                  ? currency === "USD" ? (isAnnual ? "$190" : "$19") : (isAnnual ? "2 450 000 so'm" : "245 000 so'm")
+                  : plan.id === "pro"
+                  ? currency === "USD" ? (isAnnual ? "$590" : "$59") : (isAnnual ? "7 600 000 so'm" : "760 000 so'm")
+                  : currency === "USD" ? (isAnnual ? "$1 490" : "$149") : (isAnnual ? "19 000 000 so'm" : "1 900 000 so'm");
+              displayNote = currency === "USD" ? (isAnnual ? "USD / yil" : "USD / oy") : (isAnnual ? "/ yil" : "/ oy");
+            }
 
             return (
               <div
@@ -123,7 +259,8 @@ export default function PricingSection({ onOpenOnboarding }: PricingSectionProps
                       <span
                         className="s-pill"
                         style={{
-                          background: "linear-gradient(180deg, var(--s-purple-bright) 0%, var(--s-purple) 100%)",
+                          background:
+                            "linear-gradient(180deg, var(--s-purple-bright) 0%, var(--s-purple) 100%)",
                           color: "#FFFFFF",
                           border: "none",
                           fontSize: "0.72rem",
@@ -143,13 +280,13 @@ export default function PricingSection({ onOpenOnboarding }: PricingSectionProps
                         className="s-heading-card text-white mb-1"
                         style={{ fontSize: "1.35rem" }}
                       >
-                        {plan.name}
+                        {matchedApiPlan ? matchedApiPlan.name : plan.name}
                       </h3>
                       <p
                         className="s-body small mb-3"
                         style={{ minHeight: "36px" }}
                       >
-                        {plan.tagline}
+                        {matchedApiPlan?.description || plan.tagline}
                       </p>
                     </div>
 
@@ -159,25 +296,38 @@ export default function PricingSection({ onOpenOnboarding }: PricingSectionProps
                       style={{ borderBottom: "1px solid var(--s-glass-border)" }}
                     >
                       <div className="d-flex align-items-baseline gap-2">
-                        <span
-                          className="fw-extrabold text-white"
-                          style={{
-                            fontSize: "clamp(2rem, 3vw, 2.5rem)",
-                            letterSpacing: "-0.03em",
-                            lineHeight: 1,
-                          }}
-                        >
-                          {price}
-                        </span>
-                        {price !== "Kelishuv asosida" && (
-                          <span className="small" style={{ color: "var(--s-text-muted)" }}>
-                            {plan.priceNote}
+                        {loading && !matchedApiPlan ? (
+                          <div
+                            className="skeleton-shimmer"
+                            style={{
+                              width: "140px",
+                              height: "40px",
+                              borderRadius: "8px",
+                              backgroundColor: "rgba(255,255,255,0.06)",
+                            }}
+                          />
+                        ) : (
+                          <span
+                            className="fw-extrabold text-white font-monospace"
+                            style={{
+                              fontSize: "clamp(1.75rem, 2.8vw, 2.35rem)",
+                              letterSpacing: "-0.03em",
+                              lineHeight: 1,
+                            }}
+                          >
+                            {displayPrice}
                           </span>
                         )}
+                        <span className="small" style={{ color: "var(--s-text-muted)" }}>
+                          {displayNote}
+                        </span>
                       </div>
                       <div className="mt-2 d-flex align-items-center gap-1.5">
                         <ShieldCheck size={14} color="var(--s-emerald)" />
-                        <span className="small text-success fw-medium" style={{ fontSize: "0.8rem" }}>
+                        <span
+                          className="small text-success fw-medium"
+                          style={{ fontSize: "0.8rem" }}
+                        >
                           {plan.trialBadge}
                         </span>
                       </div>
@@ -225,6 +375,7 @@ export default function PricingSection({ onOpenOnboarding }: PricingSectionProps
                   {/* CTA Button */}
                   <div>
                     <button
+                      type="button"
                       onClick={onOpenOnboarding}
                       className={`w-100 ${
                         isPro ? "s-btn-primary" : "s-btn-secondary"
@@ -244,6 +395,7 @@ export default function PricingSection({ onOpenOnboarding }: PricingSectionProps
         {/* Collapsible Comparison Trigger */}
         <div className="text-center mb-4">
           <button
+            type="button"
             onClick={() => setShowComparison(!showComparison)}
             className="s-btn-secondary px-3.5 py-2 d-inline-flex align-items-center gap-2"
             style={{ fontSize: "0.88rem" }}

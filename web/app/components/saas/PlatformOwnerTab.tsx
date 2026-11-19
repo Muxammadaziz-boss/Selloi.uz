@@ -26,6 +26,7 @@ import {
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
+import { OwnerPricingStudio } from "./OwnerPricingStudio";
 
 export interface PlatformFinancialMetrics {
   mrr_usd: number;
@@ -674,7 +675,7 @@ export function PlatformOwnerTab({
                         </Badge>
                       </td>
                       <td className="font-monospace text-secondary small">
-                        {org.conversations_count ?? "—"} ta
+                        {org.conversations_count ?? "-"} ta
                       </td>
                       <td className="font-monospace fw-bold" style={{ color: "var(--success-text)" }}>
                         ${org.monthly_revenue_usd}
@@ -781,7 +782,7 @@ export function PlatformOwnerTab({
                       </div>
                     </td>
                     <td className="font-monospace text-secondary small">
-                      {u.telegram_user_id ? String(u.telegram_user_id) : "—"}
+                      {u.telegram_user_id ? String(u.telegram_user_id) : "-"}
                     </td>
                     <td>
                       {u.is_platform_owner ? (
@@ -796,7 +797,7 @@ export function PlatformOwnerTab({
                       </Badge>
                     </td>
                     <td className="text-secondary small font-monospace">
-                      {u.created_at ? new Date(u.created_at).toLocaleDateString() : "—"}
+                      {u.created_at ? new Date(u.created_at).toLocaleDateString() : "-"}
                     </td>
                   </tr>
                 ))}
@@ -813,49 +814,12 @@ export function PlatformOwnerTab({
         </Card>
       )}
 
-      {/* SUBTAB: PLANS */}
+      {/* SUBTAB: PLANS (OWNER PRICING STUDIO) */}
       {subTab === "plans" && (
-        <Card>
-          <CardHeader actions={<Badge variant="warning">Dynamic Config</Badge>}>
-            <CardTitle>Tariflar Narxi va Limitlarini Sozlash</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="row g-3">
-              {[
-                { code: "start", name: "START", defaultM: 19, defaultY: 190, desc: "Kichik biznes uchun boshlang'ich tarif" },
-                { code: "pro", name: "PRO", defaultM: 59, defaultY: 590, desc: "Eng ommabop tarif — jamoa va to'liq AI funksiyalari" },
-                { code: "ultra", name: "ULTRA", defaultM: 149, defaultY: 1490, desc: "Katta korxonalar uchun cheksiz imkoniyatlar" },
-              ].map((p) => (
-                <div key={p.code} className="col-12 col-md-4">
-                  <div className="linear-card p-3.5 h-100 d-flex flex-column justify-content-between">
-                    <div>
-                      <div className="d-flex align-items-center justify-content-between mb-2">
-                        <span className="fs-4 fw-bold font-monospace text-primary">{p.name}</span>
-                        <Badge variant="accent">{p.code.toUpperCase()}</Badge>
-                      </div>
-                      <p className="text-secondary small mb-3">{p.desc}</p>
-                      <div className="small text-secondary mb-3">
-                        Oylik: <strong className="text-primary">${p.defaultM}/oy</strong> • Yillik: <strong className="text-primary">${p.defaultY}/yil</strong>
-                      </div>
-                    </div>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      icon={<IconPencil size={14} />}
-                      onClick={() => {
-                        setEditingPlanCode(p.code);
-                        setNewMonthlyPrice(p.defaultM);
-                        setNewYearlyPrice(p.defaultY);
-                      }}
-                    >
-                      Narxni Tahrirlash
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <OwnerPricingStudio
+          organizations={organizations}
+          onRefreshParent={onRefresh}
+        />
       )}
 
       {/* SUBTAB: USAGE */}
@@ -967,7 +931,7 @@ export function PlatformOwnerTab({
                 {auditLogs.map((log) => (
                   <tr key={log.id}>
                     <td className="text-secondary small font-monospace" style={{ whiteSpace: "nowrap" }}>
-                      {log.created_at ? new Date(log.created_at).toLocaleString() : "—"}
+                      {log.created_at ? new Date(log.created_at).toLocaleString() : "-"}
                     </td>
                     <td>
                       <Badge variant="accent">{log.action}</Badge>
@@ -976,7 +940,7 @@ export function PlatformOwnerTab({
                       {log.resource} {log.resource_id ? `#${log.resource_id}` : ""}
                     </td>
                     <td className="font-monospace small text-secondary">
-                      {log.metadata ? JSON.stringify(log.metadata) : "—"}
+                      {log.metadata ? JSON.stringify(log.metadata) : "-"}
                     </td>
                   </tr>
                 ))}

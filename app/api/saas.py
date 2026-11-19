@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 import secrets
 from typing import Optional
 import httpx
-from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,10 +14,11 @@ from app.core.config import settings
 from app.core.db import get_db
 from app.core.logging import get_logger
 from app.core.security import encrypt_secret
-from app.models import Admin, Organization, OrganizationMember, Plan, Subscription, User
+from app.models import Admin, CustomerPricing, Organization, OrganizationMember, Plan, Subscription, User
 from app.services.billing_service import billing_service
 from app.services.bot_manager import bot_manager
 from app.services.entitlement_service import entitlement_service
+from app.services.pricing_service import format_currency_amount, pricing_cache, pricing_service
 from app.services.telegram import get_telegram_service
 from app.services.saas_service import (
     cancel_organization_subscription,
@@ -131,27 +132,99 @@ def require_saas_permission(perm: str):
 # --- Endpoints ---
 
 @router.get("/plans")
-async def list_plans(db: AsyncSession = Depends(get_db)):
-    """Public catalog of subscription plans."""
-    res = await db.execute(select(Plan).where(Plan.is_active.is_(True)).order_by(Plan.price_monthly.asc()))
+async def list_plans(
+    currency: str = "USD",
+    billing_cycle: str = "monthly",
+    response: Response = None,
+    db: AsyncSession = Depends(get_db),
+):
+    """Public catalog of subscription plans with dual-currency and caching."""
+    clean_currency = currency.upper().strip()
+    clean_cycle = billing_cycle.lower().strip()
+    if clean_currency not in ("USD", "UZS"):
+        clean_currency = "USD"
+    if clean_cycle not in ("monthly", "yearly"):
+        clean_cycle = "monthly"
+
+    cached = pricing_cache.get_public_plans(clean_currency, clean_cycle)
+    if cached:
+        if response:
+            response.headers["Cache-Control"] = "public, max-age=60, stale-while-revalidate=300"
+            response.headers["X-Cache"] = "HIT"
+        return cached
+
+    res = await db.execute(
+        select(Plan)
+        .where(Plan.is_active.is_(True), Plan.is_public.is_(True))
+        .order_by(Plan.display_order.asc(), Plan.price_monthly.asc())
+    )
     plans = res.scalars().all()
-    return {
+
+    payload = {
+        "success": True,
+        "currency": clean_currency,
+        "billing_cycle": clean_cycle,
         "plans": [
             {
                 "id": p.id,
                 "code": p.code,
                 "name": p.name,
                 "description": p.description,
+                "display_order": p.display_order,
                 "price_monthly": p.price_monthly,
                 "price_yearly": p.price_yearly,
+                "price_monthly_uzs": p.price_monthly_uzs,
+                "price_yearly_uzs": p.price_yearly_uzs,
+                "price_monthly_formatted": format_currency_amount(p.price_monthly * 100, "USD"),
+                "price_yearly_formatted": format_currency_amount(p.price_yearly * 100, "USD"),
+                "price_monthly_uzs_formatted": format_currency_amount(p.price_monthly_uzs, "UZS"),
+                "price_yearly_uzs_formatted": format_currency_amount(p.price_yearly_uzs, "UZS"),
                 "currency": p.currency,
                 "is_featured": p.is_featured,
+                "is_public": p.is_public,
                 "features": p.features,
                 "limits": p.limits,
             }
             for p in plans
-        ]
+        ],
     }
+
+    pricing_cache.set_public_plans(clean_currency, clean_cycle, payload, ttl_seconds=60)
+    if response:
+        response.headers["Cache-Control"] = "public, max-age=60, stale-while-revalidate=300"
+        response.headers["X-Cache"] = "MISS"
+
+    return payload
+
+
+@router.get("/pricing/checkout-quote")
+async def get_checkout_quote(
+    plan_code: str,
+    billing_interval: str = "monthly",
+    currency: str = "USD",
+    org_id: int = Depends(resolve_organization_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """Server-authoritative customer checkout quote.
+
+    Evaluates customer-specific discounts before global rates.
+    Never accepts client-submitted prices and guarantees tenant isolation.
+    """
+    try:
+        quote_result = await pricing_service.resolve_pricing(
+            db=db,
+            organization_id=org_id,
+            plan_code=plan_code,
+            billing_interval=billing_interval,
+            currency=currency,
+            require_public=True,
+        )
+        return quote_result.to_quote_dict()
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
 
 
 @router.get("/subscription")

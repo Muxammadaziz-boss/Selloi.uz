@@ -21,6 +21,15 @@ import { DesignSelector } from "../design/DesignSelector";
 
 export const FONT_OPTIONS = [
   {
+    id: "quicksand",
+    name: "Quicksand",
+    subtitle: "Modern Geometric Rounded Sans",
+    fontFamily: "'Quicksand', var(--font-quicksand), sans-serif",
+    styleTag: "Modern & Clean",
+    imagePreview: null,
+    isNew: true,
+  },
+  {
     id: "olline",
     name: "Olline",
     subtitle: "Heavy Display Sans",
@@ -215,7 +224,7 @@ export function ProfileTab({
                     </span>
                   </div>
                   <Badge variant="accent">
-                    {FONT_OPTIONS.find((f) => f.id === appFont)?.name || "Olline"} {t("profile.font_active_suffix")}
+                    {FONT_OPTIONS.find((f) => f.id === appFont)?.name || "Quicksand"} {t("profile.font_active_suffix")}
                   </Badge>
                 </div>
                 <div className="d-flex flex-wrap gap-2">

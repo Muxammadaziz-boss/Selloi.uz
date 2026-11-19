@@ -318,9 +318,9 @@ async function api<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 function timeLabel(value?: string | null) {
-  if (!value) return "—";
+  if (!value) return "-";
   const d = new Date(value);
-  if (isNaN(d.getTime())) return "—";
+  if (isNaN(d.getTime())) return "-";
   const time = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
   const months = ["yan", "fev", "mar", "apr", "may", "iyn", "iyl", "avg", "sen", "okt", "noy", "dek"];
   return `${d.getDate()}-${months[d.getMonth()]}, ${time}`;
@@ -566,7 +566,7 @@ function MiniSparkline({
         <path d={fillD} fill={`url(#sparkGrad-${id})`} />
         <path d={pathD} fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
-      {/* Standalone HTML circular dot — perfectly round, immune to SVG non-uniform aspect ratio stretch */}
+      {/* Standalone HTML circular dot: perfectly round, immune to SVG non-uniform aspect ratio stretch */}
       <div
         className="sparkline-dot"
         style={{
@@ -957,7 +957,7 @@ function DashboardContent({
       } else {
         document.documentElement.setAttribute("data-ui-style", "tabler");
       }
-      const savedFont = localStorage.getItem("ai_sales_app_font") || "olline";
+      const savedFont = localStorage.getItem("ai_sales_app_font") || "quicksand";
       setAppFont(savedFont);
       document.documentElement.setAttribute("data-font", savedFont);
     } catch {}

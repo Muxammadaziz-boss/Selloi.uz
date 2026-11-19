@@ -1,0 +1,43 @@
+{
+  "suite": "hybrid_pricing_e2e_suite",
+  "timestamp": "2026-11-19T15:34:59.169Z",
+  "tests": {
+    "public_pricing_section_present": {
+      "status": "PASSED",
+      "details": "#tariflar section found in DOM"
+    },
+    "zero_placeholder_strings": {
+      "status": "PASSED",
+      "details": "No [NARX] placeholders found"
+    },
+    "default_currency_usd": {
+      "status": "PASSED",
+      "details": "Default prices rendered in USD ($)"
+    },
+    "currency_switching_uzs": {
+      "status": "PASSED",
+      "details": "Successfully switched to UZS (so'm) display"
+    },
+    "billing_cycle_toggle_annual": {
+      "status": "PASSED",
+      "details": "Annual pricing and gift badge toggled"
+    },
+    "responsive_viewports_no_overflow": {
+      "status": "PASSED",
+      "details": "All 5 viewports (375, 390, 768, 1024, 1440) rendered without horizontal overflow"
+    },
+    "platform_owner_accessible": {
+      "status": "PASSED",
+      "details": "Platform Owner dashboard rendered"
+    },
+    "owner_pricing_studio_nav_present": {
+      "status": "PASSED",
+      "details": "Owner Pricing Studio navigation button found"
+    }
+  },
+  "summary": {
+    "total": 8,
+    "passed": 8,
+    "failed": 0
+  }
+}

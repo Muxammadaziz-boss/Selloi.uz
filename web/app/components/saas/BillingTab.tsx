@@ -76,7 +76,7 @@ export function BillingTab({
   const price = cycle === "yearly" ? plan?.price_yearly : plan?.price_monthly;
 
   const formatDate = (isoStr: string | null | undefined) => {
-    if (!isoStr) return "—";
+    if (!isoStr) return "-";
     try {
       const d = new Date(isoStr);
       return d.toLocaleDateString("uz-UZ", {

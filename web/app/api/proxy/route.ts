@@ -33,14 +33,17 @@ async function proxy(request: NextRequest) {
   const sessionData = verifySession(session, sessionSecret);
 
   const path = request.nextUrl.searchParams.get("path") || "";
-  const isPublicOnboarding =
+  const isPublicRoute =
     path === "/api/organizations/verify-token" ||
     path === "/api/organizations/verify-channel" ||
     path === "/api/saas/organizations" ||
-    path.startsWith("/api/onboarding/");
+    path.startsWith("/api/onboarding/") ||
+    path === "/api/plans" ||
+    path.startsWith("/api/plans?") ||
+    path.startsWith("/api/plans/");
 
-  // All proxy endpoints require a session, except public SaaS onboarding/verification routes
-  if (!sessionData && !isPublicOnboarding) {
+  // All proxy endpoints require a session, except public SaaS onboarding/verification routes and public catalog
+  if (!sessionData && !isPublicRoute) {
     return NextResponse.json({ detail: "Avval admin panelga kiring" }, { status: 401 });
   }
 
@@ -57,16 +60,16 @@ async function proxy(request: NextRequest) {
   };
 
   // Attach identity: Forward cryptographically signed JWT
-  if (jwtSecret) {
-    const userId = sessionData?.userId ?? 1;
-    const userEmail = sessionData?.email || (sessionData ? `user_${sessionData.userId}@aisales.uz` : "onboarding@selloi.uz");
+  if (sessionData && jwtSecret) {
+    const userId = sessionData.userId;
+    const userEmail = sessionData.email || `user_${sessionData.userId}@aisales.uz`;
     const userJwt = signBackendJwt(userId, userEmail, jwtSecret);
     headers["Authorization"] = `Bearer ${userJwt}`;
   } else if (sessionData?.backendToken) {
     headers["Authorization"] = `Bearer ${sessionData.backendToken}`;
-  } else {
+  } else if (!isPublicRoute) {
     return NextResponse.json(
-      { detail: "JWT_SECRET sozlanmagan — autentifikatsiya amalga oshirilmadi" },
+      { detail: "JWT_SECRET sozlanmagan: autentifikatsiya amalga oshirilmadi" },
       { status: 500 }
     );
   }

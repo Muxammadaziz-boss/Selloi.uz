@@ -24,7 +24,7 @@ def initialize_test_database():
                 await admin_service.ensure_owner(db)
                 await db.commit()
             async with engine.begin() as conn:
-                for tbl in ["organizations", "users", "organization_members", "plans", "subscriptions"]:
+                for tbl in ["organizations", "users", "organization_members", "plans", "subscriptions", "customer_pricing", "plan_price_history"]:
                     try:
                         await conn.execute(text(f"SELECT setval(pg_get_serial_sequence('{tbl}', 'id'), COALESCE((SELECT MAX(id) FROM {tbl}), 0) + 1, false)"))
                     except Exception:

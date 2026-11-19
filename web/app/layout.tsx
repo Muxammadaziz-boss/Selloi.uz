@@ -1,6 +1,14 @@
 import type { Metadata } from "next";
+import { Quicksand } from "next/font/google";
 import "@tabler/core/dist/css/tabler.min.css";
 import "./globals.css";
+
+const quicksand = Quicksand({
+  subsets: ["latin", "latin-ext"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-quicksand",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://selloi.uz"),
@@ -126,7 +134,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               (function() {
                 try {
                   var savedTheme = localStorage.getItem('ai_sales_theme') || 'dark';
-                  var savedFont = localStorage.getItem('ai_sales_app_font') || 'olline';
+                  var savedFont = localStorage.getItem('ai_sales_app_font') || 'quicksand';
                   var savedLang = localStorage.getItem('ai_sales_language') || 'uz';
                   // Root HTML defaults to 'classic' during pre-hydration to prevent unauthorized design flashing.
                   // Elevated designs ('premium', 'ios') are only applied after verified subscription entitlement.
@@ -173,7 +181,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           }}
         />
       </head>
-      <body className="theme-dark" style={{ backgroundColor: "var(--bg-canvas)", color: "var(--text-primary)" }} suppressHydrationWarning>{children}</body>
+      <body className={`theme-dark ${quicksand.variable} ${quicksand.className}`} style={{ backgroundColor: "var(--bg-canvas)", color: "var(--text-primary)", fontFamily: "var(--font-sans)" }} suppressHydrationWarning>{children}</body>
     </html>
   );
 }

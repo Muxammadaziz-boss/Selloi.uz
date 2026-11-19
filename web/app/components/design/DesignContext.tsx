@@ -76,7 +76,7 @@ export function DesignProvider({
     }
 
     // 2. While subscription verification is in flight, unknown, or in error:
-    // NEVER authorize Premium or iOS — enforce Classic without flashing
+    // NEVER authorize Premium or iOS: enforce Classic without flashing
     if (isSubscriptionLoading || subscriptionError || !subscriptionPlan) {
       setCurrentDesignState("classic");
       if (typeof document !== "undefined") {

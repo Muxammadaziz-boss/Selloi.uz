@@ -5,12 +5,14 @@ from sqlalchemy import (
     DateTime,
     Float,
     ForeignKey,
+    Index,
     Integer,
     JSON,
     String,
     Text,
     UniqueConstraint,
     func,
+    text,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from pgvector.sqlalchemy import Vector
@@ -138,14 +140,72 @@ class Plan(Base):
     description: Mapped[str] = mapped_column(String(255), default="")
     price_monthly: Mapped[int] = mapped_column(Integer, default=19)  # USD
     price_yearly: Mapped[int] = mapped_column(Integer, default=190)  # USD (~17% discount)
+    price_monthly_uzs: Mapped[int] = mapped_column(BigInteger, default=24500000, nullable=False)  # in tiyin (245,000 UZS)
+    price_yearly_uzs: Mapped[int] = mapped_column(BigInteger, default=245000000, nullable=False)  # in tiyin (2,450,000 UZS)
     currency: Mapped[str] = mapped_column(String(8), default="USD")
     features: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
     limits: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    is_public: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    display_order: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     is_featured: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
+
+class CustomerPricing(Base):
+    """Customer-specific pricing, individual discounts, and custom commercial terms."""
+    __tablename__ = "customer_pricing"
+    __table_args__ = (
+        Index(
+            "uq_customer_pricing_active",
+            "customer_id",
+            "plan_id",
+            "billing_interval",
+            unique=True,
+            postgresql_where=text("status = 'active'"),
+            sqlite_where=text("status = 'active'"),
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    customer_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True, nullable=False)
+    plan_id: Mapped[int] = mapped_column(ForeignKey("plans.id", ondelete="RESTRICT"), index=True, nullable=False)
+    billing_interval: Mapped[str] = mapped_column(String(16), default="monthly", nullable=False)  # monthly, yearly
+    currency: Mapped[str] = mapped_column(String(8), default="USD", nullable=False)  # USD, UZS
+    discount_type: Mapped[str] = mapped_column(String(32), nullable=False)  # percentage, fixed_amount, custom_price
+    discount_value: Mapped[int] = mapped_column(Integer, nullable=False)  # minor units or whole percent
+    starts_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), default="active", index=True, nullable=False)  # active, expired, revoked, superseded
+    created_by_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+    customer: Mapped["Organization"] = relationship()
+    plan: Mapped["Plan"] = relationship()
+    created_by: Mapped["User"] = relationship()
+
+
+class PlanPriceHistory(Base):
+    """Immutable chronological audit trail of global plan price adjustments."""
+    __tablename__ = "plan_price_history"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    plan_id: Mapped[int] = mapped_column(ForeignKey("plans.id", ondelete="CASCADE"), index=True, nullable=False)
+    price_monthly: Mapped[int] = mapped_column(Integer, nullable=False)  # USD cents
+    price_yearly: Mapped[int] = mapped_column(Integer, nullable=False)  # USD cents
+    price_monthly_uzs: Mapped[int] = mapped_column(BigInteger, nullable=False)  # UZS tiyin
+    price_yearly_uzs: Mapped[int] = mapped_column(BigInteger, nullable=False)  # UZS tiyin
+    currency: Mapped[str] = mapped_column(String(8), default="USD", nullable=False)
+    change_reason: Mapped[str] = mapped_column(String(255), default="")
+    created_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    effective_from: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True, nullable=False)
+    effective_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    plan: Mapped["Plan"] = relationship()
 
 
 class Subscription(Base):
@@ -160,6 +220,16 @@ class Subscription(Base):
     provider: Mapped[str] = mapped_column(String(32), default="stripe")  # stripe, mock, payme, click, lemon_squeezy
     provider_customer_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
     provider_subscription_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
+
+    # Server-Authoritative Rate Snapshot
+    locked_plan_code: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    locked_price: Mapped[int | None] = mapped_column(Integer, nullable=True)  # in minor units (cents / tiyin)
+    locked_currency: Mapped[str] = mapped_column(String(8), default="USD", nullable=False)
+    locked_interval: Mapped[str] = mapped_column(String(16), default="monthly", nullable=False)
+    price_source: Mapped[str] = mapped_column(String(32), default="global_catalog", nullable=False)
+    applied_offer_id: Mapped[int | None] = mapped_column(ForeignKey("customer_pricing.id", ondelete="SET NULL"), nullable=True, index=True)
+    snapshot_created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     current_period_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     current_period_end: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
@@ -169,9 +239,9 @@ class Subscription(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
-
     organization: Mapped[Organization] = relationship(back_populates="subscription")
     plan: Mapped[Plan] = relationship()
+    applied_offer: Mapped["CustomerPricing | None"] = relationship()
 
 
 class UsageRecord(Base):
