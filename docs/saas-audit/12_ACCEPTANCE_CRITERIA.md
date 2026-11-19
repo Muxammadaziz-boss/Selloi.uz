@@ -1,4 +1,4 @@
-# AI SALES CONTROL CENTER — ACCEPTANCE CRITERIA & VERIFICATION CHECKLIST
+# AI SALES CONTROL CENTER : ACCEPTANCE CRITERIA & VERIFICATION CHECKLIST
 
 **Document:** `docs/saas-audit/12_ACCEPTANCE_CRITERIA.md`  
 **Purpose:** Formal verification gates and acceptance criteria required before approving commercial SaaS onboarding.
@@ -21,7 +21,7 @@ graph LR
 
 ---
 
-## 2. Gate 1: Security & Multi-Tenant Isolation (P0 — Mandatory)
+## 2. Gate 1: Security & Multi-Tenant Isolation (P0 : Mandatory)
 
 | Test ID | Scenario | Test Procedure | Expected Result | Status |
 | :--- | :--- | :--- | :--- | :---: |
@@ -33,7 +33,7 @@ graph LR
 
 ---
 
-## 3. Gate 2: Database Integrity & Task Queue (P0 — Mandatory)
+## 3. Gate 2: Database Integrity & Task Queue (P0 : Mandatory)
 
 | Test ID | Scenario | Test Procedure | Expected Result | Status |
 | :--- | :--- | :--- | :--- | :---: |

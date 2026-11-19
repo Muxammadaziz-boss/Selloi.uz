@@ -1,86 +1,92 @@
 "use client";
 
 import React from "react";
-import { ArrowRight, ShieldCheck, Zap, Bot } from "lucide-react";
+import { useLanguage } from "@/app/lib/i18n";
+import { LANDING_CONTENT_BY_LANG } from "./landingContent";
+import { ArrowRight, ShieldCheck, Zap, Sparkles, CheckCircle2 } from "lucide-react";
 
 interface FinalCTAProps {
   onOpenOnboarding: () => void;
 }
 
 export default function FinalCTA({ onOpenOnboarding }: FinalCTAProps) {
+  const { language } = useLanguage();
+  const ctaContent = (LANDING_CONTENT_BY_LANG[language] || LANDING_CONTENT_BY_LANG.uz).finalCta;
+
   return (
-    <section className="selloi-section position-relative">
-      <div className="selloi-container">
+    <section className="s-section position-relative overflow-hidden">
+      <div className="s-container position-relative" style={{ zIndex: 2 }}>
         <div
-          className="p-4 p-md-5 rounded-4 position-relative overflow-hidden"
+          className="p-5 p-md-5 rounded-4 position-relative overflow-hidden s-glass-card"
           style={{
-            background: "linear-gradient(180deg, #131422 0%, #0E0F1A 100%)",
-            border: "1px solid rgba(168, 85, 247, 0.35)",
-            boxShadow: "0 20px 50px rgba(0, 0, 0, 0.5)",
+            borderColor: "rgba(255, 255, 255, 0.12)",
+            boxShadow:
+              "0 24px 60px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.08)",
+            background: "linear-gradient(180deg, #0F1420 0%, #0A0D15 100%)",
           }}
         >
-          <div className="row align-items-center g-4 position-relative z-2">
-            {/* Left: Clean Selloi Emblem */}
-            <div className="col-md-2 d-none d-md-flex justify-content-center">
-              <div
-                className="d-flex align-items-center justify-content-center rounded-3"
-                style={{
-                  width: "68px",
-                  height: "68px",
-                  background: "linear-gradient(135deg, #7C3AED 0%, #4C1D95 100%)",
-                  boxShadow: "0 8px 24px rgba(124, 58, 237, 0.4)",
-                  border: "1px solid rgba(255, 255, 255, 0.2)",
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: "34px",
-                    fontWeight: 900,
-                    color: "#FFFFFF",
-                  }}
-                >
-                  S
+          {/* Subtle Top Specular Ambient Line */}
+          <div
+            className="position-absolute"
+            style={{
+              top: 0,
+              left: "20%",
+              right: "20%",
+              height: "1px",
+              background: "linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.4), transparent)",
+              pointerEvents: "none",
+            }}
+          />
+
+          <div className="row align-items-center g-4 position-relative" style={{ zIndex: 3 }}>
+            <div className="col-lg-8 text-center text-lg-start">
+              <div className="mb-3">
+                <span className="s-pill">
+                  <Sparkles size={13} />
+                  <span>{ctaContent.badge}</span>
                 </span>
               </div>
-            </div>
 
-            {/* Center: Headline & Subtitle */}
-            <div className="col-md-6 col-lg-7 text-center text-md-start">
-              <h3
-                className="display-6 fw-bold mb-2 text-white"
-                style={{
-                  letterSpacing: "-0.03em",
-                  lineHeight: 1.2,
-                  fontSize: "clamp(1.6rem, 2.8vw, 2.2rem)",
-                }}
+              <h2
+                className="s-heading-section text-white mb-3"
+                style={{ fontSize: "clamp(2rem, 3.6vw, 2.75rem)" }}
               >
-                Biznesingizga yangi avlod AI sotuvchisini tanishtiring.
-              </h3>
-              <p className="text-secondary mb-3 small" style={{ color: "#CBD5E1", fontSize: "0.95rem" }}>
-                Kechasi ham, dam olish kunlarida ham barcha xaridorlarga professional xizmat ko‘rsating va buyurtmalarni avtomatik qabul qiling.
+                {ctaContent.headingPrefix}{" "}
+                <span className="s-gradient-purple d-block">
+                  {ctaContent.headingHighlight}
+                </span>
+              </h2>
+
+              <p
+                className="s-body-lg mb-4"
+                style={{ maxWidth: "560px", color: "var(--s-text-secondary)" }}
+              >
+                {ctaContent.subtitle}
               </p>
-              <div className="d-flex flex-wrap align-items-center gap-3 text-secondary small" style={{ fontSize: "0.82rem" }}>
+
+              <div className="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start gap-4 small">
                 <span className="d-flex align-items-center gap-1.5 text-light">
-                  <ShieldCheck size={14} color="#10B981" /> 7 kun bepul sinov
+                  <CheckCircle2 size={15} color="var(--s-emerald)" /> {ctaContent.trust1}
                 </span>
-                <span>•</span>
+                <span style={{ color: "var(--s-text-muted)" }}>•</span>
                 <span className="d-flex align-items-center gap-1.5 text-light">
-                  <Zap size={14} color="#38BDF8" /> 2 daqiqada ulanish
+                  <Zap size={15} color="var(--s-blue-soft)" /> {ctaContent.trust2}
                 </span>
-                <span>•</span>
-                <span>Kredit karta talab qilinmaydi</span>
+                <span style={{ color: "var(--s-text-muted)" }}>•</span>
+                <span style={{ color: "var(--s-text-secondary)" }}>
+                  {ctaContent.trust3}
+                </span>
               </div>
             </div>
 
-            {/* Right: Action Button */}
-            <div className="col-md-4 col-lg-3 text-center text-md-end">
+            <div className="col-lg-4 text-center text-lg-end">
               <button
                 onClick={onOpenOnboarding}
-                className="selloi-btn-primary px-4 py-3 w-100"
-                style={{ fontSize: "1rem" }}
+                className="s-btn-primary px-4 py-3"
+                style={{ fontSize: "1.05rem" }}
               >
-                <span>7 kun bepul boshlash</span>
-                <ArrowRight size={16} />
+                <span>{ctaContent.primaryCta}</span>
+                <ArrowRight size={18} />
               </button>
             </div>
           </div>

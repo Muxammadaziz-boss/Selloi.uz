@@ -1,11 +1,13 @@
 import type { MetadataRoute } from "next";
 
 export default function sitemap(): MetadataRoute.Sitemap {
+  const baseUrl = "https://selloi.uz";
   return [
     {
-      url: "https://selloi.uz/",
-      changeFrequency: "weekly",
-      priority: 1,
+      url: `${baseUrl}/`,
+      lastModified: new Date(),
+      changeFrequency: "daily",
+      priority: 1.0,
     },
   ];
 }

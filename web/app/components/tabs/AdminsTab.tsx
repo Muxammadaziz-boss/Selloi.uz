@@ -274,7 +274,7 @@ export function AdminsTab({
         <Modal
           isOpen={true}
           onClose={() => setManagingPermissionsAdmin(null)}
-          title={`${managingPermissionsAdmin.name || "Admin"} — ${t("admins.modal_title")}`}
+          title={`${managingPermissionsAdmin.name || "Admin"}: ${t("admins.modal_title")}`}
           size="lg"
           footer={
             <Button

@@ -186,7 +186,7 @@ async function runEntitlementIntegration() {
     // -------------------------------------------------------------
     console.log("\n[0] Testing Unauthenticated Session & Design Security...");
     await context.clearCookies();
-    await page.goto(`${BASE_URL}/`);
+    await page.goto(`${BASE_URL}/dashboard`);
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(400);
 
@@ -202,9 +202,9 @@ async function runEntitlementIntegration() {
     await setTenantSession();
     await mockSubscription("ultra");
 
-    await page.goto(`${BASE_URL}/`);
+    await page.goto(`${BASE_URL}/dashboard`);
     await page.waitForLoadState("networkidle");
-    await page.goto(`${BASE_URL}/#profile`);
+    await page.goto(`${BASE_URL}/dashboard#profile`);
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(600);
 
@@ -382,7 +382,7 @@ async function runEntitlementIntegration() {
     console.log("\n[9] Testing Actual UI Logout & Elevated Design Revocation...");
     // Set Platform Owner session and active premium design
     await setPlatformOwnerSession();
-    await page.goto(`${BASE_URL}/#profile`);
+    await page.goto(`${BASE_URL}/dashboard#profile`);
     await page.waitForLoadState("networkidle");
     await page.evaluate(() => {
       localStorage.setItem("ai_sales_design_system", "premium");
@@ -447,9 +447,9 @@ async function runEntitlementIntegration() {
     await setTenantSession(101); // Org 1 (ULTRA)
     await mockSubscription("ultra");
 
-    await page.goto(`${BASE_URL}/`);
+    await page.goto(`${BASE_URL}/dashboard`);
     await page.waitForLoadState("networkidle");
-    await page.goto(`${BASE_URL}/#profile`);
+    await page.goto(`${BASE_URL}/dashboard#profile`);
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(600);
 

@@ -50,7 +50,7 @@ export function CustomersTab({
   });
 
   const formatTime = (ts?: string | null) => {
-    if (!ts) return "—";
+    if (!ts) return "-";
     try {
       const d = new Date(ts);
       return d.toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -160,7 +160,7 @@ export function CustomersTab({
                         </div>
                       </td>
                       <td className="text-secondary small">
-                        {c.username ? `@${c.username}` : "—"}
+                        {c.username ? `@${c.username}` : "-"}
                       </td>
                       <td className="font-monospace text-secondary small d-none d-sm-table-cell">
                         {c.chat_id}

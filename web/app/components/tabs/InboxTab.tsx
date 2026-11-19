@@ -341,8 +341,8 @@ export function InboxTab({
                                 ? "var(--bg-surface-elevated)"
                                 : "var(--accent)"
                               : "var(--bg-surface-elevated)",
-                            border: `1px solid ${isOutgoing && !isAdmin ? "var(--accent-hover)" : "var(--border-default)"}`,
-                            color: isOutgoing && !isAdmin ? "#ffffff" : "var(--text-primary)",
+                            border: `1px solid ${isOutgoing && !isAdmin ? "var(--accent-border)" : "var(--border-default)"}`,
+                            color: isOutgoing && !isAdmin ? "#090909" : "var(--text-primary)",
                           }}
                         >
                           {/* Sender Label */}
@@ -351,8 +351,8 @@ export function InboxTab({
                               className="d-flex align-items-center gap-1 mb-1 font-monospace"
                               style={{
                                 fontSize: "0.7rem",
-                                fontWeight: 600,
-                                color: isAdmin ? "var(--warning-text)" : "#ffffff",
+                                fontWeight: 700,
+                                color: isAdmin ? "var(--warning-text)" : "#090909",
                               }}
                             >
                               {isAdmin ? <IconHeadset size={11} /> : <IconRobot size={11} />}
@@ -361,7 +361,7 @@ export function InboxTab({
                           )}
 
                           {/* Message Text */}
-                          <div style={{ fontSize: "0.86rem", whiteSpace: "pre-wrap", lineHeight: 1.45 }}>
+                          <div style={{ fontSize: "0.86rem", whiteSpace: "pre-wrap", lineHeight: 1.45, fontWeight: isOutgoing && !isAdmin ? 500 : 400 }}>
                             {m.text}
                           </div>
 
@@ -371,7 +371,7 @@ export function InboxTab({
                             style={{
                               fontSize: "0.68rem",
                               fontWeight: 500,
-                              color: isOutgoing && !isAdmin ? "#ffffff" : "var(--text-secondary)",
+                              color: isOutgoing && !isAdmin ? "rgba(9, 9, 9, 0.7)" : "var(--text-secondary)",
                             }}
                           >
                             {formatChatTime(m.created_at)}

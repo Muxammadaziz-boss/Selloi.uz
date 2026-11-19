@@ -1,14 +1,14 @@
 {
   "metadata": {
     "suite": "entitlement_integration_suite",
-    "timestamp": "2026-11-14T15:05:20.043Z",
-    "commitSha": "84035cfbd000cd9ab783b3acbd5433181720ecb9",
+    "timestamp": "2026-11-18T18:49:17.681Z",
+    "commitSha": "1033512a83a9ce5b1332800359503b4d003a1599",
     "nodeVersion": "v24.20.0",
     "platform": "win32",
     "arch": "x64",
     "targetUrl": "http://localhost:3000",
     "credentialSource": "env_file",
-    "browserVersion": "157.0.8103.78"
+    "browserVersion": "157.0.8103.80"
   },
   "unauthenticated_state": {
     "unauthenticated_shows_login_card": {

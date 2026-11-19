@@ -7,38 +7,41 @@
 html[data-design="premium"] {
   --design-id: "premium";
 
-  /* Deep near-black reference palette */
+  /* Selloi Obsidian & Carbon Reference Palette */
   --premium-bg: #090909;
-  --premium-sidebar: #0d0d0d;
-  --premium-surface: #171717;
-  --premium-surface-elevated: #1e1e1e;
-  --premium-surface-hover: #222222;
-  --premium-surface-active: #2a2a2a;
-  --premium-border: #262626;
-  --premium-border-subtle: #1c1c1c;
-  --premium-border-strong: #383838;
+  --premium-sidebar: #111111;
+  --premium-surface: #111111;
+  --premium-surface-elevated: #171717;
+  --premium-surface-hover: #1c1c1c;
+  --premium-surface-active: #202020;
+  --premium-border: #2d2d2d;
+  --premium-border-subtle: #292929;
+  --premium-border-strong: #3A3A3A;
 
-  --premium-text: #f8fafc;
-  --premium-text-secondary: #cbd5e1;
-  --premium-text-muted: #94a3b8;
+  --premium-text: #F4F4F4;
+  --premium-text-secondary: #CBD5E1;
+  --premium-text-muted: #A1A1B2;
   --premium-text-inverse: #090909;
 
-  --premium-accent: #2563eb;
-  --premium-accent-subtle: rgba(37, 99, 235, 0.16);
-  --premium-accent-border: rgba(37, 99, 235, 0.45);
-  --premium-accent-text: #60a5fa;
+  /* Selloi Restrained Warm Bronze Gold Accent */
+  --premium-accent: #E6A15A;
+  --premium-accent-subtle: rgba(230, 161, 90, 0.12);
+  --premium-accent-border: rgba(230, 161, 90, 0.35);
+  --premium-accent-text: #E6A15A;
 
-  --premium-success: #10b981;
-  --premium-success-subtle: rgba(16, 185, 129, 0.16);
-  --premium-danger: #ef4444;
-  --premium-danger-subtle: rgba(239, 68, 68, 0.16);
-  --premium-warning: #f59e0b;
-  --premium-warning-subtle: rgba(245, 158, 11, 0.16);
+  --premium-success: #A0CA92;
+  --premium-success-subtle: rgba(160, 202, 146, 0.14);
+  --premium-danger: #E47777;
+  --premium-danger-subtle: rgba(228, 119, 119, 0.14);
+  --premium-warning: #E8B66A;
+  --premium-warning-subtle: rgba(232, 182, 106, 0.14);
+  --premium-info: #83AEEA;
+  --premium-info-subtle: rgba(131, 174, 234, 0.14);
 
   /* Geometry & Metrics */
   --sidebar-width: 270px;
   --premium-sidebar-width: 270px;
-  --premium-radius-xs: 4px;
+  --premium-radius-xs: 5px;
   --premium-radius-sm: 6px;
   --premium-radius: 10px;
   --premium-radius-lg: 14px;
@@ -66,23 +69,26 @@ html[data-design="premium"] {
   --accent-text: var(--premium-accent-text);
 
   --success: var(--premium-success);
-  --success-text: #34d399;
+  --success-text: #A0CA92;
   --danger: var(--premium-danger);
-  --danger-text: #f87171;
+  --danger-text: #E47777;
   --warning: var(--premium-warning);
-  --warning-text: #fbbf24;
+  --warning-text: #E8B66A;
+  --info: var(--premium-info);
+  --info-text: #83AEEA;
 
-  /* Font: Minimalist typography with sharp monospace numerals */
-  --app-font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  /* Font: Geist & Geist Mono typography */
+  --app-font-family: 'Geist', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --app-font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, monospace;
   --tblr-font-sans-serif: var(--app-font-family);
   --tblr-primary: var(--premium-accent);
   --tblr-body-bg: var(--premium-bg);
   --tblr-card-bg: var(--premium-surface);
 
   /* Shadows: Restrained, hairline definition without excessive blur */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.55);
-  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.7);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 14px 36px rgba(0, 0, 0, 0.65);
 }
 
 html[data-design="premium"][data-theme="light"],

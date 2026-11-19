@@ -11,7 +11,6 @@ COPY app ./app
 COPY scripts ./scripts
 COPY 1-telegram-bot ./1-telegram-bot
 COPY 2-telegram-user-chat ./2-telegram-user-chat
-COPY 3-sayt-publik ./3-sayt-publik
 COPY alembic ./alembic
 COPY alembic.ini .
 RUN mkdir -p /app/storage/channel_images

@@ -113,11 +113,15 @@ class Settings(BaseSettings):
                     "Production security failure: ENCRYPTION_KEY must be configured with a 32-byte urlsafe Fernet key."
                 )
         else:
-            # Development convenience fallback
+            # Development and test convenience fallback
             if not self.jwt_secret:
                 self.jwt_secret = "dev_insecure_jwt_secret_key_only_for_local_testing_32chars_long"
             if not self.encryption_key:
                 self.encryption_key = "MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE="
+            if not self.admin_telegram_id:
+                self.admin_telegram_id = 999888777
+            if not self.public_webhook_url:
+                self.public_webhook_url = "https://selloi.uz"
 
         return self
 

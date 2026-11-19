@@ -2045,16 +2045,52 @@ function DashboardContent({
     return (
       <div className="page page-center auth-page-wrapper">
         <div className="auth-content-container py-4">
+          {/* Top Language Switcher */}
+          <div className="d-flex justify-content-end mb-3">
+            <div
+              className="d-inline-flex align-items-center gap-1 p-1 rounded-pill"
+              style={{
+                background: "rgba(255, 255, 255, 0.05)",
+                border: "1px solid var(--border-subtle)",
+              }}
+            >
+              {(
+                [
+                  { code: "uz", label: "UZ" },
+                  { code: "ru", label: "RU" },
+                  { code: "en", label: "EN" },
+                ] as const
+              ).map((item) => (
+                <button
+                  key={item.code}
+                  type="button"
+                  onClick={() => setLanguage(item.code)}
+                  className={`btn btn-sm ${
+                    language === item.code ? "btn-primary" : "btn-ghost-secondary text-secondary"
+                  }`}
+                  style={{
+                    fontSize: "0.74rem",
+                    padding: "2px 10px",
+                    borderRadius: "100px",
+                    fontWeight: language === item.code ? 700 : 500,
+                  }}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Brand header */}
           <div className="text-center mb-4">
             <div className="auth-logo-halo mb-2">
               <AppLogo src={logoUrl} size="lg" />
             </div>
             <h1 className="auth-brand-title mb-1">
-              Selloi Boshqaruv Markazi
+              {t("auth.brand_title") || "Selloi Boshqaruv Markazi"}
             </h1>
             <p className="text-secondary small mb-0">
-              Telegram do'konlari uchun AI savdo platformasi
+              {t("auth.brand_subtitle") || "Telegram do'konlari uchun AI savdo platformasi"}
             </p>
           </div>
 
@@ -2063,9 +2099,11 @@ function DashboardContent({
             <div className="card-body p-4">
               <div className="mb-3.5">
                 <h2 className="text-white fw-bold mb-1" style={{ fontSize: "1.15rem", letterSpacing: "-0.01em" }}>
-                  Tizimga kirish
+                  {t("auth.heading") || "Tizimga kirish"}
                 </h2>
-                <p className="text-secondary small mb-0">Davom etish uchun boshqaruv parolini kiriting</p>
+                <p className="text-secondary small mb-0">
+                  {t("auth.subheading") || "Davom etish uchun boshqaruv parolini kiriting"}
+                </p>
               </div>
 
               <form onSubmit={login} autoComplete="off">
@@ -2074,7 +2112,7 @@ function DashboardContent({
                   <div className="d-flex align-items-center justify-content-between mb-1.5">
                     <label className="form-label text-secondary small fw-medium mb-0 d-flex align-items-center gap-1.5" htmlFor="admin-pwd">
                       <IconKey size={14} className="text-secondary" />
-                      <span>Admin paroli</span>
+                      <span>{t("auth.password_label") || "Admin paroli"}</span>
                     </label>
                   </div>
                   <div className="auth-input-modern">
@@ -2082,7 +2120,7 @@ function DashboardContent({
                     <input
                       id="admin-pwd"
                       type={showPassword ? "text" : "password"}
-                      placeholder="Parolni kiriting"
+                      placeholder={t("auth.password_placeholder") || "Parolni kiriting"}
                       autoComplete="current-password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
@@ -2107,10 +2145,10 @@ function DashboardContent({
                   <div className="d-flex align-items-center justify-content-between mb-1.5">
                     <label className="form-label text-secondary small fw-medium mb-0 d-flex align-items-center gap-1.5" htmlFor="admin-tg-id">
                       <IconUser size={14} className="text-secondary" />
-                      <span>Telegram ID</span>
+                      <span>{t("auth.telegram_id_label") || "Telegram ID"}</span>
                     </label>
                     <span className="text-secondary" style={{ fontSize: "0.72rem" }}>
-                      Ixtiyoriy
+                      {t("auth.telegram_id_optional") || "Ixtiyoriy"}
                     </span>
                   </div>
                   <div className="auth-tg-profile-box">
@@ -2131,7 +2169,7 @@ function DashboardContent({
                         type="text"
                         className="w-100 bg-transparent border-0 p-0 text-white"
                         style={{ outline: "none", fontSize: "0.88rem" }}
-                        placeholder="Telegram ID raqami (masalan: 12345678)"
+                        placeholder={t("auth.telegram_id_placeholder") || "Telegram ID raqami (masalan: 12345678)"}
                         value={loginTelegramId}
                         onChange={(e) => {
                           const val = e.target.value.replace(/\D/g, "");
@@ -2159,11 +2197,11 @@ function DashboardContent({
                     {loggingIn ? (
                       <>
                         <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" />
-                        <span>Tekshirilmoqda...</span>
+                        <span>{t("auth.submitting_btn") || "Tekshirilmoqda..."}</span>
                       </>
                     ) : (
                       <>
-                        <span>Tizimga kirish</span>
+                        <span>{t("auth.submit_btn") || "Tizimga kirish"}</span>
                         <IconArrowRight size={16} />
                       </>
                     )}
@@ -2175,10 +2213,10 @@ function DashboardContent({
               <div className="d-flex align-items-center justify-content-between pt-3 mt-3 border-top" style={{ borderColor: "var(--border-subtle)" }}>
                 <div className="d-flex align-items-center gap-1.5 text-secondary small">
                   <span className="status-dot bg-success" style={{ width: 8, height: 8 }} />
-                  <span style={{ fontSize: "0.78rem" }}>Tizim holati: Barqaror</span>
+                  <span style={{ fontSize: "0.78rem" }}>24/7 AI System Online</span>
                 </div>
                 <span className="text-secondary small" style={{ fontSize: "0.74rem" }}>
-                  Selloi Platform v2.4
+                  Selloi Platform v3.0
                 </span>
               </div>
             </div>

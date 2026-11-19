@@ -39,7 +39,7 @@ jobs:
         run: |
           CI_JWT_SECRET=$(openssl rand -hex 32)
           CI_ADMIN_TOKEN=$(openssl rand -hex 32)
-          CI_ENC_KEY=$(openssl rand -hex 16)
+          CI_ENC_KEY=$(python3 -c "import base64, os; print(base64.urlsafe_b64encode(os.urandom(32)).decode())")
           CI_TG_SECRET=$(openssl rand -hex 24)
           CI_TG_BOT_TOKEN="123456789:AA$(openssl rand -hex 16)"
 
@@ -50,11 +50,13 @@ jobs:
           echo "ENCRYPTION_KEY=${CI_ENC_KEY}" >> $GITHUB_ENV
           echo "TELEGRAM_WEBHOOK_SECRET=${CI_TG_SECRET}" >> $GITHUB_ENV
           echo "TELEGRAM_BOT_TOKEN=${CI_TG_BOT_TOKEN}" >> $GITHUB_ENV
+          echo "ADMIN_TELEGRAM_ID=999888777" >> $GITHUB_ENV
+          echo "PUBLIC_WEBHOOK_URL=https://selloi.uz" >> $GITHUB_ENV
           echo "DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/test_ci_db" >> $GITHUB_ENV
 
       - name: Validate Required CI Credentials
         run: |
-          for var in JWT_SECRET ADMIN_API_TOKEN ENCRYPTION_KEY TELEGRAM_WEBHOOK_SECRET TELEGRAM_BOT_TOKEN DATABASE_URL; do
+          for var in JWT_SECRET ADMIN_API_TOKEN ENCRYPTION_KEY TELEGRAM_WEBHOOK_SECRET TELEGRAM_BOT_TOKEN ADMIN_TELEGRAM_ID PUBLIC_WEBHOOK_URL DATABASE_URL; do
             if [ -z "${!var}" ]; then
               echo "::error::CI environment variable $var is missing or empty."
               exit 1
@@ -72,11 +74,11 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest pytest-asyncio httpx asyncpg
+          pip install pytest anyio httpx asyncpg
 
       - name: Run Backend Pytest Suite
         run: |
-          pytest -v
+          pytest -v --tb=short
 
       - name: Run Financial Precision & Formula Trace
         run: |
@@ -100,10 +102,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Node.js 20
+      - name: Set up Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
           cache-dependency-path: web/package-lock.json
 
@@ -148,7 +150,7 @@ jobs:
           CI_JWT_SECRET=$(openssl rand -hex 32)
           CI_SESSION_SECRET=$(openssl rand -hex 32)
           CI_ADMIN_TOKEN=$(openssl rand -hex 32)
-          CI_ENC_KEY=$(openssl rand -hex 16)
+          CI_ENC_KEY=$(python3 -c "import base64, os; print(base64.urlsafe_b64encode(os.urandom(32)).decode())")
           CI_TG_SECRET=$(openssl rand -hex 24)
           CI_DASHBOARD_PWD=$(openssl rand -base64 24)
           CI_TG_BOT_TOKEN="123456789:AA$(openssl rand -hex 16)"
@@ -162,13 +164,15 @@ jobs:
           echo "TELEGRAM_WEBHOOK_SECRET=${CI_TG_SECRET}" >> $GITHUB_ENV
           echo "DASHBOARD_PASSWORD=${CI_DASHBOARD_PWD}" >> $GITHUB_ENV
           echo "TELEGRAM_BOT_TOKEN=${CI_TG_BOT_TOKEN}" >> $GITHUB_ENV
+          echo "ADMIN_TELEGRAM_ID=999888777" >> $GITHUB_ENV
+          echo "PUBLIC_WEBHOOK_URL=https://selloi.uz" >> $GITHUB_ENV
           echo "DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/test_ci_db" >> $GITHUB_ENV
           echo "BACKEND_URL=http://127.0.0.1:8000" >> $GITHUB_ENV
           echo "TEST_DASHBOARD_PASSWORD=${CI_DASHBOARD_PWD}" >> $GITHUB_ENV
 
       - name: Validate Required CI Credentials
         run: |
-          for var in JWT_SECRET SESSION_SECRET ADMIN_API_TOKEN ENCRYPTION_KEY TELEGRAM_WEBHOOK_SECRET DASHBOARD_PASSWORD TELEGRAM_BOT_TOKEN DATABASE_URL; do
+          for var in JWT_SECRET SESSION_SECRET ADMIN_API_TOKEN ENCRYPTION_KEY TELEGRAM_WEBHOOK_SECRET DASHBOARD_PASSWORD TELEGRAM_BOT_TOKEN ADMIN_TELEGRAM_ID PUBLIC_WEBHOOK_URL DATABASE_URL; do
             if [ -z "${!var}" ]; then
               echo "::error::CI environment variable $var is missing or empty."
               exit 1
@@ -186,12 +190,12 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install uvicorn asyncpg
+          pip install uvicorn asyncpg anyio pytest httpx
 
-      - name: Set up Node.js 20
+      - name: Set up Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
           cache-dependency-path: web/package-lock.json
 
@@ -207,7 +211,7 @@ jobs:
         run: |
           python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 &
           sleep 5
-          curl -f http://127.0.0.1:8000/docs || exit 1
+          curl -s -f -o /dev/null http://127.0.0.1:8000/docs || exit 1
 
       - name: Start Next.js Server
         working-directory: web
@@ -215,7 +219,7 @@ jobs:
           npm run build
           npm run start -- -p 3000 &
           sleep 6
-          curl -f http://localhost:3000/ || exit 1
+          curl -s -f -o /dev/null http://127.0.0.1:3000/ || exit 1
 
       - name: Run Entitlement Integration Suite (Auth, Downgrades, UI Logout)
         run: node web/tests/entitlement_integration_suite.mjs

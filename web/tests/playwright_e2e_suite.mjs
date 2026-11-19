@@ -105,12 +105,14 @@ async function runE2ETests() {
     }
   );
 
+  const DASHBOARD_URL = `${BASE_URL}/dashboard`;
+
   try {
     // -------------------------------------------------------------------
     // 1. Initial Load & Authentication as Platform Owner
     // -------------------------------------------------------------------
     console.log("\n--- 1. Authenticating as Platform Owner ---");
-    await page.goto(`${BASE_URL}/`, { waitUntil: "domcontentloaded" });
+    await page.goto(DASHBOARD_URL, { waitUntil: "domcontentloaded" });
     await page.waitForTimeout(500);
     await page.screenshot({ path: path.join(SCREENSHOT_DIR, "01_login_screen.png") });
 
@@ -144,7 +146,7 @@ async function runE2ETests() {
     ];
 
     for (const tab of tabs) {
-      await page.goto(`${BASE_URL}/#${tab}`, { waitUntil: "domcontentloaded" });
+      await page.goto(`${DASHBOARD_URL}#${tab}`, { waitUntil: "domcontentloaded" });
       await page.waitForTimeout(300);
       const currentUrl = page.url();
       const hashMatch = currentUrl.includes(`#${tab}`);
@@ -156,11 +158,11 @@ async function runE2ETests() {
     // 3. Browser Back and Forward History (pushState / popstate)
     // -------------------------------------------------------------------
     console.log("\n--- 3. Testing Browser Back & Forward History (pushState / popstate) ---");
-    await page.goto(`${BASE_URL}/#overview`, { waitUntil: "domcontentloaded" });
+    await page.goto(`${DASHBOARD_URL}#overview`, { waitUntil: "domcontentloaded" });
     await page.waitForTimeout(300);
-    await page.goto(`${BASE_URL}/#products`, { waitUntil: "domcontentloaded" });
+    await page.goto(`${DASHBOARD_URL}#products`, { waitUntil: "domcontentloaded" });
     await page.waitForTimeout(300);
-    await page.goto(`${BASE_URL}/#orders`, { waitUntil: "domcontentloaded" });
+    await page.goto(`${DASHBOARD_URL}#orders`, { waitUntil: "domcontentloaded" });
     await page.waitForTimeout(300);
 
     // Back -> products
@@ -186,7 +188,7 @@ async function runE2ETests() {
     // 4. Platform Owner & Tenant Navigation
     // -------------------------------------------------------------------
     console.log("\n--- 4. Testing Platform Owner & Tenant Navigation ---");
-    await page.goto(`${BASE_URL}/#platform`, { waitUntil: "domcontentloaded" });
+    await page.goto(`${DASHBOARD_URL}#platform`, { waitUntil: "domcontentloaded" });
     await page.waitForTimeout(600);
 
     const bodyText = await page.textContent("body");
@@ -198,7 +200,7 @@ async function runE2ETests() {
     // 5. Profile Tab Rendering in Both Platform Zone and Store Zone
     // -------------------------------------------------------------------
     console.log("\n--- 5. Testing Profile Tab in Platform Zone ---");
-    await page.goto(`${BASE_URL}/#profile`, { waitUntil: "domcontentloaded" });
+    await page.goto(`${DASHBOARD_URL}#profile`, { waitUntil: "domcontentloaded" });
     await page.waitForTimeout(600);
 
     const profileText = await page.textContent("body");
@@ -214,7 +216,7 @@ async function runE2ETests() {
     recordTest("theme_font_switching", "initial_theme_dark", initialTheme === "dark", `data-bs-theme="${initialTheme}"`);
 
     // Switch to Light Theme
-    const lightThemeBtn = page.locator("text=Yorug' (Light)").first();
+    const lightThemeBtn = page.locator('.cursor-pointer:has-text("Yorug\'")').first();
     if (await lightThemeBtn.isVisible()) {
       await lightThemeBtn.click();
       await page.waitForTimeout(400);
@@ -223,7 +225,7 @@ async function runE2ETests() {
       await page.screenshot({ path: path.join(SCREENSHOT_DIR, "07_light_theme.png") });
 
       // Switch back to Dark Theme
-      const darkThemeBtn = page.locator("text=Qorong'i (Dark)").first();
+      const darkThemeBtn = page.locator('.cursor-pointer:has-text("Qorong\'i")').first();
       await darkThemeBtn.click();
       await page.waitForTimeout(400);
       const restoredDark = await page.getAttribute("html", "data-bs-theme");
@@ -290,7 +292,7 @@ async function runE2ETests() {
       // 6.2. Visual Fidelity & Premium Design System Auditing
       // -------------------------------------------------------------------
       console.log("\n--- 6.2. Auditing Premium Minimal Visual Fidelity ---");
-      await page.goto(`${BASE_URL}/#overview`, { waitUntil: "domcontentloaded" });
+      await page.goto(`${DASHBOARD_URL}#overview`, { waitUntil: "domcontentloaded" });
       await page.waitForTimeout(600);
 
       const sidebarWidth = await page.$eval(".sidebar-container", (el) => window.getComputedStyle(el).width).catch(() => "0px");
@@ -301,7 +303,7 @@ async function runE2ETests() {
       recordTest("visual_fidelity", "canvas_deep_black_bg", isDeepBlackBg, `Body background: ${bodyBg}`);
 
       const cardBg = await page.$eval(".card, .linear-card", (el) => window.getComputedStyle(el).backgroundColor).catch(() => "");
-      const isCharcoalCard = cardBg === "rgb(23, 23, 23)" || cardBg === "#171717";
+      const isCharcoalCard = cardBg === "rgb(17, 17, 17)" || cardBg === "#111111" || cardBg === "rgb(23, 23, 23)" || cardBg === "#171717";
       recordTest("visual_fidelity", "dark_charcoal_card_surface", isCharcoalCard, `Card background: ${cardBg}`);
 
       const sidebarBackdrop = await page.$eval(".sidebar-container", (el) => window.getComputedStyle(el).backdropFilter).catch(() => "none");

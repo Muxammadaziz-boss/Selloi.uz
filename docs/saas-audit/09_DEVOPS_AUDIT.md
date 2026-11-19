@@ -1,4 +1,4 @@
-# AI SALES CONTROL CENTER — DEVOPS, INFRASTRUCTURE & RELIABILITY AUDIT
+# AI SALES CONTROL CENTER : DEVOPS, INFRASTRUCTURE & RELIABILITY AUDIT
 
 **Document:** `docs/saas-audit/09_DEVOPS_AUDIT.md`  
 **Purpose:** Audit of containerization, infrastructure, background task processing, webhook reliability, monitoring, CI/CD, and deployment strategy.
@@ -95,7 +95,7 @@ The development environment relies on reverse tunnels:
 ## 5. Backup, Disaster Recovery & High Availability
 
 * **PostgreSQL Backups:** Currently nonexistent. There is no automated cron executing `pg_dump` or streaming WAL logs to S3/Cloud Storage.
-* **Recovery Time Objective (RTO):** Estimated at 4–8 hours (manual reconstruction).
+* **Recovery Time Objective (RTO):** Estimated at 4-8 hours (manual reconstruction).
 * **Recovery Point Objective (RPO):** Up to 24 hours of lost customer conversations in the event of hardware disk failure.
 * **Target RTO / RPO for SaaS:**
   * RTO < 30 minutes.

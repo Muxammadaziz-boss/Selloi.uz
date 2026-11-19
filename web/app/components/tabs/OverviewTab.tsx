@@ -85,7 +85,7 @@ export function OverviewTab({
   const humanPercentage = totalConversations > 0 ? Math.round((takeoverCount / totalConversations) * 100) : 0;
 
   const formatTime = (ts?: string | null) => {
-    if (!ts) return "—";
+    if (!ts) return "-";
     try {
       const d = new Date(ts);
       return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });

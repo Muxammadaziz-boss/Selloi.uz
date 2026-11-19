@@ -1,4 +1,4 @@
-# AI SALES CONTROL CENTER — COMPREHENSIVE RISK REGISTER
+# AI SALES CONTROL CENTER : COMPREHENSIVE RISK REGISTER
 
 **Document:** `docs/saas-audit/13_RISK_REGISTER.md`  
 **Purpose:** Enterprise risk register detailing technical, operational, security, financial, and legal risks.
@@ -7,11 +7,11 @@
 
 ## 1. Risk Scoring Matrix
 
-Risk Score = **Probability (1–5)** × **Impact (1–5)**  
-* **Score 15 – 25:** **CRITICAL** (Requires immediate mitigation before commercial launch).
-* **Score 9 – 14:** **HIGH** (Must be scheduled in Phase 0 or Phase 1).
-* **Score 4 – 8:** **MEDIUM** (Operational monitoring & proactive controls).
-* **Score 1 – 3:** **LOW** (Acceptable residual risk).
+Risk Score = **Probability (1-5)** × **Impact (1-5)**  
+* **Score 15 - 25:** **CRITICAL** (Requires immediate mitigation before commercial launch).
+* **Score 9 - 14:** **HIGH** (Must be scheduled in Phase 0 or Phase 1).
+* **Score 4 - 8:** **MEDIUM** (Operational monitoring & proactive controls).
+* **Score 1 - 3:** **LOW** (Acceptable residual risk).
 
 ---
 

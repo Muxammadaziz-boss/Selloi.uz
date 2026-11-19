@@ -441,7 +441,7 @@ export function SettingsTab({
                       </label>
                       <input
                         type="text"
-                        placeholder="Masalan: 6990611858"
+                        placeholder="Masalan: 5544332211"
                         value={adminChatIdInput}
                         onChange={(e) => setAdminChatIdInput(e.target.value.replace(/[^0-9-]/g, ""))}
                         className="linear-input font-monospace w-100"

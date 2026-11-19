@@ -2,7 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { NAV_ITEMS } from "./data";
+import { useLanguage } from "@/app/lib/i18n";
+import { Language } from "@/app/lib/i18n/types";
+import { NAV_ITEMS_BY_LANG } from "./data";
+import { LANDING_CONTENT_BY_LANG } from "./landingContent";
 import { Sparkles, Menu, X, ArrowRight, Globe } from "lucide-react";
 
 interface HeaderProps {
@@ -16,9 +19,12 @@ export default function Header({
   onOpenLogin,
   isAuthenticated = false,
 }: HeaderProps) {
+  const { language, setLanguage } = useLanguage();
+  const navItems = NAV_ITEMS_BY_LANG[language] || NAV_ITEMS_BY_LANG.uz;
+  const content = (LANDING_CONTENT_BY_LANG[language] || LANDING_CONTENT_BY_LANG.uz).header;
+
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [currentLang, setCurrentLang] = useState<"UZ" | "RU" | "EN">("UZ");
   const [langDropdownOpen, setLangDropdownOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("");
 
@@ -26,8 +32,8 @@ export default function Header({
     const handleScroll = () => {
       setScrolled(window.scrollY > 20);
 
-      // Simple active section detection
-      const sections = NAV_ITEMS.filter((i) => i.href.startsWith("#")).map((i) =>
+      // Section tracker
+      const sections = navItems.filter((i) => i.href.startsWith("#")).map((i) =>
         i.href.substring(1)
       );
       for (const sec of sections) {
@@ -44,42 +50,44 @@ export default function Header({
 
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [navItems]);
 
   return (
     <header
       className="position-sticky top-0 w-100"
       style={{
         zIndex: 100,
-        backgroundColor: scrolled ? "rgba(7, 6, 15, 0.88)" : "transparent",
+        backgroundColor: scrolled ? "rgba(9, 9, 9, 0.94)" : "transparent",
         backdropFilter: scrolled ? "blur(20px)" : "none",
         WebkitBackdropFilter: scrolled ? "blur(20px)" : "none",
-        borderBottom: scrolled ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid transparent",
+        borderBottom: scrolled
+          ? "1px solid var(--s-glass-border)"
+          : "1px solid transparent",
         transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
       }}
     >
-      <div className="selloi-container py-3 d-flex align-items-center justify-content-between">
+      <div className="s-container py-3 d-flex align-items-center justify-content-between">
         {/* Brand Logo */}
         <Link
           href="/"
-          className="d-flex align-items-center gap-2 text-decoration-none"
+          className="d-flex align-items-center gap-2.5 text-decoration-none"
         >
           <div
             className="d-flex align-items-center justify-content-center"
             style={{
-              width: "38px",
-              height: "38px",
-              borderRadius: "12px",
-              background: "linear-gradient(135deg, #A855F7 0%, #6B21A8 100%)",
-              boxShadow: "0 0 24px rgba(168, 85, 247, 0.5), inset 0 0 8px rgba(255, 255, 255, 0.4)",
-              border: "1px solid rgba(255, 255, 255, 0.3)",
+              width: "36px",
+              height: "36px",
+              borderRadius: "8px",
+              background: "var(--s-accent)",
+              boxShadow: "0 1px 3px rgba(0, 0, 0, 0.5)",
+              border: "1px solid rgba(255, 255, 255, 0.2)",
             }}
           >
             <span
               style={{
-                fontSize: "1.25rem",
-                fontWeight: 900,
-                color: "#FFFFFF",
+                fontSize: "1.15rem",
+                fontWeight: 800,
+                color: "#090909",
                 lineHeight: 1,
               }}
             >
@@ -91,16 +99,16 @@ export default function Header({
               fontSize: "1.25rem",
               fontWeight: 800,
               letterSpacing: "-0.5px",
-              color: "#FFFFFF",
+              color: "#F4F4F4",
             }}
           >
-            Selloi<span style={{ color: "#C084FC" }}>.uz</span>
+            Selloi<span style={{ color: "var(--s-accent)" }}>.uz</span>
           </span>
         </Link>
 
         {/* Desktop Navigation */}
         <nav className="d-none d-lg-flex align-items-center gap-4">
-          {NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const isAnchor = item.href.startsWith("#");
             const isActive = isAnchor && activeSection === item.href.substring(1);
             return (
@@ -111,7 +119,7 @@ export default function Header({
                 style={{
                   fontSize: "0.92rem",
                   fontWeight: 500,
-                  color: isActive ? "#FFFFFF" : "#CBD5E1",
+                  color: isActive ? "#FFFFFF" : "var(--s-text-secondary)",
                   transition: "color 0.2s ease",
                 }}
               >
@@ -121,7 +129,7 @@ export default function Header({
                     className="position-absolute bottom-0 start-0 w-100"
                     style={{
                       height: "2px",
-                      background: "linear-gradient(90deg, #A855F7, #38BDF8)",
+                      background: "linear-gradient(90deg, var(--s-purple-bright), var(--s-cyan))",
                       borderRadius: "2px",
                     }}
                   />
@@ -133,54 +141,60 @@ export default function Header({
 
         {/* Actions & Language Selector */}
         <div className="d-none d-md-flex align-items-center gap-3">
-          {/* Language Switcher Placeholder (UZ / RU / EN) */}
+          {/* Language Switcher */}
           <div className="position-relative">
             <button
               onClick={() => setLangDropdownOpen(!langDropdownOpen)}
               className="d-flex align-items-center gap-1.5 px-2.5 py-1.5"
               style={{
                 background: "rgba(255, 255, 255, 0.05)",
-                border: "1px solid rgba(255, 255, 255, 0.12)",
+                border: "1px solid var(--s-glass-border)",
                 borderRadius: "8px",
-                color: "#E2E8F0",
+                color: "var(--s-text-primary)",
                 fontSize: "0.82rem",
                 cursor: "pointer",
               }}
-              title="Tilni tanlash (UZ/RU/EN)"
+              title={content.languageLabel}
             >
-              <Globe size={13} color="#A855F7" />
-              <span className="fw-semibold">{currentLang}</span>
+              <Globe size={13} color="var(--s-purple-soft)" />
+              <span className="fw-semibold">{language.toUpperCase()}</span>
             </button>
 
             {langDropdownOpen && (
               <div
                 className="position-absolute end-0 mt-2 py-1"
                 style={{
-                  width: "90px",
-                  background: "rgba(16, 17, 30, 0.96)",
-                  border: "1px solid rgba(168, 85, 247, 0.3)",
+                  width: "110px",
+                  background: "rgba(17, 15, 29, 0.96)",
+                  border: "1px solid var(--s-glass-border-hover)",
                   borderRadius: "10px",
                   backdropFilter: "blur(16px)",
                   boxShadow: "0 10px 25px rgba(0,0,0,0.5)",
                   zIndex: 110,
                 }}
               >
-                {(["UZ", "RU", "EN"] as const).map((lang) => (
+                {(
+                  [
+                    { code: "uz", label: "O‘zbek" },
+                    { code: "ru", label: "Русский" },
+                    { code: "en", label: "English" },
+                  ] as const
+                ).map((item) => (
                   <button
-                    key={lang}
+                    key={item.code}
                     onClick={() => {
-                      setCurrentLang(lang);
+                      setLanguage(item.code);
                       setLangDropdownOpen(false);
                     }}
                     className="w-100 text-start px-3 py-1.5 border-0 bg-transparent"
                     style={{
                       fontSize: "0.82rem",
-                      color: currentLang === lang ? "#C084FC" : "#94A3B8",
-                      fontWeight: currentLang === lang ? 700 : 400,
+                      color: language === item.code ? "var(--s-purple-soft)" : "var(--s-text-muted)",
+                      fontWeight: language === item.code ? 700 : 400,
                       cursor: "pointer",
                     }}
                   >
-                    {lang === "UZ" ? "O‘zbek" : lang === "RU" ? "Русский" : "English"}
+                    {item.label}
                   </button>
                 ))}
               </div>
@@ -190,29 +204,29 @@ export default function Header({
           {isAuthenticated ? (
             <Link
               href="/dashboard"
-              className="selloi-btn-secondary py-2 px-3"
+              className="s-btn-secondary py-2 px-3"
               style={{ fontSize: "0.88rem" }}
             >
-              <span>Boshqaruv paneli</span>
+              <span>{content.dashboardBtn}</span>
               <ArrowRight size={15} />
             </Link>
           ) : (
             <button
               onClick={onOpenLogin}
-              className="selloi-btn-secondary py-2 px-3"
+              className="s-btn-secondary py-2 px-3"
               style={{ fontSize: "0.88rem" }}
             >
-              Kirish
+              {content.loginBtn}
             </button>
           )}
 
           <button
             onClick={onOpenOnboarding}
-            className="selloi-btn-primary py-2 px-3.5"
+            className="s-btn-primary py-2 px-3.5"
             style={{ fontSize: "0.88rem" }}
           >
             <Sparkles size={15} />
-            <span>Do‘kon ochish</span>
+            <span>{content.createStoreBtn}</span>
           </button>
         </div>
 
@@ -220,17 +234,17 @@ export default function Header({
         <div className="d-flex d-md-none align-items-center gap-2">
           <button
             onClick={onOpenOnboarding}
-            className="selloi-btn-primary py-1.5 px-3"
+            className="s-btn-primary py-1.5 px-3"
             style={{ fontSize: "0.8rem" }}
           >
-            Boshlash
+            {content.startBtn}
           </button>
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="btn btn-dark p-2"
             style={{
               background: "rgba(255,255,255,0.06)",
-              border: "1px solid rgba(255,255,255,0.12)",
+              border: "1px solid var(--s-glass-border)",
               color: "#FFFFFF",
             }}
             aria-label="Menyuni ochish"
@@ -243,38 +257,49 @@ export default function Header({
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
         <div
-          className="d-md-none border-top border-secondary border-opacity-25 px-4 py-4"
+          className="d-md-none border-top px-4 py-4"
           style={{
-            background: "rgba(7, 6, 15, 0.98)",
+            background: "rgba(5, 4, 10, 0.98)",
             backdropFilter: "blur(24px)",
+            borderColor: "var(--s-glass-border) !important",
           }}
         >
           <nav className="d-flex flex-column gap-3 mb-4">
-            {NAV_ITEMS.map((item) => (
+            {navItems.map((item) => (
               <a
                 key={item.href}
                 href={item.href}
                 onClick={() => setMobileMenuOpen(false)}
                 className="text-decoration-none py-1.5 d-flex align-items-center justify-content-between"
-                style={{ fontSize: "1.05rem", fontWeight: 500, color: "#E2E8F0" }}
+                style={{
+                  fontSize: "1.05rem",
+                  fontWeight: 500,
+                  color: "var(--s-text-primary)",
+                }}
               >
                 <span>{item.label}</span>
-                <ArrowRight size={14} color="#A855F7" />
+                <ArrowRight size={14} color="var(--s-purple-soft)" />
               </a>
             ))}
           </nav>
 
           <div className="d-flex align-items-center justify-content-between py-2 border-top border-secondary border-opacity-25 mb-3">
-            <span className="text-secondary small">Til:</span>
+            <span className="text-secondary small">{content.languageLabel}:</span>
             <div className="d-flex gap-1">
-              {(["UZ", "RU", "EN"] as const).map((lang) => (
+              {(
+                [
+                  { code: "uz", label: "UZ" },
+                  { code: "ru", label: "RU" },
+                  { code: "en", label: "EN" },
+                ] as const
+              ).map((item) => (
                 <button
-                  key={lang}
-                  onClick={() => setCurrentLang(lang)}
-                  className={`btn btn-sm ${currentLang === lang ? "btn-primary" : "btn-outline-secondary"}`}
+                  key={item.code}
+                  onClick={() => setLanguage(item.code)}
+                  className={`btn btn-sm ${language === item.code ? "btn-primary" : "btn-outline-secondary"}`}
                   style={{ fontSize: "0.75rem", padding: "2px 8px" }}
                 >
-                  {lang}
+                  {item.label}
                 </button>
               ))}
             </div>
@@ -284,9 +309,9 @@ export default function Header({
             {isAuthenticated ? (
               <Link
                 href="/dashboard"
-                className="selloi-btn-secondary text-center py-2"
+                className="s-btn-secondary text-center py-2"
               >
-                Boshqaruv paneli
+                {content.dashboardBtn}
               </Link>
             ) : (
               <button
@@ -294,9 +319,9 @@ export default function Header({
                   setMobileMenuOpen(false);
                   onOpenLogin();
                 }}
-                className="selloi-btn-secondary text-center py-2"
+                className="s-btn-secondary text-center py-2"
               >
-                Kirish
+                {content.loginBtn}
               </button>
             )}
             <button
@@ -304,10 +329,10 @@ export default function Header({
                 setMobileMenuOpen(false);
                 onOpenOnboarding();
               }}
-              className="selloi-btn-primary text-center py-2.5"
+              className="s-btn-primary text-center py-2.5"
             >
               <Sparkles size={16} />
-              <span>7 kun bepul boshlash</span>
+              <span>{content.startBtn}</span>
             </button>
           </div>
         </div>

@@ -45,5 +45,4 @@ python 1-telegram-bot/scripts/set_webhook.py
 
 ## 🔗 Aloqador Modullar:
 - **`2-telegram-user-chat`**: Foydalanuvchi matnli savol berganda, ushbu modulga uzatiladi (Gemini AI va RAG orqali javob olish).
-- **`3-sayt-publik`**: Telegram menyusidagi "🛍 Do'konimizga o'tish" WebApp tugmasi aynan public veb-saytga olib boradi.
 - **`4-admin-dashboard`**: Admin paneldagi sozlamalar bot holatini va javob berish parametrlarini belgilaydi.

@@ -1,68 +1,80 @@
-# AI Sales Assistant & E-Commerce Platform
+# Selloi.uz : AI-Powered Sales Automation Platform
 
-Telegram orqali avtomatlashtirilgan AI savdo assistenti, public veb-do'kon (storefront) va do'kon boshqaruv paneli (SaaS Admin Dashboard).
+Telegram orqali avtomatlashtirilgan aqlli savdo assistenti, ko'p ijarachili (multi-tenant) SaaS boshqaruv paneli va korxona darajasidagi integratsiyalashgan platforma.
 
 ---
 
-## 🏛 Loyihaning 4 Ta Asosiy Moduli
+## Arxitektura va Tizim Komponentlari
 
-Loyiha arxitekturasi qat'iy va mustaqil ravishda **4 ta asosiy qismga** ajratilgan:
+Platforma arxitekturasi qat'iy va mustaqil modullarga ajratilgan:
 
 ```
-├── 1-telegram-bot/          # 1-Telegram Bot Gateway & Buyruqlar
-├── 2-telegram-user-chat/     # 2-Telegram User Chat & AI Dvigateli (Gemini RAG)
-├── 3-sayt-publik/            # 3-Public Veb-Do'kon & Telegram WebApp
-└── 4-admin-dashboard/        # 4-Sotuvchilar va Admin Boshqaruv Paneli
+├── 1-telegram-bot/          # Telegram Bot Gateway va buyruqlar qayta ishlovchisi
+├── 2-telegram-user-chat/     # Telegram foydalanuvchi suhbatlari va AI dvigateli (Gemini RAG)
+├── 4-admin-dashboard/        # Do'kon egalari va adminlar boshqaruv paneli (web/)
+├── app/                     # FastAPI backend, ma'lumotlar bazasi va biznes mantig'i
+└── web/                     # Next.js 15 App Router boshqaruv tizimi
 ```
 
 ---
 
-### 1️⃣ `1-telegram-bot` (Telegram Bot tomoni)
-Telegram Bot API bilan to'g'ridan-to'g'ri ishlovchi aloqa shlyuzi.
-- **Vazifasi:** Telegram serverlaridan keluvchi xabarlar, buyruqlar (`/start`, `/help`, `/operator`) va tugmalar hodisalarini qabul qilish.
-- **Xususiyatlari:** Inline va Reply tugmalar, WebApp ochish havolasi, Webhook routeri va mustaqil Polling ishga tushirish imkoniyati.
-- **Batafsil:** [1-telegram-bot/README.md](file:///d:/Ishchi%20stoli/proyekt/Telegram%20ai%20agent/1-telegram-bot/README.md)
+## Asosiy Modullar
 
-### 2️⃣ `2-telegram-user-chat` (Telegram User Chat tomoni)
-Mijoz bilan aqlli savdo muloqotini olib boruvchi AI miya.
-- **Vazifasi:** Foydalanuvchining har bir savolini tahlil qilish, do'kon tovarlari haqida aniq ma'lumot berish, buyurtmalarni shakllantirish va operatorga topshirish.
-- **Xususiyatlari:** Google Gemini (3.1 Flash Lite / 2.5 Flash), RAG katalog qidiruvi (to'qima narxlarsiz), operatorga uzatish (human handover) va mijoz sessiyalarini boshqarish.
-- **Batafsil:** [2-telegram-user-chat/README.md](file:///d:/Ishchi%20stoli/proyekt/Telegram%20ai%20agent/2-telegram-user-chat/README.md)
+### 1. Telegram Bot Shlyuzi (`1-telegram-bot`)
+Telegram Bot API bilan to'g'ridan-to'g'ri aloqa o'rnatuvchi xavfsiz shlyuz.
+* **Vazifasi:** Telegram serverlaridan keluvchi xabarlar, buyruqlar (`/start`, `/help`, `/operator`) va tugmalar hodisalarini qabul qilish.
+* **Xususiyatlari:** Inline va Reply tugmalar, xavfsiz Webhook routeri va mustaqil xizmat sifatida ishlash imkoniyati.
 
-### 3️⃣ `3-sayt-publik` (Sayt Publik tomoni - Onlayn Do'kon)
-Tashqi xaridorlar uchun mustaqil onlayn veb-do'kon va Telegram WebApp.
-- **Vazifasi:** Xaridorlarga tovarlarni vizual ko'rish, toifalar bo'yicha saralash, savatga yig'ish va buyurtma berish imkonini berish.
-- **Xususiyatlari:** Zamonaviy qorong'i/yorug' mavzu, Telegram WebApp bilan to'liq integratsiya, savat (cart) boshqaruvi va kelajakdagi to'lov tizimlari (Payme, Click, Uzum).
-- **Batafsil:** [3-sayt-publik/README.md](file:///d:/Ishchi%20stoli/proyekt/Telegram%20ai%20agent/3-sayt-publik/README.md)
+### 2. Aqlli Suhbat va AI Savdo Dvigateli (`2-telegram-user-chat`)
+Mijoz bilan aqlli savdo muloqotini olib boruvchi sun'iy intellekt tizimi.
+* **Vazifasi:** Foydalanuvchining har bir savolini tahlil qilish, do'kon tovarlari bo'yicha aniq ma'lumot berish va buyurtmalarni shakllantirish.
+* **Xususiyatlari:** Google Gemini (3.1 Flash Lite va 2.5 Flash), RAG katalog qidiruvi (to'qima narxlarsiz), operatorga uzatish (human handover) va sessiyalarni boshqarish.
 
-### 4️⃣ `4-admin-dashboard` (Sotuvchilar va Admin Dashboard tomoni)
-Do'kon egalari va sotuvchi operatorlar uchun keng qamrovli boshqaruv tizimi.
-- **Vazifasi:** Jonli suhbatlarni kuzatish va aralashish (takeover), tovarlar va buyurtmalarni boshqarish, AI sozlamalari, billing va rollar matritsasi.
-- **Xususiyatlari:** Next.js 15, 3 ta mustaqil dizayn tizimi (Premium Linear, Apple iOS, Classic), 16 ta modulli bo'lim va to'liq ikki tillilik (UZ/EN).
-- **Batafsil:** [4-admin-dashboard/README.md](file:///d:/Ishchi%20stoli/proyekt/Telegram%20ai%20agent/4-admin-dashboard/README.md)
+### 3. Boshqaruv Paneli va SaaS Tizimi (`web/` va `4-admin-dashboard`)
+Do'kon egalari, tizim menejerlari va sotuvchi operatorlar uchun executive boshqaruv tizimi.
+* **Dizayn yo'nalishi:** Selloi Executive Master Design (Obsidian `#090909`, Carbon `#111111`, Selloi Bronze Gold `#E6A15A`, Geist va Geist Mono tipografiyasi).
+* **Ko'p tillilik:** 3 ta to'liq til qo'llab-quvvatlanadi: O'zbekcha (`uz`), Русский (`ru`), English (`en`).
+* **16 ta modulli bo'lim:**
+  * Boshqaruv paneli (Overview), Jonli suhbatlar (Inbox), Bilimlar bazasi (Knowledge).
+  * Mahsulotlar (Products), Buyurtmalar (Orders), Mijozlar (Customers).
+  * Suhbatlar tahlili (Analytics), AI assistent sozlamalari (Settings).
+  * Limitlar va hisoblagichlar (Usage), Obuna va to'lovlar (Billing), Tarif rejalari (Pricing).
+  * Jamoa va ruxsatlar matritsasi (Team), Administratorlar (Admins), Tizim jurnali (Logs), Profil va ko'rinish (Profile).
+  * Platforma nazorati: Super-admin do'konlar portfeli (Platform).
 
 ---
 
-## ⚡ Tezkor Ishga Tushirish
+## Ishlab Chiqish va Ishga Tushirish
 
-### Backend & API Server:
+### Backend va API Server:
 ```bash
+# Virtual muhitni faollashtirish va ishga tushirish:
 .venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-### Admin Dashboard (Next.js 15):
+### Boshqaruv Paneli (Next.js 15):
 ```bash
-npm --prefix web run dev
-# yoki
-npm --prefix 4-admin-dashboard run dev
+cd web
+npm install
+npm run dev
 ```
 
-### Public Storefront:
+### Ishlab Chiqarish (Production) Yig'ish:
 ```bash
-python -m http.server 5000 --directory 3-sayt-publik
+cd web
+npm run build
+npm run start
 ```
 
-### Telegram Bot:
-```bash
-python 1-telegram-bot/bot.py
-```
+---
+
+## Testlash va Sifat Nazorati (CI/CD)
+
+Platforma GitHub Actions orqali qat'iy tekshiruv eshiklaridan o'tadi:
+* **Backend Pytest:** 70 ta avtomatlashtirilgan xavfsizlik va mantiq testlari.
+* **Moliyaviy hisob-kitob auditi:** Micro-USD va token hisoblash aniqligi testi (`scripts/financial_formula_trace.py`).
+* **Frontend TypeScript va Next.js Build:** Qat'iy `tsc --noEmit` va ishlab chiqarish yig'ilishi.
+* **Dizayn huquqlari testi:** 3 ta tarif x 3 ta dizayn tizimi matritsasi (`tests/design_entitlement_suite.mjs`).
+* **Playwright E2E:** 16 ta tab, autentifikatsiya, pushState/popState va modallar.
+* **Axe-Core WCAG 2.1 AA:** Dark va Light rejimlarda to'liq qulaylik auditi (0 ta xatolik).
+* **Responsive Suite:** 5 ta asosiy qurilma o'lchamida gorizontal scrollning yo'qligi.

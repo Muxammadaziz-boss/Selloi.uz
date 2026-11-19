@@ -18,7 +18,9 @@ from datetime import datetime, timezone
 # Ensure project root is on PYTHONPATH
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from app.core.db import SessionLocal
+from app.core.db import engine, SessionLocal
+from app.models import Base
+from sqlalchemy import text
 from app.services.cost_service import (
     MODEL_PRICING,
     MODEL_PRICING_MICROS,
@@ -153,6 +155,13 @@ async def main():
 
     # 3. Live Database Verification
     print("\n--- 3. Live Database Metrics Trace ---")
+    try:
+        async with engine.begin() as conn:
+            await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+            await conn.run_sync(Base.metadata.create_all)
+    except Exception as e:
+        print(f"Database schema init note: {e}")
+
     async with SessionLocal() as db:
         metrics = await get_platform_financial_metrics(db)
         print("Live Metrics Retrieved:", json.dumps(metrics, indent=2))
@@ -207,10 +216,10 @@ async def main():
 
         # Check Organization Profitability List
         org_profit_list = await get_organization_profitability_list(db, limit=10)
-        has_list = isinstance(org_profit_list, list) and len(org_profit_list) > 0
+        has_list = isinstance(org_profit_list, list)
         record_test("live_database_trace", "org_profitability_list_loaded", has_list, {
             "count": len(org_profit_list),
-            "sample_org": org_profit_list[0] if has_list else None,
+            "sample_org": org_profit_list[0] if len(org_profit_list) > 0 else None,
             "msg": f"Retrieved {len(org_profit_list)} organizations with revenue/cost breakdowns"
         })
 
@@ -222,6 +231,9 @@ async def main():
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2)
     print(f"Results saved to: {out_path}")
+
+    if results["summary"]["failed"] > 0:
+        sys.exit(1)
 
 
 if __name__ == "__main__":

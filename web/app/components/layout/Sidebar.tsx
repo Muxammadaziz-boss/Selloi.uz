@@ -193,7 +193,7 @@ export function Sidebar({
       {/* Mobile Drawer Backdrop */}
       {mobileOpen && (
         <div
-          className="d-lg-none position-fixed"
+          className="d-md-none position-fixed"
           style={{
             top: 0,
             left: 0,
@@ -211,7 +211,7 @@ export function Sidebar({
 
       <aside
         className={`d-flex flex-column border-end flex-shrink-0 sidebar-container ${
-          mobileOpen ? "d-flex position-fixed start-0 top-0 bottom-0 shadow-lg" : "d-none d-lg-flex"
+          mobileOpen ? "d-flex position-fixed start-0 top-0 bottom-0 shadow-lg" : "d-none d-md-flex"
         }`}
         style={{
           width: mobileOpen ? "270px" : collapsed ? "64px" : "var(--sidebar-width, 240px)",
@@ -242,7 +242,7 @@ export function Sidebar({
               style={{
                 width: "32px",
                 height: "32px",
-                background: "rgba(94, 106, 210, 0.12)",
+                background: "var(--accent-subtle)",
                 border: "1px solid var(--accent-border)",
               }}
             >
@@ -273,11 +273,11 @@ export function Sidebar({
             )}
           </div>
 
-          {/* Desktop Sidebar Collapse Toggle Button */}
+          {/* Desktop/Tablet Sidebar Collapse Toggle Button */}
           <button
             type="button"
             onClick={onToggleCollapse}
-            className="btn btn-sm p-1 d-none d-lg-flex align-items-center justify-content-center rounded"
+            className="btn btn-sm p-1 d-none d-md-flex align-items-center justify-content-center rounded"
             style={{
               background: "transparent",
               color: "var(--text-secondary)",
@@ -294,7 +294,7 @@ export function Sidebar({
           <button
             type="button"
             onClick={onCloseMobile}
-            className="btn btn-sm p-1 d-flex d-lg-none align-items-center justify-content-center rounded"
+            className="btn btn-sm p-1 d-flex d-md-none align-items-center justify-content-center rounded"
             style={{
               background: "transparent",
               color: "var(--text-secondary)",
@@ -325,9 +325,9 @@ export function Sidebar({
               style={{
                 fontSize: "0.72rem",
                 cursor: "pointer",
-                fontWeight: 700,
-                backgroundColor: zone === "platform" ? "#1e40af" : "transparent",
-                color: zone === "platform" ? "#ffffff" : "var(--text-primary)",
+                fontWeight: 600,
+                backgroundColor: zone === "platform" ? "var(--accent)" : "transparent",
+                color: zone === "platform" ? "#090909" : "var(--text-secondary)",
               }}
             >
               {t("nav.item.platform")}
@@ -339,9 +339,9 @@ export function Sidebar({
               style={{
                 fontSize: "0.72rem",
                 cursor: "pointer",
-                fontWeight: 700,
-                backgroundColor: zone === "store" ? "#1e40af" : "transparent",
-                color: zone === "store" ? "#ffffff" : "var(--text-primary)",
+                fontWeight: 600,
+                backgroundColor: zone === "store" ? "var(--accent)" : "transparent",
+                color: zone === "store" ? "#090909" : "var(--text-secondary)",
               }}
             >
               {t("nav.item.stores")}
@@ -404,7 +404,7 @@ export function Sidebar({
                       onCloseMobile?.();
                     }}
                     className={`nav-link-item ${
-                      isActive ? "active fw-medium" : "text-secondary"
+                      isActive ? "linear-active text-primary fw-medium" : "text-secondary"
                     } d-flex align-items-center gap-2.5 px-2.5 py-1.5 rounded text-start w-100 border-0 transition-all`}
                     style={{
                       backgroundColor: isActive ? "var(--bg-surface-hover)" : "transparent",
@@ -438,7 +438,7 @@ export function Sidebar({
                               : "var(--accent-subtle)",
                           color:
                             typeof item.badge === "number"
-                              ? "#fff"
+                              ? "#090909"
                               : "var(--accent-text)",
                         }}
                       >

@@ -66,3 +66,9 @@ html[data-design="ios"] .chat-bubble-peer {
   color: var(--text-primary) !important;
   border-radius: 18px 18px 18px 4px !important;
 }
+
+html[data-design="ios"] .badge.bg-success,
+html[data-design="ios"] .bg-success.text-white {
+  background-color: #065f46 !important;
+  color: #ffffff !important;
+}

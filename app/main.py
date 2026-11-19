@@ -97,10 +97,6 @@ async def lifespan(application: FastAPI):
     # Mount static files after storage directory is guaranteed to exist.
     application.mount("/storage", StaticFiles(directory=storage_path), name="storage")
 
-    storefront_path = Path(__file__).resolve().parent.parent / "3-sayt-publik"
-    if storefront_path.exists():
-        application.mount("/shop", StaticFiles(directory=storefront_path, html=True), name="shop")
-
     # Initialize SaaS Plans, Defaults, and Default Organization
     try:
         async with SessionLocal() as db:

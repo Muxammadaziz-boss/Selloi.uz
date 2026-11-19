@@ -1,4 +1,4 @@
-# AI SALES CONTROL CENTER — ARCHITECTURE MAP & DATA FLOW
+# AI SALES CONTROL CENTER : ARCHITECTURE MAP & DATA FLOW
 
 **Document:** `docs/saas-audit/02_ARCHITECTURE_MAP.md`  
 **Purpose:** Map the existing application topology against the target multi-tenant SaaS architecture and trace end-to-end data flows.

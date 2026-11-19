@@ -1,4 +1,4 @@
-# AI SALES CONTROL CENTER — FRONTEND ARCHITECTURE & TABLER UI AUDIT
+# AI SALES CONTROL CENTER : FRONTEND ARCHITECTURE & TABLER UI AUDIT
 
 **Document:** `docs/saas-audit/07_FRONTEND_AUDIT.md`  
 **Purpose:** Comprehensive audit of Next.js 14 App Router, Tabler design system fidelity, frontend state management, security boundaries, and UI defect analysis.

@@ -1,41 +1,40 @@
 "use client";
 
 import React from "react";
-import { TRUST_METRICS } from "./data";
+import { useLanguage } from "@/app/lib/i18n";
+import { TRUST_METRICS_BY_LANG } from "./data";
 import { Clock, Globe, Target, Zap } from "lucide-react";
 
 export default function TrustBar() {
+  const { language } = useLanguage();
+  const metrics = TRUST_METRICS_BY_LANG[language] || TRUST_METRICS_BY_LANG.uz;
+
   const getIcon = (index: number) => {
     switch (index) {
       case 0:
-        return <Clock size={18} color="#C084FC" />;
+        return <Clock size={20} color="var(--s-purple-soft)" />;
       case 1:
-        return <Globe size={18} color="#38BDF8" />;
+        return <Globe size={20} color="var(--s-cyan)" />;
       case 2:
-        return <Target size={18} color="#34D399" />;
+        return <Target size={20} color="var(--s-emerald)" />;
       case 3:
       default:
-        return <Zap size={18} color="#FBBF24" />;
+        return <Zap size={20} color="var(--s-amber)" />;
     }
   };
 
   return (
-    <section className="py-2 position-relative z-2">
-      <div className="selloi-container">
+    <section className="py-2 position-relative" style={{ zIndex: 3 }}>
+      <div className="s-container">
         <div
-          className="p-4 p-md-4 rounded-4"
-          style={{
-            background: "#0D0E17",
-            border: "1px solid rgba(255, 255, 255, 0.08)",
-            boxShadow: "0 10px 30px rgba(0, 0, 0, 0.4)",
-          }}
+          className="p-4 p-md-4 rounded-4 s-glass-card"
         >
           <div className="row g-4 align-items-center">
-            {TRUST_METRICS.map((metric, idx) => (
+            {metrics.map((metric, idx) => (
               <div
                 key={metric.value}
                 className={`col-6 col-md-3 ${
-                  idx !== TRUST_METRICS.length - 1
+                  idx !== metrics.length - 1
                     ? "border-end-md border-secondary border-opacity-25"
                     : ""
                 }`}
@@ -44,11 +43,11 @@ export default function TrustBar() {
                   <div
                     className="d-flex align-items-center justify-content-center flex-shrink-0"
                     style={{
-                      width: "42px",
-                      height: "42px",
-                      borderRadius: "10px",
-                      background: "#151624",
-                      border: "1px solid rgba(255, 255, 255, 0.08)",
+                      width: "44px",
+                      height: "44px",
+                      borderRadius: "12px",
+                      background: "rgba(255, 255, 255, 0.04)",
+                      border: "1px solid var(--s-glass-border)",
                     }}
                   >
                     {getIcon(idx)}
@@ -57,7 +56,7 @@ export default function TrustBar() {
                     <div
                       className="fw-extrabold text-white"
                       style={{
-                        fontSize: "clamp(1.4rem, 2.2vw, 1.85rem)",
+                        fontSize: "clamp(1.5rem, 2.4vw, 1.95rem)",
                         letterSpacing: "-0.03em",
                         lineHeight: 1.1,
                       }}
@@ -71,8 +70,8 @@ export default function TrustBar() {
                       {metric.label}
                     </div>
                     <div
-                      className="text-secondary small"
-                      style={{ fontSize: "0.76rem", color: "#94A3B8" }}
+                      className="small"
+                      style={{ fontSize: "0.76rem", color: "var(--s-text-muted)" }}
                     >
                       {metric.sublabel}
                     </div>

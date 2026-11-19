@@ -242,7 +242,7 @@ export function ProductsTab({
             setEditingProduct(null);
             setIsAddingProduct(false);
           }}
-          title={editingProduct ? `${editingProduct.name} — Tahrirlash` : "Yangi Mahsulot Qo'shish"}
+          title={editingProduct ? `${editingProduct.name}: Tahrirlash` : "Yangi Mahsulot Qo'shish"}
           size="md"
           footer={
             <div className="d-flex justify-content-end gap-2">

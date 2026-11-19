@@ -1,4 +1,4 @@
-# AI SALES CONTROL CENTER — DATABASE ARCHITECTURE & MIGRATION AUDIT
+# AI SALES CONTROL CENTER : DATABASE ARCHITECTURE & MIGRATION AUDIT
 
 **Document:** `docs/saas-audit/06_DATABASE_AUDIT.md`  
 **Purpose:** Comprehensive audit of database models, relational integrity, vector storage, indexing, schema drift, and Alembic unification.
@@ -58,7 +58,7 @@ erDiagram
 * **The Problem:** The repository has an active Alembic setup under `alembic/`, but it contains only **one single revision**:
   `alembic/versions/3d38b39cf960_init_schema.py` (created on Jan 30, 2026).
   This migration only created the initial 6 tables (`settings`, `connected_channels`, `channel_posts`, `conversations`, `messages`, `admins`).
-* **Runtime DDL Hack:** To compensate, `app/main.py` lines 45–95 executes imperative raw SQL at application startup:
+* **Runtime DDL Hack:** To compensate, `app/main.py` lines 45-95 executes imperative raw SQL at application startup:
   ```python
   await db.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
   await db.execute(text("ALTER TABLE conversations ADD COLUMN IF NOT EXISTS organization_id INTEGER REFERENCES organizations(id)..."))
@@ -104,7 +104,7 @@ Most queries in a multi-tenant system query by `organization_id` combined with a
 To achieve enterprise database stability, we must execute a clean migration reconciliation:
 
 1. **Phase 1: Dump Current Intended State:** Generate a complete Alembic migration representing the full multi-tenant schema as defined in `app/models.py`.
-2. **Phase 2: Purge Imperative DDL from `app/main.py`:** Delete lines 45–95 in `app/main.py`. The application startup event must only check database connectivity (`SELECT 1`), never alter database structure.
+2. **Phase 2: Purge Imperative DDL from `app/main.py`:** Delete lines 45-95 in `app/main.py`. The application startup event must only check database connectivity (`SELECT 1`), never alter database structure.
 3. **Phase 3: Baseline Existing Databases:** For existing production/staging instances, stamp the current schema revision using `alembic stamp <head_revision>`.
 4. **Phase 4: CI/CD Enforcement:** Add an automated migration verification test to CI that executes `alembic upgrade head` on a clean PostgreSQL container and verifies that `alembic check` reports no pending drift.
 

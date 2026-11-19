@@ -622,7 +622,7 @@ export function OnboardingModal({ isOpen, onClose, onComplete }: OnboardingModal
                       <input
                         type="text"
                         className="form-control font-monospace"
-                        placeholder="Masalan: 6990611858"
+                        placeholder="Masalan: 5544332211"
                         value={adminChatId}
                         onChange={(e) => setAdminChatId(e.target.value.replace(/[^0-9-]/g, ""))}
                       />

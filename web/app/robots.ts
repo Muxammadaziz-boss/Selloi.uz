@@ -6,7 +6,12 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/dashboard/", "/api/", "/platform/"],
+        disallow: [
+          "/dashboard/",
+          "/platform/",
+          "/api/",
+          "/t/",
+        ],
       },
     ],
     sitemap: "https://selloi.uz/sitemap.xml",
