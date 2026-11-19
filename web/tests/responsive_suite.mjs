@@ -44,7 +44,7 @@ function recordTest(vpName, testName, passed, details = "") {
 
 async function runResponsiveTests() {
   console.log("==================================================================");
-  console.log("RESPONSIVE VIEWPORT TESTING SUITE — PHASE 3.2 HARDENED");
+  console.log("RESPONSIVE VIEWPORT TESTING SUITE: PHASE 3.2 HARDENED");
   console.log(`Target: ${BASE_URL} | Commit: ${results.metadata.commitSha}`);
   console.log("==================================================================");
 

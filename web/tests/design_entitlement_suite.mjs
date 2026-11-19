@@ -36,7 +36,7 @@ function assert(condition, testName, details = "") {
 }
 
 console.log("==================================================================");
-console.log("DESIGN SYSTEM ENTITLEMENT & SECURITY AUDIT — PHASE 4.1");
+console.log("DESIGN SYSTEM ENTITLEMENT & SECURITY AUDIT: PHASE 4.1");
 console.log("==================================================================");
 
 // --- 1. PLAN NORMALIZATION ---

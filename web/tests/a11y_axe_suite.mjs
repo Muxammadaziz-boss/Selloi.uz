@@ -62,7 +62,7 @@ const auditReport = {
 
 async function runAccessibilityAudit() {
   console.log("==================================================================");
-  console.log("AXE-CORE ACCESSIBILITY AUDIT SUITE (WCAG 2.1 AA) — PHASE 3.2 HARDENED");
+  console.log("AXE-CORE ACCESSIBILITY AUDIT SUITE (WCAG 2.1 AA): PHASE 3.2 HARDENED");
   console.log(`Target: ${BASE_URL} | Commit: ${auditReport.metadata.commitSha}`);
   console.log("==================================================================");
 

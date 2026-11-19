@@ -44,7 +44,7 @@ function recordTest(suite, name, passed, details = "") {
 
 async function runE2ETests() {
   console.log("==================================================================");
-  console.log("PLAYWRIGHT E2E AUTOMATED BROWSER TEST SUITE — PHASE 3.2 HARDENED");
+  console.log("PLAYWRIGHT E2E AUTOMATED BROWSER TEST SUITE: PHASE 3.2 HARDENED");
   console.log(`Target: ${BASE_URL} | Commit: ${testResults.metadata.commitSha}`);
   console.log("==================================================================");
 
