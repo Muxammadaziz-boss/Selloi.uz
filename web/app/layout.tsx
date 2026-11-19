@@ -3,14 +3,123 @@ import "@tabler/core/dist/css/tabler.min.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "AI Sales Control",
-  description: "Telegram Business AI sales management dashboard",
+  metadataBase: new URL("https://selloi.uz"),
+  title: {
+    default: "Selloi: Telegram do'konlari uchun AI sotuvchi",
+    template: "%s | Selloi",
+  },
+  description:
+    "Selloi: O'zbekiston Telegram do'konlari uchun 24/7 ishlaydigan sun'iy intellekt sotuvchisi. Mijozlarga o'zbek tilida javob beradi, mahsulotlarni taniydi va buyurtmalarni qabul qiladi.",
+  applicationName: "Selloi",
+  keywords: [
+    "Selloi",
+    "Selloi.uz",
+    "Selloi AI",
+    "Selloi Telegram AI",
+    "Selloi AI sotuvchi",
+    "Telegram do'kon",
+    "Telegram bot sotuvchi",
+    "Telegram avtomatlashtirish",
+    "O'zbekiston AI sotuvchi",
+  ],
+  authors: [{ name: "Selloi" }],
+  creator: "Selloi",
+  publisher: "Selloi",
+  alternates: {
+    canonical: "/",
+  },
+  icons: {
+    icon: [
+      { url: "/logo.svg", type: "image/svg+xml" },
+    ],
+    apple: [
+      { url: "/logo.svg", type: "image/svg+xml" },
+    ],
+  },
+  openGraph: {
+    title: "Selloi: Telegram do'konlari uchun AI sotuvchi",
+    description: "Telegram do'koningizda mijozlarga 24/7 xizmat ko'rsatadigan AI sotuvchi.",
+    url: "https://selloi.uz/",
+    siteName: "Selloi",
+    locale: "uz_UZ",
+    type: "website",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Selloi: Telegram do'konlari uchun AI sotuvchi",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Selloi: Telegram do'konlari uchun AI sotuvchi",
+    description: "Telegram do'koningizda mijozlarga 24/7 xizmat ko'rsatadigan AI sotuvchi.",
+    images: ["/og-image.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+};
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://selloi.uz/#organization",
+      "name": "Selloi",
+      "url": "https://selloi.uz",
+      "logo": "https://selloi.uz/logo.svg",
+      "description":
+        "O'zbekiston Telegram do'konlari uchun 24/7 ishlaydigan sun'iy intellekt sotuvchisi va savdoni avtomatlashtirish platformasi.",
+      "foundingLocation": "Uzbekistan",
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://selloi.uz/#website",
+      "url": "https://selloi.uz",
+      "name": "Selloi",
+      "publisher": { "@id": "https://selloi.uz/#organization" },
+      "inLanguage": "uz",
+    },
+    {
+      "@type": "SoftwareApplication",
+      "@id": "https://selloi.uz/#software",
+      "name": "Selloi",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Cloud, Web, Telegram",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD",
+      },
+      "description":
+        "Telegram do'konlari uchun AI sotuvchi. Mijozlarga o'zbek tilida 24/7 xizmat ko'rsatish, mahsulot fotosuratlarini tanish va buyurtmalarni avtomatlashtirish.",
+      "publisher": { "@id": "https://selloi.uz/#organization" },
+    },
+  ],
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="uz" data-bs-theme="dark" className="theme-dark" suppressHydrationWarning>
       <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(jsonLd),
+          }}
+        />
         <script
           dangerouslySetInnerHTML={{
             __html: `

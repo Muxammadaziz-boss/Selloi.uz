@@ -1,0 +1,21 @@
+import type { MetadataRoute } from "next";
+
+export default function manifest(): MetadataRoute.Manifest {
+  return {
+    name: "Selloi: Telegram do'konlari uchun AI sotuvchi",
+    short_name: "Selloi",
+    description:
+      "Telegram do'konlari uchun 24/7 ishlaydigan sun'iy intellekt sotuvchisi va savdo boshqaruvi platformasi.",
+    start_url: "/",
+    display: "standalone",
+    background_color: "#000000",
+    theme_color: "#000000",
+    icons: [
+      {
+        src: "/icon.svg",
+        sizes: "any",
+        type: "image/svg+xml",
+      },
+    ],
+  };
+}
