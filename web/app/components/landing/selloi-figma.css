@@ -1382,9 +1382,312 @@
   padding-bottom: 80px;
 }
 
+/* Pricing Section Header */
+.selloi-pricing-header {
+  text-align: center;
+  max-width: 820px;
+  margin: 0 auto 36px auto;
+}
+
+.selloi-pricing-title {
+  font-size: 38px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--selloi-text-primary);
+  margin: 0 0 14px 0;
+  letter-spacing: -0.8px;
+}
+
+.selloi-pricing-desc {
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--selloi-text-secondary);
+  margin: 0;
+}
+
+/* Billing Cycle Toggle */
+.selloi-billing-toggle-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 28px 0 36px 0;
+}
+
+.selloi-billing-toggle {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+  padding: 4px;
+  gap: 4px;
+}
+
+.selloi-billing-btn {
+  background: transparent;
+  border: none;
+  border-radius: 9999px;
+  padding: 8px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--selloi-text-secondary);
+  cursor: pointer;
+  transition: all 0.25s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.selloi-billing-btn.active {
+  background: var(--selloi-accent);
+  color: #FFFFFF;
+  box-shadow: 0 4px 14px rgba(255, 76, 99, 0.35);
+}
+
+.selloi-discount-tag {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+
+/* 4-Plan Responsive Grid */
+.selloi-pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  align-items: stretch;
+}
+
+.selloi-plan-card {
+  background: var(--selloi-tarif-bg);
+  border: 1px solid var(--selloi-tarif-border);
+  border-radius: 20px;
+  padding: 28px 22px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.35s ease,
+              box-shadow 0.35s ease;
+}
+
+.selloi-plan-card:hover {
+  transform: translateY(-6px);
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
+}
+
+/* Featured / Popular Pro Card */
+.selloi-plan-card.popular {
+  border-color: var(--selloi-accent);
+  background: linear-gradient(180deg, rgba(255, 76, 99, 0.08) 0%, #161617 40%);
+  box-shadow: 0 0 35px rgba(255, 76, 99, 0.18), 0 16px 36px rgba(0, 0, 0, 0.5);
+  transform: translateY(-4px);
+}
+
+.selloi-plan-card.popular:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 0 45px rgba(255, 76, 99, 0.28), 0 24px 50px rgba(0, 0, 0, 0.55);
+}
+
+.selloi-popular-badge {
+  position: absolute;
+  top: -13px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--selloi-accent);
+  color: #FFFFFF;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 4px 14px;
+  border-radius: 9999px;
+  box-shadow: 0 4px 12px rgba(255, 76, 99, 0.4);
+  white-space: nowrap;
+}
+
+.selloi-plan-header {
+  margin-bottom: 16px;
+}
+
+.selloi-plan-name {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--selloi-text-primary);
+  margin: 0 0 6px 0;
+  letter-spacing: -0.3px;
+}
+
+.selloi-plan-desc {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--selloi-text-secondary);
+  min-height: 38px;
+  margin: 0;
+}
+
+.selloi-plan-pricing {
+  margin: 14px 0;
+  padding: 14px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.selloi-price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.selloi-price-amount {
+  font-size: 34px;
+  font-weight: 800;
+  color: var(--selloi-text-primary);
+  line-height: 1;
+}
+
+.selloi-price-period {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--selloi-text-secondary);
+}
+
+.selloi-price-local {
+  font-size: 13px;
+  font-weight: 600;
+  color: #E2E8F0;
+  margin-top: 6px;
+}
+
+.selloi-price-subtext {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--selloi-text-secondary);
+  margin-top: 2px;
+}
+
+.selloi-plan-promo {
+  margin-top: 12px;
+  background: rgba(255, 76, 99, 0.1);
+  border: 1px solid rgba(255, 76, 99, 0.25);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #FF8A98;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.selloi-plan-features {
+  list-style: none;
+  padding: 0;
+  margin: 14px 0 24px 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.selloi-plan-feature-item {
+  font-size: 13px;
+  line-height: 1.4;
+  color: #D1D5DB;
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+
+.selloi-plan-check-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: #22c55e;
+}
+
+.selloi-plan-cta {
+  width: 100%;
+  height: 44px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.selloi-plan-cta-default {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--selloi-text-primary);
+}
+
+.selloi-plan-cta-default:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-2px);
+}
+
+.selloi-plan-cta-popular {
+  background: var(--selloi-accent);
+  border: 1px solid transparent;
+  color: #FFFFFF;
+  box-shadow: 0 4px 16px rgba(255, 76, 99, 0.4);
+}
+
+.selloi-plan-cta-popular:hover {
+  background: #E83E55;
+  box-shadow: 0 6px 22px rgba(255, 76, 99, 0.55);
+  transform: translateY(-2px);
+}
+
+.selloi-pricing-footer-note {
+  text-align: center;
+  margin-top: 36px;
+  font-size: 14px;
+  color: var(--selloi-text-secondary);
+}
+
+/* Responsive Pricing Rules */
+@media (max-width: 1200px) {
+  .selloi-pricing-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .selloi-pricing-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .selloi-plan-card.popular {
+    transform: none;
+  }
+
+  .selloi-pricing-title {
+    font-size: 28px;
+    line-height: 1.2;
+  }
+}
+
 .selloi-tarif-card {
-  width: 1240px;
-  height: 240px;
+  width: 100%;
+  max-width: 1240px;
   background: var(--selloi-tarif-bg);
   border: 1px solid var(--selloi-tarif-border);
   border-radius: 22px;

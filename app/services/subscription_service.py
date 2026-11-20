@@ -89,6 +89,20 @@ MEGA_DISCOUNT_RATES = {
         "duration_days": 7,
         "label": "START - 7 kunlik Mega Chegirma ($1)"
     },
+    "standard": {
+        "usd_equivalent": 1.5,
+        "amount_uzs": 20000,
+        "amount_tiyin": 2000000,
+        "duration_days": 7,
+        "label": "STANDART - 7 kunlik Mega Chegirma ($1.5)"
+    },
+    "standart": {
+        "usd_equivalent": 1.5,
+        "amount_uzs": 20000,
+        "amount_tiyin": 2000000,
+        "duration_days": 7,
+        "label": "STANDART - 7 kunlik Mega Chegirma ($1.5)"
+    },
     "pro": {
         "usd_equivalent": 2,
         "amount_uzs": 26000,
@@ -233,7 +247,7 @@ class SubscriptionService:
         """Generate a single-use TezCheck payment bill for 7-day introductory mega discount."""
         plan_code_lower = plan_code.lower().strip()
         if plan_code_lower not in MEGA_DISCOUNT_RATES:
-            raise SubscriptionError(f"Noto'g'ri tarif kodi: {plan_code}. Ruxsat etilgan: start, pro, ultra.")
+            raise SubscriptionError(f"Noto'g'ri tarif kodi: {plan_code}. Ruxsat etilgan: start, standart, pro, ultra.")
 
         is_eligible, reason = await self.check_mega_discount_eligibility(db, organization_id)
         if not is_eligible:

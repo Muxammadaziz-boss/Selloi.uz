@@ -26,6 +26,7 @@ function LandingPageContent({ isAuthenticated = false }: LandingPageProps) {
   const t = SELLOI_I18N[language] || SELLOI_I18N.uz;
 
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<string>("start");
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState("");
@@ -149,7 +150,10 @@ function LandingPageContent({ isAuthenticated = false }: LandingPageProps) {
 
         {/* 5. Tariflar */}
         <PricingSection
-          onOpenOnboarding={() => setIsOnboardingOpen(true)}
+          onOpenOnboarding={(planCode) => {
+            setSelectedPlan(planCode || "start");
+            setIsOnboardingOpen(true);
+          }}
           isAuthenticated={isAuthenticated}
           t={t.tariflar}
         />
@@ -171,6 +175,7 @@ function LandingPageContent({ isAuthenticated = false }: LandingPageProps) {
       {/* Onboarding Wizard Modal */}
       <OnboardingModal
         isOpen={isOnboardingOpen}
+        initialPlanCode={selectedPlan}
         onClose={() => setIsOnboardingOpen(false)}
         onComplete={handleOnboardingComplete}
       />

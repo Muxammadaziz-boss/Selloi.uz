@@ -26,9 +26,10 @@ from app.services.usage_service import METRIC_DEFINITIONS
 # ============================================================================
 
 def test_default_plans_specification():
-    """Verify exactly START, PRO, ULTRA plans are defined with exact prices & limits."""
+    """Verify START, STANDART, PRO, ULTRA plans are defined with exact prices & limits."""
     plans = {p["code"]: p for p in DEFAULT_PLANS}
     assert "start" in plans
+    assert "standard" in plans
     assert "pro" in plans
     assert "ultra" in plans
 
@@ -44,6 +45,17 @@ def test_default_plans_specification():
     assert start["features"]["ai_auto_reply"] is True
     assert start["features"]["advanced_rag"] is False
     assert start["features"]["api_access"] is False
+
+    # STANDART plan
+    standard = plans["standard"]
+    assert standard["price_monthly"] == 39
+    assert standard["price_yearly"] == 390
+    assert standard["limits"]["ai_messages"] == 3500
+    assert standard["limits"]["ai_conversations"] == 1500
+    assert standard["limits"]["telegram_connections"] == 2
+    assert standard["limits"]["products"] == 500
+    assert standard["limits"]["team_members"] == 5
+    assert standard["features"]["ai_image_understanding"] is True
 
     # PRO plan (Most Popular)
     pro = plans["pro"]

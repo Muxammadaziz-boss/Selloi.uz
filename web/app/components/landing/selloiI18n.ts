@@ -1,5 +1,36 @@
 import { Language } from "@/app/lib/i18n/types";
 
+export interface SelloiPlanItem {
+  code: string;
+  name: string;
+  badge?: string;
+  isPopular?: boolean;
+  description: string;
+  priceMonthlyUsd: number;
+  priceMonthlyUzs: string;
+  priceYearlyUsd: number;
+  priceYearlyUzs: string;
+  promoBadge: string;
+  features: string[];
+}
+
+export interface SelloiTariflarTranslations {
+  tag: string;
+  title: string;
+  desc: string;
+  billingMonthly: string;
+  billingYearly: string;
+  yearlyDiscountBadge: string;
+  trialBadge: string;
+  ctaSelect: string;
+  popularBadge: string;
+  perMonth: string;
+  perYear: string;
+  cta: string;
+  note: string;
+  plans: SelloiPlanItem[];
+}
+
 export interface SelloiTranslations {
   nav: {
     boshSahifa: string;
@@ -85,13 +116,7 @@ export interface SelloiTranslations {
     typingIndicator: string;
     analyzingIndicator: string;
   };
-  tariflar: {
-    tag: string;
-    title: string;
-    desc: string;
-    cta: string;
-    note: string;
-  };
+  tariflar: SelloiTariflarTranslations;
   faq: {
     tag: string;
     titleLine1: string;
@@ -229,10 +254,101 @@ export const SELLOI_I18N: Record<Language, SelloiTranslations> = {
     },
     tariflar: {
       tag: "TARIFLAR",
-      title: "Biznesingizga mos yechimni tanlang.",
-      desc: "Avval 7 kun tekin sinab ko‘ring. Keyin do‘koningiz ehtiyojiga mos tarifni tanlang.",
-      cta: "7 Kun tekin sinab ko’rish →",
-      note: "Do‘koningiz uchun. O‘sishingiz uchun.",
+      title: "Biznesingizga mos tarifni tanlang.",
+      desc: "Avval 7 kunlik Mega Chegirma bilan sinab ko'ring. Keyin do'koningiz hajmiga mos tarifni davom ettiring.",
+      billingMonthly: "Oylik to'lov",
+      billingYearly: "Yillik to'lov",
+      yearlyDiscountBadge: "-17% chegirma",
+      trialBadge: "7 kunlik Mega Chegirma",
+      ctaSelect: "Tanlash",
+      popularBadge: "ENG OMMABOP",
+      perMonth: "/ oy",
+      perYear: "/ yil",
+      cta: "7 Kun tekin sinab ko'rish →",
+      note: "Barcha tariflar xavfsiz to'lov va 7 kunlik sinov kafolati bilan ta'minlangan.",
+      plans: [
+        {
+          code: "start",
+          name: "START",
+          description: "Kichik biznes va yakka tartibdagi tadbirkorlar uchun qulay boshlang'ich yechim.",
+          priceMonthlyUsd: 19,
+          priceMonthlyUzs: "244 000",
+          priceYearlyUsd: 190,
+          priceYearlyUzs: "2 440 000",
+          promoBadge: "7 kunlik sinov: $1 (13 000 so'm)",
+          features: [
+            "1 ta Telegram Bot / Profil",
+            "1 ta Kanal yoki Guruh",
+            "1 000 ta AI xabar / oy",
+            "100 ta mahsulot sig'imi",
+            "2 ta operator / jamoa a'zosi",
+            "24/7 Avtomatik AI javoblar",
+            "Do'kon bilimlari bazasi",
+          ],
+        },
+        {
+          code: "standard",
+          name: "STANDART",
+          description: "Rivojlanayotgan do'konlar va savdo jamoalari uchun kengaytirilgan imkoniyatlar.",
+          priceMonthlyUsd: 39,
+          priceMonthlyUzs: "499 000",
+          priceYearlyUsd: 390,
+          priceYearlyUzs: "4 990 000",
+          promoBadge: "7 kunlik sinov: $1.5 (20 000 so'm)",
+          features: [
+            "2 ta Telegram Bot / Profil",
+            "3 ta Kanal yoki Guruh",
+            "3 500 ta AI xabar / oy",
+            "500 ta mahsulot sig'imi",
+            "5 ta operator / jamoa a'zosi",
+            "AI Vision: rasmdan tovar tanish",
+            "Click va Payme to'lovlari",
+            "Buyurtmalarni avtomatik qabul qilish",
+          ],
+        },
+        {
+          code: "pro",
+          name: "PRO",
+          isPopular: true,
+          badge: "ENG OMMABOP",
+          description: "Faol savdo qiluvchi va kengayayotgan bizneslar uchun to'liq quvvat.",
+          priceMonthlyUsd: 59,
+          priceMonthlyUzs: "758 000",
+          priceYearlyUsd: 590,
+          priceYearlyUzs: "7 580 000",
+          promoBadge: "7 kunlik sinov: $2 (26 000 so'm)",
+          features: [
+            "3 ta Telegram Bot + WebApp",
+            "5 ta Kanal yoki Guruh",
+            "7 500 ta AI xabar / oy",
+            "1 000 ta mahsulot sig'imi",
+            "10 ta operator / jamoa a'zosi",
+            "AI Vision + Kengaytirilgan RAG qidiruv",
+            "Batafsil analitika va eksport",
+            "Ustuvor texnik qo'llab-quvvatlash",
+          ],
+        },
+        {
+          code: "ultra",
+          name: "ULTRA",
+          description: "Katta brendlar, tarmoq do'konlar va yirik savdo markazlari uchun.",
+          priceMonthlyUsd: 149,
+          priceMonthlyUzs: "1 914 000",
+          priceYearlyUsd: 1490,
+          priceYearlyUzs: "19 140 000",
+          promoBadge: "7 kunlik sinov: $3 (39 000 so'm)",
+          features: [
+            "10 ta Telegram Bot / Profil",
+            "20 ta Kanal yoki Guruh",
+            "30 000 ta AI xabar / oy",
+            "10 000 ta mahsulot sig'imi",
+            "50 ta operator / cheksiz jamoa",
+            "Maxsus o'qitilgan AI model",
+            "REST API va Webhooks integratsiyasi",
+            "24/7 Shaxsiy menejer va SLA",
+          ],
+        },
+      ],
     },
     faq: {
       tag: "SAVOL-JAVOB",
@@ -393,10 +509,101 @@ export const SELLOI_I18N: Record<Language, SelloiTranslations> = {
     },
     tariflar: {
       tag: "ТАРИФЫ",
-      title: "Выберите решение для вашего бизнеса.",
-      desc: "Сначала попробуйте 7 дней бесплатно. Затем выберите подходящий тариф для магазина.",
+      title: "Выберите тариф для вашего бизнеса.",
+      desc: "Начните с 7-дневной Мега-скидки. Без долгосрочных обязательств, отмена в любое время.",
+      billingMonthly: "Ежемесячно",
+      billingYearly: "Ежегодно",
+      yearlyDiscountBadge: "Скидка -17%",
+      trialBadge: "7 дней Мега-скидка",
+      ctaSelect: "Выбрать",
+      popularBadge: "ПОПУЛЯРНЫЙ",
+      perMonth: "/ мес",
+      perYear: "/ год",
       cta: "Попробовать 7 дней бесплатно →",
-      note: "Для вашего магазина. Для вашего роста.",
+      note: "Все цены указаны с НДС. Безопасные платежи через TezCheck.",
+      plans: [
+        {
+          code: "start",
+          name: "START",
+          description: "Для малого бизнеса и индивидуальных предпринимателей.",
+          priceMonthlyUsd: 19,
+          priceMonthlyUzs: "244 000",
+          priceYearlyUsd: 190,
+          priceYearlyUzs: "2 440 000",
+          promoBadge: "7 дней тест: $1 (13 000 сум)",
+          features: [
+            "1 Telegram-бот / профиль",
+            "1 канал или группа",
+            "1 000 AI-сообщений / мес",
+            "До 100 товаров в каталоге",
+            "2 оператора в команде",
+            "Круглосуточные AI-ответы 24/7",
+            "Базовая база знаний магазина",
+          ],
+        },
+        {
+          code: "standard",
+          name: "STANDART",
+          description: "Для растущих магазинов и команд продаж.",
+          priceMonthlyUsd: 39,
+          priceMonthlyUzs: "499 000",
+          priceYearlyUsd: 390,
+          priceYearlyUzs: "4 990 000",
+          promoBadge: "7 дней тест: $1.5 (20 000 сум)",
+          features: [
+            "2 Telegram-бота / профиля",
+            "3 канала или группы",
+            "3 500 AI-сообщений / мес",
+            "До 500 товаров в каталоге",
+            "5 операторов в команде",
+            "AI Vision: распознавание по фото",
+            "Прием платежей Click и Payme",
+            "Автоприем заказов клиентов",
+          ],
+        },
+        {
+          code: "pro",
+          name: "PRO",
+          isPopular: true,
+          badge: "ПОПУЛЯРНЫЙ",
+          description: "Полный набор возможностей для активных продаж.",
+          priceMonthlyUsd: 59,
+          priceMonthlyUzs: "758 000",
+          priceYearlyUsd: 590,
+          priceYearlyUzs: "7 580 000",
+          promoBadge: "7 дней тест: $2 (26 000 сум)",
+          features: [
+            "3 Telegram-бота + WebApp",
+            "5 каналов или групп",
+            "7 500 AI-сообщений / мес",
+            "До 1 000 товаров в каталоге",
+            "10 операторов в команде",
+            "AI Vision + расширенный RAG-поиск",
+            "Детальная аналитика и экспорт",
+            "Приоритетная поддержка",
+          ],
+        },
+        {
+          code: "ultra",
+          name: "ULTRA",
+          description: "Для крупных брендов, ритейлеров и агентств.",
+          priceMonthlyUsd: 149,
+          priceMonthlyUzs: "1 914 000",
+          priceYearlyUsd: 1490,
+          priceYearlyUzs: "19 140 000",
+          promoBadge: "7 дней тест: $3 (39 000 сум)",
+          features: [
+            "10 Telegram-ботов / профилей",
+            "20 каналов или групп",
+            "30 000 AI-сообщений / мес",
+            "До 10 000 товаров в каталоге",
+            "50 операторов / без ограничений",
+            "Индивидуальная настройка AI-модели",
+            "Интеграция по REST API и Webhooks",
+            "Персональный менеджер 24/7 и SLA",
+          ],
+        },
+      ],
     },
     faq: {
       tag: "ВОПРОСЫ И ОТВЕТЫ",
@@ -557,10 +764,101 @@ export const SELLOI_I18N: Record<Language, SelloiTranslations> = {
     },
     tariflar: {
       tag: "PRICING PLANS",
-      title: "Choose the right solution for your business.",
-      desc: "Start with a 7-day free trial. Then select the tier that fits your store's volume.",
+      title: "Choose the right tier for your business.",
+      desc: "Start with a 7-day Mega Discount trial. Cancel anytime with no long-term commitment.",
+      billingMonthly: "Monthly",
+      billingYearly: "Yearly",
+      yearlyDiscountBadge: "Save 17%",
+      trialBadge: "7-day Mega Discount",
+      ctaSelect: "Choose Plan",
+      popularBadge: "MOST POPULAR",
+      perMonth: "/ mo",
+      perYear: "/ yr",
       cta: "Try 7 Days Free →",
-      note: "For your store. For your growth.",
+      note: "All prices include VAT. Secure payment processing powered by TezCheck.",
+      plans: [
+        {
+          code: "start",
+          name: "START",
+          description: "Ideal for small shops and solo entrepreneurs starting out.",
+          priceMonthlyUsd: 19,
+          priceMonthlyUzs: "244,000",
+          priceYearlyUsd: 190,
+          priceYearlyUzs: "2,440,000",
+          promoBadge: "7-day trial: $1 (13,000 UZS)",
+          features: [
+            "1 Telegram Bot / Profile",
+            "1 Channel or Group",
+            "1,000 AI messages / mo",
+            "100 products catalog capacity",
+            "2 operator seats",
+            "24/7 Automated AI replies",
+            "Store knowledge base",
+          ],
+        },
+        {
+          code: "standard",
+          name: "STANDART",
+          description: "For growing stores and expanding sales teams.",
+          priceMonthlyUsd: 39,
+          priceMonthlyUzs: "499,000",
+          priceYearlyUsd: 390,
+          priceYearlyUzs: "4,990,000",
+          promoBadge: "7-day trial: $1.5 (20,000 UZS)",
+          features: [
+            "2 Telegram Bots / Profiles",
+            "3 Channels or Groups",
+            "3,500 AI messages / mo",
+            "500 products catalog capacity",
+            "5 operator seats",
+            "AI Vision: photo product recognition",
+            "Click and Payme payment gateways",
+            "Order management workflow",
+          ],
+        },
+        {
+          code: "pro",
+          name: "PRO",
+          isPopular: true,
+          badge: "MOST POPULAR",
+          description: "Complete toolset for high-volume multichannel retail.",
+          priceMonthlyUsd: 59,
+          priceMonthlyUzs: "758,000",
+          priceYearlyUsd: 590,
+          priceYearlyUzs: "7,580,000",
+          promoBadge: "7-day trial: $2 (26,000 UZS)",
+          features: [
+            "3 Telegram Bots + WebApp",
+            "5 Channels or Groups",
+            "7,500 AI messages / mo",
+            "1,000 products catalog capacity",
+            "10 operator seats",
+            "AI Vision + Advanced RAG retrieval",
+            "Full analytics suite & data export",
+            "Priority technical support",
+          ],
+        },
+        {
+          code: "ultra",
+          name: "ULTRA",
+          description: "For enterprise brands, retail chains and agencies.",
+          priceMonthlyUsd: 149,
+          priceMonthlyUzs: "1,914,000",
+          priceYearlyUsd: 1490,
+          priceYearlyUzs: "19,140,000",
+          promoBadge: "7-day trial: $3 (39,000 UZS)",
+          features: [
+            "10 Telegram Bots / Profiles",
+            "20 Channels or Groups",
+            "30,000 AI messages / mo",
+            "10,000 products catalog capacity",
+            "50 operator seats / unlimited team",
+            "Custom fine-tuned AI model & persona",
+            "REST API & Webhooks access",
+            "24/7 Dedicated account manager & SLA",
+          ],
+        },
+      ],
     },
     faq: {
       tag: "FREQUENTLY ASKED QUESTIONS",

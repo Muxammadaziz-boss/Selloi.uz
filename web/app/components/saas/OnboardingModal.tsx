@@ -27,6 +27,7 @@ import { getPublicPlans, PublicPlan } from "../../lib/api";
 interface OnboardingModalProps {
   isOpen: boolean;
   onClose: () => void;
+  initialPlanCode?: string;
   onComplete: (data: {
     name: string;
     slug: string;
@@ -44,7 +45,7 @@ interface OnboardingModalProps {
   }) => Promise<void>;
 }
 
-export function OnboardingModal({ isOpen, onClose, onComplete }: OnboardingModalProps) {
+export function OnboardingModal({ isOpen, onClose, onComplete, initialPlanCode }: OnboardingModalProps) {
   const [step, setStep] = useState(1);
   const [busy, setBusy] = useState(false);
 
@@ -80,10 +81,16 @@ export function OnboardingModal({ isOpen, onClose, onComplete }: OnboardingModal
 
   const [aiLanguage, setAiLanguage] = useState("uz");
   const [aiPersonality, setAiPersonality] = useState("Professional va do'stona sotuvchi assistent");
-  const [planCode, setPlanCode] = useState("start");
+  const [planCode, setPlanCode] = useState(initialPlanCode || "start");
   const [currency, setCurrency] = useState<"USD" | "UZS">("USD");
   const [availablePlans, setAvailablePlans] = useState<PublicPlan[]>([]);
   const [loadingPlans, setLoadingPlans] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (isOpen && initialPlanCode) {
+      setPlanCode(initialPlanCode);
+    }
+  }, [isOpen, initialPlanCode]);
 
   useEffect(() => {
     if (isOpen) {
@@ -789,16 +796,17 @@ export function OnboardingModal({ isOpen, onClose, onComplete }: OnboardingModal
 
                 <div className="row g-3">
                   {(availablePlans.length > 0 ? availablePlans : [
-                    { code: "start", name: "START", price_monthly_formatted: "$19", price_monthly_uzs_formatted: "245 000 so'm", description: "1,000 AI xabar, 1 kanal, 2 operator" },
-                    { code: "pro", name: "PRO", price_monthly_formatted: "$59", price_monthly_uzs_formatted: "760 000 so'm", description: "7,500 AI xabar, Vision, RAG, 10 operator" },
-                    { code: "ultra", name: "ULTRA", price_monthly_formatted: "$149", price_monthly_uzs_formatted: "1 900 000 so'm", description: "30,000 AI xabar, Premium AI, 50 operator" },
+                    { code: "start", name: "START", price_monthly_formatted: "$19", price_monthly_uzs_formatted: "244 000 so'm", description: "1,000 AI xabar, 1 kanal, 2 operator" },
+                    { code: "standard", name: "STANDART", price_monthly_formatted: "$39", price_monthly_uzs_formatted: "499 000 so'm", description: "3,500 AI xabar, Vision, 5 operator" },
+                    { code: "pro", name: "PRO", price_monthly_formatted: "$59", price_monthly_uzs_formatted: "758 000 so'm", description: "7,500 AI xabar, Vision, RAG, 10 operator" },
+                    { code: "ultra", name: "ULTRA", price_monthly_formatted: "$149", price_monthly_uzs_formatted: "1 914 000 so'm", description: "30,000 AI xabar, Premium AI, 50 operator" },
                   ]).map((pl: any) => {
                     const isSelected = planCode === pl.code;
                     const priceFormatted = currency === "USD"
                       ? `${pl.price_monthly_formatted || "$" + (pl.price_monthly || 19)}/oy`
-                      : `${pl.price_monthly_uzs_formatted || (pl.price_monthly_uzs ? (pl.price_monthly_uzs / 100).toLocaleString("uz-UZ") + " so'm" : "245 000 so'm")}/oy`;
+                      : `${pl.price_monthly_uzs_formatted || (pl.price_monthly_uzs ? (pl.price_monthly_uzs / 100).toLocaleString("uz-UZ") + " so'm" : "244 000 so'm")}/oy`;
                     return (
-                      <div key={pl.code} className="col-md-4">
+                      <div key={pl.code} className="col-md-3 col-sm-6">
                         <div
                           className="p-3.5 rounded-3 border h-100 d-flex flex-column justify-content-between transition-all"
                           onClick={() => setPlanCode(pl.code)}

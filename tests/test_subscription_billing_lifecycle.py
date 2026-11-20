@@ -68,8 +68,9 @@ class TestMegaDiscountPromotionalPricing:
     """Verify introductory promotional pricing, USD equivalent, and 7-day duration."""
 
     def test_mega_discount_rate_mapping(self):
-        """Verify START ($1), PRO ($2), and ULTRA ($3) rates in UZS and tiyin."""
+        """Verify START ($1), STANDART ($1.5), PRO ($2), and ULTRA ($3) rates in UZS and tiyin."""
         assert "start" in MEGA_DISCOUNT_RATES
+        assert "standard" in MEGA_DISCOUNT_RATES
         assert "pro" in MEGA_DISCOUNT_RATES
         assert "ultra" in MEGA_DISCOUNT_RATES
 
@@ -79,6 +80,13 @@ class TestMegaDiscountPromotionalPricing:
         assert start["amount_uzs"] == 13000
         assert start["amount_tiyin"] == 1300000
         assert start["duration_days"] == 7
+
+        # STANDART plan: $1.5 equivalent -> 20,000 UZS (2,000,000 tiyin) for 7 days
+        standard = MEGA_DISCOUNT_RATES["standard"]
+        assert standard["usd_equivalent"] == 1.5
+        assert standard["amount_uzs"] == 20000
+        assert standard["amount_tiyin"] == 2000000
+        assert standard["duration_days"] == 7
 
         # PRO plan: $2 equivalent -> 26,000 UZS (2,600,000 tiyin) for 7 days
         pro = MEGA_DISCOUNT_RATES["pro"]
