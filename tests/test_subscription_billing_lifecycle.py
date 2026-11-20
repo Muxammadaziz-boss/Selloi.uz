@@ -652,6 +652,31 @@ class TestTezCheckPaymentIntegrationAndSecurity:
         tz_svc = TezCheckService(secret_key=secret, mock_mode=False)
         assert tz_svc.verify_webhook_signature(payload_bytes, valid_sig) is True
 
+    def test_tezcheck_official_v1_signature_verification_success(self):
+        """Official TezCheck v1 webhook signature with timestamp and delivery id is accepted."""
+        secret = "whsec_test_secret_12345"
+        payload_bytes = json.dumps({
+            "id": "oev_test123",
+            "type": "payment.succeeded",
+            "data": {
+                "bill_id": "link_test_bill_1",
+                "amount_minor": 1300000,
+                "state": "succeeded"
+            }
+        }).encode("utf-8")
+        ts = "1786000000"
+        deliv = "whd_test_deliv_1"
+        msg = f"{ts}.{deliv}.".encode("utf-8") + payload_bytes
+        valid_v1_sig = "v1=" + hmac.new(secret.encode("utf-8"), msg, hashlib.sha256).hexdigest()
+
+        tz_svc = TezCheckService(secret_key=secret, mock_mode=False)
+        assert tz_svc.verify_webhook_signature(
+            raw_body=payload_bytes,
+            signature_header=valid_v1_sig,
+            timestamp=ts,
+            delivery_id=deliv
+        ) is True
+
     def test_hmac_sha256_signature_verification_tampered_payload_rejected(self):
         """Tampered payload fails HMAC signature verification."""
         secret = "test_tezcheck_secret_key_12345"

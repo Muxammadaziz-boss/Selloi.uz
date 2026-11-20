@@ -886,16 +886,24 @@ async def tezcheck_webhook(
         return {"ok": True, "status": "ping_received"}
 
     sig = (
-        x_tezcheck_signature
+        request.headers.get("x-checkout-signature")
+        or x_tezcheck_signature
         or request.headers.get("x-tezcheck-signature")
         or request.headers.get("x-signature")
         or request.headers.get("signature")
         or request.headers.get("x-webhook-signature")
     )
+    ts = request.headers.get("x-checkout-timestamp") or request.headers.get("x-tezcheck-timestamp")
+    delivery_id = request.headers.get("x-checkout-delivery") or request.headers.get("x-delivery-id")
 
     if sig:
         try:
-            tezcheck_service.verify_webhook_signature(body, sig)
+            tezcheck_service.verify_webhook_signature(
+                raw_body=body,
+                signature_header=sig,
+                timestamp=ts,
+                delivery_id=delivery_id
+            )
         except TezCheckSignatureVerificationError as e:
             logger.warning("TezCheck webhook signature verification failed: %s", e)
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid webhook signature")
@@ -909,10 +917,36 @@ async def tezcheck_webhook(
     if payload.get("event") in ("ping", "test", "verification") or payload.get("type") in ("ping", "test"):
         return {"ok": True, "status": "test_received"}
 
-    bill_id = payload.get("bill_id") or payload.get("id") or payload.get("order_id")
-    status_str = payload.get("status", "").lower()
-    amount = int(payload.get("amount", 0))
-    currency = payload.get("currency", "UZS")
+    # Official TezCheck payload embeds order details inside data block
+    inner_data = payload.get("data") if isinstance(payload.get("data"), dict) else {}
+    bill_id = (
+        inner_data.get("bill_id")
+        or inner_data.get("external_reference")
+        or inner_data.get("id")
+        or inner_data.get("payment_id")
+        or payload.get("bill_id")
+        or payload.get("id")
+        or payload.get("order_id")
+    )
+    status_str = (
+        inner_data.get("state")
+        or payload.get("status")
+        or payload.get("type")
+        or ""
+    ).lower()
+
+    if status_str in ("succeeded", "payment.succeeded"):
+        status_str = "paid"
+
+    # amount_minor in tiyin or amount in UZS
+    if "amount_minor" in inner_data:
+        amount = int(inner_data["amount_minor"])
+    elif "amount" in inner_data:
+        amount = int(inner_data["amount"])
+    else:
+        amount = int(payload.get("amount", 0))
+
+    currency = inner_data.get("currency") or payload.get("currency", "UZS")
 
     if not bill_id or status_str not in ("paid", "completed", "success"):
         return {"status": "ignored", "reason": f"Status '{status_str}' not actionable"}

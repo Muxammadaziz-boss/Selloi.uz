@@ -107,11 +107,14 @@ class TezCheckService:
             headers["X-Merchant-Id"] = self.merchant_id
 
         payload = {
+            "amount_minor": amount,
+            "title": description,
+            "external_reference": order_id,
+            "return_url": return_url,
             "amount": amount,
             "currency": currency.upper(),
             "order_id": order_id,
             "description": description,
-            "return_url": return_url,
             "callback_url": callback_url,
             "metadata": metadata or {}
         }
@@ -121,12 +124,22 @@ class TezCheckService:
                 resp = await client.post(f"{self.api_url}/bills", json=payload, headers=headers)
                 resp.raise_for_status()
                 data = resp.json()
+                inner_data = data.get("data") if isinstance(data.get("data"), dict) else data
+                bill_id = inner_data.get("id") or inner_data.get("bill_id") or data.get("bill_id") or data.get("id")
+                pay_url = (
+                    inner_data.get("payment_url")
+                    or inner_data.get("pay_url")
+                    or inner_data.get("checkout_url")
+                    or data.get("payment_url")
+                    or data.get("pay_url")
+                    or data.get("checkout_url")
+                )
                 return {
-                    "bill_id": data.get("bill_id") or data.get("id"),
-                    "pay_url": data.get("pay_url") or data.get("checkout_url"),
-                    "amount": data.get("amount", amount),
-                    "currency": data.get("currency", currency),
-                    "status": data.get("status", "pending"),
+                    "bill_id": bill_id,
+                    "pay_url": pay_url,
+                    "amount": inner_data.get("amount", amount),
+                    "currency": inner_data.get("currency", currency),
+                    "status": inner_data.get("status", "pending"),
                     "mode": "live",
                     "raw_response": data
                 }
@@ -137,7 +150,9 @@ class TezCheckService:
     def verify_webhook_signature(
         self,
         raw_body: bytes,
-        signature_header: Optional[str]
+        signature_header: Optional[str],
+        timestamp: Optional[str] = None,
+        delivery_id: Optional[str] = None
     ) -> bool:
         """Verify HMAC-SHA256 signature of incoming TezCheck webhook payload."""
         if not signature_header:
@@ -146,18 +161,41 @@ class TezCheckService:
             raise TezCheckSignatureVerificationError("Missing required signature header.")
 
         effective_secret = (self.secret_key or "SELLOI_TEZCHECK_MOCK_SECRET").encode("utf-8")
-        computed_signature = hmac.new(effective_secret, raw_body, hashlib.sha256).hexdigest()
 
-        # Compare signature in constant time
-        clean_sig = signature_header.strip().lower()
-        if clean_sig.startswith("sha256="):
-            clean_sig = clean_sig.split("sha256=")[1]
+        # Official TezCheck header: X-Checkout-Signature: v1=<hash>
+        # calculated as v1=hmac_sha256(timestamp + '.' + deliveryId + '.' + raw_body, secret)
+        expected_official = None
+        if timestamp and delivery_id:
+            msg_bytes = f"{timestamp}.{delivery_id}.".encode("utf-8") + raw_body
+            expected_official = f"v1={hmac.new(effective_secret, msg_bytes, hashlib.sha256).hexdigest()}"
 
-        if not hmac.compare_digest(clean_sig, computed_signature.lower()):
-            if not self.mock_mode:
-                raise TezCheckSignatureVerificationError(
-                    f"Signature mismatch: expected '{computed_signature}', received '{signature_header}'."
-                )
+        # Standard / direct HMAC signature
+        computed_raw = hmac.new(effective_secret, raw_body, hashlib.sha256).hexdigest()
+
+        # Check candidate signatures against expected
+        candidates = [c.strip() for c in signature_header.split(",") if c.strip()]
+        matched = False
+        for candidate in candidates:
+            cand_clean = candidate
+            if cand_clean.lower().startswith("sha256="):
+                cand_clean = cand_clean.split("sha256=")[1]
+
+            if expected_official and hmac.compare_digest(candidate, expected_official):
+                matched = True
+                break
+            if cand_clean.lower().startswith("v1="):
+                raw_cand = cand_clean[3:]
+                if hmac.compare_digest(raw_cand.lower(), computed_raw.lower()):
+                    matched = True
+                    break
+            elif hmac.compare_digest(cand_clean.lower(), computed_raw.lower()):
+                matched = True
+                break
+
+        if not matched and not self.mock_mode:
+            raise TezCheckSignatureVerificationError(
+                f"Signature mismatch: computed '{computed_raw}', received '{signature_header}'."
+            )
 
         return True
 
