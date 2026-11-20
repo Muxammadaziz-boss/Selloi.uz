@@ -1,40 +1,64 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Header from "./Header";
 import HeroSection from "./HeroSection";
-import TrustBar from "./TrustBar";
-import StorytellingSection from "./StorytellingSection";
 import FeaturesSection from "./FeaturesSection";
-import InteractiveDemo from "./InteractiveDemo";
 import HowItWorksSection from "./HowItWorksSection";
-import SocialProofSection from "./SocialProofSection";
+import ConversationDemoSection from "./ConversationDemoSection";
 import PricingSection from "./PricingSection";
 import FAQSection from "./FAQSection";
 import FinalCTA from "./FinalCTA";
 import Footer from "./Footer";
-import StickyMobileCTA from "./StickyMobileCTA";
 import { OnboardingModal } from "../saas/OnboardingModal";
 import { LanguageProvider, useLanguage } from "@/app/lib/i18n";
-import { LANDING_CONTENT_BY_LANG } from "./landingContent";
+import { Language } from "@/app/lib/i18n/types";
+import { SELLOI_I18N } from "./selloiI18n";
 import { X, Lock, ArrowRight, AlertCircle } from "lucide-react";
-import "./immersive.css";
-import "./landing.css";
+import "./selloi-figma.css";
 
 interface LandingPageProps {
   isAuthenticated?: boolean;
 }
 
-function LandingPageInner({ isAuthenticated = false }: LandingPageProps) {
-  const { language } = useLanguage();
-  const content = LANDING_CONTENT_BY_LANG[language] || LANDING_CONTENT_BY_LANG.uz;
-  const modalText = content.loginModal;
+function LandingPageContent({ isAuthenticated = false }: LandingPageProps) {
+  const { language, setLanguage } = useLanguage();
+  const t = SELLOI_I18N[language] || SELLOI_I18N.uz;
 
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
+
+  // Smooth scroll reveal animations for sections
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("selloi-in-view");
+          }
+        });
+      },
+      { threshold: 0.12, rootMargin: "0px 0px -40px 0px" }
+    );
+
+    const revealItems = document.querySelectorAll(".selloi-reveal-item");
+    revealItems.forEach((el) => observer.observe(el));
+
+    return () => observer.disconnect();
+  }, []);
+
+  // Cycle languages (uz -> ru -> en -> uz)
+  const cycleLanguage = () => {
+    const nextLang: Record<Language, Language> = {
+      uz: "ru",
+      ru: "en",
+      en: "uz",
+    };
+    setLanguage(nextLang[language] || "uz");
+  };
 
   // Handle Onboarding submission from Landing Page
   const handleOnboardingComplete = async (data: any) => {
@@ -81,65 +105,68 @@ function LandingPageInner({ isAuthenticated = false }: LandingPageProps) {
         window.location.href = "/dashboard";
       } else {
         const data = await res.json().catch(() => ({}));
-        setLoginError(data.detail || modalText.errorDefault);
+        setLoginError(data.detail || t.modal.errorDefault);
       }
     } catch {
-      setLoginError(modalText.errorDefault);
+      setLoginError(t.modal.errorDefault);
     } finally {
       setLoginLoading(false);
     }
   };
 
   return (
-    <div className="immersive-root selloi-landing-root">
-      {/* Precision Ambient Atmosphere & Grid Texture */}
-      <div className="immersive-atmosphere" />
-      <div className="immersive-grid" />
-
-      {/* 1. Header & Navigation (Sticky, Language Selector, Section Tracker) */}
+    <div className="selloi-page" data-node-id="60:2" data-name="Desktop - 1">
+      {/* 1. Navigation */}
       <Header
         onOpenOnboarding={() => setIsOnboardingOpen(true)}
         onOpenLogin={() => setIsLoginModalOpen(true)}
         isAuthenticated={isAuthenticated}
+        language={language}
+        onLanguageChange={setLanguage}
+        t={t.nav}
       />
 
       <main>
-        {/* 2. Hero Section with Telegram Autonomous Sales Engine Showcase */}
-        <HeroSection onOpenOnboarding={() => setIsOnboardingOpen(true)} />
+        {/* 1. Hero Section */}
+        <HeroSection
+          onOpenOnboarding={() => setIsOnboardingOpen(true)}
+          isAuthenticated={isAuthenticated}
+          t={t.hero}
+        />
 
-        {/* 3. Precision Trust & Key Metrics Strip */}
-        <TrustBar />
+        {/* 2. Selloi imkoniyatlari */}
+        <FeaturesSection t={t.imkoniyatlar} />
 
-        {/* 4. Sales Storytelling Process (3-Stage Workflow) */}
-        <StorytellingSection />
+        {/* 3. Qanday ishlaydi? */}
+        <HowItWorksSection t={t.qandayIshlaydi} />
 
-        {/* 5. Features Section (Precision Bento Grid) */}
-        <FeaturesSection />
+        {/* 4. Suhbat namunasi */}
+        <ConversationDemoSection
+          onOpenOnboarding={() => setIsOnboardingOpen(true)}
+          isAuthenticated={isAuthenticated}
+          t={t.suhbatNamunasi}
+        />
 
-        {/* 6. Interactive Demo (Live Telegram Simulator) */}
-        <InteractiveDemo />
+        {/* 5. Tariflar */}
+        <PricingSection
+          onOpenOnboarding={() => setIsOnboardingOpen(true)}
+          isAuthenticated={isAuthenticated}
+          t={t.tariflar}
+        />
 
-        {/* 7. How It Works Timeline (3 Simple Steps) */}
-        <HowItWorksSection />
+        {/* 6. FAQ (Savol-javob) */}
+        <FAQSection t={t.faq} />
 
-        {/* 8. Social Proof (Partner Logos & Verified Testimonials) */}
-        <SocialProofSection />
-
-        {/* 9. Dedicated Full-Width Pricing Section with Comparison Matrix */}
-        <PricingSection onOpenOnboarding={() => setIsOnboardingOpen(true)} />
-
-        {/* 10. Dedicated Full-Width FAQ Section (Expandable Glass Accordion) */}
-        <FAQSection />
-
-        {/* 11. Final High-Impact Conversion Call-to-Action */}
-        <FinalCTA onOpenOnboarding={() => setIsOnboardingOpen(true)} />
+        {/* 7. Final CTA (Boshlash) */}
+        <FinalCTA
+          onOpenOnboarding={() => setIsOnboardingOpen(true)}
+          isAuthenticated={isAuthenticated}
+          t={t.finalCta}
+        />
       </main>
 
-      {/* 12. Minimal Elegant Footer */}
-      <Footer />
-
-      {/* 13. Mobile Floating Sticky Bottom CTA */}
-      <StickyMobileCTA onOpenOnboarding={() => setIsOnboardingOpen(true)} />
+      {/* 8. Footer */}
+      <Footer t={t.footer} onLanguageClick={cycleLanguage} />
 
       {/* Onboarding Wizard Modal */}
       <OnboardingModal
@@ -160,13 +187,14 @@ function LandingPageInner({ isAuthenticated = false }: LandingPageProps) {
           onClick={() => setIsLoginModalOpen(false)}
         >
           <div
-            className="p-4 mx-3 rounded-4 s-glass-card"
+            className="p-4 mx-3 rounded-4"
             style={{
               width: "100%",
               maxWidth: "420px",
-              background: "rgba(17, 15, 29, 0.95)",
-              border: "1px solid var(--s-glass-border-hover)",
-              boxShadow: "0 25px 60px rgba(0, 0, 0, 0.8), 0 0 40px var(--s-purple-glow)",
+              background: "#151516",
+              border: "1px solid #2A2A2D",
+              boxShadow: "0 25px 60px rgba(0, 0, 0, 0.8)",
+              fontFamily: "'Quicksand', sans-serif",
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -179,14 +207,14 @@ function LandingPageInner({ isAuthenticated = false }: LandingPageProps) {
                     width: "32px",
                     height: "32px",
                     borderRadius: "8px",
-                    background: "rgba(99, 102, 241, 0.15)",
-                    color: "var(--s-purple-soft)",
+                    background: "rgba(255, 76, 99, 0.15)",
+                    color: "#FF4C63",
                   }}
                 >
                   <Lock size={16} />
                 </div>
                 <h4 className="fw-bold mb-0 text-white" style={{ fontSize: "1.05rem" }}>
-                  {modalText.title}
+                  {t.modal.title}
                 </h4>
               </div>
               <button
@@ -213,12 +241,12 @@ function LandingPageInner({ isAuthenticated = false }: LandingPageProps) {
             <form onSubmit={handleLoginSubmit}>
               <div className="mb-3">
                 <label className="form-label text-secondary small">
-                  {modalText.label}
+                  {t.modal.label}
                 </label>
                 <input
                   type="password"
                   className="form-control bg-dark border-secondary border-opacity-25 text-white"
-                  placeholder={modalText.placeholder || "••••••••••••"}
+                  placeholder={t.modal.placeholder}
                   value={loginPassword}
                   onChange={(e) => setLoginPassword(e.target.value)}
                   required
@@ -231,19 +259,24 @@ function LandingPageInner({ isAuthenticated = false }: LandingPageProps) {
                 <button
                   type="button"
                   onClick={() => setIsLoginModalOpen(false)}
-                  className="s-btn-secondary py-2 px-3"
-                  style={{ fontSize: "0.85rem" }}
+                  className="selloi-btn-glass py-2 px-3"
+                  style={{ fontSize: "0.85rem", borderRadius: "10px" }}
                 >
-                  {modalText.cancel}
+                  {t.modal.cancel}
                 </button>
                 <button
                   type="submit"
                   disabled={loginLoading}
-                  className="s-btn-primary py-2 px-4"
-                  style={{ fontSize: "0.85rem" }}
+                  className="selloi-btn-glass py-2 px-4"
+                  style={{
+                    fontSize: "0.85rem",
+                    borderRadius: "10px",
+                    background: "#FF4C63",
+                    color: "#FFFFFF",
+                  }}
                 >
-                  {loginLoading ? modalText.loading : modalText.submit}
-                  <ArrowRight size={15} />
+                  {loginLoading ? t.modal.loading : t.modal.submit}
+                  <ArrowRight size={15} style={{ marginLeft: "6px" }} />
                 </button>
               </div>
             </form>
@@ -257,7 +290,7 @@ function LandingPageInner({ isAuthenticated = false }: LandingPageProps) {
 export default function LandingPage({ isAuthenticated = false }: LandingPageProps) {
   return (
     <LanguageProvider initialLanguage="uz">
-      <LandingPageInner isAuthenticated={isAuthenticated} />
+      <LandingPageContent isAuthenticated={isAuthenticated} />
     </LanguageProvider>
   );
 }

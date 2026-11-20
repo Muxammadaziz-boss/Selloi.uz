@@ -39,6 +39,8 @@ DEFAULT_PLANS = [
         "description": "Kichik biznes va yakka tartibdagi tadbirkorlar uchun boshlang'ich avtomatlashtirish.",
         "price_monthly": 19,
         "price_yearly": 190,
+        "price_monthly_uzs": 244150,
+        "price_yearly_uzs": 2441500,
         "currency": "USD",
         "is_featured": False,
         "features": {
@@ -89,6 +91,8 @@ DEFAULT_PLANS = [
         "description": "Eng ommabop tarif: ko'p kanalli sotuvlar, to'liq bilimlar bazasi va kengaytirilgan RAG.",
         "price_monthly": 59,
         "price_yearly": 590,
+        "price_monthly_uzs": 758150,
+        "price_yearly_uzs": 7581500,
         "currency": "USD",
         "is_featured": True,  # MOST POPULAR
         "features": {
@@ -139,6 +143,8 @@ DEFAULT_PLANS = [
         "description": "Katta kompaniyalar va agentliklar uchun: cheksiz quvvat, maxsus integratsiyalar va ustuvorlik.",
         "price_monthly": 149,
         "price_yearly": 1490,
+        "price_monthly_uzs": 1914650,
+        "price_yearly_uzs": 19146500,
         "currency": "USD",
         "is_featured": False,
         "features": {
@@ -200,6 +206,8 @@ async def seed_plans_and_defaults(db: AsyncSession):
                 description=plan_spec["description"],
                 price_monthly=plan_spec["price_monthly"],
                 price_yearly=plan_spec["price_yearly"],
+                price_monthly_uzs=plan_spec.get("price_monthly_uzs", 0),
+                price_yearly_uzs=plan_spec.get("price_yearly_uzs", 0),
                 currency=plan_spec["currency"],
                 features=plan_spec["features"],
                 limits=plan_spec["limits"],
@@ -215,6 +223,10 @@ async def seed_plans_and_defaults(db: AsyncSession):
             plan.limits = plan_spec["limits"]
             plan.price_monthly = plan_spec["price_monthly"]
             plan.price_yearly = plan_spec["price_yearly"]
+            if plan_spec.get("price_monthly_uzs"):
+                plan.price_monthly_uzs = plan_spec["price_monthly_uzs"]
+            if plan_spec.get("price_yearly_uzs"):
+                plan.price_yearly_uzs = plan_spec["price_yearly_uzs"]
             plan.is_featured = plan_spec["is_featured"]
         plan_records[plan.code] = plan
 

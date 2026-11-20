@@ -1,0 +1,636 @@
+import { Language } from "@/app/lib/i18n/types";
+
+export interface SelloiTranslations {
+  nav: {
+    boshSahifa: string;
+    selloiHaqida: string;
+    sinabKorish: string;
+    tariflar: string;
+    aloqa: string;
+    kirish: string;
+    kabinet: string;
+  };
+  hero: {
+    title1: string;
+    title2: string;
+    subtitle: string;
+    cta: string;
+    windowTitle: string;
+  };
+  imkoniyatlar: {
+    tag: string;
+    titleLine1: string;
+    titleLine2: string;
+    subtitleLine1: string;
+    subtitleLine2: string;
+    card1Tag: string;
+    card1TitleLine1: string;
+    card1TitleLine2: string;
+    card1DescLine1: string;
+    card1DescLine2: string;
+    card1UserLabel: string;
+    card1UserMsg: string;
+    card1BotLabel: string;
+    card1BotMsgLine1: string;
+    card1BotMsgLine2: string;
+    card2Tag: string;
+    card2Title: string;
+    card2DescLine1: string;
+    card2DescLine2: string;
+    card3Tag: string;
+    card3Title: string;
+    card3DescLine1: string;
+    card3DescLine2: string;
+  };
+  qandayIshlaydi: {
+    tag: string;
+    title: string;
+    step1Num: string;
+    step1Title: string;
+    step1DescLine1: string;
+    step1DescLine2: string;
+    step2Num: string;
+    step2Title: string;
+    step2DescLine1: string;
+    step2DescLine2: string;
+    step3Num: string;
+    step3Title: string;
+    step3DescLine1: string;
+    step3DescLine2: string;
+  };
+  suhbatNamunasi: {
+    tag: string;
+    titleLine1: string;
+    titleLine2: string;
+    descLine1: string;
+    descLine2: string;
+    descLine3: string;
+    cta: string;
+    cardTitle: string;
+    cardSub: string;
+    userMsg: string;
+    botMsgLine1: string;
+    botMsgLine2: string;
+    disclaimer: string;
+    placeholder: string;
+    liveBadge: string;
+    step1UserText: string;
+    step2BotText: string;
+    step3UserCaption: string;
+    step4BotRecognition: string;
+    orderBadge: string;
+    orderProduct: string;
+    orderPrice: string;
+    orderStatus: string;
+    typingIndicator: string;
+    analyzingIndicator: string;
+  };
+  tariflar: {
+    tag: string;
+    title: string;
+    desc: string;
+    cta: string;
+    note: string;
+  };
+  faq: {
+    tag: string;
+    titleLine1: string;
+    titleLine2: string;
+    descLine1: string;
+    descLine2: string;
+    contact: string;
+    items: {
+      id: string;
+      question: string;
+      answer: string;
+      nodeId: string;
+    }[];
+  };
+  finalCta: {
+    tag: string;
+    titleLine1: string;
+    titleLine2: string;
+    desc: string;
+    cta: string;
+    note: string;
+  };
+  footer: {
+    taglineLine1: string;
+    taglineLine2: string;
+    col1Title: string;
+    col1Link1: string;
+    col1Link2: string;
+    col2Title: string;
+    col2Link1: string;
+    col2Link2: string;
+    col3Title: string;
+    col3Link1: string;
+    col3Link2: string;
+    copy: string;
+    langName: string;
+  };
+  modal: {
+    title: string;
+    label: string;
+    placeholder: string;
+    cancel: string;
+    submit: string;
+    loading: string;
+    errorDefault: string;
+  };
+}
+
+export const SELLOI_I18N: Record<Language, SelloiTranslations> = {
+  uz: {
+    nav: {
+      boshSahifa: "Bosh sahifa",
+      selloiHaqida: "Selloi haqida",
+      sinabKorish: "Sinab ko’rish",
+      tariflar: "Tariflar",
+      aloqa: "Aloqa",
+      kirish: "Kirish",
+      kabinet: "Kabinet",
+    },
+    hero: {
+      title1: "Do’koningiz uchun",
+      title2: "24/7 onlayn sotuvchi!",
+      subtitle:
+        "Mijozlar savollariga soniyalar ichida aniq javob beradi, fotosuratdagi tovarlarni taniydi va buyurtmalarni avtomatik qabul qiladi. Tun-u kun, dam olish kunlarisiz!",
+      cta: "7 Kun tekin sinab ko’rish →",
+      windowTitle: "Selloi.uz",
+    },
+    imkoniyatlar: {
+      tag: "SELLOI IMKONIYATLARI",
+      titleLine1: "Siz biznesni o‘stiring.",
+      titleLine2: "Savdoni Selloi davom ettiradi.",
+      subtitleLine1: "Har bir savol — yangi savdo imkoniyati.",
+      subtitleLine2: "Birorta murojaatni javobsiz qoldirmang.",
+      card1Tag: "01 / TEZKOR MULOQOT",
+      card1TitleLine1: "Savollar ko‘p.",
+      card1TitleLine2: "Javob esa doim tayyor.",
+      card1DescLine1: "Mijoz kutmaydi. Selloi mahsulot haqidagi savollarga",
+      card1DescLine2: "soniyalar ichida aniq javob beradi.",
+      card1UserLabel: "MIJOZ",
+      card1UserMsg: "Bu modelning qora rangi bormi?",
+      card1BotLabel: "Selloi",
+      card1BotMsgLine1: "Ha, qora rangi mavjud. Buyurtma",
+      card1BotMsgLine2: "berishingizga yordam beraymi?",
+      card2Tag: "02 / RASMDAN MAHSULOTGA",
+      card2Title: "Mijoz rasm yuboradi. Selloi taniydi.",
+      card2DescLine1: "Fotosuratdagi tovarni aniqlab, suhbatni",
+      card2DescLine2: "buyurtma sari davom ettiradi.",
+      card3Tag: "03 / TUN-U KUN SAVDO",
+      card3Title: "Do‘kon yopiladi. Savdo to‘xtamaydi.",
+      card3DescLine1: "Buyurtmalarni avtomatik qabul qiladi.",
+      card3DescLine2: "Kechasi ham, dam olish kunlarida ham.",
+    },
+    qandayIshlaydi: {
+      tag: "QANDAY ISHLAYDI?",
+      title: "Murakkab texnologiya. Oddiy boshlanish.",
+      step1Num: "01",
+      step1Title: "Do‘koningizni tanishtiring",
+      step1DescLine1: "Mahsulotlaringiz va do‘koningiz haqidagi",
+      step1DescLine2: "ma’lumotlarni tayyorlang.",
+      step2Num: "02",
+      step2Title: "Selloiga yo‘l ko‘rsating",
+      step2DescLine1: "Mijozlar eng ko‘p beradigan savollar",
+      step2DescLine2: "va javoblarni bir joyga jamlang.",
+      step3Num: "03",
+      step3Title: "Suhbatni Selloi davom ettirsin",
+      step3DescLine1: "Mijozlar bilan muloqotni yengillashtiring,",
+      step3DescLine2: "o‘zingiz esa biznesga e’tibor qarating.",
+    },
+    suhbatNamunasi: {
+      tag: "O‘ZINGIZ TASAVVUR QILING",
+      titleLine1: "Oddiy savoldan",
+      titleLine2: "tayyor buyurtmagacha.",
+      descLine1: "Mijozingiz bilan tabiiy muloqot. Mahsulot haqida",
+      descLine2: "javob, tanlovda yordam va buyurtmani qabul qilish —",
+      descLine3: "barchasi bir suhbatda.",
+      cta: "7 Kun tekin sinab ko‘rish →",
+      cardTitle: "Selloi",
+      cardSub: "Suhbat namunasi",
+      userMsg: "Assalomu alaykum! Yetkazib berish bormi?",
+      botMsgLine1: "Va alaykum assalom! Qaysi manzilga",
+      botMsgLine2: "buyurtma bermoqchisiz?",
+      disclaimer: "Namunaviy suhbat. Javoblar do‘kon ma’lumotlariga bog‘liq.",
+      placeholder: "Xabaringizni yozing…",
+      liveBadge: "Jonli demo",
+      step1UserText: "Assalomu alaykum! Shu krossovkadan 42-razmeri bormi?",
+      step2BotText: "Va alaykum assalom! Ha, qora va oq ranglarda 42-razmer mavjud. Qaysi rang ma’qul?",
+      step3UserCaption: "Mana shu oq ranglisidan 1 juft olmoqchiman.",
+      step4BotRecognition: "Fotosurat tahlil qilindi: Nike Air Force (Oq, 42-razmer) omborda bor ✅ Narxi: 380 000 so‘m.",
+      orderBadge: "Buyurtma #4821 rasmiylashtirildi 🎉",
+      orderProduct: "Mahsulot: Nike Air Force (Oq, 42)",
+      orderPrice: "Jami: 380 000 so‘m",
+      orderStatus: "Holati: Qabul qilindi • Yetkazib berishga yuborildi ⚡",
+      typingIndicator: "Selloi javob yozmoqda...",
+      analyzingIndicator: "Selloi fotosuratni tahlil qilmoqda...",
+    },
+    tariflar: {
+      tag: "TARIFLAR",
+      title: "Biznesingizga mos yechimni tanlang.",
+      desc: "Avval 7 kun tekin sinab ko‘ring. Keyin do‘koningiz ehtiyojiga mos tarifni tanlang.",
+      cta: "7 Kun tekin sinab ko’rish →",
+      note: "Do‘koningiz uchun. O‘sishingiz uchun.",
+    },
+    faq: {
+      tag: "SAVOL-JAVOB",
+      titleLine1: "Savolingiz",
+      titleLine2: "bormi?",
+      descLine1: "Boshlashdan oldin bilish",
+      descLine2: "foydali bo‘lgan javoblar.",
+      contact: "Jamoa bilan bog‘lanish →",
+      items: [
+        {
+          id: "q1",
+          question: "Selloi nima qiladi?",
+          answer:
+            "Selloi — do‘koningizning onlayn sotuvchisi. U savollarga javob beradi, fotosuratdagi tovarlarni taniydi va buyurtmalarni avtomatik qabul qiladi.",
+          nodeId: "182:415",
+        },
+        {
+          id: "q2",
+          question: "Avval sinab ko‘rsam bo‘ladimi?",
+          answer:
+            "Ha, 7 kun davomida tizimning barcha imkoniyatlarini bepul sinab ko‘rishingiz mumkin.",
+          nodeId: "182:420",
+        },
+        {
+          id: "q3",
+          question: "Selloi dam olish kunlari ham ishlaydimi?",
+          answer:
+            "Ha, Selloi 24/7 rejimida uzluksiz ishlaydi va dam olish kunlarisiz xizmat ko‘rsatadi.",
+          nodeId: "182:424",
+        },
+        {
+          id: "q4",
+          question: "Rasm orqali mahsulotni taniy oladimi?",
+          answer:
+            "Ha, mijoz yuborgan fotosuratni AI orqali aniqlab, do‘koningizdagi tovarlar bilan moslashtiradi va buyurtma berishga yordam beradi.",
+          nodeId: "182:428",
+        },
+      ],
+    },
+    finalCta: {
+      tag: "KEYINGI BUYURTMANI O‘TKAZIB YUBORMANG",
+      titleLine1: "Mijozlaringiz kutmasin.",
+      titleLine2: "Selloi bilan bugunoq boshlang.",
+      desc: "Do‘koningizga tun-u kun ishlaydigan yordamchi qo‘shing.",
+      cta: "7 Kun tekin sinab ko‘rish →",
+      note: "7 kun davomida imkoniyatlarni o‘zingiz baholang.",
+    },
+    footer: {
+      taglineLine1: "Do‘koningiz uchun",
+      taglineLine2: "24/7 onlayn sotuvchi.",
+      col1Title: "TANISHING",
+      col1Link1: "Selloi haqida",
+      col1Link2: "Imkoniyatlar",
+      col2Title: "BOSHLANG",
+      col2Link1: "Sinab ko‘rish",
+      col2Link2: "Tariflar",
+      col3Title: "ALOQA",
+      col3Link1: "Biz bilan bog‘lanish",
+      col3Link2: "selloi.uz",
+      copy: "© Selloi. Barcha huquqlar himoyalangan.",
+      langName: "O‘zbekcha",
+    },
+    modal: {
+      title: "Boshqaruv paneliga kirish",
+      label: "Admin paroli",
+      placeholder: "••••••••••••",
+      cancel: "Bekor qilish",
+      submit: "Kirish",
+      loading: "Kirilmoqda...",
+      errorDefault: "Parol noto‘g‘ri",
+    },
+  },
+  ru: {
+    nav: {
+      boshSahifa: "Главная",
+      selloiHaqida: "О Selloi",
+      sinabKorish: "Попробовать",
+      tariflar: "Тарифы",
+      aloqa: "Контакты",
+      kirish: "Вход",
+      kabinet: "Кабинет",
+    },
+    hero: {
+      title1: "Для вашего магазина",
+      title2: "24/7 онлайн продавец!",
+      subtitle:
+        "Отвечает на вопросы клиентов за секунды, распознает товары по фото и автоматически принимает заказы. Круглосуточно, без выходных!",
+      cta: "Попробовать 7 дней бесплатно →",
+      windowTitle: "Selloi.uz",
+    },
+    imkoniyatlar: {
+      tag: "ВОЗМОЖНОСТИ SELLOI",
+      titleLine1: "Развивайте ваш бизнес.",
+      titleLine2: "Продажи продолжит Selloi.",
+      subtitleLine1: "Каждый вопрос — новая продажа.",
+      subtitleLine2: "Ни одно обращение не останется без ответа.",
+      card1Tag: "01 / БЫСТРОЕ ОБЩЕНИЕ",
+      card1TitleLine1: "Вопросов много.",
+      card1TitleLine2: "Ответ всегда готов.",
+      card1DescLine1: "Клиент не ждет. Selloi отвечает на вопросы о товаре",
+      card1DescLine2: "за считанные секунды.",
+      card1UserLabel: "КЛИЕНТ",
+      card1UserMsg: "Есть эта модель в черном цвете?",
+      card1BotLabel: "Selloi",
+      card1BotMsgLine1: "Да, черный цвет в наличии. Помочь",
+      card1BotMsgLine2: "оформить заказ?",
+      card2Tag: "02 / ОТ ФОТО К ТОВАРУ",
+      card2Title: "Клиент шлет фото. Selloi распознает.",
+      card2DescLine1: "Определяет товар на фотографии и ведет",
+      card2DescLine2: "диалог прямо к покупке.",
+      card3Tag: "03 / ПРОДАЖИ 24/7",
+      card3Title: "Магазин закрыт. Продажи продолжаются.",
+      card3DescLine1: "Автоматически принимает заказы.",
+      card3DescLine2: "И ночью, и в выходные дни.",
+    },
+    qandayIshlaydi: {
+      tag: "КАК ЭТО РАБОТАЕТ?",
+      title: "Сложные технологии. Простой старт.",
+      step1Num: "01",
+      step1Title: "Подключите ваш магазин",
+      step1DescLine1: "Подготовьте информацию о ваших товарах",
+      step1DescLine2: "и условиях магазина.",
+      step2Num: "02",
+      step2Title: "Обучите Selloi",
+      step2DescLine1: "Соберите популярные вопросы клиентов",
+      step2DescLine2: "и ответы в одном месте.",
+      step3Num: "03",
+      step3Title: "Доверьте общение Selloi",
+      step3DescLine1: "Упростите диалог с покупателями,",
+      step3DescLine2: "а сами сфокусируйтесь на бизнесе.",
+    },
+    suhbatNamunasi: {
+      tag: "ПРЕДСТАВЬТЕ САМИ",
+      titleLine1: "От простого вопроса",
+      titleLine2: "до готового заказа.",
+      descLine1: "Естественный диалог с клиентом. Ответы о товарах,",
+      descLine2: "помощь с выбором и прием заказов —",
+      descLine3: "все в одной беседе.",
+      cta: "Попробовать 7 дней бесплатно →",
+      cardTitle: "Selloi",
+      cardSub: "Пример диалога",
+      userMsg: "Здравствуйте! Есть ли доставка?",
+      botMsgLine1: "Здравствуйте! По какому адресу",
+      botMsgLine2: "хотите оформить доставку?",
+      disclaimer: "Пример диалога. Ответы формируются на основе данных вашего магазина.",
+      placeholder: "Напишите сообщение…",
+      liveBadge: "Онлайн демо",
+      step1UserText: "Здравствуйте! Есть ли эта модель в 42 размере?",
+      step2BotText: "Здравствуйте! Да, 42 размер в наличии в черном и белом цветах. Какой цвет вам ближе?",
+      step3UserCaption: "Мне нужна вот эта белая пара, 1 шт.",
+      step4BotRecognition: "Фото распознано: Nike Air Force (Белые, 42 размер) в наличии ✅ Цена: 380 000 сум.",
+      orderBadge: "Заказ #4821 успешно оформлен 🎉",
+      orderProduct: "Товар: Nike Air Force (Белые, 42)",
+      orderPrice: "Итого: 380 000 сум",
+      orderStatus: "Статус: Принят • Отправлен на доставку ⚡",
+      typingIndicator: "Selloi печатает...",
+      analyzingIndicator: "Selloi анализирует фото...",
+    },
+    tariflar: {
+      tag: "ТАРИФЫ",
+      title: "Выберите решение для вашего бизнеса.",
+      desc: "Сначала попробуйте 7 дней бесплатно. Затем выберите подходящий тариф для магазина.",
+      cta: "Попробовать 7 дней бесплатно →",
+      note: "Для вашего магазина. Для вашего роста.",
+    },
+    faq: {
+      tag: "ВОПРОСЫ И ОТВЕТЫ",
+      titleLine1: "Есть",
+      titleLine2: "вопросы?",
+      descLine1: "Полезные ответы",
+      descLine2: "перед началом работы.",
+      contact: "Связаться с командой →",
+      items: [
+        {
+          id: "q1",
+          question: "Что делает Selloi?",
+          answer:
+            "Selloi — онлайн-продавец для вашего магазина. Он отвечает на вопросы, распознает товары по фото и автоматически оформляет заказы.",
+          nodeId: "182:415",
+        },
+        {
+          id: "q2",
+          question: "Можно ли сначала протестировать?",
+          answer:
+            "Да, вы можете бесплатно тестировать все возможности платформы в течение 7 дней.",
+          nodeId: "182:420",
+        },
+        {
+          id: "q3",
+          question: "Работает ли Selloi в выходные?",
+          answer:
+            "Да, Selloi работает непрерывно 24/7 без выходных и праздников.",
+          nodeId: "182:424",
+        },
+        {
+          id: "q4",
+          question: "Распознает ли товар по фото?",
+          answer:
+            "Да, нейросеть анализирует присланную фотографию, находит нужный товар в каталоге и помогает оформить заказ.",
+          nodeId: "182:428",
+        },
+      ],
+    },
+    finalCta: {
+      tag: "НЕ УПУСКАЙТЕ СЛЕДУЮЩИЙ ЗАКАЗ",
+      titleLine1: "Не заставляйте клиентов ждать.",
+      titleLine2: "Начните с Selloi уже сегодня.",
+      desc: "Подключите круглосуточного помощника к вашему магазину.",
+      cta: "Попробовать 7 дней бесплатно →",
+      note: "Оцените все возможности в течение 7 дней.",
+    },
+    footer: {
+      taglineLine1: "Для вашего магазина",
+      taglineLine2: "24/7 онлайн продавец.",
+      col1Title: "ЗНАКОМСТВО",
+      col1Link1: "О Selloi",
+      col1Link2: "Возможности",
+      col2Title: "НАЧАТЬ",
+      col2Link1: "Попробовать",
+      col2Link2: "Тарифы",
+      col3Title: "КОНТАКТЫ",
+      col3Link1: "Связаться с нами",
+      col3Link2: "selloi.uz",
+      copy: "© Selloi. Все права защищены.",
+      langName: "Русский",
+    },
+    modal: {
+      title: "Вход в панель управления",
+      label: "Пароль администратора",
+      placeholder: "••••••••••••",
+      cancel: "Отмена",
+      submit: "Войти",
+      loading: "Проверка...",
+      errorDefault: "Неверный пароль",
+    },
+  },
+  en: {
+    nav: {
+      boshSahifa: "Home",
+      selloiHaqida: "About Selloi",
+      sinabKorish: "Try Free",
+      tariflar: "Pricing",
+      aloqa: "Contact",
+      kirish: "Sign In",
+      kabinet: "Dashboard",
+    },
+    hero: {
+      title1: "For your store",
+      title2: "24/7 online sales AI!",
+      subtitle:
+        "Responds to customers within seconds, recognizes products from photos, and captures orders automatically. 24/7, zero days off!",
+      cta: "Try 7 Days Free →",
+      windowTitle: "Selloi.uz",
+    },
+    imkoniyatlar: {
+      tag: "SELLOI CAPABILITIES",
+      titleLine1: "Grow your business.",
+      titleLine2: "Selloi handles the sales.",
+      subtitleLine1: "Every question is a sales opportunity.",
+      subtitleLine2: "Never leave any customer waiting.",
+      card1Tag: "01 / INSTANT REPLIES",
+      card1TitleLine1: "Lots of questions.",
+      card1TitleLine2: "Answers always ready.",
+      card1DescLine1: "Shoppers don't wait. Selloi delivers accurate",
+      card1DescLine2: "answers to product inquiries in seconds.",
+      card1UserLabel: "CUSTOMER",
+      card1UserMsg: "Is this model available in black?",
+      card1BotLabel: "Selloi",
+      card1BotMsgLine1: "Yes, black is in stock! Would you like",
+      card1BotMsgLine2: "help placing your order?",
+      card2Tag: "02 / FROM PHOTO TO PRODUCT",
+      card2Title: "Customer sends a photo. Selloi recognizes it.",
+      card2DescLine1: "Identifies items directly from photos and",
+      card2DescLine2: "seamlessly guides the dialogue to checkout.",
+      card3Tag: "03 / 24/7 ROUND-THE-CLOCK",
+      card3Title: "Store closes. Sales never stop.",
+      card3DescLine1: "Automatically accepts orders even at night",
+      card3DescLine2: "and throughout the weekends.",
+    },
+    qandayIshlaydi: {
+      tag: "HOW IT WORKS",
+      title: "Advanced technology. Simple beginning.",
+      step1Num: "01",
+      step1Title: "Introduce your store",
+      step1DescLine1: "Prepare your product catalog",
+      step1DescLine2: "and store details.",
+      step2Num: "02",
+      step2Title: "Guide Selloi",
+      step2DescLine1: "Gather your most common customer FAQs",
+      step2DescLine2: "and answers in one place.",
+      step3Num: "03",
+      step3Title: "Let Selloi take the conversation",
+      step3DescLine1: "Streamline customer interactions,",
+      step3DescLine2: "and focus your time on growing the business.",
+    },
+    suhbatNamunasi: {
+      tag: "PICTURE THIS",
+      titleLine1: "From a simple question",
+      titleLine2: "to a completed order.",
+      descLine1: "Natural conversation with your customer. Product guidance,",
+      descLine2: "recommendations, and order checkout —",
+      descLine3: "all in one conversation.",
+      cta: "Try 7 Days Free →",
+      cardTitle: "Selloi",
+      cardSub: "Sample Conversation",
+      userMsg: "Hello! Do you have delivery available?",
+      botMsgLine1: "Hello! What destination address",
+      botMsgLine2: "should we deliver to?",
+      disclaimer: "Sample dialogue. Actual responses depend on your store configuration.",
+      placeholder: "Type your message…",
+      liveBadge: "Live Demo",
+      step1UserText: "Hello! Do you have size 42 in stock for this sneaker?",
+      step2BotText: "Hello! Yes, size 42 is currently in stock in both black and white. Which one do you prefer?",
+      step3UserCaption: "I'd like 1 pair of this white one please.",
+      step4BotRecognition: "Photo analyzed: Nike Air Force (White, size 42) in stock ✅ Price: 380,000 UZS.",
+      orderBadge: "Order #4821 Confirmed 🎉",
+      orderProduct: "Product: Nike Air Force (White, 42)",
+      orderPrice: "Total: 380,000 UZS",
+      orderStatus: "Status: Processed • Dispatched for delivery ⚡",
+      typingIndicator: "Selloi is typing...",
+      analyzingIndicator: "Selloi is analyzing photo...",
+    },
+    tariflar: {
+      tag: "PRICING PLANS",
+      title: "Choose the right solution for your business.",
+      desc: "Start with a 7-day free trial. Then select the tier that fits your store's volume.",
+      cta: "Try 7 Days Free →",
+      note: "For your store. For your growth.",
+    },
+    faq: {
+      tag: "FREQUENTLY ASKED QUESTIONS",
+      titleLine1: "Have",
+      titleLine2: "questions?",
+      descLine1: "Helpful answers to know",
+      descLine2: "before getting started.",
+      contact: "Contact team →",
+      items: [
+        {
+          id: "q1",
+          question: "What does Selloi do?",
+          answer:
+            "Selloi is an online sales assistant for your store. It answers questions, recognizes products from photos, and automatically collects orders.",
+          nodeId: "182:415",
+        },
+        {
+          id: "q2",
+          question: "Can I try it before paying?",
+          answer:
+            "Yes! You can explore all capabilities with a full-featured 7-day free trial.",
+          nodeId: "182:420",
+        },
+        {
+          id: "q3",
+          question: "Does Selloi work on weekends?",
+          answer:
+            "Yes, Selloi operates 24/7 without interruption or days off.",
+          nodeId: "182:424",
+        },
+        {
+          id: "q4",
+          question: "Can it identify products from photos?",
+          answer:
+            "Yes, computer vision identifies the item from user photos and matches it with your store catalog to assist checkout.",
+          nodeId: "182:428",
+        },
+      ],
+    },
+    finalCta: {
+      tag: "DON'T MISS YOUR NEXT SALE",
+      titleLine1: "Keep your customers moving.",
+      titleLine2: "Start with Selloi today.",
+      desc: "Add a 24/7 intelligent sales assistant to your store.",
+      cta: "Try 7 Days Free →",
+      note: "Experience all features free for 7 days.",
+    },
+    footer: {
+      taglineLine1: "For your store",
+      taglineLine2: "24/7 online sales AI.",
+      col1Title: "EXPLORE",
+      col1Link1: "About Selloi",
+      col1Link2: "Features",
+      col2Title: "GET STARTED",
+      col2Link1: "Try Free",
+      col2Link2: "Pricing",
+      col3Title: "CONTACT",
+      col3Link1: "Contact Support",
+      col3Link2: "selloi.uz",
+      copy: "© Selloi. All rights reserved.",
+      langName: "English",
+    },
+    modal: {
+      title: "Dashboard Login",
+      label: "Enter platform password:",
+      placeholder: "••••••••••••",
+      cancel: "Cancel",
+      submit: "Sign In",
+      loading: "Verifying...",
+      errorDefault: "Invalid password",
+    },
+  },
+};

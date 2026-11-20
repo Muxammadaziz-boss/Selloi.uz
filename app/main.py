@@ -57,42 +57,70 @@ async def lifespan(application: FastAPI):
     logger.info("Starting %s (%s)", settings.app_name, settings.app_env)
     storage_path = Path(settings.storage_dir)
     storage_path.mkdir(parents=True, exist_ok=True)
-    async with engine.begin() as conn:
-        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
-        await conn.run_sync(Base.metadata.create_all)
-        # Ensure multi-tenant organization_id columns exist on legacy tables
+    # Run schema creation and extension
+    try:
+        async with engine.begin() as conn:
+            await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+            await conn.run_sync(Base.metadata.create_all)
+    except Exception as e:
+        logger.warning("Base schema initialization notice: %s", e)
+
+    # Safe standalone migrations (individual transactions so one skip does not abort others)
+    migration_statements = [
+        "ALTER TABLE organizations ADD COLUMN IF NOT EXISTS webhook_secret VARCHAR(64)",
+        "ALTER TABLE organizations ALTER COLUMN telegram_bot_token TYPE TEXT",
+        "ALTER TABLE organizations ALTER COLUMN openai_api_key TYPE TEXT",
+        "ALTER TABLE organizations ALTER COLUMN gemini_api_key TYPE TEXT",
+        "ALTER TABLE plans ADD COLUMN IF NOT EXISTS price_monthly_uzs BIGINT DEFAULT 0",
+        "ALTER TABLE plans ADD COLUMN IF NOT EXISTS price_yearly_uzs BIGINT DEFAULT 0",
+        "ALTER TABLE plans ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT TRUE",
+        "ALTER TABLE plans ADD COLUMN IF NOT EXISTS display_order INTEGER DEFAULT 1",
+        "ALTER TABLE plans ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT FALSE",
+        "ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS locked_plan_code VARCHAR(32)",
+        "ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS locked_price INTEGER",
+        "ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS locked_currency VARCHAR(8) DEFAULT 'USD'",
+        "ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS locked_interval VARCHAR(16) DEFAULT 'monthly'",
+        "ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS price_source VARCHAR(32) DEFAULT 'global_catalog'",
+        "ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS applied_offer_id INTEGER",
+        "ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS snapshot_created_at TIMESTAMPTZ DEFAULT NOW()",
+        "ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS mega_discount_used BOOLEAN DEFAULT FALSE",
+        "ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS mega_discount_plan_code VARCHAR(32)",
+        "ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS mega_discount_order_id VARCHAR(128)",
+        "ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS mega_discount_paid_at TIMESTAMPTZ",
+        "ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS mega_discount_expires_at TIMESTAMPTZ",
+    ]
+
+    legacy_tables = [
+        "conversations",
+        "messages",
+        "channel_posts",
+        "connected_channels",
+        "orders",
+        "business_connections",
+        "system_settings",
+        "admins",
+        "products",
+        "customers",
+    ]
+    for tbl in legacy_tables:
+        migration_statements.append(
+            f"ALTER TABLE {tbl} ADD COLUMN IF NOT EXISTS organization_id INTEGER REFERENCES organizations(id) ON DELETE CASCADE"
+        )
+
+    for stmt in migration_statements:
         try:
-            await conn.execute(text("ALTER TABLE organizations ADD COLUMN IF NOT EXISTS webhook_secret VARCHAR(64)"))
-            await conn.execute(text("ALTER TABLE organizations ALTER COLUMN telegram_bot_token TYPE TEXT"))
-            await conn.execute(text("ALTER TABLE organizations ALTER COLUMN openai_api_key TYPE TEXT"))
-            await conn.execute(text("ALTER TABLE organizations ALTER COLUMN gemini_api_key TYPE TEXT"))
+            async with engine.begin() as conn:
+                await conn.execute(text(stmt))
         except Exception as e:
-            logger.warning("Organizations column migration: %s", e)
+            logger.debug("Migration statement skipped: %s (%s)", stmt, e)
 
-        legacy_tables = [
-            "conversations",
-            "messages",
-            "channel_posts",
-            "connected_channels",
-            "orders",
-            "business_connections",
-            "system_settings",
-            "admins",
-            "products",
-            "customers",
-        ]
-        for tbl in legacy_tables:
-            try:
-                await conn.execute(text(f"ALTER TABLE {tbl} ADD COLUMN IF NOT EXISTS organization_id INTEGER REFERENCES organizations(id) ON DELETE CASCADE"))
-            except Exception as e:
-                logger.warning("Table %s column migration: %s", tbl, e)
-
-        # Synchronize serial primary key sequences to avoid duplicate key errors
-        for tbl in ["organizations", "users", "organization_members", "plans", "subscriptions"]:
-            try:
+    # Synchronize serial primary key sequences
+    for tbl in ["organizations", "users", "organization_members", "plans", "subscriptions"]:
+        try:
+            async with engine.begin() as conn:
                 await conn.execute(text(f"SELECT setval(pg_get_serial_sequence('{tbl}', 'id'), COALESCE((SELECT MAX(id) FROM {tbl}), 0) + 1, false)"))
-            except Exception:
-                pass
+        except Exception:
+            pass
 
     # Mount static files after storage directory is guaranteed to exist.
     application.mount("/storage", StaticFiles(directory=storage_path), name="storage")
@@ -133,10 +161,11 @@ async def lifespan(application: FastAPI):
             logger.exception("setMyCommands o'rnatishda xatolik yuz berdi")
 
     maintenance_task = asyncio.create_task(_subscription_maintenance_loop())
-    await bot_manager.start()
+    bot_task = asyncio.create_task(bot_manager.start())
     logger.info("Application ready")
     yield
     await bot_manager.stop()
+    bot_task.cancel()
     maintenance_task.cancel()
     try:
         await maintenance_task

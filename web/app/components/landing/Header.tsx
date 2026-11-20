@@ -1,342 +1,304 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import Link from "next/link";
-import { useLanguage } from "@/app/lib/i18n";
+import React, { useState, useRef, useEffect } from "react";
 import { Language } from "@/app/lib/i18n/types";
-import { NAV_ITEMS_BY_LANG } from "./data";
-import { LANDING_CONTENT_BY_LANG } from "./landingContent";
-import { Sparkles, Menu, X, ArrowRight, Globe } from "lucide-react";
+import { SelloiTranslations } from "./selloiI18n";
 
 interface HeaderProps {
   onOpenOnboarding: () => void;
   onOpenLogin: () => void;
   isAuthenticated?: boolean;
+  language: Language;
+  onLanguageChange: (lang: Language) => void;
+  t: SelloiTranslations["nav"];
 }
+
+const LANGUAGES: { code: Language; label: string; full: string }[] = [
+  { code: "uz", label: "Uz", full: "O‘zbekcha" },
+  { code: "ru", label: "Ru", full: "Русский" },
+  { code: "en", label: "En", full: "English" },
+];
+
+interface NavItemConfig {
+  id: string;
+  targetId: string;
+  labelKey: keyof SelloiTranslations["nav"];
+}
+
+const NAV_ITEMS: NavItemConfig[] = [
+  { id: "top", targetId: "top", labelKey: "boshSahifa" },
+  { id: "imkoniyatlar", targetId: "imkoniyatlar", labelKey: "selloiHaqida" },
+  { id: "suhbat-namunasi", targetId: "suhbat-namunasi", labelKey: "sinabKorish" },
+  { id: "tariflar", targetId: "tariflar", labelKey: "tariflar" },
+  { id: "faq", targetId: "faq", labelKey: "aloqa" },
+];
 
 export default function Header({
   onOpenOnboarding,
   onOpenLogin,
   isAuthenticated = false,
+  language,
+  onLanguageChange,
+  t,
 }: HeaderProps) {
-  const { language, setLanguage } = useLanguage();
-  const navItems = NAV_ITEMS_BY_LANG[language] || NAV_ITEMS_BY_LANG.uz;
-  const content = (LANDING_CONTENT_BY_LANG[language] || LANDING_CONTENT_BY_LANG.uz).header;
+  const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState<string>("top");
+  const [pillStyle, setPillStyle] = useState<{ left: number; width: number; opacity: number }>({
+    left: 0,
+    width: 0,
+    opacity: 0,
+  });
 
-  const [scrolled, setScrolled] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [langDropdownOpen, setLangDropdownOpen] = useState(false);
-  const [activeSection, setActiveSection] = useState("");
+  const langWrapperRef = useRef<HTMLDivElement>(null);
+  const navRef = useRef<HTMLElement>(null);
 
+  // Close language dropdown on outside click
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        langWrapperRef.current &&
+        !langWrapperRef.current.contains(event.target as Node)
+      ) {
+        setIsLangMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
-      // Section tracker
-      const sections = navItems.filter((i) => i.href.startsWith("#")).map((i) =>
-        i.href.substring(1)
-      );
-      for (const sec of sections) {
-        const el = document.getElementById(sec);
-        if (el) {
-          const rect = el.getBoundingClientRect();
-          if (rect.top <= 140 && rect.bottom >= 140) {
-            setActiveSection(sec);
-            break;
-          }
+  // Smooth scroll helper
+  const scrollTo = (id: string) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  // Cycle languages on click (uz -> ru -> en -> uz)
+  const cycleLanguage = () => {
+    const nextLang: Record<Language, Language> = {
+      uz: "ru",
+      ru: "en",
+      en: "uz",
+    };
+    onLanguageChange(nextLang[language] || "uz");
+  };
+
+  const currentLangLabel =
+    LANGUAGES.find((l) => l.code === language)?.label || "Uz";
+
+  // Dynamic ScrollSpy: accurately track which section is currently in view
+  useEffect(() => {
+    let ticking = false;
+
+    const getDocTop = (el: HTMLElement | null) => {
+      if (!el) return Infinity;
+      const rect = el.getBoundingClientRect();
+      return rect.top + window.scrollY;
+    };
+
+    const handleScroll = () => {
+      // Dynamic offset based on viewport height
+      const scrollPos = window.scrollY + window.innerHeight * 0.35;
+
+      const sections = [
+        { id: "faq", top: getDocTop(document.getElementById("faq")) },
+        { id: "tariflar", top: getDocTop(document.getElementById("tariflar")) },
+        { id: "suhbat-namunasi", top: getDocTop(document.getElementById("suhbat-namunasi")) },
+        { id: "imkoniyatlar", top: getDocTop(document.getElementById("imkoniyatlar")) },
+        { id: "top", top: 0 },
+      ];
+
+      for (const s of sections) {
+        if (scrollPos >= s.top) {
+          setActiveSection((prev) => (prev !== s.id ? s.id : prev));
+          return;
         }
+      }
+      setActiveSection((prev) => (prev !== "top" ? "top" : prev));
+    };
+
+    const onScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          handleScroll();
+          ticking = false;
+        });
+        ticking = true;
       }
     };
 
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [navItems]);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    handleScroll();
+
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // Liquid Glass Sliding Pill Positioning
+  useEffect(() => {
+    const updatePill = () => {
+      if (!navRef.current) return;
+      const activeEl = navRef.current.querySelector(
+        `[data-nav-id="${activeSection}"]`
+      ) as HTMLElement | null;
+
+      if (activeEl) {
+        setPillStyle({
+          left: activeEl.offsetLeft,
+          width: activeEl.offsetWidth,
+          opacity: 1,
+        });
+      }
+    };
+
+    updatePill();
+    const raf = requestAnimationFrame(updatePill);
+    window.addEventListener("resize", updatePill);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", updatePill);
+    };
+  }, [activeSection, language, t]);
 
   return (
-    <header
-      className="position-sticky top-0 w-100"
-      style={{
-        zIndex: 100,
-        backgroundColor: scrolled ? "rgba(9, 9, 9, 0.94)" : "transparent",
-        backdropFilter: scrolled ? "blur(20px)" : "none",
-        WebkitBackdropFilter: scrolled ? "blur(20px)" : "none",
-        borderBottom: scrolled
-          ? "1px solid var(--s-glass-border)"
-          : "1px solid transparent",
-        transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
-      }}
-    >
-      <div className="s-container py-3 d-flex align-items-center justify-content-between">
-        {/* Brand Logo */}
-        <Link
-          href="/"
-          className="d-flex align-items-center gap-2.5 text-decoration-none"
+    <header className="selloi-navbar" data-node-id="65:6">
+      <div className="selloi-navbar-inner">
+        {/* Brand Logo - Single Unified Component */}
+        <a
+          href="#top"
+          className="selloi-nav-logo"
+          data-node-id="89:5"
+          onClick={(e) => {
+            e.preventDefault();
+            setActiveSection("top");
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+          title="Selloi"
         >
-          <div
-            className="d-flex align-items-center justify-content-center"
-            style={{
-              width: "36px",
-              height: "36px",
-              borderRadius: "8px",
-              background: "var(--s-accent)",
-              boxShadow: "0 1px 3px rgba(0, 0, 0, 0.5)",
-              border: "1px solid rgba(255, 255, 255, 0.2)",
-            }}
-          >
-            <span
-              style={{
-                fontSize: "1.15rem",
-                fontWeight: 800,
-                color: "#090909",
-                lineHeight: 1,
-              }}
-            >
-              S
-            </span>
-          </div>
-          <span
-            style={{
-              fontSize: "1.25rem",
-              fontWeight: 800,
-              letterSpacing: "-0.5px",
-              color: "#F4F4F4",
-            }}
-          >
-            Selloi<span style={{ color: "var(--s-accent)" }}>.uz</span>
+          <img
+            src="/figma/selloi-logo.png"
+            alt="Selloi"
+            data-node-id="88:2"
+          />
+          <span className="selloi-nav-logo-text" data-node-id="89:3">
+            Selloi
           </span>
-        </Link>
+        </a>
 
-        {/* Desktop Navigation */}
-        <nav className="d-none d-lg-flex align-items-center gap-4">
-          {navItems.map((item) => {
-            const isAnchor = item.href.startsWith("#");
-            const isActive = isAnchor && activeSection === item.href.substring(1);
+        {/* Pages Navigation with Liquid Glass Indicator */}
+        <nav
+          className="selloi-nav-pages"
+          ref={navRef}
+          data-node-id="89:8"
+          aria-label="Asosiy menyu"
+        >
+          {/* Liquid Glass Sliding Pill */}
+          <div
+            className="selloi-nav-liquid-pill"
+            style={{
+              transform: `translateX(${pillStyle.left}px)`,
+              width: `${pillStyle.width}px`,
+              opacity: pillStyle.opacity,
+            }}
+            aria-hidden="true"
+          />
+
+          {NAV_ITEMS.map((item) => {
+            const isActive = activeSection === item.id;
             return (
               <a
-                key={item.href}
-                href={item.href}
-                className="text-decoration-none position-relative py-1"
-                style={{
-                  fontSize: "0.92rem",
-                  fontWeight: 500,
-                  color: isActive ? "#FFFFFF" : "var(--s-text-secondary)",
-                  transition: "color 0.2s ease",
+                key={item.id}
+                href={`#${item.targetId}`}
+                data-nav-id={item.id}
+                className={`selloi-nav-link ${isActive ? "active" : ""}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setActiveSection(item.id);
+                  if (item.id === "top") {
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  } else if (item.id === "boshlash") {
+                    if (isAuthenticated) {
+                      window.location.href = "/dashboard";
+                    } else {
+                      scrollTo("boshlash");
+                    }
+                  } else {
+                    scrollTo(item.targetId);
+                  }
                 }}
               >
-                {item.label}
-                {isActive && (
-                  <span
-                    className="position-absolute bottom-0 start-0 w-100"
-                    style={{
-                      height: "2px",
-                      background: "linear-gradient(90deg, var(--s-purple-bright), var(--s-cyan))",
-                      borderRadius: "2px",
-                    }}
-                  />
-                )}
+                <span>{t[item.labelKey]}</span>
               </a>
             );
           })}
         </nav>
 
-        {/* Actions & Language Selector */}
-        <div className="d-none d-md-flex align-items-center gap-3">
-          {/* Language Switcher */}
-          <div className="position-relative">
+        {/* Action Buttons */}
+        <div className="selloi-nav-actions" data-node-id="100:24">
+          {/* Language Switcher - Click to Cycle, Hover for Menu */}
+          <div
+            className="selloi-lang-wrapper"
+            ref={langWrapperRef}
+            onMouseEnter={() => setIsLangMenuOpen(true)}
+            onMouseLeave={() => setIsLangMenuOpen(false)}
+          >
             <button
-              onClick={() => setLangDropdownOpen(!langDropdownOpen)}
-              className="d-flex align-items-center gap-1.5 px-2.5 py-1.5"
-              style={{
-                background: "rgba(255, 255, 255, 0.05)",
-                border: "1px solid var(--s-glass-border)",
-                borderRadius: "8px",
-                color: "var(--s-text-primary)",
-                fontSize: "0.82rem",
-                cursor: "pointer",
-              }}
-              title={content.languageLabel}
+              type="button"
+              className="selloi-btn-glass selloi-btn-lang"
+              data-node-id="173:123"
+              aria-label="Til tanlash"
+              title="Tilni o‘zgartirish uchun bosing (Uz / Ru / En)"
+              onClick={cycleLanguage}
+              aria-expanded={isLangMenuOpen}
             >
-              <Globe size={13} color="var(--s-purple-soft)" />
-              <span className="fw-semibold">{language.toUpperCase()}</span>
+              <span>{currentLangLabel}</span>
             </button>
 
-            {langDropdownOpen && (
-              <div
-                className="position-absolute end-0 mt-2 py-1"
-                style={{
-                  width: "110px",
-                  background: "rgba(17, 15, 29, 0.96)",
-                  border: "1px solid var(--s-glass-border-hover)",
-                  borderRadius: "10px",
-                  backdropFilter: "blur(16px)",
-                  boxShadow: "0 10px 25px rgba(0,0,0,0.5)",
-                  zIndex: 110,
-                }}
-              >
-                {(
-                  [
-                    { code: "uz", label: "O‘zbek" },
-                    { code: "ru", label: "Русский" },
-                    { code: "en", label: "English" },
-                  ] as const
-                ).map((item) => (
+            {isLangMenuOpen && (
+              <div className="selloi-lang-menu" role="menu">
+                {LANGUAGES.map((l) => (
                   <button
-                    key={item.code}
+                    key={l.code}
+                    type="button"
+                    className={`selloi-lang-option ${
+                      language === l.code ? "active" : ""
+                    }`}
                     onClick={() => {
-                      setLanguage(item.code);
-                      setLangDropdownOpen(false);
+                      onLanguageChange(l.code);
+                      setIsLangMenuOpen(false);
                     }}
-                    className="w-100 text-start px-3 py-1.5 border-0 bg-transparent"
-                    style={{
-                      fontSize: "0.82rem",
-                      color: language === item.code ? "var(--s-purple-soft)" : "var(--s-text-muted)",
-                      fontWeight: language === item.code ? 700 : 400,
-                      cursor: "pointer",
-                    }}
+                    role="menuitem"
                   >
-                    {item.label}
+                    <span>{l.full}</span>
+                    <span style={{ fontSize: "12px", opacity: 0.6 }}>
+                      {l.label}
+                    </span>
                   </button>
                 ))}
               </div>
             )}
           </div>
 
-          {isAuthenticated ? (
-            <Link
-              href="/dashboard"
-              className="s-btn-secondary py-2 px-3"
-              style={{ fontSize: "0.88rem" }}
-            >
-              <span>{content.dashboardBtn}</span>
-              <ArrowRight size={15} />
-            </Link>
-          ) : (
-            <button
-              onClick={onOpenLogin}
-              className="s-btn-secondary py-2 px-3"
-              style={{ fontSize: "0.88rem" }}
-            >
-              {content.loginBtn}
-            </button>
-          )}
-
+          {/* Login Button */}
           <button
-            onClick={onOpenOnboarding}
-            className="s-btn-primary py-2 px-3.5"
-            style={{ fontSize: "0.88rem" }}
-          >
-            <Sparkles size={15} />
-            <span>{content.createStoreBtn}</span>
-          </button>
-        </div>
-
-        {/* Mobile Hamburger Button */}
-        <div className="d-flex d-md-none align-items-center gap-2">
-          <button
-            onClick={onOpenOnboarding}
-            className="s-btn-primary py-1.5 px-3"
-            style={{ fontSize: "0.8rem" }}
-          >
-            {content.startBtn}
-          </button>
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="btn btn-dark p-2"
-            style={{
-              background: "rgba(255,255,255,0.06)",
-              border: "1px solid var(--s-glass-border)",
-              color: "#FFFFFF",
+            type="button"
+            className="selloi-btn-glass selloi-btn-login"
+            data-node-id="173:131"
+            onClick={() => {
+              if (isAuthenticated) {
+                window.location.href = "/dashboard";
+              } else {
+                onOpenLogin();
+              }
             }}
-            aria-label="Menyuni ochish"
           >
-            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+            <span>{t.kirish}</span>
           </button>
         </div>
       </div>
-
-      {/* Mobile Drawer */}
-      {mobileMenuOpen && (
-        <div
-          className="d-md-none border-top px-4 py-4"
-          style={{
-            background: "rgba(5, 4, 10, 0.98)",
-            backdropFilter: "blur(24px)",
-            borderColor: "var(--s-glass-border) !important",
-          }}
-        >
-          <nav className="d-flex flex-column gap-3 mb-4">
-            {navItems.map((item) => (
-              <a
-                key={item.href}
-                href={item.href}
-                onClick={() => setMobileMenuOpen(false)}
-                className="text-decoration-none py-1.5 d-flex align-items-center justify-content-between"
-                style={{
-                  fontSize: "1.05rem",
-                  fontWeight: 500,
-                  color: "var(--s-text-primary)",
-                }}
-              >
-                <span>{item.label}</span>
-                <ArrowRight size={14} color="var(--s-purple-soft)" />
-              </a>
-            ))}
-          </nav>
-
-          <div className="d-flex align-items-center justify-content-between py-2 border-top border-secondary border-opacity-25 mb-3">
-            <span className="text-secondary small">{content.languageLabel}:</span>
-            <div className="d-flex gap-1">
-              {(
-                [
-                  { code: "uz", label: "UZ" },
-                  { code: "ru", label: "RU" },
-                  { code: "en", label: "EN" },
-                ] as const
-              ).map((item) => (
-                <button
-                  key={item.code}
-                  onClick={() => setLanguage(item.code)}
-                  className={`btn btn-sm ${language === item.code ? "btn-primary" : "btn-outline-secondary"}`}
-                  style={{ fontSize: "0.75rem", padding: "2px 8px" }}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="d-flex flex-column gap-2 pt-2">
-            {isAuthenticated ? (
-              <Link
-                href="/dashboard"
-                className="s-btn-secondary text-center py-2"
-              >
-                {content.dashboardBtn}
-              </Link>
-            ) : (
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  onOpenLogin();
-                }}
-                className="s-btn-secondary text-center py-2"
-              >
-                {content.loginBtn}
-              </button>
-            )}
-            <button
-              onClick={() => {
-                setMobileMenuOpen(false);
-                onOpenOnboarding();
-              }}
-              className="s-btn-primary text-center py-2.5"
-            >
-              <Sparkles size={16} />
-              <span>{content.startBtn}</span>
-            </button>
-          </div>
-        </div>
-      )}
     </header>
   );
 }

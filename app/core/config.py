@@ -46,7 +46,14 @@ class Settings(BaseSettings):
 
     admin_api_token: str = ""
     internal_ingest_token: str = ""
-    admin_telegram_id: int = 0  # Owner Telegram user ID — set in .env
+    admin_telegram_id: int = 0  # Owner Telegram user ID: set in .env
+
+    # TezCheck Payment Gateway
+    tezcheck_api_url: str = "https://api.tezcheck.uz/api/merchant/v1"
+    tezcheck_api_key: str = ""
+    tezcheck_secret_key: str = ""
+    tezcheck_merchant_id: str = ""
+    tezcheck_cash_desk_code: str = ""
 
     telegram_api_id: int | None = None
     telegram_api_hash: str = ""

@@ -22,3 +22,6 @@ cloudflared.exe
 financial_trace_results.json
 docs/audit_screenshots/
 web/tests/screenshots/
+scratch/
+tests/*.xml
+tests/*.json

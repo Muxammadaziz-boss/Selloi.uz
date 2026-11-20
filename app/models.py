@@ -230,6 +230,13 @@ class Subscription(Base):
     applied_offer_id: Mapped[int | None] = mapped_column(ForeignKey("customer_pricing.id", ondelete="SET NULL"), nullable=True, index=True)
     snapshot_created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
 
+    # First-Time Mega Discount Tracking
+    mega_discount_used: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    mega_discount_plan_code: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    mega_discount_order_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    mega_discount_paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    mega_discount_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     current_period_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     current_period_end: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
@@ -242,6 +249,56 @@ class Subscription(Base):
     organization: Mapped[Organization] = relationship(back_populates="subscription")
     plan: Mapped[Plan] = relationship()
     applied_offer: Mapped["CustomerPricing | None"] = relationship()
+    consents: Mapped[list["SubscriptionConsent"]] = relationship(back_populates="subscription", cascade="all, delete-orphan")
+
+
+class SubscriptionConsent(Base):
+    """Explicit user consent for subscription renewals and billing frequency."""
+    __tablename__ = "subscription_consents"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True, nullable=False)
+    subscription_id: Mapped[int] = mapped_column(ForeignKey("subscriptions.id", ondelete="CASCADE"), index=True, nullable=False)
+    consent_timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    accepted_terms_version: Mapped[str] = mapped_column(String(32), default="v1.0", nullable=False)
+    selected_billing_cycle: Mapped[str] = mapped_column(String(16), nullable=False)  # monthly, yearly
+    agreed_amount: Mapped[int] = mapped_column(BigInteger, nullable=False)  # minor units (tiyin / cents)
+    agreed_currency: Mapped[str] = mapped_column(String(8), default="UZS", nullable=False)
+    renewal_state: Mapped[str] = mapped_column(String(32), default="consent_given", nullable=False)  # consent_given, consent_revoked
+    ip_address: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    user_agent: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    user: Mapped["User"] = relationship()
+    organization: Mapped["Organization"] = relationship()
+    subscription: Mapped["Subscription"] = relationship(back_populates="consents")
+
+
+class PaymentBill(Base):
+    """TezCheck single-use fixed-amount payment invoices and audit trail."""
+    __tablename__ = "payment_bills"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    bill_id: Mapped[str] = mapped_column(String(128), unique=True, index=True, nullable=False)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True, nullable=False)
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), index=True, nullable=True)
+    plan_code: Mapped[str] = mapped_column(String(32), nullable=False)  # start, pro, ultra
+    billing_cycle: Mapped[str] = mapped_column(String(32), nullable=False)  # mega_discount, monthly, yearly
+    amount: Mapped[int] = mapped_column(BigInteger, nullable=False)  # in minor units (tiyin)
+    currency: Mapped[str] = mapped_column(String(8), default="UZS", nullable=False)
+    status: Mapped[str] = mapped_column(String(32), default="pending", index=True, nullable=False)  # pending, paid, expired, failed, cancelled
+    checkout_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    environment: Mapped[str] = mapped_column(String(16), default="production", nullable=False)
+    provider: Mapped[str] = mapped_column(String(32), default="tezcheck", nullable=False)
+    provider_response: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+    organization: Mapped["Organization"] = relationship()
+    user: Mapped["User"] = relationship()
 
 
 class UsageRecord(Base):

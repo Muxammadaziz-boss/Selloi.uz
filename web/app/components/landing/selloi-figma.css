@@ -1,0 +1,2260 @@
+/* ==========================================================================
+   SELLOI.UZ — STRICT FIGMA-TO-FRONTEND STYLESHEET
+   Figma File: viQV6r4o9ojZHII5ofE3ET
+   Main Frame: Desktop - 1 (60:2)
+   Dimensions: 1440 × 3810 px
+   Tokens:
+     Background: #0D0D0D
+     Cards: #151516
+     Accent: #FF4C63
+     Primary Text: #F6F6F7
+     Secondary Text: #A6A6AF
+     Borders: #2A2A2D
+     Font: 'Quicksand', sans-serif
+   ========================================================================== */
+
+:root {
+  --selloi-bg: #0D0D0D;
+  --selloi-card-bg: #151516;
+  --selloi-card-border: #2A2A2D;
+  --selloi-accent: #FF4C63;
+  --selloi-text-primary: #F6F6F7;
+  --selloi-text-secondary: #A6A6AF;
+  
+  --selloi-tarif-bg: #161617;
+  --selloi-tarif-border: #303035;
+  
+  --selloi-cta-bg: #201418;
+  --selloi-cta-border: #513039;
+  
+  --selloi-chat-box: #1D1D20;
+  --selloi-selloi-bubble: #292126;
+  --selloi-user-bubble: #29292D;
+  --selloi-demo-selloi-bubble: #261C20;
+  --selloi-input-bg: #202023;
+  
+  --selloi-btn-bg: rgba(255, 255, 255, 0.1);
+  --selloi-btn-hover-bg: rgba(255, 255, 255, 0.13);
+  --selloi-btn-hover-border: rgba(255, 255, 255, 0.44);
+}
+
+/* Master Wrapper */
+.selloi-page {
+  background-color: var(--selloi-bg);
+  color: var(--selloi-text-primary);
+  font-family: 'Quicksand', sans-serif;
+  min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden;
+  position: relative;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 1440px Master Container Centered with 100px gutters */
+.selloi-container {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 100px;
+  width: 100%;
+  position: relative;
+  box-sizing: border-box;
+}
+
+/* Glass Buttons from Figma Interaction States - Enhanced with 2-Streak Glass Glare */
+.selloi-btn-glass {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 45px;
+  color: #FFFFFF;
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 600;
+  text-decoration: none !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+  white-space: nowrap;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -1px 1px 0 rgba(0, 0, 0, 0.25),
+    0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+/* Glass top reflection sheen */
+.selloi-btn-glass::before {
+  content: '';
+  position: absolute;
+  top: 1px;
+  left: 2px;
+  right: 2px;
+  height: 46%;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.25) 0%,
+    rgba(255, 255, 255, 0.02) 100%
+  );
+  border-radius: 45px 45px 20px 20px;
+  pointer-events: none;
+  z-index: 1;
+  transition: opacity 0.25s ease;
+  opacity: 0.65;
+}
+
+.selloi-btn-glass:hover::before {
+  opacity: 1;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.38) 0%,
+    rgba(255, 255, 255, 0.04) 100%
+  );
+}
+
+/* Ensure button content (text / icons) remains sharp above background */
+.selloi-btn-glass > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* 2 whitish glass reflection shimmer streaks passing across from left to right */
+.selloi-btn-glass::after {
+  content: '';
+  position: absolute;
+  top: -60%;
+  left: -180px;
+  width: 140px;
+  height: 220%;
+  background: linear-gradient(
+    90deg,
+    transparent 0px,
+    transparent 18px,
+    /* 1-chiziq: birinchi ingichka tiniq nur */
+    rgba(255, 255, 255, 0.4) 24px,
+    #FFFFFF 28px,
+    rgba(255, 255, 255, 0.4) 32px,
+    /* 2 chiziq orasidagi oyna masofasi */
+    transparent 40px,
+    transparent 52px,
+    /* 2-chiziq: ikkinchi qalinroq va kuchli oq oyna nuri */
+    rgba(255, 255, 255, 0.4) 60px,
+    rgba(255, 255, 255, 0.92) 68px,
+    #FFFFFF 74px,
+    rgba(255, 255, 255, 0.92) 80px,
+    rgba(255, 255, 255, 0.4) 88px,
+    transparent 102px,
+    transparent 140px
+  );
+  transform: skewX(-25deg);
+  pointer-events: none;
+  opacity: 0;
+  z-index: 3;
+}
+
+.selloi-btn-glass:hover,
+.selloi-btn-glass:focus-visible {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.55);
+  box-shadow: 
+    inset 0 1px 2px 0 rgba(255, 255, 255, 0.6),
+    inset 0 -1px 1px 0 rgba(0, 0, 0, 0.2),
+    0 8px 30px rgba(0, 0, 0, 0.45),
+    0 0 20px rgba(255, 255, 255, 0.2);
+  color: #FFFFFF;
+  outline: none;
+  text-decoration: none !important;
+  transform: translateY(-2px);
+}
+
+.selloi-btn-glass:hover::after {
+  animation: selloi-glass-glare 2.4s ease-in-out infinite;
+}
+
+@keyframes selloi-glass-glare {
+  0% {
+    left: -180px;
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  72% {
+    left: calc(100% + 40px);
+    opacity: 1;
+  }
+  78% {
+    left: calc(100% + 40px);
+    opacity: 0;
+  }
+  100% {
+    left: calc(100% + 40px);
+    opacity: 0;
+  }
+}
+
+.selloi-btn-glass:active {
+  transform: translateY(0px);
+  box-shadow: 0px 3px 10px 0px rgba(0, 0, 0, 0.25);
+}
+
+/* --------------------------------------------------------------------------
+   1. NAVBAR (Fixed / Sticky with Frosted Glass & Unified Logo)
+   -------------------------------------------------------------------------- */
+.selloi-navbar {
+  height: 75px;
+  width: 100%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: rgba(13, 13, 13, 0.82);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(42, 42, 45, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.25s ease, border-color 0.25s ease;
+}
+
+.selloi-navbar-inner {
+  max-width: 1440px;
+  width: 100%;
+  padding: 0 100px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+}
+
+/* Strictly remove underlines from ALL navbar links */
+.selloi-navbar a,
+.selloi-navbar a:hover,
+.selloi-navbar a:focus,
+.selloi-navbar a:active,
+.selloi-navbar a:visited {
+  text-decoration: none !important;
+}
+
+/* Unified Logo Component */
+.selloi-nav-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none !important;
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.selloi-nav-logo:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+.selloi-nav-logo img {
+  width: 38px;
+  height: 32px;
+  object-fit: contain;
+  display: block;
+}
+
+.selloi-nav-logo-text {
+  font-size: 29px;
+  font-weight: 700;
+  color: #FFFFFF;
+  letter-spacing: -0.5px;
+  line-height: 1;
+}
+
+.selloi-nav-pages {
+  display: flex;
+  align-items: center;
+  position: relative;
+  gap: 8px;
+  padding: 4px;
+}
+
+/* Liquid Glass Sliding Pill Indicator */
+.selloi-nav-liquid-pill {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  height: 38px;
+  margin-top: -19px;
+  transform-origin: left center;
+  border-radius: 40px;
+  pointer-events: none;
+  z-index: 1;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  box-shadow: 
+    0 4px 20px 0 rgba(0, 0, 0, 0.45),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -1px 1px 0 rgba(0, 0, 0, 0.2),
+    0 0 16px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  /* Liquid elastic spring curve */
+  transition: transform 0.38s cubic-bezier(0.2, 0.9, 0.3, 1.15),
+              width 0.38s cubic-bezier(0.2, 0.9, 0.3, 1.15),
+              opacity 0.2s ease;
+  overflow: hidden;
+}
+
+/* Liquid glass gloss reflection inside sliding pill */
+.selloi-nav-liquid-pill::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.25) 0%,
+    rgba(255, 255, 255, 0.02) 100%
+  );
+  border-radius: 40px 40px 0 0;
+  pointer-events: none;
+}
+
+.selloi-nav-link {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--selloi-text-secondary);
+  text-decoration: none !important;
+  padding: 8px 18px;
+  border-radius: 40px;
+  transition: color 0.22s ease, transform 0.22s ease;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  cursor: pointer;
+  user-select: none;
+}
+
+.selloi-nav-link:hover {
+  color: #FFFFFF;
+  text-decoration: none !important;
+  transform: translateY(-1px);
+}
+
+.selloi-nav-link.active {
+  color: #FFFFFF !important;
+  font-weight: 700 !important;
+  text-decoration: none !important;
+}
+
+.selloi-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.selloi-btn-lang {
+  width: 70px;
+  height: 32px;
+  font-size: 18px;
+  font-weight: 600;
+  border-radius: 30px;
+}
+
+.selloi-btn-login {
+  width: 82px;
+  height: 32px;
+  font-size: 18px;
+  font-weight: 600;
+  border-radius: 30px;
+}
+
+/* --------------------------------------------------------------------------
+   1. HERO SECTION
+   -------------------------------------------------------------------------- */
+.selloi-hero-section {
+  padding-top: 248px;
+  padding-bottom: 102px;
+  position: relative;
+  min-height: 820px;
+}
+
+.selloi-hero-grid {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  position: relative;
+}
+
+.selloi-hero-left {
+  width: 545px;
+  padding-top: 105px;
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.selloi-hero-title {
+  font-size: 64px;
+  font-weight: 700;
+  line-height: 86.48%;
+  letter-spacing: -1.28px;
+  color: #FFFFFF;
+  margin: 0 0 24px 0;
+  animation: selloi-fade-in-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.selloi-hero-title span {
+  display: block;
+}
+
+.selloi-hero-subtitle {
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.139;
+  letter-spacing: -0.4px;
+  color: #FFFFFF;
+  max-width: 498px;
+  margin: 0 0 28px 0;
+  animation: selloi-fade-in-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
+}
+
+.selloi-hero-btn {
+  min-width: 450px;
+  width: auto;
+  max-width: 100%;
+  padding: 0 32px;
+  height: 48px;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.4px;
+  animation: selloi-fade-in-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both;
+}
+
+@keyframes selloi-fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Browser Mockup */
+.selloi-hero-right {
+  position: absolute;
+  left: 651px;
+  top: 0;
+  width: 873px;
+  height: 470px;
+  z-index: 5;
+  animation: selloi-mockup-entrance 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.35s both;
+}
+
+@keyframes selloi-mockup-entrance {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.selloi-hero-mockup-glow {
+  position: absolute;
+  top: -15%;
+  left: -15%;
+  width: 130%;
+  height: 130%;
+  background: radial-gradient(ellipse at center, rgba(255, 76, 99, 0.18) 0%, rgba(255, 76, 99, 0.03) 55%, transparent 75%);
+  filter: blur(60px);
+  pointer-events: none;
+  z-index: 1;
+  animation: selloi-ambient-pulse 5s ease-in-out infinite alternate;
+}
+
+@keyframes selloi-ambient-pulse {
+  0% {
+    opacity: 0.35;
+    transform: scale(0.98);
+  }
+  100% {
+    opacity: 0.65;
+    transform: scale(1.04);
+  }
+}
+
+.selloi-browser-mockup {
+  width: 873px;
+  height: 470px;
+  background: #F4E8E7;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 30px rgba(255, 76, 99, 0.12);
+  position: relative;
+  z-index: 2;
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.5s ease;
+  animation: selloi-hero-float 6s ease-in-out infinite alternate;
+}
+
+@keyframes selloi-hero-float {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+.selloi-browser-mockup:hover {
+  transform: translateY(-12px) scale(1.01) !important;
+  box-shadow: 0 28px 75px rgba(0, 0, 0, 0.65), 0 0 45px rgba(255, 76, 99, 0.22);
+}
+
+.selloi-browser-header {
+  height: 18px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  position: relative;
+  padding: 0 10px;
+}
+
+.selloi-browser-dots {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.selloi-browser-dots img {
+  width: 8px;
+  height: 8px;
+  display: block;
+}
+
+.selloi-browser-title {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 16px;
+  font-weight: 700;
+  color: #070707;
+  letter-spacing: -0.32px;
+  line-height: 1;
+}
+
+.selloi-browser-body {
+  width: 873px;
+  height: 452px;
+  overflow: hidden;
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
+}
+
+.selloi-browser-body img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: bottom;
+  display: block;
+}
+
+/* --------------------------------------------------------------------------
+   2. SELLOI IMKONIYATLARI
+   -------------------------------------------------------------------------- */
+.selloi-imkoniyatlar-section {
+  margin-top: 102px;
+  padding-bottom: 80px;
+}
+
+.selloi-section-tag {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 18.2px;
+  color: var(--selloi-accent);
+  text-transform: uppercase;
+  margin: 0 0 14px 0;
+  letter-spacing: 0.02em;
+}
+
+.selloi-imkoniyatlar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 40px;
+}
+
+.selloi-imkoniyatlar-title {
+  font-size: 44px;
+  font-weight: 700;
+  line-height: 50.6px;
+  color: var(--selloi-text-primary);
+  margin: 0;
+  max-width: 900px;
+}
+
+.selloi-imkoniyatlar-desc {
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 23.8px;
+  color: var(--selloi-text-secondary);
+  max-width: 370px;
+  margin: 29px 0 0 0;
+}
+
+.selloi-imkoniyatlar-grid {
+  display: grid;
+  grid-template-columns: 602px 618px;
+  gap: 20px;
+}
+
+/* Card 1: Left tall card */
+.selloi-card-tall {
+  background: var(--selloi-card-bg);
+  border: 1px solid var(--selloi-card-border);
+  border-radius: 22px;
+  height: 436px;
+  padding: 25px 27px;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  opacity: 0;
+  transform: translateY(22px);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.35s ease,
+              box-shadow 0.35s ease,
+              opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.selloi-imkoniyatlar-section.selloi-in-view .selloi-card-tall {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.1s;
+}
+
+.selloi-card-tall:hover {
+  transform: translateY(-5px);
+  border-color: rgba(255, 76, 99, 0.45);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45), 0 0 25px rgba(255, 76, 99, 0.08);
+}
+
+.selloi-card-tag {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 16.8px;
+  color: var(--selloi-accent);
+  margin: 0 0 14px 0;
+}
+
+.selloi-card-tall-title {
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 35.4px;
+  color: var(--selloi-text-primary);
+  margin: 0 0 16px 0;
+}
+
+.selloi-card-tall-desc {
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 22.4px;
+  color: var(--selloi-text-secondary);
+  margin: 0 0 24px 0;
+}
+
+.selloi-card-chat-preview {
+  background: var(--selloi-chat-box);
+  border-radius: 16px;
+  padding: 16px 20px;
+  margin-top: auto;
+  box-sizing: border-box;
+  height: 190px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.selloi-chat-customer-label {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 15.4px;
+  color: var(--selloi-text-secondary);
+  margin: 0 0 4px 0;
+}
+
+.selloi-chat-customer-msg {
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 25.2px;
+  color: var(--selloi-text-primary);
+  margin: 0 0 12px 0;
+}
+
+.selloi-chat-bot-bubble {
+  background: var(--selloi-selloi-bubble);
+  border-radius: 12px;
+  padding: 10px 16px;
+  box-sizing: border-box;
+  height: 84px;
+}
+
+.selloi-chat-bot-label {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 16.8px;
+  color: var(--selloi-accent);
+  margin: 0 0 4px 0;
+}
+
+.selloi-chat-bot-msg {
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 23.8px;
+  color: var(--selloi-text-primary);
+  margin: 0;
+}
+
+/* Right stacked cards */
+.selloi-cards-stacked {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.selloi-card-small {
+  background: var(--selloi-card-bg);
+  border: 1px solid var(--selloi-card-border);
+  border-radius: 22px;
+  height: 208px;
+  padding: 24px 27px;
+  box-sizing: border-box;
+  opacity: 0;
+  transform: translateY(22px);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.35s ease,
+              box-shadow 0.35s ease,
+              opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.selloi-imkoniyatlar-section.selloi-in-view .selloi-cards-stacked > .selloi-card-small:nth-child(1) {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.22s;
+}
+
+.selloi-imkoniyatlar-section.selloi-in-view .selloi-cards-stacked > .selloi-card-small:nth-child(2) {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.36s;
+}
+
+.selloi-card-small:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255, 76, 99, 0.45);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.4), 0 0 22px rgba(255, 76, 99, 0.08);
+}
+
+.selloi-card-small-title {
+  font-size: 25px;
+  font-weight: 700;
+  line-height: 30px;
+  color: var(--selloi-text-primary);
+  margin: 0 0 12px 0;
+}
+
+.selloi-card-small-desc {
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 23.8px;
+  color: var(--selloi-text-secondary);
+  margin: 0;
+}
+
+/* --------------------------------------------------------------------------
+   3. QANDAY ISHLAYDI?
+   -------------------------------------------------------------------------- */
+.selloi-how-section {
+  padding-top: 80px;
+  padding-bottom: 80px;
+}
+
+.selloi-how-title {
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 48px;
+  color: var(--selloi-text-primary);
+  margin: 0 0 41px 0;
+}
+
+.selloi-how-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 400px);
+  gap: 20px;
+}
+
+.selloi-how-step {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  opacity: 0;
+  transform: translateY(22px);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.selloi-how-section.selloi-in-view .selloi-how-step:nth-child(1) {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.1s;
+}
+
+.selloi-how-section.selloi-in-view .selloi-how-step:nth-child(2) {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.24s;
+}
+
+.selloi-how-section.selloi-in-view .selloi-how-step:nth-child(3) {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.38s;
+}
+
+.selloi-how-step:hover {
+  transform: translateY(-4px);
+}
+
+.selloi-how-line {
+  height: 1px;
+  background: var(--selloi-card-border);
+  width: 100%;
+  margin-bottom: 25px;
+  position: relative;
+  overflow: hidden;
+}
+
+.selloi-how-line::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, var(--selloi-accent), transparent);
+  transition: left 0.7s ease;
+}
+
+.selloi-how-step:hover .selloi-how-line::after {
+  left: 100%;
+}
+
+.selloi-how-num {
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 42px;
+  color: var(--selloi-accent);
+  margin: 0 0 11px 0;
+  transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.2), text-shadow 0.3s ease;
+  display: inline-block;
+}
+
+.selloi-how-step:hover .selloi-how-num {
+  transform: scale(1.12) translateX(3px);
+  text-shadow: 0 0 14px rgba(255, 76, 99, 0.6);
+}
+
+.selloi-how-heading {
+  font-size: 23px;
+  font-weight: 700;
+  line-height: 32.2px;
+  color: var(--selloi-text-primary);
+  margin: 0 0 12px 0;
+}
+
+.selloi-how-desc {
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 23.8px;
+  color: var(--selloi-text-secondary);
+  margin: 0;
+}
+
+/* --------------------------------------------------------------------------
+   4. SUHBAT NAMUNASI
+   -------------------------------------------------------------------------- */
+.selloi-demo-section {
+  padding-top: 80px;
+  padding-bottom: 80px;
+}
+
+.selloi-demo-grid {
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
+}
+
+.selloi-demo-left {
+  width: 575px;
+  padding-top: 30px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.selloi-demo-title {
+  font-size: 43px;
+  font-weight: 700;
+  line-height: 50.74px;
+  color: var(--selloi-text-primary);
+  margin: 0 0 20px 0;
+}
+
+.selloi-demo-desc {
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 25.2px;
+  color: var(--selloi-text-secondary);
+  margin: 0 0 32px 0;
+}
+
+.selloi-demo-btn {
+  width: 300px;
+  height: 47px;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.4px;
+}
+
+.selloi-demo-card {
+  width: 594px;
+  height: 560px;
+  background: var(--selloi-card-bg);
+  border: 1px solid var(--selloi-card-border);
+  border-radius: 22px;
+  padding: 20px 24px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.selloi-demo-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.selloi-demo-card-title {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 28px;
+  color: var(--selloi-text-primary);
+  margin: 0;
+}
+
+.selloi-demo-card-sub {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--selloi-text-secondary);
+  margin: 2px 0 0 0;
+}
+
+.selloi-demo-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.selloi-demo-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #10B981;
+}
+
+.selloi-demo-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10B981;
+  box-shadow: 0 0 8px #10B981;
+  animation: selloi-pulse-dot 1.8s infinite;
+}
+
+@keyframes selloi-pulse-dot {
+  0% { transform: scale(0.9); opacity: 0.6; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0.6; }
+}
+
+.selloi-demo-restart-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--selloi-text-secondary);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.selloi-demo-restart-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--selloi-text-primary);
+  transform: rotate(180deg);
+}
+
+.selloi-demo-messages {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-right: 4px;
+  scroll-behavior: smooth;
+  margin-bottom: 8px;
+}
+
+.selloi-demo-messages::-webkit-scrollbar {
+  width: 4px;
+}
+.selloi-demo-messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+.selloi-demo-messages::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+}
+
+.selloi-demo-msg-enter {
+  animation: selloi-msg-fade 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes selloi-msg-fade {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.selloi-demo-user-msg {
+  background: var(--selloi-user-bubble);
+  border-radius: 16px 16px 4px 16px;
+  padding: 10px 16px;
+  font-size: 14.5px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--selloi-text-primary);
+  max-width: 410px;
+  margin-left: auto;
+  box-sizing: border-box;
+}
+
+.selloi-demo-bot-msg {
+  background: var(--selloi-demo-selloi-bubble);
+  border-radius: 16px 16px 16px 4px;
+  padding: 10px 16px;
+  font-size: 14.5px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--selloi-text-primary);
+  max-width: 440px;
+  margin-right: auto;
+  box-sizing: border-box;
+}
+
+.selloi-demo-typing-bubble {
+  background: var(--selloi-demo-selloi-bubble);
+  border-radius: 16px 16px 16px 4px;
+  padding: 8px 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  margin-right: auto;
+}
+
+.selloi-demo-typing-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--selloi-accent);
+  animation: selloi-bounce-dot 1.2s infinite ease-in-out;
+}
+.selloi-demo-typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.selloi-demo-typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes selloi-bounce-dot {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.35; }
+  40% { transform: translateY(-4px); opacity: 1; }
+}
+
+.selloi-demo-typing-label {
+  font-size: 12px;
+  color: var(--selloi-text-secondary);
+  margin-left: 4px;
+}
+
+.selloi-demo-user-photo-card {
+  background: var(--selloi-user-bubble);
+  border-radius: 16px 16px 4px 16px;
+  padding: 6px 6px 10px 6px;
+  max-width: 270px;
+  margin-left: auto;
+  box-sizing: border-box;
+}
+
+.selloi-demo-user-photo-wrapper {
+  position: relative;
+  width: 100%;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.selloi-demo-user-photo-img {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  object-position: center 30%;
+  display: block;
+}
+
+.selloi-demo-user-photo-pill {
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.selloi-demo-user-photo-caption {
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 19.6px;
+  color: var(--selloi-text-primary);
+  margin: 8px 4px 0 4px;
+}
+
+.selloi-demo-analyzing {
+  background: rgba(255, 76, 99, 0.08);
+  border: 1px dashed rgba(255, 76, 99, 0.4);
+  border-radius: 12px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--selloi-accent);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  margin-right: auto;
+}
+
+.selloi-demo-analyzing-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(255, 76, 99, 0.3);
+  border-top-color: var(--selloi-accent);
+  border-radius: 50%;
+  animation: selloi-spin 0.8s linear infinite;
+}
+
+@keyframes selloi-spin {
+  to { transform: rotate(360deg); }
+}
+
+.selloi-demo-order-card {
+  background: linear-gradient(135deg, rgba(255, 76, 99, 0.12) 0%, rgba(29, 29, 32, 0.95) 100%);
+  border: 1px solid rgba(255, 76, 99, 0.45);
+  border-radius: 16px;
+  padding: 12px 16px;
+  max-width: 450px;
+  margin-right: auto;
+  box-shadow: 0 8px 24px rgba(255, 76, 99, 0.12);
+}
+
+.selloi-demo-order-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+}
+
+.selloi-demo-order-badge {
+  font-size: 14px;
+  font-weight: 700;
+  color: #F6F6F7;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.selloi-demo-order-check {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #10B981;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.selloi-demo-order-chip {
+  font-size: 10px;
+  font-weight: 700;
+  color: #10B981;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  padding: 2px 7px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.selloi-demo-order-body {
+  font-size: 13px;
+  color: #D1D1D6;
+  line-height: 18px;
+}
+
+.selloi-demo-order-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.selloi-demo-order-label {
+  color: var(--selloi-text-secondary);
+}
+
+.selloi-demo-order-val {
+  color: var(--selloi-text-primary);
+  font-weight: 600;
+}
+
+.selloi-demo-order-price {
+  color: var(--selloi-accent);
+  font-weight: 700;
+}
+
+.selloi-demo-order-status-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #10B981;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.08);
+}
+
+.selloi-demo-order-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10B981;
+}
+
+.selloi-demo-disclaimer {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16.8px;
+  color: var(--selloi-text-secondary);
+  margin: 4px 0 10px 0;
+}
+
+.selloi-demo-input {
+  background: var(--selloi-input-bg);
+  border-radius: 22px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px 0 18px;
+  box-sizing: border-box;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.selloi-demo-input-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--selloi-text-secondary);
+  line-height: 20px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 440px;
+}
+
+.selloi-demo-input-typing {
+  color: var(--selloi-text-primary);
+}
+
+.selloi-demo-cursor {
+  display: inline-block;
+  margin-left: 2px;
+  color: var(--selloi-accent);
+  animation: selloi-blink 0.8s infinite;
+}
+
+@keyframes selloi-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.selloi-demo-input-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.selloi-demo-input-icon {
+  font-size: 15px;
+  opacity: 0.5;
+  transition: all 0.2s ease;
+}
+
+.selloi-demo-input-icon-active {
+  opacity: 1;
+  transform: scale(1.15);
+  filter: drop-shadow(0 0 6px rgba(255, 76, 99, 0.6));
+}
+
+.selloi-demo-input-arrow {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--selloi-text-secondary);
+  line-height: 1;
+  transition: all 0.2s ease;
+}
+
+.selloi-demo-input-arrow-active {
+  color: var(--selloi-accent);
+  transform: translateX(2px);
+}
+
+/* --------------------------------------------------------------------------
+   5. TARIFLAR
+   -------------------------------------------------------------------------- */
+.selloi-tarif-section {
+  padding-top: 80px;
+  padding-bottom: 80px;
+}
+
+.selloi-tarif-card {
+  width: 1240px;
+  height: 240px;
+  background: var(--selloi-tarif-bg);
+  border: 1px solid var(--selloi-tarif-border);
+  border-radius: 22px;
+  padding: 31px 35px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.35s ease,
+              box-shadow 0.35s ease;
+}
+
+.selloi-tarif-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255, 76, 99, 0.5);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.45), 0 0 30px rgba(255, 76, 99, 0.12);
+}
+
+.selloi-tarif-title {
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 43.2px;
+  color: var(--selloi-text-primary);
+  margin: 0 0 12px 0;
+}
+
+.selloi-tarif-desc {
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 25.2px;
+  color: var(--selloi-text-secondary);
+  margin: 0;
+}
+
+.selloi-tarif-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+.selloi-tarif-btn {
+  width: 243px;
+  height: 48px;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.32px;
+}
+
+.selloi-tarif-note {
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 21px;
+  color: var(--selloi-text-secondary);
+  margin: 0;
+}
+
+/* --------------------------------------------------------------------------
+   6. SAVOL-JAVOB (FAQ)
+   -------------------------------------------------------------------------- */
+.selloi-faq-section {
+  padding-top: 80px;
+  padding-bottom: 80px;
+}
+
+.selloi-faq-grid {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.selloi-faq-left {
+  width: 420px;
+}
+
+.selloi-faq-title {
+  font-size: 44px;
+  font-weight: 700;
+  line-height: 51.92px;
+  color: var(--selloi-text-primary);
+  margin: 0 0 20px 0;
+}
+
+.selloi-faq-desc {
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 25.2px;
+  color: var(--selloi-text-secondary);
+  margin: 0 0 38px 0;
+}
+
+.selloi-faq-contact-btn {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 23.8px;
+  color: var(--selloi-text-primary);
+  text-decoration: none;
+  background: none;
+  border: none;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.selloi-faq-contact-btn:hover {
+  color: var(--selloi-accent);
+}
+
+.selloi-faq-right {
+  width: 770px;
+}
+
+.selloi-faq-item {
+  border-top: 1px solid var(--selloi-card-border);
+  padding: 23px 0;
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(16px);
+  transition: padding-left 0.25s ease,
+              border-color 0.25s ease,
+              opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.selloi-faq-section.selloi-in-view .selloi-faq-item:nth-child(1) {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.08s;
+}
+
+.selloi-faq-section.selloi-in-view .selloi-faq-item:nth-child(2) {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.18s;
+}
+
+.selloi-faq-section.selloi-in-view .selloi-faq-item:nth-child(3) {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.28s;
+}
+
+.selloi-faq-section.selloi-in-view .selloi-faq-item:nth-child(4) {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.38s;
+}
+
+.selloi-faq-item:hover {
+  border-top-color: rgba(255, 76, 99, 0.4);
+  padding-left: 6px;
+}
+
+.selloi-faq-item:last-child {
+  border-bottom: 1px solid var(--selloi-card-border);
+}
+
+.selloi-faq-question-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.selloi-faq-question {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 28px;
+  color: var(--selloi-text-primary);
+  margin: 0;
+  user-select: none;
+  transition: color 0.2s ease;
+}
+
+.selloi-faq-item:hover .selloi-faq-question {
+  color: #FFFFFF;
+}
+
+.selloi-faq-toggle {
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 33.6px;
+  width: 32px;
+  text-align: right;
+  user-select: none;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s ease;
+  display: inline-block;
+}
+
+.selloi-faq-toggle.active {
+  color: var(--selloi-accent);
+  transform: rotate(180deg);
+}
+
+.selloi-faq-toggle.inactive {
+  color: var(--selloi-text-secondary);
+  transform: rotate(0deg);
+}
+
+/* Smooth Accordion Expand and Collapse using CSS Grid */
+.selloi-faq-answer-wrapper {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.28s ease;
+  opacity: 0;
+}
+
+.selloi-faq-answer-wrapper.open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.selloi-faq-answer-inner {
+  overflow: hidden;
+}
+
+.selloi-faq-answer {
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 23.8px;
+  color: var(--selloi-text-secondary);
+  margin: 14px 0 0 0;
+  max-width: 680px;
+}
+
+/* --------------------------------------------------------------------------
+   7. FINAL CTA (BOSHLASH)
+   -------------------------------------------------------------------------- */
+.selloi-cta-section {
+  padding-top: 100px;
+  padding-bottom: 80px;
+}
+
+.selloi-cta-card {
+  max-width: 1240px;
+  width: 100%;
+  min-height: 290px;
+  background: var(--selloi-cta-bg);
+  border: 1px solid var(--selloi-cta-border);
+  border-radius: 24px;
+  padding: 32px 38px 28px 38px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  margin: 0 auto;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.4s ease,
+              box-shadow 0.4s ease;
+}
+
+.selloi-cta-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255, 76, 99, 0.55);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 35px rgba(255, 76, 99, 0.15);
+}
+
+.selloi-cta-tag {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 16.8px;
+  color: var(--selloi-accent);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin: 0 0 14px 0;
+}
+
+.selloi-cta-title {
+  font-size: 43px;
+  font-weight: 700;
+  line-height: 50.31px;
+  color: var(--selloi-text-primary);
+  letter-spacing: -0.5px;
+  margin: 0 0 14px 0;
+}
+
+.selloi-cta-desc {
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 25.2px;
+  color: var(--selloi-text-secondary);
+  margin: 0 0 24px 0;
+}
+
+.selloi-cta-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.selloi-cta-btn {
+  width: 308px;
+  height: 50px;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.4px;
+}
+
+.selloi-cta-note {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 19.6px;
+  color: var(--selloi-text-secondary);
+  margin: 0;
+  text-align: right;
+  letter-spacing: -0.1px;
+}
+
+/* --------------------------------------------------------------------------
+   8. FOOTER
+   -------------------------------------------------------------------------- */
+.selloi-footer {
+  padding-top: 40px;
+  padding-bottom: 40px;
+}
+
+.selloi-footer-top-line {
+  height: 1px;
+  background: var(--selloi-card-border);
+  width: 100%;
+  margin-bottom: 33px;
+}
+
+.selloi-footer-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 35px;
+}
+
+.selloi-footer-brand {
+  width: 400px;
+}
+
+.selloi-footer-logo-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  text-decoration: none !important;
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.selloi-footer-logo-row:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+.selloi-footer-logo-row img {
+  width: 38px;
+  height: 32px;
+  object-fit: contain;
+  display: block;
+}
+
+.selloi-footer-logo-text {
+  font-size: 27px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--selloi-text-primary);
+}
+
+.selloi-footer-brand-desc {
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 23.8px;
+  color: var(--selloi-text-secondary);
+  margin: 0;
+}
+
+.selloi-footer-col {
+  width: 220px;
+}
+
+.selloi-footer-col-title {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 16.8px;
+  color: var(--selloi-text-secondary);
+  letter-spacing: 0.04em;
+  margin: 0 0 22px 0;
+}
+
+.selloi-footer-links {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.selloi-footer-link {
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 22.4px;
+  color: var(--selloi-text-primary);
+  text-decoration: none;
+  transition: color 0.22s ease, transform 0.22s ease;
+  display: inline-block;
+}
+
+.selloi-footer-link.muted {
+  color: var(--selloi-text-secondary);
+}
+
+.selloi-footer-link:hover {
+  color: var(--selloi-accent);
+  transform: translateX(4px);
+}
+
+.selloi-footer-bottom-line {
+  height: 1px;
+  background: var(--selloi-card-border);
+  width: 100%;
+  margin-bottom: 23px;
+}
+
+.selloi-footer-bottom-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.selloi-footer-copy {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18.2px;
+  color: var(--selloi-text-secondary);
+  margin: 0;
+}
+
+.selloi-footer-lang {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18.2px;
+  color: var(--selloi-text-secondary);
+  margin: 0;
+}
+
+/* --------------------------------------------------------------------------
+   LANGUAGE DROPDOWN MENU
+   -------------------------------------------------------------------------- */
+.selloi-lang-wrapper {
+  position: relative;
+}
+
+.selloi-lang-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: #151516;
+  border: 1px solid var(--selloi-card-border);
+  border-radius: 14px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 140px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  z-index: 100;
+  backdrop-filter: blur(12px);
+}
+
+.selloi-lang-option {
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--selloi-text-secondary);
+  font-family: 'Quicksand', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 8px 12px;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.15s ease;
+}
+
+.selloi-lang-option:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--selloi-text-primary);
+}
+
+.selloi-lang-option.active {
+  background: rgba(255, 76, 99, 0.15);
+  color: var(--selloi-accent);
+}
+
+/* --------------------------------------------------------------------------
+   GLOBAL SCROLL REVEAL ANIMATIONS
+   -------------------------------------------------------------------------- */
+.selloi-reveal-item {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.selloi-reveal-item.selloi-in-view {
+  opacity: 1;
+  transform: translateY(0);
+  will-change: auto;
+}
+
+/* --------------------------------------------------------------------------
+   RESPONSIVE DESIGN (Tablets & Mobile)
+   Maintains all hierarchy, typography, colors, no overflow, no invented elements
+   -------------------------------------------------------------------------- */
+@media (max-width: 1320px) {
+  .selloi-container {
+    padding: 0 40px;
+  }
+  
+  .selloi-navbar-inner {
+    padding: 0 40px;
+  }
+  
+  .selloi-hero-right {
+    left: auto;
+    right: 20px;
+    width: 680px;
+    height: 380px;
+  }
+  
+  .selloi-browser-mockup {
+    width: 680px;
+    height: 380px;
+  }
+  
+  .selloi-browser-body {
+    width: 680px;
+    height: 362px;
+  }
+
+  .selloi-imkoniyatlar-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .selloi-card-tall {
+    width: 100%;
+  }
+
+  .selloi-how-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .selloi-tarif-card,
+  .selloi-cta-card {
+    width: 100%;
+  }
+}
+
+@media (max-width: 1080px) {
+  .selloi-navbar-inner {
+    padding: 0 24px;
+  }
+
+  .selloi-container {
+    padding: 0 24px;
+  }
+
+  .selloi-nav-pages {
+    gap: 16px;
+  }
+
+  .selloi-nav-link {
+    font-size: 16px;
+  }
+
+  .selloi-hero-grid {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .selloi-hero-left {
+    width: 100%;
+    padding-top: 0;
+    margin-bottom: 40px;
+  }
+
+  .selloi-hero-right {
+    position: relative;
+    left: auto;
+    right: auto;
+    top: auto;
+    width: 100%;
+    max-width: 750px;
+    height: auto;
+  }
+
+  .selloi-browser-mockup {
+    width: 100%;
+    height: auto;
+  }
+
+  .selloi-browser-body {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 873 / 452;
+  }
+
+  .selloi-imkoniyatlar-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .selloi-card-tall {
+    height: auto;
+  }
+
+  .selloi-demo-grid {
+    flex-direction: column;
+    gap: 40px;
+  }
+
+  .selloi-demo-left {
+    width: 100%;
+    padding-top: 0;
+  }
+
+  .selloi-demo-card {
+    width: 100%;
+    height: 520px;
+  }
+
+  .selloi-faq-grid {
+    flex-direction: column;
+    gap: 30px;
+  }
+
+  .selloi-faq-left {
+    width: 100%;
+  }
+
+  .selloi-faq-right {
+    width: 100%;
+  }
+
+  .selloi-footer-content {
+    flex-wrap: wrap;
+    gap: 30px;
+  }
+}
+
+@media (max-width: 768px) {
+  .selloi-navbar {
+    height: 65px;
+  }
+
+  .selloi-navbar-inner {
+    padding: 0 16px;
+  }
+
+  .selloi-container {
+    padding: 0 16px;
+  }
+
+  .selloi-nav-logo {
+    gap: 8px;
+  }
+
+  .selloi-nav-logo img {
+    width: 32px;
+    height: 26px;
+  }
+
+  .selloi-nav-logo-text {
+    font-size: 24px;
+  }
+
+  .selloi-nav-pages {
+    display: none; /* Mobile view: direct cta access */
+  }
+
+  .selloi-nav-actions {
+    gap: 12px;
+  }
+
+  .selloi-btn-lang {
+    width: 55px;
+    height: 28px;
+    font-size: 16px;
+  }
+
+  .selloi-btn-login {
+    width: 70px;
+    height: 28px;
+    font-size: 16px;
+  }
+
+  .selloi-hero-section {
+    padding-top: 110px;
+    padding-bottom: 50px;
+  }
+
+  .selloi-hero-title {
+    font-size: 38px;
+    line-height: 1.05;
+    letter-spacing: -0.8px;
+  }
+
+  .selloi-hero-subtitle {
+    font-size: 17px;
+  }
+
+  .selloi-hero-btn {
+    width: 100%;
+    max-width: 100%;
+    font-size: 17px;
+  }
+
+  .selloi-imkoniyatlar-title {
+    font-size: 32px;
+    line-height: 1.15;
+  }
+
+  .selloi-imkoniyatlar-header {
+    flex-direction: column;
+    margin-bottom: 24px;
+  }
+
+  .selloi-imkoniyatlar-desc {
+    margin: 12px 0 0 0;
+  }
+
+  .selloi-card-tall-title {
+    font-size: 24px;
+    line-height: 1.2;
+  }
+
+  .selloi-card-chat-preview {
+    height: auto;
+  }
+
+  .selloi-chat-bot-bubble {
+    height: auto;
+  }
+
+  .selloi-card-small {
+    height: auto;
+  }
+
+  .selloi-how-grid {
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+
+  .selloi-demo-title {
+    font-size: 32px;
+    line-height: 1.15;
+  }
+
+  .selloi-demo-btn {
+    width: 100%;
+    margin-bottom: 16px;
+  }
+
+  .selloi-demo-user-msg,
+  .selloi-demo-bot-msg {
+    width: 100%;
+  }
+
+  .selloi-tarif-card {
+    height: auto;
+    padding: 24px 20px;
+  }
+
+  .selloi-tarif-title {
+    font-size: 26px;
+    line-height: 1.2;
+  }
+
+  .selloi-tarif-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .selloi-tarif-btn {
+    width: 100%;
+  }
+
+  .selloi-faq-title {
+    font-size: 34px;
+    line-height: 1.15;
+  }
+
+  .selloi-faq-question {
+    font-size: 18px;
+  }
+
+  .selloi-cta-card {
+    height: auto;
+    padding: 24px 20px;
+  }
+
+  .selloi-cta-title {
+    font-size: 28px;
+    line-height: 1.15;
+  }
+
+  .selloi-cta-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .selloi-cta-btn {
+    width: 100%;
+  }
+
+  .selloi-footer-brand {
+    width: 100%;
+  }
+
+  .selloi-footer-col {
+    width: calc(50% - 15px);
+  }
+
+  .selloi-footer-bottom-row {
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   ACCESSIBILITY: PREFERS-REDUCED-MOTION (WCAG 2.1 Compliant)
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .selloi-reveal-item,
+  .selloi-card-tall,
+  .selloi-card-small,
+  .selloi-how-step,
+  .selloi-faq-item,
+  .selloi-hero-right,
+  .selloi-hero-title,
+  .selloi-hero-subtitle,
+  .selloi-hero-btn {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+    animation: none !important;
+  }
+
+  .selloi-browser-mockup {
+    animation: none !important;
+  }
+
+  .selloi-hero-mockup-glow {
+    animation: none !important;
+  }
+
+  .selloi-btn-glass::after {
+    display: none !important;
+  }
+}

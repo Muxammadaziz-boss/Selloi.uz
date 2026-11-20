@@ -14,11 +14,19 @@ from app.core.config import settings
 from app.core.db import get_db
 from app.core.logging import get_logger
 from app.core.security import encrypt_secret
-from app.models import Admin, CustomerPricing, Organization, OrganizationMember, Plan, Subscription, User
+from app.models import Admin, CustomerPricing, Organization, OrganizationMember, PaymentBill, Plan, Subscription, SubscriptionConsent, User
 from app.services.billing_service import billing_service
 from app.services.bot_manager import bot_manager
 from app.services.entitlement_service import entitlement_service
 from app.services.pricing_service import format_currency_amount, pricing_cache, pricing_service
+from app.services.subscription_service import (
+    subscription_service,
+    MEGA_DISCOUNT_RATES,
+    MEGA_DISCOUNT_EXPIRED_NOTIFICATION,
+    IneligibleForMegaDiscountError,
+    SubscriptionError,
+)
+from app.services.tezcheck_service import tezcheck_service, TezCheckSignatureVerificationError
 from app.services.telegram import get_telegram_service
 from app.services.saas_service import (
     cancel_organization_subscription,
@@ -93,6 +101,23 @@ class CheckoutRequest(BaseModel):
     cancel_url: str = "/settings/billing?status=cancelled"
 
 
+class MegaDiscountCheckoutRequest(BaseModel):
+    plan_code: str
+    return_url: str = "/settings/billing?status=promo_success"
+
+
+class SubscriptionCheckoutRequest(BaseModel):
+    plan_code: str
+    billing_cycle: str = "monthly"  # monthly, yearly
+    return_url: str = "/settings/billing?status=sub_success"
+
+
+class SubscriptionConsentRequest(BaseModel):
+    billing_cycle: str  # monthly, yearly
+    agreed_amount: int
+    accepted_terms_version: str = "v1.0"
+
+
 # --- Tenant & Auth Resolvers ---
 
 from app.api.admin import get_current_admin
@@ -164,6 +189,9 @@ async def list_plans(
         "success": True,
         "currency": clean_currency,
         "billing_cycle": clean_cycle,
+        "mega_discount_rates": MEGA_DISCOUNT_RATES,
+        "supported_billing_cycles": ["monthly", "yearly"],
+        "weekly_subscription_supported": False,
         "plans": [
             {
                 "id": p.id,
@@ -173,12 +201,12 @@ async def list_plans(
                 "display_order": p.display_order,
                 "price_monthly": p.price_monthly,
                 "price_yearly": p.price_yearly,
-                "price_monthly_uzs": p.price_monthly_uzs,
-                "price_yearly_uzs": p.price_yearly_uzs,
-                "price_monthly_formatted": format_currency_amount(p.price_monthly * 100, "USD"),
-                "price_yearly_formatted": format_currency_amount(p.price_yearly * 100, "USD"),
-                "price_monthly_uzs_formatted": format_currency_amount(p.price_monthly_uzs, "UZS"),
-                "price_yearly_uzs_formatted": format_currency_amount(p.price_yearly_uzs, "UZS"),
+                "price_monthly_uzs": p.price_monthly_uzs or (p.price_monthly * 13000 * 100),
+                "price_yearly_uzs": p.price_yearly_uzs or (p.price_yearly * 13000 * 100),
+                "price_monthly_formatted": format_currency_amount((p.price_monthly or 0) * 100, "USD"),
+                "price_yearly_formatted": format_currency_amount((p.price_yearly or 0) * 100, "USD"),
+                "price_monthly_uzs_formatted": format_currency_amount(p.price_monthly_uzs or (p.price_monthly * 13000 * 100), "UZS"),
+                "price_yearly_uzs_formatted": format_currency_amount(p.price_yearly_uzs or (p.price_yearly * 13000 * 100), "UZS"),
                 "currency": p.currency,
                 "is_featured": p.is_featured,
                 "is_public": p.is_public,
@@ -232,11 +260,8 @@ async def get_subscription(
     org_id: int = Depends(resolve_organization_id),
     db: AsyncSession = Depends(get_db),
 ):
-    """Active subscription, plan info, trial days remaining for current tenant."""
-    sub_data = await get_organization_subscription(db, org_id)
-    if not sub_data:
-        raise HTTPException(status_code=404, detail="Obuna ma'lumotlari topilmadi")
-    return sub_data
+    """Active subscription, plan info, mega discount status, expiration for current tenant."""
+    return await subscription_service.get_subscription_overview(db, org_id)
 
 
 @router.post("/subscription/upgrade")
@@ -693,17 +718,46 @@ async def list_invoices(
     org_id: int = Depends(resolve_organization_id),
     db: AsyncSession = Depends(get_db),
 ):
-    """List recent invoices for the tenant organization."""
+    """List bills and payment invoices for the tenant organization."""
+    bills_res = await db.execute(
+        select(PaymentBill)
+        .where(PaymentBill.organization_id == org_id)
+        .order_by(PaymentBill.created_at.desc())
+    )
+    bills = bills_res.scalars().all()
+    if bills:
+        invoices = [
+            {
+                "id": str(b.id),
+                "bill_id": b.bill_id,
+                "order_id": b.bill_id,
+                "plan_code": b.plan_code,
+                "billing_cycle": b.billing_cycle,
+                "amount": b.amount,
+                "amount_tiyin": b.amount,
+                "amount_uzs": b.amount // 100,
+                "currency": b.currency,
+                "status": b.status,
+                "paid_at": b.paid_at.isoformat() if b.paid_at else None,
+                "created_at": b.created_at.isoformat(),
+                "checkout_url": b.checkout_url,
+                "provider": b.provider,
+                "hosted_invoice_url": b.checkout_url,
+            }
+            for b in bills
+        ]
+        return {"invoices": invoices}
+
     sub_res = await db.execute(select(Subscription).where(Subscription.organization_id == org_id))
     sub = sub_res.scalar_one_or_none()
     provider_name = sub.provider if sub else "mock"
     customer_id = sub.provider_customer_id if sub else f"mock_cust_{org_id}"
 
-    invoices = await billing_service.list_invoices(
+    legacy_invoices = await billing_service.list_invoices(
         provider_name=provider_name,
         customer_id=customer_id or f"mock_cust_{org_id}",
     )
-    return {"invoices": invoices}
+    return {"invoices": legacy_invoices}
 
 
 @router.post("/billing/webhook")
@@ -725,4 +779,154 @@ async def billing_webhook(
     except Exception as e:
         logger.exception("Billing webhook xatolik: %s", e)
         raise HTTPException(status_code=400, detail=str(e))
+
+
+# --- Selloi Official Billing: TezCheck & Mega Discount Endpoints ---
+
+@router.post("/billing/mega-discount/checkout")
+async def create_mega_discount_checkout(
+    req: MegaDiscountCheckoutRequest,
+    org_id: int = Depends(resolve_organization_id),
+    admin: Admin = Depends(require_saas_permission("can_manage_billing")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a single-use TezCheck invoice for 7-day introductory mega discount."""
+    try:
+        user_id = admin.user_id if admin.user_id else 1
+        return await subscription_service.create_mega_discount_checkout(
+            db=db,
+            organization_id=org_id,
+            user_id=user_id,
+            plan_code=req.plan_code,
+            return_url=req.return_url,
+        )
+    except IneligibleForMegaDiscountError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except SubscriptionError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.post("/billing/subscription/checkout")
+async def create_subscription_checkout(
+    req: SubscriptionCheckoutRequest,
+    org_id: int = Depends(resolve_organization_id),
+    admin: Admin = Depends(require_saas_permission("can_manage_billing")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a single-use TezCheck invoice for monthly or yearly regular subscription."""
+    try:
+        user_id = admin.user_id if admin.user_id else 1
+        return await subscription_service.create_subscription_checkout(
+            db=db,
+            organization_id=org_id,
+            user_id=user_id,
+            plan_code=req.plan_code,
+            billing_cycle=req.billing_cycle,
+            return_url=req.return_url,
+        )
+    except SubscriptionError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.post("/billing/subscription/consent")
+async def record_subscription_consent(
+    req: SubscriptionConsentRequest,
+    request: Request,
+    org_id: int = Depends(resolve_organization_id),
+    admin: Admin = Depends(require_saas_permission("can_manage_billing")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Record explicit user consent for renewal frequency and terms before charge."""
+    user_id = admin.user_id if admin.user_id else 1
+    ip = request.client.host if request.client else None
+    ua = request.headers.get("user-agent")
+    consent = await subscription_service.record_explicit_renewal_consent(
+        db=db,
+        organization_id=org_id,
+        user_id=user_id,
+        billing_cycle=req.billing_cycle,
+        agreed_amount=req.agreed_amount,
+        accepted_terms_version=req.accepted_terms_version,
+        ip_address=ip,
+        user_agent=ua,
+    )
+    return {
+        "status": "success",
+        "consent_id": consent.id,
+        "renewal_state": consent.renewal_state,
+        "consent_timestamp": consent.consent_timestamp.isoformat(),
+    }
+
+
+@router.post("/billing/subscription/disable-renewal")
+async def disable_renewal_endpoint(
+    org_id: int = Depends(resolve_organization_id),
+    admin: Admin = Depends(require_saas_permission("can_manage_billing")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Disable automatic renewal consent and flag cancellation at period end."""
+    user_id = admin.user_id if admin.user_id else 1
+    return await subscription_service.disable_automatic_renewal(
+        db=db,
+        organization_id=org_id,
+        user_id=user_id,
+    )
+
+
+@router.post("/billing/tezcheck/webhook")
+@router.post("/webhooks/tezcheck")
+async def tezcheck_webhook(
+    request: Request,
+    x_tezcheck_signature: str | None = Header(default=None),
+    db: AsyncSession = Depends(get_db),
+):
+    """TezCheck signed payment confirmation webhook endpoint."""
+    body = await request.body()
+    if not body or body.strip() == b"":
+        return {"ok": True, "status": "ping_received"}
+
+    sig = (
+        x_tezcheck_signature
+        or request.headers.get("x-tezcheck-signature")
+        or request.headers.get("x-signature")
+        or request.headers.get("signature")
+        or request.headers.get("x-webhook-signature")
+    )
+
+    if sig:
+        try:
+            tezcheck_service.verify_webhook_signature(body, sig)
+        except TezCheckSignatureVerificationError as e:
+            logger.warning("TezCheck webhook signature verification failed: %s", e)
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid webhook signature")
+
+    import json
+    try:
+        payload = json.loads(body.decode("utf-8"))
+    except Exception:
+        return {"ok": True, "status": "ping_received"}
+
+    if payload.get("event") in ("ping", "test", "verification") or payload.get("type") in ("ping", "test"):
+        return {"ok": True, "status": "test_received"}
+
+    bill_id = payload.get("bill_id") or payload.get("id") or payload.get("order_id")
+    status_str = payload.get("status", "").lower()
+    amount = int(payload.get("amount", 0))
+    currency = payload.get("currency", "UZS")
+
+    if not bill_id or status_str not in ("paid", "completed", "success"):
+        return {"status": "ignored", "reason": f"Status '{status_str}' not actionable"}
+
+    try:
+        result = await subscription_service.confirm_payment_and_activate(
+            db=db,
+            bill_id=bill_id,
+            paid_amount=amount,
+            currency=currency,
+        )
+        return {"ok": True, "result": result}
+    except SubscriptionError as e:
+        logger.exception("Failed to confirm TezCheck bill %s: %s", bill_id, e)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
 

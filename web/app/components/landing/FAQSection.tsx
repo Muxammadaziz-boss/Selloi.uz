@@ -1,137 +1,91 @@
 "use client";
 
 import React, { useState } from "react";
-import { useLanguage } from "@/app/lib/i18n";
-import { FAQ_ITEMS_BY_LANG } from "./data";
-import { LANDING_CONTENT_BY_LANG } from "./landingContent";
-import { ChevronDown, MessageCircle, Send, Sparkles } from "lucide-react";
+import { SelloiTranslations } from "./selloiI18n";
 
-export default function FAQSection() {
-  const { language } = useLanguage();
-  const faqItems = FAQ_ITEMS_BY_LANG[language] || FAQ_ITEMS_BY_LANG.uz;
-  const faqContent = (LANDING_CONTENT_BY_LANG[language] || LANDING_CONTENT_BY_LANG.uz).faq;
+interface FAQSectionProps {
+  t: SelloiTranslations["faq"];
+}
 
-  const [openId, setOpenId] = useState<string | null>("faq-1");
+export default function FAQSection({ t }: FAQSectionProps) {
+  // Question 1 is open by default in Figma design
+  const [openIds, setOpenIds] = useState<string[]>(["q1"]);
 
-  const toggleAccordion = (id: string) => {
-    setOpenId((prev) => (prev === id ? null : id));
+  const toggleItem = (id: string) => {
+    setOpenIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
   };
 
   return (
-    <section id="faq" className="s-section position-relative">
-      <div className="s-container">
-        {/* Section Header */}
-        <div className="text-center mb-5">
-          <div className="mb-3">
-            <span className="s-pill">
-              <Sparkles size={13} />
-              <span>{faqContent.badge}</span>
-            </span>
+    <section className="selloi-faq-section selloi-reveal-item" id="faq" data-node-id="182:410">
+      <div className="selloi-container">
+        <div className="selloi-faq-grid">
+          {/* Left Column Content */}
+          <div className="selloi-faq-left">
+            <p className="selloi-section-tag" data-node-id="182:411">
+              {t.tag}
+            </p>
+            <h2 className="selloi-faq-title" data-node-id="182:412">
+              {t.titleLine1}
+              <br />
+              {t.titleLine2}
+            </h2>
+            <p className="selloi-faq-desc" data-node-id="182:413">
+              {t.descLine1}
+              <br />
+              {t.descLine2}
+            </p>
+            <a
+              href="https://t.me/selloi_admin"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="selloi-faq-contact-btn"
+              data-node-id="182:414"
+            >
+              {t.contact}
+            </a>
           </div>
-          <h2 className="s-heading-section mb-3">
-            {faqContent.headingPrefix}{" "}
-            <span className="s-gradient-purple">{faqContent.headingHighlight}</span>
-          </h2>
-          <p className="s-body-lg mx-auto" style={{ maxWidth: "600px" }}>
-            {faqContent.subtitle}
-          </p>
-        </div>
 
-        {/* Accordion Container */}
-        <div className="mx-auto" style={{ maxWidth: "860px" }}>
-          <div className="d-flex flex-column gap-3">
-            {faqItems.map((faq) => {
-              const isOpen = openId === faq.id;
-
+          {/* Right Column Accordion */}
+          <div className="selloi-faq-right">
+            {t.items.map((item) => {
+              const isOpen = openIds.includes(item.id);
               return (
                 <div
-                  key={faq.id}
-                  className={`s-faq-item ${isOpen ? "s-open" : ""}`}
-                  style={{
-                    borderColor: isOpen
-                      ? "var(--s-purple-bright)"
-                      : "var(--s-glass-border)",
-                    boxShadow: isOpen
-                      ? "0 10px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06)"
-                      : "none",
+                  key={item.id}
+                  className="selloi-faq-item"
+                  data-node-id={item.nodeId}
+                  onClick={() => toggleItem(item.id)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      toggleItem(item.id);
+                    }
                   }}
+                  aria-expanded={isOpen}
                 >
-                  {/* Accordion Trigger */}
-                  <button
-                    onClick={() => toggleAccordion(faq.id)}
-                    className="s-faq-trigger"
-                    aria-expanded={isOpen}
-                  >
-                    <span className="pe-3" style={{ fontSize: "1.02rem" }}>
-                      {faq.question}
-                    </span>
-                    <div
-                      className="d-flex align-items-center justify-content-center flex-shrink-0"
-                      style={{
-                        width: "32px",
-                        height: "32px",
-                        borderRadius: "50%",
-                        background: isOpen
-                          ? "rgba(99, 102, 241, 0.18)"
-                          : "rgba(255, 255, 255, 0.05)",
-                        color: isOpen ? "var(--s-purple-soft)" : "var(--s-text-muted)",
-                        transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
-                        transition: "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
-                      }}
+                  <div className="selloi-faq-question-row">
+                    <h3 className="selloi-faq-question">{item.question}</h3>
+                    <span
+                      className={`selloi-faq-toggle ${
+                        isOpen ? "active" : "inactive"
+                      }`}
                     >
-                      <ChevronDown size={18} />
-                    </div>
-                  </button>
+                      {isOpen ? "−" : "+"}
+                    </span>
+                  </div>
 
-                  {/* Accordion Content */}
-                  <div className="s-faq-content">
-                    <p className="s-faq-answer mb-0">
-                      {faq.answer}
-                    </p>
+                  <div className={`selloi-faq-answer-wrapper ${isOpen ? "open" : ""}`}>
+                    <div className="selloi-faq-answer-inner">
+                      <p className="selloi-faq-answer">{item.answer}</p>
+                    </div>
                   </div>
                 </div>
               );
             })}
-          </div>
-
-          {/* Contact Support Help Box */}
-          <div
-            className="p-4 rounded-4 mt-5 d-flex flex-column flex-sm-row align-items-center justify-content-between gap-3 text-center text-sm-start s-glass-card"
-            style={{
-              borderColor: "rgba(255, 255, 255, 0.1)",
-            }}
-          >
-            <div className="d-flex align-items-center gap-3">
-              <div
-                className="d-flex align-items-center justify-content-center rounded-circle flex-shrink-0"
-                style={{
-                  width: "44px",
-                  height: "44px",
-                  background: "rgba(56, 189, 248, 0.15)",
-                  color: "var(--s-cyan)",
-                }}
-              >
-                <MessageCircle size={20} />
-              </div>
-              <div>
-                <div className="fw-bold text-white" style={{ fontSize: "0.98rem" }}>
-                  {faqContent.supportTitle}
-                </div>
-                <div className="small" style={{ color: "var(--s-text-muted)" }}>
-                  {faqContent.supportDesc}
-                </div>
-              </div>
-            </div>
-            <a
-              href="https://t.me/selloi_support"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="s-btn-secondary py-2 px-3.5 d-inline-flex align-items-center gap-2"
-              style={{ fontSize: "0.88rem" }}
-            >
-              <Send size={14} color="var(--s-cyan)" />
-              <span>{faqContent.supportBtn}</span>
-            </a>
           </div>
         </div>
       </div>

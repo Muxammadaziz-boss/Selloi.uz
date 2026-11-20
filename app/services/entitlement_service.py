@@ -1,9 +1,11 @@
 """Centralized Feature Entitlement and Plan Limits System."""
 
+from datetime import datetime, timezone
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import Organization, Plan, Subscription
+from app.services.subscription_service import MEGA_DISCOUNT_EXPIRED_NOTIFICATION
 
 
 # All standard SaaS feature keys and their descriptions
@@ -112,14 +114,20 @@ FEATURE_DEFINITIONS = {
 
 
 class FeatureNotAvailableException(HTTPException):
-    def __init__(self, feature_key: str, required_plan: str = "pro", current_plan: str = "start"):
+    def __init__(
+        self,
+        feature_key: str,
+        required_plan: str = "pro",
+        current_plan: str = "start",
+        custom_message: str | None = None
+    ):
         detail = {
             "error": "FEATURE_NOT_AVAILABLE",
             "feature": feature_key,
             "feature_name": FEATURE_DEFINITIONS.get(feature_key, {}).get("name", feature_key),
             "required_plan": required_plan.upper(),
             "current_plan": current_plan.upper(),
-            "message": f"'{FEATURE_DEFINITIONS.get(feature_key, {}).get('name', feature_key)}' funksiyasi faqat {required_plan.upper()} tarifida mavjud.",
+            "message": custom_message or f"'{FEATURE_DEFINITIONS.get(feature_key, {}).get('name', feature_key)}' funksiyasi faqat {required_plan.upper()} tarifida mavjud.",
         }
         super().__init__(status_code=status.HTTP_402_PAYMENT_REQUIRED, detail=detail)
 
@@ -149,17 +157,38 @@ async def get_organization_plan_and_subscription(
 
 
 async def has_feature(db: AsyncSession, organization_id: int, feature_key: str) -> bool:
-    """Check if the organization has access to a specific feature key."""
+    """Check if the organization has active access to a specific feature key."""
     _org, plan, sub = await get_organization_plan_and_subscription(db, organization_id)
     if not plan:
         return False
 
-    # Check subscription status: if expired, block premium features
-    if sub and sub.status in ("expired", "cancelled", "paused"):
-        # Expired subscriptions only get basic access
-        if feature_key in ("live_inbox", "knowledge_base"):
-            return True
-        return False
+    # Check subscription status according to Selloi state machine
+    if sub:
+        # Real-time expiration check against UTC timestamp
+        now = datetime.now(timezone.utc)
+        if sub.current_period_end:
+            period_end = sub.current_period_end
+            if period_end.tzinfo is None:
+                period_end = period_end.replace(tzinfo=timezone.utc)
+            if now >= period_end:
+                # Expired in real-time even during an active session
+                return False
+
+        # Commercial access is active only during active promotional or regular periods
+        if sub.status in ("mega_discount_active", "subscription_active"):
+            pass  # Evaluate plan feature matrix
+        elif sub.status in (
+            "mega_discount_expired",
+            "subscription_expired",
+            "awaiting_subscription_selection",
+            "awaiting_monthly_payment",
+            "awaiting_yearly_payment",
+            "expired",
+            "cancelled",
+            "paused"
+        ):
+            # Commercial features suspended; store/user data remains preserved
+            return False
 
     features = plan.features or {}
     val = features.get(feature_key)
@@ -171,16 +200,35 @@ async def has_feature(db: AsyncSession, organization_id: int, feature_key: str) 
 
 
 async def require_feature(db: AsyncSession, organization_id: int, feature_key: str) -> bool:
-    """Enforce feature entitlement. Raises FeatureNotAvailableException if missing."""
+    """Enforce feature entitlement. Raises FeatureNotAvailableException if missing or expired."""
+    _org, plan, sub = await get_organization_plan_and_subscription(db, organization_id)
     allowed = await has_feature(db, organization_id, feature_key)
     if not allowed:
-        _org, plan, _sub = await get_organization_plan_and_subscription(db, organization_id)
         current_code = plan.code if plan else "start"
         required_code = FEATURE_DEFINITIONS.get(feature_key, {}).get("min_plan", "pro")
+        custom_msg = None
+
+        now = datetime.now(timezone.utc)
+        is_promo_expired = False
+        if sub:
+            if sub.status == "mega_discount_expired":
+                is_promo_expired = True
+            elif sub.status == "mega_discount_active" and sub.current_period_end:
+                period_end = sub.current_period_end
+                if period_end.tzinfo is None:
+                    period_end = period_end.replace(tzinfo=timezone.utc)
+                if now >= period_end:
+                    is_promo_expired = True
+
+        if is_promo_expired:
+            custom_msg = MEGA_DISCOUNT_EXPIRED_NOTIFICATION
+        elif sub and sub.status in ("subscription_expired", "expired"):
+            custom_msg = "Sizning obuna muddatingiz yakunlandi. Xizmatlardan to'liq foydalanish uchun obunani yangilang."
         raise FeatureNotAvailableException(
             feature_key=feature_key,
             required_plan=required_code,
             current_plan=current_code,
+            custom_message=custom_msg
         )
     return True
 

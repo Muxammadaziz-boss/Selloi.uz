@@ -63,8 +63,10 @@ class PricingCacheManager:
 pricing_cache = PricingCacheManager()
 
 
-def format_currency_amount(amount_minor: int, currency: str) -> str:
+def format_currency_amount(amount_minor: Optional[int], currency: str = "USD") -> str:
     """Format integer minor units into localized human-readable display string."""
+    if amount_minor is None:
+        amount_minor = 0
     curr = currency.upper()
     if curr == "USD":
         # amount_minor is in cents

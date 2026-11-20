@@ -4,12 +4,12 @@ import hmac
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from fastapi import APIRouter, Header, HTTPException, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.bot_commands import handle_callback_query, handle_private_command
 from app.core.config import settings
-from app.core.db import SessionLocal
+from app.core.db import SessionLocal, get_db
 from app.core.logging import get_logger
 from app.models import BusinessConnection, ConnectedChannel, Conversation, Message, Order, Organization
 from app.services import settings_service
@@ -570,3 +570,16 @@ async def _process_private_message(msg: dict) -> None:
                 await _handle_direct_bot_message(msg, db)
     except Exception:
         logger.exception("Xususiy xabarni qayta ishlashda xatolik")
+
+
+@router.post("/webhooks/tezcheck")
+@router.post("/billing/tezcheck/webhook")
+async def tezcheck_webhook_root_alias(
+    request: Request,
+    x_tezcheck_signature: str | None = Header(default=None),
+    db: AsyncSession = Depends(get_db),
+):
+    """TezCheck webhook alias on root router."""
+    from app.api.saas import tezcheck_webhook
+    return await tezcheck_webhook(request, x_tezcheck_signature, db)
+

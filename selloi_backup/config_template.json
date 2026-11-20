@@ -1,0 +1,22 @@
+{
+  "project_id": "ganlawuubihxinuwjvez",
+  "region": "eu-west-3",
+  "environment": "production",
+  "encryption_key_file": "/etc/selloi/selloi_backup.key",
+  "media_dir": "/opt/telegram_ai_seller/storage/channel_images",
+  "storage": {
+    "local_enabled": true,
+    "local_dir": "/var/backups/selloi",
+    "r2_enabled": true,
+    "r2_endpoint": "https://<account_id>.r2.cloudflarestorage.com",
+    "r2_bucket": "selloi-production-backups",
+    "gdrive_enabled": true,
+    "gdrive_folder_id": "selloi_backup_vault_folder_id"
+  },
+  "retention": {
+    "daily_days": 30,
+    "weekly_weeks": 8,
+    "monthly_months": 12,
+    "dry_run": true
+  }
+}

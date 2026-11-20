@@ -1,161 +1,74 @@
 "use client";
 
 import React from "react";
-import { useLanguage } from "@/app/lib/i18n";
-import { HOW_IT_WORKS_BY_LANG } from "./data";
-import { LANDING_CONTENT_BY_LANG } from "./landingContent";
-import { UserPlus, Send, Bot, Sparkles } from "lucide-react";
+import { SelloiTranslations } from "./selloiI18n";
 
-export default function HowItWorksSection() {
-  const { language } = useLanguage();
-  const stepsData = HOW_IT_WORKS_BY_LANG[language] || HOW_IT_WORKS_BY_LANG.uz;
-  const howContent = (LANDING_CONTENT_BY_LANG[language] || LANDING_CONTENT_BY_LANG.uz).howItWorks;
+interface HowItWorksSectionProps {
+  t: SelloiTranslations["qandayIshlaydi"];
+}
 
-  const icons = [UserPlus, Send, Bot];
-  const colors = ["var(--s-purple-soft)", "var(--s-cyan)", "var(--s-emerald)"];
-  const bgs = [
-    "rgba(99, 102, 241, 0.15)",
-    "rgba(56, 189, 248, 0.15)",
-    "rgba(16, 185, 129, 0.15)",
-  ];
-
-  const steps = stepsData.map((item, idx) => ({
-    ...item,
-    icon: icons[idx] || Bot,
-    color: colors[idx] || "var(--s-purple-soft)",
-    bg: bgs[idx] || "rgba(99, 102, 241, 0.15)",
-  }));
-
+export default function HowItWorksSection({ t }: HowItWorksSectionProps) {
   return (
-    <section id="boshlash" className="s-section position-relative overflow-hidden">
-      {/* Background Volumetric Glow */}
-      <div
-        className="position-absolute"
-        style={{
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          width: "900px",
-          height: "450px",
-          background:
-            "radial-gradient(ellipse 60% 40% at 50% 50%, rgba(99, 102, 241, 0.06), transparent 70%)",
-          pointerEvents: "none",
-          zIndex: 0,
-        }}
-      />
+    <section className="selloi-how-section selloi-reveal-item" id="qanday-ishlaydi" data-node-id="182:351">
+      <div className="selloi-container">
+        {/* Category Tag */}
+        <p className="selloi-section-tag" data-node-id="182:352">
+          {t.tag}
+        </p>
 
-      <div className="s-container position-relative" style={{ zIndex: 2 }}>
-        {/* Section Header */}
-        <div className="text-center mb-5">
-          <div className="mb-3">
-            <span className="s-pill">
-              <Sparkles size={13} />
-              <span>{howContent.badge}</span>
-            </span>
+        {/* Section Title */}
+        <h2 className="selloi-how-title" data-node-id="182:353">
+          {t.title}
+        </h2>
+
+        {/* 3 Steps Grid */}
+        <div className="selloi-how-grid">
+          {/* Step 01 */}
+          <div className="selloi-how-step" data-node-id="182:354">
+            <div className="selloi-how-line" data-node-id="182:355" />
+            <p className="selloi-how-num" data-node-id="182:356">
+              {t.step1Num}
+            </p>
+            <h3 className="selloi-how-heading" data-node-id="182:357">
+              {t.step1Title}
+            </h3>
+            <p className="selloi-how-desc" data-node-id="182:358">
+              {t.step1DescLine1}
+              <br />
+              {t.step1DescLine2}
+            </p>
           </div>
-          <h2 className="s-heading-section mb-3">
-            {howContent.headingPrefix}{" "}
-            <span className="s-gradient-purple">{howContent.headingHighlight}</span>
-          </h2>
-          <p className="s-body-lg mx-auto" style={{ maxWidth: "600px" }}>
-            {howContent.subtitle}
-          </p>
-        </div>
 
-        {/* Cinematic 3-Step Journey Connected Through Animated Energy Path */}
-        <div className="position-relative py-3">
-          {/* Animated Purple Energy Path Line on desktop */}
-          <div
-            className="d-none d-lg-block position-absolute"
-            style={{
-              top: "60px",
-              left: "16%",
-              right: "16%",
-              height: "2px",
-              background:
-                "linear-gradient(90deg, rgba(99,102,241,0.2) 0%, rgba(99,102,241,0.6) 50%, rgba(56,189,248,0.4) 100%)",
-              boxShadow: "0 0 10px rgba(99,102,241,0.25)",
-              zIndex: 1,
-            }}
-          />
+          {/* Step 02 */}
+          <div className="selloi-how-step" data-node-id="182:359">
+            <div className="selloi-how-line" data-node-id="182:360" />
+            <p className="selloi-how-num" data-node-id="182:361">
+              {t.step2Num}
+            </p>
+            <h3 className="selloi-how-heading" data-node-id="182:362">
+              {t.step2Title}
+            </h3>
+            <p className="selloi-how-desc" data-node-id="182:363">
+              {t.step2DescLine1}
+              <br />
+              {t.step2DescLine2}
+            </p>
+          </div>
 
-          <div className="row g-4 position-relative z-2">
-            {steps.map((item, idx) => {
-              const Icon = item.icon;
-              return (
-                <div key={item.step} className="col-lg-4 text-center">
-                  {/* Floating Step Number */}
-                  <div
-                    className="mx-auto mb-4 d-flex align-items-center justify-content-center position-relative"
-                    style={{
-                      width: "60px",
-                      height: "60px",
-                      borderRadius: "50%",
-                      background: "#0E121A",
-                      border: "1px solid rgba(255, 255, 255, 0.12)",
-                      boxShadow: "0 8px 24px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08)",
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontWeight: 900,
-                        fontSize: "1.15rem",
-                        color: "#FFFFFF",
-                        letterSpacing: "-0.5px",
-                      }}
-                    >
-                      {item.step}
-                    </span>
-                  </div>
-
-                  {/* Glass Card */}
-                  <div
-                    className="s-glass-card p-4 mx-auto h-100 d-flex flex-column justify-content-between"
-                    style={{
-                      maxWidth: "380px",
-                      minHeight: "240px",
-                    }}
-                  >
-                    <div>
-                      <div
-                        className="mx-auto mb-3 d-flex align-items-center justify-content-center"
-                        style={{
-                          width: "48px",
-                          height: "48px",
-                          borderRadius: "14px",
-                          background: item.bg,
-                          color: item.color,
-                          border: "1px solid rgba(255,255,255,0.08)",
-                        }}
-                      >
-                        <Icon size={24} />
-                      </div>
-                      <h3
-                        className="s-heading-card text-white mb-2"
-                        style={{ fontSize: "1.15rem" }}
-                      >
-                        {item.title}
-                      </h3>
-                      <p className="s-body small mb-3">
-                        {item.description}
-                      </p>
-                    </div>
-
-                    <div>
-                      <span
-                        className="s-pill"
-                        style={{
-                          padding: "3px 12px",
-                          fontSize: "0.72rem",
-                        }}
-                      >
-                        {item.badge}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+          {/* Step 03 */}
+          <div className="selloi-how-step" data-node-id="182:364">
+            <div className="selloi-how-line" data-node-id="182:365" />
+            <p className="selloi-how-num" data-node-id="182:366">
+              {t.step3Num}
+            </p>
+            <h3 className="selloi-how-heading" data-node-id="182:367">
+              {t.step3Title}
+            </h3>
+            <p className="selloi-how-desc" data-node-id="182:368">
+              {t.step3DescLine1}
+              <br />
+              {t.step3DescLine2}
+            </p>
           </div>
         </div>
       </div>
