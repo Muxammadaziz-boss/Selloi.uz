@@ -1,0 +1,35 @@
+import { cookies } from "next/headers";
+import { sessionCookieName, verifySession } from "@/lib/session";
+import Dashboard from "../../Dashboard";
+
+interface SettingsBillingPageProps {
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
+}
+
+export default async function SettingsBillingPage({ searchParams }: SettingsBillingPageProps) {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(sessionCookieName)?.value;
+  const session = verifySession(token, process.env.SESSION_SECRET || "");
+  const resolvedParams = searchParams ? await searchParams : {};
+  const requestedPlan = typeof resolvedParams.plan === "string" ? resolvedParams.plan : undefined;
+
+  return (
+    <Dashboard
+      initialAuthenticated={!!session}
+      initialUser={
+        session
+          ? {
+              userId: session.userId,
+              email: session.email,
+              role: session.role,
+              organizationId: session.organizationId,
+              isPlatformOwner: Boolean(session.isPlatformOwner),
+            }
+          : null
+      }
+      initialZone="tenant"
+      initialTab="billing"
+      initialPlan={requestedPlan}
+    />
+  );
+}

@@ -598,6 +598,8 @@ export interface DashboardProps {
   initialUser?: DashboardUser | null;
   initialZone?: "platform" | "tenant";
   initialTenantSlug?: string;
+  initialTab?: "overview" | "inbox" | "knowledge" | "products" | "orders" | "customers" | "analytics" | "settings" | "admins" | "team" | "logs" | "profile" | "usage" | "billing" | "pricing" | "platform";
+  initialPlan?: string;
 }
 
 function DashboardContent({
@@ -605,6 +607,8 @@ function DashboardContent({
   initialUser = null,
   initialZone,
   initialTenantSlug,
+  initialTab,
+  initialPlan,
 }: DashboardProps) {
   const { language, setLanguage, t } = useLanguage();
   const permissionLabels = language === "uz" ? PERMISSION_LABELS_UZ : PERMISSION_LABELS_EN;
@@ -651,14 +655,22 @@ function DashboardContent({
   const [tab, setTab] = useState<
     "overview" | "inbox" | "knowledge" | "products" | "orders" | "customers" | "analytics" | "settings" | "admins" | "team" | "logs" | "profile" | "usage" | "billing" | "pricing" | "platform"
   >(() => {
-    if (typeof window !== "undefined" && window.location.hash) {
-      const h = window.location.hash.replace("#", "");
-      const valid = [
-        "overview", "inbox", "knowledge", "products", "orders", "customers",
-        "analytics", "settings", "admins", "team", "logs", "profile",
-        "usage", "billing", "pricing", "platform"
-      ];
-      if (valid.includes(h)) return h as any;
+    const valid = [
+      "overview", "inbox", "knowledge", "products", "orders", "customers",
+      "analytics", "settings", "admins", "team", "logs", "profile",
+      "usage", "billing", "pricing", "platform"
+    ];
+    if (initialTab && valid.includes(initialTab)) return initialTab as any;
+    if (typeof window !== "undefined") {
+      if (window.location.pathname.startsWith("/settings/billing")) return "billing";
+      if (window.location.pathname.startsWith("/settings")) return "settings";
+      if (window.location.hash) {
+        const h = window.location.hash.replace("#", "");
+        if (valid.includes(h)) return h as any;
+      }
+      const params = new URLSearchParams(window.location.search);
+      const qTab = params.get("tab");
+      if (qTab && valid.includes(qTab)) return qTab as any;
     }
     return "overview";
   });
@@ -769,6 +781,30 @@ function DashboardContent({
       return () => clearTimeout(timer);
     }
   }, [success]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const statusParam = params.get("status");
+    const planParam = params.get("plan") || initialPlan;
+
+    if (statusParam === "promo_success") {
+      setSuccess("7 kunlik Mega Chegirma to'lovi muvaffaqiyatli qabul qilindi va faollashtirildi!");
+    } else if (statusParam === "sub_success") {
+      setSuccess("Obuna to'lovi muvaffaqiyatli qabul qilindi!");
+    } else if (statusParam === "success") {
+      setSuccess("To'lov muvaffaqiyatli amalga oshirildi!");
+    } else if (statusParam === "cancelled") {
+      setError("To'lov bekor qilindi.");
+    }
+
+    if (planParam) {
+      const validPlans = ["start", "standard", "standart", "pro", "ultra"];
+      if (validPlans.includes(planParam.toLowerCase())) {
+        setTab("billing");
+      }
+    }
+  }, [initialPlan]);
   const [authenticated, setAuthenticated] = useState(initialAuthenticated);
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");

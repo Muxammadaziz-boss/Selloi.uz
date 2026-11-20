@@ -284,7 +284,7 @@ export function BillingTab({
 
             <div className="row g-3">
               {/* START Mega Discount */}
-              <div className="col-md-4">
+              <div className="col-md-3 col-sm-6">
                 <div className="p-3.5 rounded border border-secondary border-opacity-20 bg-white h-100 d-flex flex-column justify-content-between">
                   <div>
                     <div className="badge bg-blue-lt text-blue mb-2">START TARIF</div>
@@ -293,7 +293,7 @@ export function BillingTab({
                     <ul className="list-unstyled small space-y-1.5 text-secondary">
                       <li><IconCheck size={14} className="text-success me-1" /> AI avtomatik javoblar</li>
                       <li><IconCheck size={14} className="text-success me-1" /> Telegram integratsiyasi</li>
-                      <li><IconCheck size={14} className="text-success me-1" /> Jonli operator nazorati</li>
+                      <li><IconCheck size={14} className="text-success me-1" /> 2 operator o'rni</li>
                     </ul>
                   </div>
                   <button
@@ -307,8 +307,32 @@ export function BillingTab({
                 </div>
               </div>
 
+              {/* STANDART Mega Discount */}
+              <div className="col-md-3 col-sm-6">
+                <div className="p-3.5 rounded border border-info border-opacity-30 bg-white h-100 d-flex flex-column justify-content-between">
+                  <div>
+                    <div className="badge bg-cyan-lt text-cyan mb-2">STANDART TARIF</div>
+                    <div className="fs-1 fw-bold text-primary font-monospace">$1.5 <span className="fs-5 fw-normal text-secondary">(20 000 so'm)</span></div>
+                    <div className="text-secondary small mb-3">7 kunlik to'liq kirish huquqi</div>
+                    <ul className="list-unstyled small space-y-1.5 text-secondary">
+                      <li><IconCheck size={14} className="text-success me-1" /> AI Vision rasmdan aniqlash</li>
+                      <li><IconCheck size={14} className="text-success me-1" /> 3 ta kanal / bot</li>
+                      <li><IconCheck size={14} className="text-success me-1" /> 5 operator o'rni</li>
+                    </ul>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-outline-info btn-sm w-100 mt-3"
+                    disabled={checkoutLoading}
+                    onClick={() => handleStartMegaDiscount("standard")}
+                  >
+                    STANDART $1.5 Boshlash
+                  </button>
+                </div>
+              </div>
+
               {/* PRO Mega Discount */}
-              <div className="col-md-4">
+              <div className="col-md-3 col-sm-6">
                 <div className="p-3.5 rounded border border-success border-opacity-40 bg-white h-100 d-flex flex-column justify-content-between shadow-sm position-relative">
                   <span className="badge bg-success position-absolute top-0 end-0 m-2">Eng Tavsiya Etilgan</span>
                   <div>
@@ -316,10 +340,9 @@ export function BillingTab({
                     <div className="fs-1 fw-bold text-success font-monospace">$2 <span className="fs-5 fw-normal text-secondary">(26 000 so'm)</span></div>
                     <div className="text-secondary small mb-3">7 kunlik to'liq kirish huquqi</div>
                     <ul className="list-unstyled small space-y-1.5 text-secondary">
-                      <li><IconCheck size={14} className="text-success me-1" /> Barcha START imkoniyatlari</li>
-                      <li><IconCheck size={14} className="text-success me-1" /> Ko'p kanalli integratsiya</li>
+                      <li><IconCheck size={14} className="text-success me-1" /> Barcha STANDART imkoniyatlar</li>
                       <li><IconCheck size={14} className="text-success me-1" /> RAG bilimlar bazasi</li>
-                      <li><IconCheck size={14} className="text-success me-1" /> Rasmli xabarlarni tushunish</li>
+                      <li><IconCheck size={14} className="text-success me-1" /> 10 operator o'rni</li>
                     </ul>
                   </div>
                   <button
@@ -334,14 +357,14 @@ export function BillingTab({
               </div>
 
               {/* ULTRA Mega Discount */}
-              <div className="col-md-4">
+              <div className="col-md-3 col-sm-6">
                 <div className="p-3.5 rounded border border-secondary border-opacity-20 bg-white h-100 d-flex flex-column justify-content-between">
                   <div>
                     <div className="badge bg-purple-lt text-purple mb-2">ULTRA TARIF</div>
                     <div className="fs-1 fw-bold text-primary font-monospace">$3 <span className="fs-5 fw-normal text-secondary">(39 000 so'm)</span></div>
                     <div className="text-secondary small mb-3">7 kunlik to'liq kirish huquqi</div>
                     <ul className="list-unstyled small space-y-1.5 text-secondary">
-                      <li><IconCheck size={14} className="text-success me-1" /> Barcha PRO imkoniyatlari</li>
+                      <li><IconCheck size={14} className="text-success me-1" /> Barcha PRO imkoniyatlar</li>
                       <li><IconCheck size={14} className="text-success me-1" /> Cheksiz quvvat & ustuvorlik</li>
                       <li><IconCheck size={14} className="text-success me-1" /> Maxsus AI vositalari</li>
                     </ul>
