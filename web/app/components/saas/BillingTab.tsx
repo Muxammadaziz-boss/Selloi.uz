@@ -47,6 +47,7 @@ interface BillingTabProps {
   onUpgradeClick: () => void;
   onCancelSubscription: () => Promise<void>;
   onResumeSubscription: () => Promise<void>;
+  initialPlan?: string | null;
 }
 
 export function BillingTab({
@@ -56,13 +57,29 @@ export function BillingTab({
   onUpgradeClick,
   onCancelSubscription,
   onResumeSubscription,
+  initialPlan,
 }: BillingTabProps) {
+  const normalizePlan = (p: string | null | undefined) => {
+    if (!p) return "pro";
+    const lower = p.toLowerCase();
+    if (lower === "standart") return "standard";
+    if (["start", "standard", "pro", "ultra"].includes(lower)) return lower;
+    return "pro";
+  };
+
   const [actionBusy, setActionBusy] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
-  const [selectedPlanForSub, setSelectedPlanForSub] = useState<string>("pro");
+  const [selectedPlanForSub, setSelectedPlanForSub] = useState<string>(normalizePlan(initialPlan));
   const [selectedCycleForSub, setSelectedCycleForSub] = useState<"monthly" | "yearly">("monthly");
   const [renewalConsentChecked, setRenewalConsentChecked] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (initialPlan) {
+      setSelectedPlanForSub(normalizePlan(initialPlan));
+    }
+  }, [initialPlan]);
 
   if (!subscription && loading) {
     return (
@@ -104,6 +121,7 @@ export function BillingTab({
 
   const handleStartMegaDiscount = async (planCode: string) => {
     setCheckoutLoading(true);
+    setCheckoutError(null);
     try {
       const resp = await fetch("/api/billing/mega-discount/checkout", {
         method: "POST",
@@ -112,14 +130,14 @@ export function BillingTab({
       });
       const data = await resp.json();
       if (!resp.ok) {
-        alert(data.detail || "To'lov hisobini yaratishda xatolik yuz berdi");
+        setCheckoutError(data.detail || "To'lov hisobini yaratishda xatolik yuz berdi");
         return;
       }
       if (data.checkout_url) {
         window.location.href = data.checkout_url;
       }
     } catch (err: any) {
-      alert("Xatolik: " + err.message);
+      setCheckoutError("Xatolik: " + err.message);
     } finally {
       setCheckoutLoading(false);
     }
@@ -127,11 +145,12 @@ export function BillingTab({
 
   const handleStartSubscription = async () => {
     if (!renewalConsentChecked) {
-      alert("Iltimos, avtomatik yangilanish shartlari va obuna shartnomasi bilan tanishib, rozilik bildiring.");
+      setCheckoutError("Iltimos, avtomatik yangilanish shartlari va obuna shartnomasi bilan tanishib, rozilik bildiring.");
       return;
     }
 
     setCheckoutLoading(true);
+    setCheckoutError(null);
     try {
       // 1. Record explicit user consent
       await fetch("/api/billing/subscription/consent", {
@@ -156,14 +175,14 @@ export function BillingTab({
       });
       const data = await resp.json();
       if (!resp.ok) {
-        alert(data.detail || "To'lov hisobini yaratishda xatolik yuz berdi");
+        setCheckoutError(data.detail || "To'lov hisobini yaratishda xatolik yuz berdi");
         return;
       }
       if (data.checkout_url) {
         window.location.href = data.checkout_url;
       }
     } catch (err: any) {
-      alert("Xatolik: " + err.message);
+      setCheckoutError("Xatolik: " + err.message);
     } finally {
       setCheckoutLoading(false);
     }
@@ -171,6 +190,16 @@ export function BillingTab({
 
   return (
     <div className="space-y-4">
+      {/* Checkout Error Notification */}
+      {checkoutError && (
+        <div className="alert alert-danger d-flex align-items-center justify-content-between p-3 rounded-3 shadow-sm" role="alert">
+          <div className="d-flex align-items-center gap-2.5">
+            <IconAlertCircle size={22} className="text-danger flex-shrink-0" />
+            <div className="text-danger fw-medium small">{checkoutError}</div>
+          </div>
+          <button type="button" className="btn-close" onClick={() => setCheckoutError(null)} aria-label="Yopish" />
+        </div>
+      )}
       {/* 1. Mega Discount Active Countdown Banner */}
       {isMegaDiscountActive && (
         <div
@@ -534,7 +563,7 @@ export function BillingTab({
         <div className="card-body p-4">
           <div className="row g-3 mb-4">
             {/* START Plan */}
-            <div className="col-md-4">
+            <div className="col-xl-3 col-md-6">
               <div
                 className={`p-3.5 rounded border cursor-pointer h-100 ${
                   selectedPlanForSub === "start" ? "border-primary bg-primary-lt" : "border-secondary border-opacity-20"
@@ -546,7 +575,7 @@ export function BillingTab({
                   {selectedPlanForSub === "start" && <IconCheck size={20} className="text-primary" />}
                 </div>
                 <div className="fs-2 fw-bold font-monospace text-primary mb-1">
-                  {selectedCycleForSub === "yearly" ? "2 450 000 so'm" : "245 000 so'm"}
+                  {selectedCycleForSub === "yearly" ? "2 440 000 so'm" : "244 000 so'm"}
                 </div>
                 <div className="text-secondary small mb-3">
                   ${selectedCycleForSub === "yearly" ? "190 / yil" : "19 / oy"}
@@ -555,12 +584,40 @@ export function BillingTab({
                   <li>AI Avtomatik javoblar</li>
                   <li>Operator takeover</li>
                   <li>Jonli chatlar paneli</li>
+                  <li>2 ta operator o'rni</li>
+                </ul>
+              </div>
+            </div>
+
+            {/* STANDART Plan */}
+            <div className="col-xl-3 col-md-6">
+              <div
+                className={`p-3.5 rounded border cursor-pointer h-100 ${
+                  selectedPlanForSub === "standard" ? "border-info bg-cyan-lt" : "border-secondary border-opacity-20"
+                }`}
+                onClick={() => setSelectedPlanForSub("standard")}
+              >
+                <div className="d-flex align-items-center justify-content-between mb-2">
+                  <span className="fw-bold fs-4">STANDART</span>
+                  {selectedPlanForSub === "standard" && <IconCheck size={20} className="text-info" />}
+                </div>
+                <div className="fs-2 fw-bold font-monospace text-primary mb-1">
+                  {selectedCycleForSub === "yearly" ? "4 990 000 so'm" : "499 000 so'm"}
+                </div>
+                <div className="text-secondary small mb-3">
+                  ${selectedCycleForSub === "yearly" ? "390 / yil" : "39 / oy"}
+                </div>
+                <ul className="list-unstyled small space-y-1 text-secondary">
+                  <li>AI Vision rasmdan tovar tanish</li>
+                  <li>Click va Payme to'lovlari</li>
+                  <li>3 ta kanal / bot</li>
+                  <li>5 ta operator o'rni</li>
                 </ul>
               </div>
             </div>
 
             {/* PRO Plan */}
-            <div className="col-md-4">
+            <div className="col-xl-3 col-md-6">
               <div
                 className={`p-3.5 rounded border cursor-pointer h-100 position-relative ${
                   selectedPlanForSub === "pro" ? "border-success bg-green-lt shadow-sm" : "border-secondary border-opacity-20"
@@ -572,22 +629,22 @@ export function BillingTab({
                   <span className="badge bg-success text-white">Eng Ommabop</span>
                 </div>
                 <div className="fs-2 fw-bold font-monospace text-success mb-1">
-                  {selectedCycleForSub === "yearly" ? "7 600 000 so'm" : "760 000 so'm"}
+                  {selectedCycleForSub === "yearly" ? "7 580 000 so'm" : "758 000 so'm"}
                 </div>
                 <div className="text-secondary small mb-3">
                   ${selectedCycleForSub === "yearly" ? "590 / yil" : "59 / oy"}
                 </div>
                 <ul className="list-unstyled small space-y-1 text-secondary">
-                  <li>Barcha START imkoniyatlari</li>
-                  <li>Ko'p kanalli sotuvlar</li>
+                  <li>Barcha STANDART imkoniyatlar</li>
                   <li>Vektorli RAG qidiruvi</li>
-                  <li>Rasmlarni tushunish</li>
+                  <li>Ko'p kanalli integratsiya</li>
+                  <li>10 ta operator o'rni</li>
                 </ul>
               </div>
             </div>
 
             {/* ULTRA Plan */}
-            <div className="col-md-4">
+            <div className="col-xl-3 col-md-6">
               <div
                 className={`p-3.5 rounded border cursor-pointer h-100 ${
                   selectedPlanForSub === "ultra" ? "border-purple bg-purple-lt" : "border-secondary border-opacity-20"
@@ -599,7 +656,7 @@ export function BillingTab({
                   {selectedPlanForSub === "ultra" && <IconCheck size={20} className="text-purple" />}
                 </div>
                 <div className="fs-2 fw-bold font-monospace text-primary mb-1">
-                  {selectedCycleForSub === "yearly" ? "19 200 000 so'm" : "1 920 000 so'm"}
+                  {selectedCycleForSub === "yearly" ? "19 140 000 so'm" : "1 914 000 so'm"}
                 </div>
                 <div className="text-secondary small mb-3">
                   ${selectedCycleForSub === "yearly" ? "1490 / yil" : "149 / oy"}
@@ -608,6 +665,7 @@ export function BillingTab({
                   <li>Barcha PRO imkoniyatlari</li>
                   <li>Cheksiz xabarlar & ustuvorlik</li>
                   <li>Maxsus AI vositalari</li>
+                  <li>50 ta operator o'rni</li>
                 </ul>
               </div>
             </div>
@@ -618,15 +676,17 @@ export function BillingTab({
             <h4 className="fw-bold mb-2">Avtomatik Yangilanish va Obuna Shartlari</h4>
             <div className="text-secondary small mb-3">
               <p className="mb-1">
-                <strong>Reja:</strong> {selectedPlanForSub.toUpperCase()} ({selectedCycleForSub === "yearly" ? "Yillik - 365 kun" : "Oylik - 30 kun"}).
+                <strong>Reja:</strong> {selectedPlanForSub.toUpperCase()} ({selectedCycleForSub === "yearly" ? "Yillik: 365 kun" : "Oylik: 30 kun"}).
               </p>
               <p className="mb-1">
                 <strong>To'lov miqdori:</strong>{" "}
                 {selectedPlanForSub === "start"
-                  ? selectedCycleForSub === "yearly" ? "2 450 000 so'm ($190)" : "245 000 so'm ($19)"
+                  ? selectedCycleForSub === "yearly" ? "2 440 000 so'm ($190)" : "244 000 so'm ($19)"
+                  : selectedPlanForSub === "standard" || selectedPlanForSub === "standart"
+                  ? selectedCycleForSub === "yearly" ? "4 990 000 so'm ($390)" : "499 000 so'm ($39)"
                   : selectedPlanForSub === "pro"
-                  ? selectedCycleForSub === "yearly" ? "7 600 000 so'm ($590)" : "760 000 so'm ($59)"
-                  : selectedCycleForSub === "yearly" ? "19 200 000 so'm ($1490)" : "1 920 000 so'm ($149)"}
+                  ? selectedCycleForSub === "yearly" ? "7 580 000 so'm ($590)" : "758 000 so'm ($59)"
+                  : selectedCycleForSub === "yearly" ? "19 140 000 so'm ($1490)" : "1 914 000 so'm ($149)"}
               </p>
               <p className="mb-1">
                 <strong>Yangilanish tartibi:</strong> TezCheck to'lov tizimida kartani avtomatik yechib olish mavjud emas. Obunangiz tugash arafasida yangilash uchun hisob-faktura yuboriladi va siz to'lovni tasdiqlashingiz kerak bo'ladi. Obunani istalgan vaqtda shaxsiy kabinet orqali bekor qilishingiz mumkin.

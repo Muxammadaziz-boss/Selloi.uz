@@ -26,7 +26,7 @@ from app.services.subscription_service import (
     IneligibleForMegaDiscountError,
     SubscriptionError,
 )
-from app.services.tezcheck_service import tezcheck_service, TezCheckSignatureVerificationError
+from app.services.tezcheck_service import tezcheck_service, TezCheckError, TezCheckSignatureVerificationError
 from app.services.telegram import get_telegram_service
 from app.services.saas_service import (
     cancel_organization_subscription,
@@ -802,6 +802,9 @@ async def create_mega_discount_checkout(
         )
     except IneligibleForMegaDiscountError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except TezCheckError as e:
+        logger.exception("TezCheck to'lov tizimida hisob yaratishda xatolik: %s", e)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"To'lov tizimi (TezCheck) xatosi: {e}")
     except SubscriptionError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
@@ -824,6 +827,9 @@ async def create_subscription_checkout(
             billing_cycle=req.billing_cycle,
             return_url=req.return_url,
         )
+    except TezCheckError as e:
+        logger.exception("TezCheck obuna to'lov hisobi yaratishda xatolik: %s", e)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"To'lov tizimi (TezCheck) xatosi: {e}")
     except SubscriptionError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 

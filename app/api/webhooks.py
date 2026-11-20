@@ -424,10 +424,10 @@ async def _handle_direct_bot_message(message: dict, db: AsyncSession) -> None:
     try:
         if sales_ai.is_greeting(text):
             evidence = []
-            decision = await sales_ai.answer(text, evidence, [])
+            decision = await sales_ai.answer(text, evidence, [], organization_id=1, db=db)
         else:
-            evidence = await knowledge.search(db, text, limit=6)
-            decision = await sales_ai.answer(text, evidence, [])
+            evidence = await knowledge.search(db, text, limit=6, organization_id=1)
+            decision = await sales_ai.answer(text, evidence, [], organization_id=1, db=db)
     finally:
         stop_typing.set()
         typing_task.cancel()

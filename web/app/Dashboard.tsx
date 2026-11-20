@@ -2771,6 +2771,7 @@ function DashboardContent({
                 onUpgradeClick={() => setTab("pricing")}
                 onCancelSubscription={handleCancelSubscription}
                 onResumeSubscription={handleResumeSubscription}
+                initialPlan={initialPlan}
               />
             )}
 

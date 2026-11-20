@@ -251,7 +251,15 @@ class TenantBotManager:
                 if not sales_ai.is_greeting(text):
                     evidence = await knowledge.search(db, text, limit=6, organization_id=org_id)
 
-                decision = await sales_ai.answer(text, evidence, [], store_name=org_name, language=ai_lang)
+                decision = await sales_ai.answer(
+                    text,
+                    evidence,
+                    [],
+                    store_name=org_name,
+                    language=ai_lang,
+                    organization_id=org_id,
+                    db=db,
+                )
 
             # Reply to customer with photo if available
             reply_text = decision.get("reply", "Kechirasiz, tizimda vaqtinchalik xatolik yuz berdi.")
