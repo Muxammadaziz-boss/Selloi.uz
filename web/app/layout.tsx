@@ -116,15 +116,15 @@ const jsonLd = {
       },
       "sameAs": [
         "https://github.com/Muxammadaziz-boss/Selloi.uz",
-        "https://t.me/selloi_bot",
-        "https://t.me/selloi_admin",
-        "https://t.me/Selloi_ai_bot"
+        "https://t.me/Selloi_ai_bot",
+        "https://t.me/selloi_bot"
       ],
       "contactPoint": [
         {
           "@type": "ContactPoint",
           "contactType": "customer support",
           "email": "support@selloi.uz",
+          "url": "https://t.me/selloi_admin",
           "availableLanguage": ["uz", "ru", "en"]
         }
       ]
