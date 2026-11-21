@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { SelloiTranslations } from "./selloiI18n";
 
 interface FooterProps {
@@ -153,6 +154,14 @@ export default function Footer({ t, onLanguageClick }: FooterProps) {
           <p className="selloi-footer-copy" data-node-id="182:466">
             {t.copy}
           </p>
+          <div className="selloi-footer-legal-links" style={{ display: "flex", gap: "18px", fontSize: "0.85rem" }}>
+            <Link href="/privacy" style={{ color: "rgba(255,255,255,0.6)", textDecoration: "none" }}>
+              Maxfiylik siyosati
+            </Link>
+            <Link href="/terms" style={{ color: "rgba(255,255,255,0.6)", textDecoration: "none" }}>
+              Foydalanish shartlari
+            </Link>
+          </div>
           <p
             className="selloi-footer-lang"
             data-node-id="182:467"

@@ -808,6 +808,15 @@ export default function LoginPageClient({
           <ShieldCheck size={13} />
           <span>{t.sslSecure}</span>
         </div>
+
+        {/* Legal links for compliance */}
+        <div style={{ marginTop: "14px", fontSize: "0.78rem", color: "#8E8E93", textAlign: "center", lineHeight: "1.5" }}>
+          <span>Davom etish orqali siz Selloi'ning </span>
+          <Link href="/terms" style={{ color: "#FF4C63", textDecoration: "none", fontWeight: 600 }}>Foydalanish shartlari</Link>
+          <span> va </span>
+          <Link href="/privacy" style={{ color: "#FF4C63", textDecoration: "none", fontWeight: 600 }}>Maxfiylik siyosati</Link>
+          <span>ga rozilik bildirasiz.</span>
+        </div>
       </div>
 
       {/* Telegram Username / ID Modal */}

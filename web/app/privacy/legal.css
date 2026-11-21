@@ -1,0 +1,370 @@
+/* Selloi Legal & Privacy Pages Styles */
+
+.selloi-legal-wrapper {
+  min-height: 100vh;
+  width: 100%;
+  background-color: #0D0D0D;
+  color: #F6F6F7;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 20px 80px 20px;
+  position: relative;
+  overflow-x: hidden;
+  font-family: 'Quicksand', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  box-sizing: border-box;
+}
+
+/* Radial Glow Meshes */
+.selloi-legal-glow-top {
+  position: absolute;
+  top: -160px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 900px;
+  height: 500px;
+  background: radial-gradient(ellipse at center, rgba(255, 76, 99, 0.16) 0%, rgba(255, 76, 99, 0.03) 50%, transparent 75%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.selloi-legal-glow-bottom {
+  position: absolute;
+  bottom: -200px;
+  right: 10%;
+  width: 600px;
+  height: 500px;
+  background: radial-gradient(ellipse at center, rgba(0, 149, 255, 0.08) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Container */
+.selloi-legal-container {
+  width: 100%;
+  max-width: 860px;
+  z-index: 2;
+  position: relative;
+}
+
+/* Header & Top Bar */
+.selloi-legal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 40px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.selloi-legal-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: #FFFFFF;
+}
+
+.selloi-legal-logo img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+}
+
+.selloi-legal-logo span {
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.selloi-legal-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #D1D1D6;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.selloi-legal-back-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: #FFFFFF;
+  transform: translateX(-2px);
+}
+
+/* Title Block */
+.selloi-legal-title-block {
+  margin-bottom: 40px;
+}
+
+.selloi-legal-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  background: rgba(255, 76, 99, 0.12);
+  border: 1px solid rgba(255, 76, 99, 0.25);
+  color: #FF667A;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+.selloi-legal-title {
+  font-size: 2.3rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0 0 12px 0;
+  letter-spacing: -0.02em;
+  color: #FFFFFF;
+}
+
+.selloi-legal-subtitle {
+  font-size: 1.05rem;
+  color: #A0A0A8;
+  margin: 0 0 16px 0;
+  line-height: 1.6;
+}
+
+.selloi-legal-meta {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  font-size: 0.88rem;
+  color: #7A7A85;
+}
+
+.selloi-legal-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Compliance Card (Google Highlight) */
+.selloi-compliance-card {
+  background: linear-gradient(135deg, rgba(255, 76, 99, 0.09) 0%, rgba(20, 20, 24, 0.95) 100%);
+  border: 1px solid rgba(255, 76, 99, 0.3);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 36px;
+  position: relative;
+  overflow: hidden;
+}
+
+.selloi-compliance-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.selloi-compliance-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(255, 76, 99, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FF667A;
+}
+
+.selloi-compliance-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #FFFFFF;
+  margin: 0;
+}
+
+.selloi-compliance-text {
+  font-size: 0.95rem;
+  line-height: 1.65;
+  color: #D6D6DC;
+  margin: 0 0 12px 0;
+}
+
+.selloi-compliance-quote {
+  background: rgba(0, 0, 0, 0.35);
+  border-left: 3px solid #FF4C63;
+  padding: 12px 16px;
+  border-radius: 0 8px 8px 0;
+  font-size: 0.92rem;
+  line-height: 1.6;
+  color: #E2E2E6;
+  font-style: italic;
+  margin: 12px 0;
+}
+
+/* Content Card */
+.selloi-legal-card {
+  background: #131316;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 40px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+}
+
+.selloi-legal-section {
+  margin-bottom: 36px;
+}
+
+.selloi-legal-section:last-child {
+  margin-bottom: 0;
+}
+
+.selloi-legal-section h2 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #FFFFFF;
+  margin: 0 0 16px 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  letter-spacing: -0.01em;
+}
+
+.selloi-legal-section h3 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #E6E6EB;
+  margin: 20px 0 10px 0;
+}
+
+.selloi-legal-section p {
+  font-size: 0.98rem;
+  line-height: 1.7;
+  color: #B5B5BD;
+  margin: 0 0 14px 0;
+}
+
+.selloi-legal-section ul,
+.selloi-legal-section ol {
+  margin: 0 0 18px 0;
+  padding-left: 24px;
+}
+
+.selloi-legal-section li {
+  font-size: 0.98rem;
+  line-height: 1.7;
+  color: #B5B5BD;
+  margin-bottom: 8px;
+}
+
+.selloi-legal-section strong {
+  color: #FFFFFF;
+}
+
+.selloi-legal-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+  font-size: 0.92rem;
+}
+
+.selloi-legal-table th,
+.selloi-legal-table td {
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: left;
+}
+
+.selloi-legal-table th {
+  background: rgba(255, 255, 255, 0.04);
+  color: #FFFFFF;
+  font-weight: 600;
+}
+
+.selloi-legal-table td {
+  color: #B5B5BD;
+}
+
+/* Contact box */
+.selloi-contact-box {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 16px;
+}
+
+.selloi-contact-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.95rem;
+  color: #D1D1D6;
+  margin-bottom: 8px;
+}
+
+.selloi-contact-item:last-child {
+  margin-bottom: 0;
+}
+
+.selloi-contact-item a {
+  color: #FF4C63;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.selloi-contact-item a:hover {
+  text-decoration: underline;
+}
+
+/* Footer in legal page */
+.selloi-legal-footer {
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.88rem;
+  color: #7A7A85;
+}
+
+.selloi-legal-footer-links {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.selloi-legal-footer-links a {
+  color: #A0A0A8;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.selloi-legal-footer-links a:hover {
+  color: #FFFFFF;
+}
+
+@media (max-width: 768px) {
+  .selloi-legal-wrapper {
+    padding: 24px 16px 60px 16px;
+  }
+  .selloi-legal-card {
+    padding: 24px 18px;
+  }
+  .selloi-legal-title {
+    font-size: 1.8rem;
+  }
+  .selloi-legal-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .selloi-legal-footer {
+    flex-direction: column;
+    gap: 14px;
+    text-align: center;
+  }
+}
