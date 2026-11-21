@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
   const redirectUri = `${baseUrl}/api/auth/google/callback`;
 
   if (!clientId) {
-    return NextResponse.redirect(new URL("/login?error=google_not_configured", request.url));
+    return NextResponse.redirect(new URL("/login?error=google_not_configured", baseUrl));
   }
 
   const googleAuthUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");

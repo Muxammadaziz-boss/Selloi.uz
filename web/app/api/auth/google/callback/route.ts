@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
   const redirectUri = `${baseUrl}/api/auth/google/callback`;
 
   if (error || !code) {
-    return NextResponse.redirect(new URL("/login?error=google_cancelled", request.url));
+    return NextResponse.redirect(new URL("/login?error=google_cancelled", baseUrl));
   }
 
   const clientId = process.env.GOOGLE_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
@@ -24,10 +24,10 @@ export async function GET(request: NextRequest) {
   const backendUrl = process.env.BACKEND_URL || "http://127.0.0.1:8000";
 
   if (!clientId || !clientSecret) {
-    return NextResponse.redirect(new URL("/login?error=google_not_configured", request.url));
+    return NextResponse.redirect(new URL("/login?error=google_not_configured", baseUrl));
   }
   if (!secret) {
-    return NextResponse.redirect(new URL("/login?error=session_secret_missing", request.url));
+    return NextResponse.redirect(new URL("/login?error=session_secret_missing", baseUrl));
   }
 
   try {
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
 
     const tokenData = await tokenRes.json();
     if (!tokenRes.ok || !tokenData.access_token) {
-      return NextResponse.redirect(new URL("/login?error=google_token_failed", request.url));
+      return NextResponse.redirect(new URL("/login?error=google_token_failed", baseUrl));
     }
 
     const userInfoRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!userInfoRes.ok) {
-      return NextResponse.redirect(new URL("/login?error=google_user_failed", request.url));
+      return NextResponse.redirect(new URL("/login?error=google_user_failed", baseUrl));
     }
 
     const profile = await userInfoRes.json();
@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
     const googleId = profile.sub || "";
 
     if (!email) {
-      return NextResponse.redirect(new URL("/login?error=google_no_email", request.url));
+      return NextResponse.redirect(new URL("/login?error=google_no_email", baseUrl));
     }
 
     const backendRes = await fetch(`${backendUrl.replace(/\/$/, "")}/api/v1/auth/google`, {
@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
 
     const data = await backendRes.json();
     if (!backendRes.ok) {
-      return NextResponse.redirect(new URL("/login?error=google_register_failed", request.url));
+      return NextResponse.redirect(new URL("/login?error=google_register_failed", baseUrl));
     }
 
     const sessionPayload: SessionPayload = {
@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
       issuedAt: Math.floor(Date.now() / 1000),
     };
 
-    const redirectTarget = new URL("/dashboard", request.url);
+    const redirectTarget = new URL("/dashboard", baseUrl);
     const response = NextResponse.redirect(redirectTarget);
 
     response.cookies.set(sessionCookieName, createSessionToken(sessionPayload, secret), {
@@ -103,6 +103,6 @@ export async function GET(request: NextRequest) {
 
     return response;
   } catch (err) {
-    return NextResponse.redirect(new URL("/login?error=google_error", request.url));
+    return NextResponse.redirect(new URL("/login?error=google_error", baseUrl));
   }
 }
