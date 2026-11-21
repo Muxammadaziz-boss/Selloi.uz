@@ -45,7 +45,7 @@
   font-family: 'Quicksand', sans-serif;
   min-height: 100vh;
   width: 100%;
-  overflow-x: clip;
+  overflow: visible;
   position: relative;
   -webkit-font-smoothing: antialiased;
 }
