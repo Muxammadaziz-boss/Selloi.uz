@@ -33,7 +33,7 @@ async def get_bot_username() -> str:
                 return username
     except Exception as e:
         logger.warning("Could not fetch bot username via getMe: %s", e)
-    return "musiqa_2_ro_bot"
+    return "Selloi_ai_bot"
 
 
 async def create_auth_session() -> dict[str, str]:
