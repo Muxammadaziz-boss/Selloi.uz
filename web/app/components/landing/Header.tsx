@@ -291,7 +291,7 @@ export default function Header({
               if (isAuthenticated) {
                 window.location.href = "/dashboard";
               } else {
-                onOpenLogin();
+                window.location.href = "/login";
               }
             }}
           >

@@ -120,7 +120,9 @@ function LandingPageContent({ isAuthenticated = false }: LandingPageProps) {
       {/* 1. Navigation */}
       <Header
         onOpenOnboarding={() => setIsOnboardingOpen(true)}
-        onOpenLogin={() => setIsLoginModalOpen(true)}
+        onOpenLogin={() => {
+          window.location.href = "/login";
+        }}
         isAuthenticated={isAuthenticated}
         language={language}
         onLanguageChange={setLanguage}
