@@ -3,8 +3,11 @@ import { createSessionToken, SessionPayload, sessionCookieName, sessionTtlSecond
 
 function getBaseUrl(request: NextRequest): string {
   const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || "selloi.uz";
-  const proto = request.headers.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
-  return `${proto}://${host}`;
+  if (host.includes("localhost") || host.includes("127.0.0.1")) {
+    const proto = request.headers.get("x-forwarded-proto") || "http";
+    return `${proto}://${host}`;
+  }
+  return `https://${host}`;
 }
 
 export async function GET(request: NextRequest) {
