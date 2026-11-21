@@ -39,6 +39,27 @@ async def test_auth_and_organization_onboarding_lifecycle():
         assert me_resp.status_code == 200
         assert me_resp.json()["email"] == test_email
 
+        # 2b. Test Google Auth endpoint
+        google_email = f"google_{int(datetime.now().timestamp())}@shop.uz"
+        g_resp = await client.post("/api/v1/auth/google", json={
+            "email": google_email,
+            "full_name": "Google User",
+            "google_id": "google-sub-999",
+        })
+        assert g_resp.status_code == 200, g_resp.text
+        g_data = g_resp.json()
+        assert "access_token" in g_data
+        assert g_data["email"] == google_email
+
+        # Re-authenticating existing Google user (idempotent)
+        g_resp2 = await client.post("/api/v1/auth/google", json={
+            "email": google_email,
+            "full_name": "Google User Updated",
+            "google_id": "google-sub-999",
+        })
+        assert g_resp2.status_code == 200
+        assert g_resp2.json()["user_id"] == g_data["user_id"]
+
         # 3. Create an organization with dedicated bot token & AI keys
         slug = f"shop-{int(datetime.now().timestamp())}"
         custom_bot_token = f"998877:{slug}"
@@ -102,3 +123,4 @@ async def test_auth_and_organization_onboarding_lifecycle():
         # 8. Unauthenticated access without JWT should be rejected
         unauth_resp = await client.get("/api/v1/organizations")
         assert unauth_resp.status_code == 401 or unauth_resp.status_code == 403
+

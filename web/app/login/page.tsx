@@ -7,6 +7,7 @@ interface LoginPageProps {
   searchParams?: Promise<{
     redirect?: string;
     tab?: string;
+    error?: string;
   }>;
 }
 
@@ -29,6 +30,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     <LoginPageClient
       initialRedirect={resolvedParams.redirect || "/dashboard"}
       initialTab={resolvedParams.tab || "login"}
+      initialError={resolvedParams.error}
     />
   );
 }

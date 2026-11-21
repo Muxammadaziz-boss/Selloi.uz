@@ -141,3 +141,11 @@ class RegisterRequest(BaseModel):
     full_name: str = ""
 
 
+class GoogleAuthRequest(BaseModel):
+    """Schema for Google OAuth / Social Sign-In."""
+    email: str = Field(min_length=1, max_length=255)
+    full_name: str = ""
+    google_id: str | None = None
+    avatar_url: str | None = None
+
+

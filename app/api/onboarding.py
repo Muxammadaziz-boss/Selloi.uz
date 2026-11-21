@@ -22,6 +22,7 @@ from app.core.security import (
 from app.dependencies.auth import create_access_token, get_current_user
 from app.models import Organization, OrganizationMember, User
 from app.schemas import (
+    GoogleAuthRequest,
     OrganizationCreate,
     OrganizationOut,
     OrganizationUpdate,
@@ -106,6 +107,46 @@ async def login(payload: TokenRequest, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=403, detail="Foydalanuvchi faol emas")
 
     reset_rate_limit(rate_key)
+    token = create_access_token(user.id, user.email)
+    return TokenResponse(access_token=token, user_id=user.id, email=user.email)
+
+
+@router.post("/auth/google", response_model=TokenResponse)
+async def google_auth(payload: GoogleAuthRequest, db: AsyncSession = Depends(get_db)):
+    """Authenticate or register a user via Google OAuth."""
+    clean_email = payload.email.strip().lower()
+    if not clean_email or "@" not in clean_email:
+        raise HTTPException(status_code=400, detail="Noto'g'ri email manzil")
+
+    rate_key = f"google_auth:{clean_email}"
+    if is_rate_limited(rate_key, max_attempts=10, window_seconds=60):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Juda ko'p urinishlar qilindi. 1 daqiqadan so'ng qayta urinib ko'ring.",
+        )
+
+    result = await db.execute(select(User).where(User.email == clean_email))
+    user = result.scalar_one_or_none()
+
+    if user is None:
+        display_name = payload.full_name.strip() or clean_email.split("@")[0]
+        user = User(
+            email=clean_email,
+            full_name=display_name,
+            hashed_password="",
+            is_active=True,
+        )
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
+    else:
+        if not user.is_active:
+            raise HTTPException(status_code=403, detail="Foydalanuvchi hisobi faol emas")
+        if not user.full_name and payload.full_name.strip():
+            user.full_name = payload.full_name.strip()
+            await db.commit()
+            await db.refresh(user)
+
     token = create_access_token(user.id, user.email)
     return TokenResponse(access_token=token, user_id=user.id, email=user.email)
 

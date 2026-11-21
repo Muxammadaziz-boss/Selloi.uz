@@ -22,6 +22,7 @@ import "./login.css";
 interface LoginPageClientProps {
   initialRedirect: string;
   initialTab?: string;
+  initialError?: string;
 }
 
 type AuthMode = "login" | "register" | "master";
@@ -202,11 +203,26 @@ const TRANSLATIONS: Record<Language, TranslationText> = {
 export default function LoginPageClient({
   initialRedirect,
   initialTab,
+  initialError,
 }: LoginPageClientProps) {
   const [lang, setLang] = useState<Language>("uz");
   const [mode, setMode] = useState<AuthMode>(
     initialTab === "register" ? "register" : initialTab === "master" ? "master" : "login"
   );
+
+  const getInitialErrorText = (code?: string): string | null => {
+    if (!code) return null;
+    if (code === "google_not_configured") {
+      return "Google OAuth ulanishi: GOOGLE_CLIENT_ID va GOOGLE_CLIENT_SECRET kalitlari sozlanishi lozim.";
+    }
+    if (code === "google_cancelled") {
+      return "Google orqali kirish bekor qilindi.";
+    }
+    if (code === "google_token_failed" || code === "google_error") {
+      return "Google orqali tasdiqlashda xatolik yuz berdi. Qayta urinib ko'ring.";
+    }
+    return null;
+  };
 
   // Form states
   const [fullName, setFullName] = useState("");
@@ -219,7 +235,7 @@ export default function LoginPageClient({
 
   // UI status
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(getInitialErrorText(initialError));
   const [infoNotice, setInfoNotice] = useState<string | null>(null);
 
   // Telegram modal state
@@ -373,13 +389,10 @@ export default function LoginPageClient({
   };
 
   const handleGoogleAuth = () => {
-    setInfoNotice(
-      lang === "uz"
-        ? "Google OAuth ulanishi tayyorlanmoqda. Hozircha email va parol orqali kirishingiz mumkin."
-        : lang === "ru"
-        ? "Подключение Google OAuth настраивается. Пожалуйста, используйте email и пароль."
-        : "Google OAuth integration in progress. Please sign in with email and password."
-    );
+    setError(null);
+    setInfoNotice(null);
+    setLoading(true);
+    window.location.href = "/api/auth/google";
   };
 
   return (
