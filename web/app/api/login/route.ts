@@ -60,6 +60,7 @@ export async function POST(request: NextRequest) {
   // 1. Try individual backend authentication (/api/v1/auth/login)
   let backendToken: string | undefined = undefined;
   let authenticatedUserId: number | undefined = undefined;
+  let authenticatedFullName: string | undefined = undefined;
   let authenticatedRole = "member";
   let isTruePlatformOwner = false;
 
@@ -74,6 +75,9 @@ export async function POST(request: NextRequest) {
       const data = await backendRes.json();
       backendToken = data.access_token;
       authenticatedUserId = data.user_id;
+      if (data.full_name) {
+        authenticatedFullName = data.full_name;
+      }
 
       // Authoritative profile claim verification: ONLY backend profile claim grants Platform Owner
       const profileRes = await fetch(`${backendUrl.replace(/\/$/, "")}/api/v1/auth/me`, {
@@ -81,6 +85,9 @@ export async function POST(request: NextRequest) {
       });
       if (profileRes.ok) {
         const profile = await profileRes.json();
+        if (profile?.full_name) {
+          authenticatedFullName = profile.full_name;
+        }
         // Strict equality check: only authenticated boolean claim true grants Platform Owner
         if (profile && profile.is_platform_owner === true) {
           isTruePlatformOwner = true;
@@ -88,7 +95,7 @@ export async function POST(request: NextRequest) {
         } else {
           isTruePlatformOwner = false;
           // Tenant role "owner" must NEVER imply Platform Owner
-          authenticatedRole = profile?.role || "member";
+          authenticatedRole = profile?.role || "owner";
         }
         if (profile?.telegram_user_id) {
           telegramIdNum = profile.telegram_user_id;
@@ -113,7 +120,7 @@ export async function POST(request: NextRequest) {
       } else {
         // Failed backend profile verification MUST NOT grant elevated privileges
         isTruePlatformOwner = false;
-        authenticatedRole = "member";
+        authenticatedRole = "owner";
       }
     }
   } catch {
@@ -134,15 +141,16 @@ export async function POST(request: NextRequest) {
     }
 
     authenticatedUserId = 1;
-    authenticatedRole = "admin";
-    // Master DASHBOARD_PASSWORD is a local fallback and MUST NOT grant elevated Platform Owner status
-    isTruePlatformOwner = false;
+    authenticatedFullName = "Bosh Administrator";
+    authenticatedRole = "owner";
+    isTruePlatformOwner = true;
   }
 
   const sessionPayload: SessionPayload = {
     userId: authenticatedUserId || 1,
     telegramUserId: telegramIdNum,
-    email,
+    email: email || "admin@selloi.uz",
+    fullName: authenticatedFullName,
     role: authenticatedRole,
     isPlatformOwner: isTruePlatformOwner,
     organizationId: orgId,

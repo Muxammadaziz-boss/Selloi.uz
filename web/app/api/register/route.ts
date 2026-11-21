@@ -50,7 +50,9 @@ export async function POST(request: NextRequest) {
 
     const sessionPayload: SessionPayload = {
       userId: data.user_id,
+      telegramUserId: data.telegram_user_id,
       email: data.email,
+      fullName: fullName || data.full_name,
       role: "owner",
       isPlatformOwner: false,
       backendToken: data.access_token,

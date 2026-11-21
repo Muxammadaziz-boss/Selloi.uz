@@ -83,7 +83,13 @@ async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db))
     await db.refresh(user)
 
     token = create_access_token(user.id, user.email)
-    return TokenResponse(access_token=token, user_id=user.id, email=user.email)
+    return TokenResponse(
+        access_token=token,
+        user_id=user.id,
+        email=user.email,
+        full_name=user.full_name,
+        telegram_user_id=user.telegram_user_id,
+    )
 
 
 @router.post("/auth/login", response_model=TokenResponse)
@@ -109,7 +115,13 @@ async def login(payload: TokenRequest, db: AsyncSession = Depends(get_db)):
 
     reset_rate_limit(rate_key)
     token = create_access_token(user.id, user.email)
-    return TokenResponse(access_token=token, user_id=user.id, email=user.email)
+    return TokenResponse(
+        access_token=token,
+        user_id=user.id,
+        email=user.email,
+        full_name=user.full_name,
+        telegram_user_id=user.telegram_user_id,
+    )
 
 
 @router.post("/auth/google", response_model=TokenResponse)
@@ -149,38 +161,59 @@ async def google_auth(payload: GoogleAuthRequest, db: AsyncSession = Depends(get
             await db.refresh(user)
 
     token = create_access_token(user.id, user.email)
-    return TokenResponse(access_token=token, user_id=user.id, email=user.email)
+    return TokenResponse(
+        access_token=token,
+        user_id=user.id,
+        email=user.email,
+        full_name=user.full_name,
+        telegram_user_id=user.telegram_user_id,
+    )
 
 
-@router.post("/auth/telegram", response_model=TokenResponse)
-async def telegram_auth(payload: TelegramAuthRequest, db: AsyncSession = Depends(get_db)):
-    """Authenticate or register a user via Telegram handle or ID."""
-    clean_username = (payload.username or "").replace("@", "").strip().lower()
-    clean_id = payload.telegram_id
+@router.post("/auth/telegram/init")
+async def telegram_auth_init():
+    """Generate a secure verification session for Telegram bot authentication."""
+    from app.services.telegram_auth import create_auth_session
+    session = await create_auth_session()
+    return session
 
-    if not clean_username and not clean_id:
-        raise HTTPException(status_code=400, detail="Telegram username yoki ID kiritilishi shart")
+
+@router.post("/auth/telegram/poll")
+async def telegram_auth_poll(payload: dict, db: AsyncSession = Depends(get_db)):
+    """Check and finalize Telegram bot authentication."""
+    from app.services.telegram_auth import check_auth_session, consume_auth_session
+    code = (payload.get("code") or "").strip()
+    if not code:
+        raise HTTPException(status_code=400, detail="Kod ko'rsatilmagan")
+
+    auth_data = consume_auth_session(code)
+    if not auth_data:
+        pending = check_auth_session(code)
+        if pending:
+            return {"status": "pending"}
+        raise HTTPException(status_code=404, detail="Sessiya topilmadi yoki muddati tugagan")
+
+    clean_id = auth_data["telegram_id"]
+    clean_username = auth_data.get("username", "")
+    full_name = auth_data.get("full_name", "")
 
     if clean_username:
         email = f"{clean_username}@telegram.selloi.uz"
     else:
         email = f"tg_{clean_id}@telegram.selloi.uz"
 
-    # Check if user exists by email or telegram_user_id
-    stmt = select(User).where(User.email == email)
+    stmt = select(User).where(User.telegram_user_id == clean_id)
     result = await db.execute(stmt)
     user = result.scalar_one_or_none()
 
-    if user is None and clean_id:
-        stmt_id = select(User).where(User.telegram_user_id == clean_id)
-        result_id = await db.execute(stmt_id)
-        user = result_id.scalar_one_or_none()
+    if user is None:
+        stmt_email = select(User).where(User.email == email)
+        user = (await db.execute(stmt_email)).scalar_one_or_none()
 
     if user is None:
-        display_name = payload.full_name.strip() if payload.full_name else (f"@{clean_username}" if clean_username else f"Telegram {clean_id}")
         user = User(
             email=email,
-            full_name=display_name,
+            full_name=full_name or (f"@{clean_username}" if clean_username else f"User {clean_id}"),
             telegram_user_id=clean_id,
             hashed_password="",
             is_active=True,
@@ -191,13 +224,31 @@ async def telegram_auth(payload: TelegramAuthRequest, db: AsyncSession = Depends
     else:
         if not user.is_active:
             raise HTTPException(status_code=403, detail="Foydalanuvchi hisobi faol emas")
-        if clean_id and not user.telegram_user_id:
-            user.telegram_user_id = clean_id
-            await db.commit()
-            await db.refresh(user)
+        user.telegram_user_id = clean_id
+        if full_name:
+            user.full_name = full_name
+        await db.commit()
+        await db.refresh(user)
 
     token = create_access_token(user.id, user.email)
-    return TokenResponse(access_token=token, user_id=user.id, email=user.email)
+    return {
+        "status": "verified",
+        "access_token": token,
+        "user_id": user.id,
+        "email": user.email,
+        "full_name": user.full_name,
+        "telegram_user_id": user.telegram_user_id,
+        "username": clean_username,
+    }
+
+
+@router.post("/auth/telegram", response_model=TokenResponse)
+async def telegram_auth(payload: TelegramAuthRequest, db: AsyncSession = Depends(get_db)):
+    """Authenticate or register a user via Telegram handle or ID (protected)."""
+    raise HTTPException(
+        status_code=400,
+        detail="Xavfsizlik yuzasidan Telegram orqali kirish bot tasdig'i orqali amalga oshirilishi shart.",
+    )
 
 
 @router.get("/auth/me")

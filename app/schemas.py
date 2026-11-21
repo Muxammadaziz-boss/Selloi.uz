@@ -132,6 +132,8 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
     user_id: int
     email: str
+    full_name: str | None = None
+    telegram_user_id: int | None = None
 
 
 class RegisterRequest(BaseModel):

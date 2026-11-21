@@ -86,7 +86,9 @@ export async function GET(request: NextRequest) {
 
     const sessionPayload: SessionPayload = {
       userId: data.user_id,
+      telegramUserId: data.telegram_user_id,
       email: data.email,
+      fullName: data.full_name || name,
       role: "owner",
       isPlatformOwner: false,
       backendToken: data.access_token,

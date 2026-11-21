@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   AlertCircle,
@@ -11,8 +11,10 @@ import {
   EyeOff,
   Globe,
   KeyRound,
+  Loader2,
   Lock,
   Mail,
+  Send,
   ShieldCheck,
   Sparkles,
   User as UserIcon,
@@ -64,8 +66,9 @@ interface TranslationText {
   sslSecure: string;
   telegramModalTitle: string;
   telegramModalDesc: string;
-  telegramInputPlaceholder: string;
-  telegramSubmit: string;
+  telegramOpenBot: string;
+  telegramWaiting: string;
+  telegramSuccess: string;
   telegramCancel: string;
   passwordsDoNotMatch: string;
   forgotPasswordNotice: string;
@@ -106,10 +109,11 @@ const TRANSLATIONS: Record<Language, TranslationText> = {
     termsLink: "Foydalanish shartlariga rozilik bildirasiz.",
     backToHome: "Bosh sahifa",
     sslSecure: "256-bit SSL xavfsiz shifrlash orqali himoyalangan",
-    telegramModalTitle: "Telegram orqali kirish",
-    telegramModalDesc: "Telegram foydalanuvchi nomingiz yoki ID raqamingizni kiriting:",
-    telegramInputPlaceholder: "@username yoki ID raqami",
-    telegramSubmit: "Telegram orqali tasdiqlash",
+    telegramModalTitle: "Telegram orqali xavfsiz kirish",
+    telegramModalDesc: "Telegram hisobingiz orqali tizimga kirish uchun botimizni oching va pastdagi 'Boshlash' (/start) tugmasini bosing:",
+    telegramOpenBot: "Telegram Botda Tasdiqlash",
+    telegramWaiting: "Telegram botingizdan tasdiqlash kutilmoqda...",
+    telegramSuccess: "Tasdiqlandi! Boshqaruv paneliga o'tilmoqda...",
     telegramCancel: "Bekor qilish",
     passwordsDoNotMatch: "Kiritilgan parollar bir-biriga mos kelmadi",
     forgotPasswordNotice: "Parolni tiklash bo'yicha yo'riqnoma Tez orada Telegram botingizga yuboriladi.",
@@ -148,10 +152,11 @@ const TRANSLATIONS: Record<Language, TranslationText> = {
     termsLink: "Условия использования Selloi.",
     backToHome: "На главную",
     sslSecure: "Защищено 256-битным SSL шифрованием",
-    telegramModalTitle: "Вход через Telegram",
-    telegramModalDesc: "Введите ваш Telegram username или ID пользователя:",
-    telegramInputPlaceholder: "@username или ID",
-    telegramSubmit: "Подтвердить через Telegram",
+    telegramModalTitle: "Безопасный вход через Telegram",
+    telegramModalDesc: "Чтобы войти через свой аккаунт Telegram, откройте нашего бота и нажмите кнопку «Запустить» (/start):",
+    telegramOpenBot: "Подтвердить в Telegram боте",
+    telegramWaiting: "Ожидание подтверждения из бота...",
+    telegramSuccess: "Подтверждено! Переход в панель управления...",
     telegramCancel: "Отмена",
     passwordsDoNotMatch: "Пароли не совпадают",
     forgotPasswordNotice: "Инструкция по восстановлению пароля будет отправлена в Telegram.",
@@ -190,10 +195,11 @@ const TRANSLATIONS: Record<Language, TranslationText> = {
     termsLink: "Terms of Service and Privacy Policy.",
     backToHome: "Back to Home",
     sslSecure: "Protected by 256-bit SSL encryption",
-    telegramModalTitle: "Telegram Authentication",
-    telegramModalDesc: "Enter your Telegram username or user ID:",
-    telegramInputPlaceholder: "@username or ID number",
-    telegramSubmit: "Confirm via Telegram",
+    telegramModalTitle: "Secure Telegram Login",
+    telegramModalDesc: "To sign in with your Telegram account, open our bot and tap 'Start':",
+    telegramOpenBot: "Confirm in Telegram Bot",
+    telegramWaiting: "Waiting for confirmation from bot...",
+    telegramSuccess: "Confirmed! Redirecting to dashboard...",
     telegramCancel: "Cancel",
     passwordsDoNotMatch: "Passwords do not match",
     forgotPasswordNotice: "Password reset instructions will be sent to your connected Telegram bot.",
@@ -238,11 +244,44 @@ export default function LoginPageClient({
   const [error, setError] = useState<string | null>(getInitialErrorText(initialError));
   const [infoNotice, setInfoNotice] = useState<string | null>(null);
 
-  // Telegram modal state
+  // Telegram verification modal state
   const [telegramModalOpen, setTelegramModalOpen] = useState(false);
-  const [telegramHandle, setTelegramHandle] = useState("");
+  const [telegramSessionCode, setTelegramSessionCode] = useState<string>("");
+  const [telegramBotUrl, setTelegramBotUrl] = useState<string>("");
+  const [telegramInitLoading, setTelegramInitLoading] = useState(false);
+  const [telegramAuthSuccess, setTelegramAuthSuccess] = useState(false);
 
   const t = TRANSLATIONS[lang];
+
+  useEffect(() => {
+    if (!telegramModalOpen || !telegramSessionCode || telegramAuthSuccess) return;
+
+    let isSubscribed = true;
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch("/api/auth/telegram", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "poll", code: telegramSessionCode }),
+        });
+        const data = await res.json();
+        if (isSubscribed && data.verified) {
+          setTelegramAuthSuccess(true);
+          clearInterval(interval);
+          setTimeout(() => {
+            window.location.href = initialRedirect || "/dashboard";
+          }, 800);
+        }
+      } catch {
+        // Continue polling
+      }
+    }, 1800);
+
+    return () => {
+      isSubscribed = false;
+      clearInterval(interval);
+    };
+  }, [telegramModalOpen, telegramSessionCode, telegramAuthSuccess, initialRedirect]);
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -345,44 +384,34 @@ export default function LoginPageClient({
     }
   };
 
-  const handleTelegramAuth = async () => {
-    if (!telegramHandle.trim()) {
-      setError("Telegram username yoki ID raqamini kiriting");
-      return;
-    }
-
-    setLoading(true);
-    setTelegramModalOpen(false);
+  const openTelegramModal = async () => {
     setError(null);
+    setInfoNotice(null);
+    setTelegramAuthSuccess(false);
+    setTelegramModalOpen(true);
+    setTelegramInitLoading(true);
 
     try {
-      const cleanHandle = telegramHandle.replace(/^@/, "").trim();
-      const num = Number(cleanHandle);
-
-      const payload: Record<string, any> = {};
-      if (Number.isFinite(num) && num > 0) {
-        payload.telegram_id = num;
-      } else {
-        payload.username = cleanHandle;
-      }
-
       const res = await fetch("/api/auth/telegram", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ action: "init" }),
       });
 
       const data = await res.json();
       if (!res.ok) {
-        setError(data.detail || "Telegram orqali kirishda xatolik yuz berdi.");
-        setLoading(false);
+        setError(data.detail || "Telegram avtorizatsiya sessiyasini yaratishda xatolik");
+        setTelegramModalOpen(false);
         return;
       }
 
-      window.location.href = initialRedirect || "/dashboard";
+      setTelegramSessionCode(data.code);
+      setTelegramBotUrl(data.bot_url);
     } catch (err: any) {
       setError("Tarmoq xatosi: " + err.message);
-      setLoading(false);
+      setTelegramModalOpen(false);
+    } finally {
+      setTelegramInitLoading(false);
     }
   };
 
@@ -506,7 +535,7 @@ export default function LoginPageClient({
             <button
               type="button"
               className="selloi-social-btn selloi-tg-btn"
-              onClick={() => setTelegramModalOpen(true)}
+              onClick={openTelegramModal}
             >
               <svg
                 width="18"
@@ -817,38 +846,78 @@ export default function LoginPageClient({
         </div>
       </div>
 
-      {/* Telegram Username / ID Modal */}
+      {/* Telegram Verified Authentication Modal */}
       {telegramModalOpen && (
         <div className="selloi-modal-backdrop" onClick={() => setTelegramModalOpen(false)}>
-          <div className="selloi-modal-content" onClick={(e) => e.stopPropagation()}>
-            <h3 className="selloi-modal-title">{t.telegramModalTitle}</h3>
-            <p className="selloi-modal-desc">{t.telegramModalDesc}</p>
+          <div className="selloi-modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "440px" }}>
+            <div className="d-flex align-items-center justify-content-center mb-3">
+              <div
+                style={{
+                  width: "56px",
+                  height: "56px",
+                  borderRadius: "50%",
+                  background: "rgba(0, 136, 204, 0.15)",
+                  border: "1px solid rgba(0, 136, 204, 0.3)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#0088CC",
+                }}
+              >
+                <Send size={26} />
+              </div>
+            </div>
 
-            <div className="selloi-input-wrapper mb-4">
-              <input
-                type="text"
-                className="selloi-input"
-                placeholder={t.telegramInputPlaceholder}
-                value={telegramHandle}
-                onChange={(e) => setTelegramHandle(e.target.value)}
-                autoFocus
-              />
+            <h3 className="selloi-modal-title text-center mb-2">{t.telegramModalTitle}</h3>
+            <p className="selloi-modal-desc text-center mb-4">{t.telegramModalDesc}</p>
+
+            <div className="d-flex flex-column gap-3 mb-4">
+              {telegramInitLoading ? (
+                <div className="d-flex align-items-center justify-content-center gap-2 py-3 text-secondary small">
+                  <Loader2 size={18} className="animate-spin text-primary" />
+                  <span>Xavfsiz sessiya yaratilmoqda...</span>
+                </div>
+              ) : telegramBotUrl ? (
+                <>
+                  <a
+                    href={telegramBotUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="selloi-modal-btn-confirm d-inline-flex align-items-center justify-content-center gap-2 w-100 text-decoration-none py-2.5 px-4"
+                    style={{ fontSize: "0.95rem" }}
+                  >
+                    <Send size={18} />
+                    <span>{t.telegramOpenBot}</span>
+                  </a>
+
+                  <div className="d-flex align-items-center justify-content-center gap-2 text-secondary small py-1">
+                    {telegramAuthSuccess ? (
+                      <span className="text-success fw-bold d-flex align-items-center gap-1.5">
+                        <Check size={16} />
+                        <span>{t.telegramSuccess}</span>
+                      </span>
+                    ) : (
+                      <>
+                        <Loader2 size={15} className="animate-spin text-primary" />
+                        <span>{t.telegramWaiting}</span>
+                      </>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="text-danger small text-center">
+                  Xatolik: Bot bilan bog'lanishda muammo yuz berdi.
+                </div>
+              )}
             </div>
 
             <div className="selloi-modal-btn-row">
               <button
                 type="button"
-                className="selloi-modal-btn-cancel"
+                className="selloi-modal-btn-cancel w-100"
                 onClick={() => setTelegramModalOpen(false)}
               >
                 {t.telegramCancel}
-              </button>
-              <button
-                type="button"
-                className="selloi-modal-btn-confirm"
-                onClick={handleTelegramAuth}
-              >
-                {t.telegramSubmit}
               </button>
             </div>
           </div>

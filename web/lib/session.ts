@@ -7,6 +7,8 @@ export interface SessionPayload {
   userId: number;
   telegramUserId?: number;
   email?: string;
+  fullName?: string;
+  username?: string;
   role?: string;
   isPlatformOwner?: boolean;
   organizationId?: number;

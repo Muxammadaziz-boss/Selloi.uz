@@ -104,7 +104,7 @@ export function ProfileTab({
   onNavigateToBilling,
 }: ProfileTabProps) {
   const { language, setLanguage, t } = useLanguage();
-  const isOwner = currentAdmin?.role === "owner";
+  const isOwner = currentAdmin?.role === "owner" || Boolean(currentAdmin?.isPlatformOwner);
 
   return (
     <div>
@@ -143,16 +143,20 @@ export function ProfileTab({
                       onError={() => setProfileAvatarError(true)}
                     />
                   ) : (
-                    currentAdmin?.name?.charAt(0).toUpperCase() || "A"
+                    (currentAdmin?.name || "A").charAt(0).toUpperCase()
                   )}
                 </div>
 
                 <div>
                   <h3 className="fw-bold text-primary m-0" style={{ fontSize: "1.2rem" }}>
-                    {currentAdmin?.name || "Muxammadaziz"}
+                    {currentAdmin?.name || "Foydalanuvchi"}
                   </h3>
                   <div className="text-secondary small font-monospace mt-0.5">
-                    {currentAdmin?.username ? `@${currentAdmin.username}` : `Telegram ID: ${activeAdminTelegramId}`}
+                    {currentAdmin?.username
+                      ? `@${currentAdmin.username}`
+                      : activeAdminTelegramId > 0
+                      ? `Telegram ID: ${activeAdminTelegramId}`
+                      : (currentAdmin?.email || "")}
                   </div>
                 </div>
 
@@ -167,15 +171,15 @@ export function ProfileTab({
                 <div className="w-100 p-3 rounded-2 text-start small d-flex flex-column gap-2" style={{ backgroundColor: "var(--bg-surface-elevated)", border: "1px solid var(--border-subtle)" }}>
                   <div className="d-flex justify-content-between">
                     <span className="text-secondary">Telegram ID:</span>
-                    <span className="font-monospace text-primary fw-medium">{activeAdminTelegramId}</span>
+                    <span className="font-monospace text-primary fw-medium">{activeAdminTelegramId > 0 ? activeAdminTelegramId : (currentAdmin?.telegram_user_id || "-")}</span>
                   </div>
                   <div className="d-flex justify-content-between">
                     <span className="text-secondary">{language === "uz" ? "Tizim roli:" : "Role:"}</span>
-                    <span className="text-capitalize text-primary fw-medium">{currentAdmin?.role || "Owner"}</span>
+                    <span className="text-capitalize text-primary fw-medium">{currentAdmin?.role || "Foydalanuvchi"}</span>
                   </div>
                   <div className="d-flex justify-content-between">
                     <span className="text-secondary">{language === "uz" ? "Vakolatlar:" : "Permissions:"}</span>
-                    <span className="text-success fw-medium">
+                    <span className={isOwner ? "text-success fw-medium" : "text-secondary fw-medium"}>
                       {isOwner ? (language === "uz" ? "Barcha ruxsatlar faol" : "Full access") : (language === "uz" ? "Cheklangan" : "Restricted")}
                     </span>
                   </div>

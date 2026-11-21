@@ -1,6 +1,5 @@
 "use client";
 
-import "@tabler/core/dist/css/tabler.min.css";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   IconActivity,
@@ -588,7 +587,10 @@ function MiniSparkline({
 
 export interface DashboardUser {
   userId: number;
+  telegramUserId?: number;
   email?: string;
+  fullName?: string;
+  username?: string;
   role?: string;
   organizationId?: number;
   isPlatformOwner?: boolean;
@@ -724,7 +726,7 @@ function DashboardContent({
   const [appFont, setAppFont] = useState<string>("olline");
   const [logoUrl, setLogoUrl] = useState<string>("/logo.svg");
   const [adminAvatarUrl, setAdminAvatarUrl] = useState<string>("");
-  const [activeAdminTelegramId, setActiveAdminTelegramId] = useState<number>(0);
+  const [activeAdminTelegramId, setActiveAdminTelegramId] = useState<number>(() => initialUser?.telegramUserId || 0);
   const [loginTelegramId, setLoginTelegramId] = useState<string>("");
   const [navAvatarError, setNavAvatarError] = useState(false);
   const [profileAvatarError, setProfileAvatarError] = useState(false);
@@ -1200,10 +1202,25 @@ function DashboardContent({
     [conversations, selected]
   );
 
-  const currentAdmin = useMemo(
-    () => admins.find((a) => a.telegram_user_id === activeAdminTelegramId) || (admins.length > 0 ? admins[0] : null),
-    [admins, activeAdminTelegramId]
-  );
+  const currentAdmin = useMemo(() => {
+    if (activeAdminTelegramId > 0) {
+      const found = admins.find((a) => a.telegram_user_id === activeAdminTelegramId);
+      if (found) return found;
+    }
+    if (currentUser) {
+      return {
+        id: currentUser.userId,
+        telegram_user_id: currentUser.telegramUserId || 0,
+        name: currentUser.fullName || (currentUser.email ? currentUser.email.split("@")[0] : "Admin"),
+        username: currentUser.username || (currentUser.email?.includes("@telegram.selloi.uz") ? currentUser.email.replace("@telegram.selloi.uz", "") : ""),
+        role: currentUser.role || (currentUser.isPlatformOwner ? "owner" : "admin"),
+        isPlatformOwner: Boolean(currentUser.isPlatformOwner),
+        email: currentUser.email,
+        permissions: {},
+      };
+    }
+    return admins.length > 0 ? admins[0] : null;
+  }, [admins, activeAdminTelegramId, currentUser]);
 
   // Load SaaS tenant, subscription, usage, and financial metrics
   const loadSaaSData = useCallback(async (orgId?: number) => {
@@ -2077,272 +2094,19 @@ function DashboardContent({
     }
   }
 
-  // Login view: clean, professional, restrained
+  // Enforce authentication via /login
+  useEffect(() => {
+    if (!authenticated) {
+      window.location.href = "/login?redirect=/dashboard";
+    }
+  }, [authenticated]);
+
   if (!authenticated) {
     return (
-      <div className="page page-center auth-page-wrapper">
-        <div className="auth-content-container py-4">
-          {/* Top Language Switcher */}
-          <div className="d-flex justify-content-end mb-3">
-            <div
-              className="d-inline-flex align-items-center gap-1 p-1 rounded-pill"
-              style={{
-                background: "rgba(255, 255, 255, 0.05)",
-                border: "1px solid var(--border-subtle)",
-              }}
-            >
-              {(
-                [
-                  { code: "uz", label: "UZ" },
-                  { code: "ru", label: "RU" },
-                  { code: "en", label: "EN" },
-                ] as const
-              ).map((item) => (
-                <button
-                  key={item.code}
-                  type="button"
-                  onClick={() => setLanguage(item.code)}
-                  className={`btn btn-sm ${
-                    language === item.code ? "btn-primary" : "btn-ghost-secondary text-secondary"
-                  }`}
-                  style={{
-                    fontSize: "0.74rem",
-                    padding: "2px 10px",
-                    borderRadius: "100px",
-                    fontWeight: language === item.code ? 700 : 500,
-                  }}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Brand header */}
-          <div className="text-center mb-4">
-            <div className="auth-logo-halo mb-2">
-              <AppLogo src={logoUrl} size="lg" />
-            </div>
-            <h1 className="auth-brand-title mb-1">
-              {t("auth.brand_title") || "Selloi Boshqaruv Markazi"}
-            </h1>
-            <p className="text-secondary small mb-0">
-              {t("auth.brand_subtitle") || "Telegram do'konlari uchun AI savdo platformasi"}
-            </p>
-          </div>
-
-          {/* Login Card */}
-          <div className="card auth-card-modern">
-            <div className="card-body p-4">
-              <div className="mb-3.5">
-                <h2 className="text-white fw-bold mb-1" style={{ fontSize: "1.15rem", letterSpacing: "-0.01em" }}>
-                  {t("auth.heading") || "Tizimga kirish"}
-                </h2>
-                <p className="text-secondary small mb-0">
-                  {t("auth.subheading") || "Davom etish uchun boshqaruv parolini kiriting"}
-                </p>
-              </div>
-
-              <form onSubmit={login} autoComplete="off">
-                {/* Admin Password (Primary required field) */}
-                <div className="mb-3">
-                  <div className="d-flex align-items-center justify-content-between mb-1.5">
-                    <label className="form-label text-secondary small fw-medium mb-0 d-flex align-items-center gap-1.5" htmlFor="admin-pwd">
-                      <IconKey size={14} className="text-secondary" />
-                      <span>{t("auth.password_label") || "Admin paroli"}</span>
-                    </label>
-                  </div>
-                  <div className="auth-input-modern">
-                    <IconLock size={16} className="text-secondary flex-shrink-0 me-1" />
-                    <input
-                      id="admin-pwd"
-                      type={showPassword ? "text" : "password"}
-                      placeholder={t("auth.password_placeholder") || "Parolni kiriting"}
-                      autoComplete="current-password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      autoFocus
-                    />
-                    <button
-                      type="button"
-                      className="btn btn-icon btn-ghost-secondary btn-sm flex-shrink-0"
-                      onClick={() => setShowPassword(!showPassword)}
-                      title={showPassword ? "Parolni yashirish" : "Parolni ko'rsatish"}
-                      tabIndex={-1}
-                      style={{ width: 32, height: 32, borderRadius: 6 }}
-                    >
-                      {showPassword ? <IconEyeOff size={15} /> : <IconEye size={15} />}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Admin Telegram ID (Secondary optional field) */}
-                <div className="mb-3.5">
-                  <div className="d-flex align-items-center justify-content-between mb-1.5">
-                    <label className="form-label text-secondary small fw-medium mb-0 d-flex align-items-center gap-1.5" htmlFor="admin-tg-id">
-                      <IconUser size={14} className="text-secondary" />
-                      <span>{t("auth.telegram_id_label") || "Telegram ID"}</span>
-                    </label>
-                    <span className="text-secondary" style={{ fontSize: "0.72rem" }}>
-                      {t("auth.telegram_id_optional") || "Ixtiyoriy"}
-                    </span>
-                  </div>
-                  <div className="auth-tg-profile-box">
-                    <div className="auth-tg-avatar-wrap">
-                      <img
-                        key={loginTelegramId}
-                        src={loginTelegramId ? `/api/proxy?path=/admin/users/${loginTelegramId}/avatar` : DEFAULT_TG_AVATAR}
-                        alt="Telegram Avatar"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36"><rect width="36" height="36" rx="18" fill="%23475569"/><text x="50%" y="54%" font-size="12" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="middle">TG</text></svg>`;
-                        }}
-                      />
-                      <span className="auth-tg-status-dot" title="Online" />
-                    </div>
-                    <div className="flex-fill">
-                      <input
-                        id="admin-tg-id"
-                        type="text"
-                        className="w-100 bg-transparent border-0 p-0 text-white"
-                        style={{ outline: "none", fontSize: "0.88rem" }}
-                        placeholder={t("auth.telegram_id_placeholder") || "Telegram ID raqami (masalan: 12345678)"}
-                        value={loginTelegramId}
-                        onChange={(e) => {
-                          const val = e.target.value.replace(/\D/g, "");
-                          setLoginTelegramId(val);
-                        }}
-                        autoComplete="off"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {loginError && (
-                  <div className="alert alert-danger d-flex align-items-center mb-3 py-2 px-3 rounded-2" role="alert">
-                    <IconAlertCircle className="me-2 flex-shrink-0" size={16} />
-                    <div className="small">{loginError}</div>
-                  </div>
-                )}
-
-                <div className="mt-4">
-                  <button
-                    type="submit"
-                    className="btn btn-auth-gradient w-100"
-                    disabled={loggingIn || !password}
-                  >
-                    {loggingIn ? (
-                      <>
-                        <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" />
-                        <span>{t("auth.submitting_btn") || "Tekshirilmoqda..."}</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>{t("auth.submit_btn") || "Tizimga kirish"}</span>
-                        <IconArrowRight size={16} />
-                      </>
-                    )}
-                  </button>
-                </div>
-              </form>
-
-              {/* Status footer */}
-              <div className="d-flex align-items-center justify-content-between pt-3 mt-3 border-top" style={{ borderColor: "var(--border-subtle)" }}>
-                <div className="d-flex align-items-center gap-1.5 text-secondary small">
-                  <span className="status-dot bg-success" style={{ width: 8, height: 8 }} />
-                  <span style={{ fontSize: "0.78rem" }}>24/7 AI System Online</span>
-                </div>
-                <span className="text-secondary small" style={{ fontSize: "0.74rem" }}>
-                  Selloi Platform v3.0
-                </span>
-              </div>
-            </div>
-          </div>
+      <div className="d-flex align-items-center justify-content-center min-vh-100" style={{ background: "var(--bg-canvas)" }}>
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Yuklanmoqda...</span>
         </div>
-
-        {/* Modal for logo settings */}
-        {showLogoModal && (
-          <div className="modal modal-blur fade show d-block" role="dialog" aria-modal="true" aria-label="Kompaniya Logotipini Sozlash" tabIndex={-1} style={{ backgroundColor: "rgba(0,0,0,0.7)" }}>
-            <div className="modal-dialog modal-dialog-centered" role="document">
-              <div className="modal-content border-0 shadow-lg" style={{ background: "#171d29", borderRadius: 16 }}>
-                <div className="modal-header border-bottom border-white-10">
-                  <h5 className="modal-title text-white d-flex align-items-center gap-2">
-                    <IconPhoto size={20} className="text-primary" />
-                    <span>Kompaniya Logotipini Sozlash</span>
-                  </h5>
-                  <button type="button" className="btn-close btn-close-white" onClick={() => setShowLogoModal(false)}></button>
-                </div>
-                <div className="modal-body">
-                  <div className="text-center mb-4 p-3 rounded" style={{ background: "rgba(255,255,255,0.03)" }}>
-                    <div className="text-secondary small mb-2">Joriy logotip ko'rinishi:</div>
-                    <AppLogo src={customLogoInput || logoUrl} size="xl" />
-                  </div>
-
-                  <div className="mb-3">
-                    <label className="form-label text-secondary small">Fayl yuklash (PNG, SVG, JPG, WebP):</label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="form-control"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleLogoUpload(file);
-                      }}
-                    />
-                    <div className="form-text text-secondary small">
-                      O'zingizning kompyuteringizdan istalgan logotip rasmini yuklang.
-                    </div>
-                  </div>
-
-                  <div className="mb-3">
-                    <label className="form-label text-secondary small">Yoki Logotip URL manzili:</label>
-                    <div className="input-group">
-                      <input
-                        type="text"
-                        className="form-control"
-                        placeholder="https://example.com/logo.png yoki /logo.svg"
-                        value={customLogoInput}
-                        onChange={(e) => setCustomLogoInput(e.target.value)}
-                      />
-                      <button
-                        type="button"
-                        className="btn btn-outline-primary"
-                        onClick={() => handleSaveLogoUrl(customLogoInput)}
-                      >
-                        Qo'llash
-                      </button>
-                    </div>
-                    <div className="form-text text-secondary small">
-                      Masalan: <code>/logo.svg</code>, <code>/logo.png</code> yoki veb rasm havolasi.
-                    </div>
-                  </div>
-                </div>
-                <div className="modal-footer border-top border-white-10 d-flex justify-content-between">
-                  <button
-                    type="button"
-                    className="btn btn-ghost-secondary btn-sm"
-                    onClick={() => {
-                      handleSaveLogoUrl("/logo.svg");
-                      setCustomLogoInput("/logo.svg");
-                    }}
-                  >
-                    Standart logotipga qaytarish
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    onClick={() => {
-                      handleSaveLogoUrl(customLogoInput);
-                      setShowLogoModal(false);
-                    }}
-                  >
-                    Tayyor
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     );
   }
