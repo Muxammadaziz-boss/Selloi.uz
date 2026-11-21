@@ -129,6 +129,12 @@ export default function Footer({ t, onLanguageClick }: FooterProps) {
                 {t.col3Link1}
               </a>
               <a
+                href="mailto:support@selloi.uz"
+                className="selloi-footer-link"
+              >
+                support@selloi.uz
+              </a>
+              <a
                 href="https://selloi.uz"
                 className="selloi-footer-link muted"
                 data-node-id="182:464"
