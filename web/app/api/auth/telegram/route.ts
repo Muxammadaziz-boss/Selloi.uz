@@ -17,6 +17,7 @@ export async function POST(request: NextRequest) {
       const backendRes = await fetch(`${backendUrl.replace(/\/$/, "")}/api/v1/auth/telegram/init`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
       });
       const data = await backendRes.json();
       if (!backendRes.ok) {
