@@ -149,3 +149,11 @@ class GoogleAuthRequest(BaseModel):
     avatar_url: str | None = None
 
 
+class TelegramAuthRequest(BaseModel):
+    """Schema for Telegram authentication."""
+    username: str | None = None
+    telegram_id: int | None = None
+    full_name: str = ""
+
+
+

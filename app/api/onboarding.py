@@ -27,6 +27,7 @@ from app.schemas import (
     OrganizationOut,
     OrganizationUpdate,
     RegisterRequest,
+    TelegramAuthRequest,
     TokenRequest,
     TokenResponse,
 )
@@ -144,6 +145,54 @@ async def google_auth(payload: GoogleAuthRequest, db: AsyncSession = Depends(get
             raise HTTPException(status_code=403, detail="Foydalanuvchi hisobi faol emas")
         if not user.full_name and payload.full_name.strip():
             user.full_name = payload.full_name.strip()
+            await db.commit()
+            await db.refresh(user)
+
+    token = create_access_token(user.id, user.email)
+    return TokenResponse(access_token=token, user_id=user.id, email=user.email)
+
+
+@router.post("/auth/telegram", response_model=TokenResponse)
+async def telegram_auth(payload: TelegramAuthRequest, db: AsyncSession = Depends(get_db)):
+    """Authenticate or register a user via Telegram handle or ID."""
+    clean_username = (payload.username or "").replace("@", "").strip().lower()
+    clean_id = payload.telegram_id
+
+    if not clean_username and not clean_id:
+        raise HTTPException(status_code=400, detail="Telegram username yoki ID kiritilishi shart")
+
+    if clean_username:
+        email = f"{clean_username}@telegram.selloi.uz"
+    else:
+        email = f"tg_{clean_id}@telegram.selloi.uz"
+
+    # Check if user exists by email or telegram_user_id
+    stmt = select(User).where(User.email == email)
+    result = await db.execute(stmt)
+    user = result.scalar_one_or_none()
+
+    if user is None and clean_id:
+        stmt_id = select(User).where(User.telegram_user_id == clean_id)
+        result_id = await db.execute(stmt_id)
+        user = result_id.scalar_one_or_none()
+
+    if user is None:
+        display_name = payload.full_name.strip() if payload.full_name else (f"@{clean_username}" if clean_username else f"Telegram {clean_id}")
+        user = User(
+            email=email,
+            full_name=display_name,
+            telegram_user_id=clean_id,
+            hashed_password="",
+            is_active=True,
+        )
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
+    else:
+        if not user.is_active:
+            raise HTTPException(status_code=403, detail="Foydalanuvchi hisobi faol emas")
+        if clean_id and not user.telegram_user_id:
+            user.telegram_user_id = clean_id
             await db.commit()
             await db.refresh(user)
 

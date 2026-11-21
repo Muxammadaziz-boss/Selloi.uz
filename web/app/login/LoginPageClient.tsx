@@ -359,16 +359,14 @@ export default function LoginPageClient({
       const cleanHandle = telegramHandle.replace(/^@/, "").trim();
       const num = Number(cleanHandle);
 
-      const payload: Record<string, any> = {
-        password: password || masterPassword || "selloi_tg_auth",
-      };
+      const payload: Record<string, any> = {};
       if (Number.isFinite(num) && num > 0) {
         payload.telegram_id = num;
       } else {
-        payload.email = `${cleanHandle.toLowerCase()}@telegram.selloi.uz`;
+        payload.username = cleanHandle;
       }
 
-      const res = await fetch("/api/login", {
+      const res = await fetch("/api/auth/telegram", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -376,7 +374,7 @@ export default function LoginPageClient({
 
       const data = await res.json();
       if (!res.ok) {
-        setError(data.detail || "Telegram orqali kirishda xatolik yuz berdi. Parol bilan urinib ko'ring.");
+        setError(data.detail || "Telegram orqali kirishda xatolik yuz berdi.");
         setLoading(false);
         return;
       }
