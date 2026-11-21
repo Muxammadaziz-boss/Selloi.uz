@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Quicksand } from "next/font/google";
-import "@tabler/core/dist/css/tabler.min.css";
 import "./globals.css";
 
 const quicksand = Quicksand({

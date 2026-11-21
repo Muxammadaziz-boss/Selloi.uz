@@ -39,6 +39,10 @@ export default function Footer({ t, onLanguageClick }: FooterProps) {
               <img
                 src="/figma/selloi-logo.png"
                 alt="Selloi"
+                width={38}
+                height={32}
+                loading="lazy"
+                decoding="async"
                 data-node-id="182:453"
               />
               <span className="selloi-footer-logo-text" data-node-id="182:454">

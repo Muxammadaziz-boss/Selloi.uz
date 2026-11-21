@@ -232,6 +232,10 @@ export default function ConversationDemoSection({
                     <img
                       src="/figma/sample-sneaker.jpg"
                       alt="Nike Air Force"
+                      width={600}
+                      height={400}
+                      loading="lazy"
+                      decoding="async"
                       className="selloi-demo-user-photo-img"
                     />
                     <div className="selloi-demo-user-photo-pill">

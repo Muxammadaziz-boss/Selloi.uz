@@ -1,5 +1,6 @@
 "use client";
 
+import "@tabler/core/dist/css/tabler.min.css";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   IconActivity,

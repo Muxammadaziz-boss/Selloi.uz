@@ -86,6 +86,10 @@ export default function HeroSection({
                 <img
                   src="/figma/dashboard-hero.png"
                   alt="Selloi.uz Dashboard"
+                  width={1024}
+                  height={533}
+                  fetchPriority="high"
+                  decoding="async"
                 />
               </div>
             </div>

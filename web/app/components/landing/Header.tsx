@@ -181,6 +181,10 @@ export default function Header({
           <img
             src="/figma/selloi-logo.png"
             alt="Selloi"
+            width={38}
+            height={32}
+            fetchPriority="high"
+            decoding="async"
             data-node-id="88:2"
           />
           <span className="selloi-nav-logo-text" data-node-id="89:3">
