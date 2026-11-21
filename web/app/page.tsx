@@ -3,7 +3,9 @@ import { sessionCookieName, verifySession } from "@/lib/session";
 import LandingPage from "./components/landing/LandingPage";
 
 export const metadata = {
-  title: "Selloi: Telegram do'koningiz uchun Sun'iy Intellekt sotuvchisi",
+  title: {
+    absolute: "Selloi: Telegram do'koningiz uchun Sun'iy Intellekt sotuvchisi",
+  },
   description:
     "Mijozlaringiz bilan o'zbek tilida erkin muloqot qiladi, rasmdagi mahsulotlarni taniydi, buyurtmalarni qabul qiladi va biznesingizni avtomatlashtirishga yordam beradi.",
   keywords: [

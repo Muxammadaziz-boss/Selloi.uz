@@ -89,19 +89,54 @@ const jsonLd = {
       "@type": "Organization",
       "@id": "https://selloi.uz/#organization",
       "name": "Selloi",
+      "alternateName": [
+        "Selloi AI",
+        "Selloi.uz",
+        "Selloi Telegram AI"
+      ],
       "url": "https://selloi.uz",
-      "logo": "https://selloi.uz/logo.svg",
+      "logo": {
+        "@type": "ImageObject",
+        "@id": "https://selloi.uz/#logo",
+        "url": "https://selloi.uz/logo.png",
+        "caption": "Selloi",
+        "width": 512,
+        "height": 512
+      },
+      "image": "https://selloi.uz/logo.png",
       "description":
         "O'zbekiston Telegram do'konlari uchun 24/7 ishlaydigan sun'iy intellekt sotuvchisi va savdoni avtomatlashtirish platformasi.",
-      "foundingLocation": "Uzbekistan",
+      "foundingLocation": {
+        "@type": "Place",
+        "name": "Uzbekistan"
+      },
+      "areaServed": {
+        "@type": "Country",
+        "name": "Uzbekistan"
+      },
+      "sameAs": [
+        "https://github.com/Muxammadaziz-boss/Selloi.uz",
+        "https://t.me/selloi_bot",
+        "https://t.me/selloi_admin",
+        "https://t.me/Selloi_ai_bot"
+      ],
+      "contactPoint": [
+        {
+          "@type": "ContactPoint",
+          "contactType": "customer support",
+          "email": "support@selloi.uz",
+          "availableLanguage": ["uz", "ru", "en"]
+        }
+      ]
     },
     {
       "@type": "WebSite",
       "@id": "https://selloi.uz/#website",
       "url": "https://selloi.uz",
       "name": "Selloi",
+      "alternateName": ["Selloi.uz", "Selloi AI"],
       "publisher": { "@id": "https://selloi.uz/#organization" },
-      "inLanguage": "uz",
+      "inLanguage": ["uz", "ru", "en"]
     },
     {
       "@type": "SoftwareApplication",
@@ -109,15 +144,10 @@ const jsonLd = {
       "name": "Selloi",
       "applicationCategory": "BusinessApplication",
       "operatingSystem": "Cloud, Web, Telegram",
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "USD",
-      },
       "description":
         "Telegram do'konlari uchun AI sotuvchi. Mijozlarga o'zbek tilida 24/7 xizmat ko'rsatish, mahsulot fotosuratlarini tanish va buyurtmalarni avtomatlashtirish.",
-      "publisher": { "@id": "https://selloi.uz/#organization" },
-    },
+      "publisher": { "@id": "https://selloi.uz/#organization" }
+    }
   ],
 };
 

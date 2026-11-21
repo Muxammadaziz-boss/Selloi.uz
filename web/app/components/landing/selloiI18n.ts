@@ -177,7 +177,7 @@ export const SELLOI_I18N: Record<Language, SelloiTranslations> = {
       kabinet: "Kabinet",
     },
     hero: {
-      title1: "Do’koningiz uchun",
+      title1: "Selloi: Do'koningiz uchun",
       title2: "24/7 onlayn sotuvchi!",
       subtitle:
         "Mijozlar savollariga soniyalar ichida aniq javob beradi, fotosuratdagi tovarlarni taniydi va buyurtmalarni avtomatik qabul qiladi. Tun-u kun, dam olish kunlarisiz!",
@@ -432,8 +432,8 @@ export const SELLOI_I18N: Record<Language, SelloiTranslations> = {
       kabinet: "Кабинет",
     },
     hero: {
-      title1: "Для вашего магазина",
-      title2: "24/7 онлайн продавец!",
+      title1: "Selloi: 24/7 онлайн AI-продавец",
+      title2: "для вашего магазина!",
       subtitle:
         "Отвечает на вопросы клиентов за секунды, распознает товары по фото и автоматически принимает заказы. Круглосуточно, без выходных!",
       cta: "Попробовать 7 дней бесплатно →",
@@ -687,8 +687,8 @@ export const SELLOI_I18N: Record<Language, SelloiTranslations> = {
       kabinet: "Dashboard",
     },
     hero: {
-      title1: "For your store",
-      title2: "24/7 online sales AI!",
+      title1: "Selloi: 24/7 AI Sales Assistant",
+      title2: "For Your Online Store!",
       subtitle:
         "Responds to customers within seconds, recognizes products from photos, and captures orders automatically. 24/7, zero days off!",
       cta: "Try 7 Days Free →",

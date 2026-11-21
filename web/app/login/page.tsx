@@ -1,7 +1,25 @@
+import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { sessionCookieName, verifySession } from "@/lib/session";
 import LoginPageClient from "./LoginPageClient";
+
+export const metadata: Metadata = {
+  title: "Kirish",
+  description: "Selloi boshqaruv paneliga xavfsiz kirish va ro'yxatdan o'tish.",
+  robots: {
+    index: false,
+    follow: true,
+  },
+  alternates: {
+    canonical: "/login",
+  },
+  openGraph: {
+    title: "Kirish | Selloi",
+    description: "Selloi boshqaruv paneliga xavfsiz kirish va ro'yxatdan o'tish.",
+    url: "https://selloi.uz/login",
+  },
+};
 
 interface LoginPageProps {
   searchParams?: Promise<{
