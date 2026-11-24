@@ -77,18 +77,70 @@ async def _subscription_maintenance_loop():
             logger.exception("Obunalarni tekshirish fon vazifasida xatolik")
 
 
+async def verify_database_readiness(conn) -> tuple[bool, list[str]]:
+    """Verify presence of mandatory tables and required columns."""
+    from sqlalchemy import inspect
+
+    def _inspect_db(sync_conn):
+        inspector = inspect(sync_conn)
+        tables = set(inspector.get_table_names())
+        mandatory_tables = [
+            "organizations",
+            "users",
+            "plans",
+            "subscriptions",
+            "telegram_inbox",
+            "telegram_outbox",
+            "conversations",
+            "messages",
+            "orders",
+        ]
+        missing_tables = [t for t in mandatory_tables if t not in tables]
+        if missing_tables:
+            return missing_tables, []
+
+        inbox_cols = {col["name"] for col in inspector.get_columns("telegram_inbox")}
+        outbox_cols = {col["name"] for col in inspector.get_columns("telegram_outbox")}
+        missing_cols = []
+        if "fencing_generation" not in inbox_cols:
+            missing_cols.append("telegram_inbox.fencing_generation")
+        if "fencing_generation" not in outbox_cols:
+            missing_cols.append("telegram_outbox.fencing_generation")
+        if "lease_token" not in outbox_cols:
+            missing_cols.append("telegram_outbox.lease_token")
+        if "lease_owner" not in outbox_cols:
+            missing_cols.append("telegram_outbox.lease_owner")
+        if "lease_expires_at" not in outbox_cols:
+            missing_cols.append("telegram_outbox.lease_expires_at")
+        return [], missing_cols
+
+    missing_tables, missing_cols = await conn.run_sync(_inspect_db)
+    all_missing = missing_tables + missing_cols
+    return len(all_missing) == 0, all_missing
+
+
 @asynccontextmanager
 async def lifespan(application: FastAPI):
     setup_logging()
     logger.info("Starting %s (%s)", settings.app_name, settings.app_env)
     storage_path = Path(settings.storage_dir)
     storage_path.mkdir(parents=True, exist_ok=True)
-    # Run schema creation and extension
+    # 1. Run schema creation and extension with production fail-closed semantics
     try:
         async with engine.begin() as conn:
-            await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+            if "postgresql" in str(engine.url):
+                try:
+                    await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+                except Exception as ext_err:
+                    if settings.is_production:
+                        logger.critical("PostgreSQL 'vector' extension initialization failed in production: %s", ext_err)
+                        raise RuntimeError(f"PostgreSQL extension 'vector' failed: {ext_err}") from ext_err
+                    logger.warning("Vector extension notice (non-production): %s", ext_err)
             await conn.run_sync(Base.metadata.create_all)
     except Exception as e:
+        if settings.is_production:
+            logger.critical("Base schema initialization failed in production: %s", e)
+            raise RuntimeError(f"Base schema initialization failed in production: {e}") from e
         logger.warning("Base schema initialization notice: %s", e)
 
     # Safe standalone migrations (individual transactions so one skip does not abort others)
@@ -135,6 +187,7 @@ async def lifespan(application: FastAPI):
         "ALTER TABLE telegram_outbox ADD COLUMN IF NOT EXISTS lease_owner VARCHAR(64)",
         "ALTER TABLE telegram_outbox ADD COLUMN IF NOT EXISTS lease_token VARCHAR(64)",
         "ALTER TABLE telegram_outbox ADD COLUMN IF NOT EXISTS lease_expires_at TIMESTAMPTZ",
+        "ALTER TABLE telegram_outbox ADD COLUMN IF NOT EXISTS fencing_generation INTEGER DEFAULT 1",
         "CREATE INDEX IF NOT EXISTS ix_telegram_outbox_lease_expires_at ON telegram_outbox(lease_expires_at)",
     ]
 
@@ -160,7 +213,26 @@ async def lifespan(application: FastAPI):
             async with engine.begin() as conn:
                 await conn.execute(text(stmt))
         except Exception as e:
+            if settings.is_production and "ADD COLUMN" in stmt and "telegram_" in stmt:
+                logger.critical("Critical migration statement failed in production: %s (%s)", stmt, e)
+                raise RuntimeError(f"Critical migration statement failed: {stmt}") from e
             logger.debug("Migration statement skipped: %s (%s)", stmt, e)
+
+    # 3. Verify database readiness (fail-closed in production)
+    try:
+        async with engine.begin() as conn:
+            ready, missing_items = await verify_database_readiness(conn)
+            if not ready:
+                msg = f"Database schema validation failed: missing {missing_items}"
+                if settings.is_production:
+                    logger.critical("Production startup fail-closed: %s", msg)
+                    raise RuntimeError(msg)
+                logger.warning("Database schema check notice (non-production): %s", msg)
+    except Exception as e:
+        if settings.is_production:
+            logger.critical("Production startup aborted during database readiness verification: %s", e)
+            raise
+        logger.warning("Database readiness inspection notice: %s", e)
 
     # Synchronize serial primary key sequences
     for tbl in ["organizations", "users", "organization_members", "plans", "subscriptions"]:
@@ -212,7 +284,19 @@ async def lifespan(application: FastAPI):
     bot_task = asyncio.create_task(bot_manager.start())
 
     if settings.run_background_workers:
+        # Verify worker prerequisites before starting supervisor
+        async with engine.begin() as conn:
+            ready, missing = await verify_database_readiness(conn)
+            if not ready:
+                raise RuntimeError(f"Cannot start background workers: schema prerequisite missing {missing}")
         from app.services.worker_supervisor import worker_supervisor
+        logger.info(
+            "WorkerSupervisor starting inside API process (concurrency=%s, batch_size=%s). "
+            "Note: In clustered or multi-worker Uvicorn setups, run workers as a dedicated process "
+            "via 'python -m app.services.worker_supervisor' and set RUN_BACKGROUND_WORKERS=false in API.",
+            settings.worker_concurrency,
+            settings.worker_batch_size,
+        )
         await worker_supervisor.start()
 
     logger.info("Application ready")

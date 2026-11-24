@@ -202,7 +202,7 @@ async def test_05_outbox_worker_dispatches_batch_and_handles_uncertain_timeout()
             raise asyncio.TimeoutError("External Telegram gateway timed out")
 
     # Run outbox worker
-    await run_outbox_worker_once(batch_size=10, sender_func=mock_sender)
+    await run_outbox_worker_once(batch_size=100, sender_func=mock_sender)
 
     async with core_db.SessionLocal() as db:
         res_ok = await db.get(TelegramOutbox, ok_id)

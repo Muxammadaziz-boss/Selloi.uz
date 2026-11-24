@@ -19,6 +19,19 @@ async def _setup_test_schema():
         if conn.dialect.name == "postgresql":
             await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
         await conn.run_sync(Base.metadata.create_all)
+        if conn.dialect.name == "postgresql":
+            migrations = [
+                "ALTER TABLE telegram_inbox ADD COLUMN IF NOT EXISTS fencing_generation INTEGER DEFAULT 1",
+                "ALTER TABLE telegram_outbox ADD COLUMN IF NOT EXISTS lease_owner VARCHAR(64)",
+                "ALTER TABLE telegram_outbox ADD COLUMN IF NOT EXISTS lease_token VARCHAR(64)",
+                "ALTER TABLE telegram_outbox ADD COLUMN IF NOT EXISTS lease_expires_at TIMESTAMPTZ",
+                "ALTER TABLE telegram_outbox ADD COLUMN IF NOT EXISTS fencing_generation INTEGER DEFAULT 1",
+            ]
+            for stmt in migrations:
+                try:
+                    await conn.execute(text(stmt))
+                except Exception as m_err:
+                    logger.debug(f"Test migration statement notice: {m_err}")
 
 
 async def _seed_test_defaults():

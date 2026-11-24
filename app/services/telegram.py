@@ -1,3 +1,4 @@
+import asyncio
 from pathlib import Path
 import httpx
 from app.core.config import settings
@@ -15,9 +16,20 @@ class TelegramService:
         self.bot_token = token
         self.base_url = f"https://api.telegram.org/bot{token}"
         self._client: httpx.AsyncClient | None = None
+        self._loop = None
 
     def _get_client(self) -> httpx.AsyncClient:
-        if self._client is None or self._client.is_closed:
+        recreate = False
+        try:
+            current_loop = asyncio.get_running_loop()
+        except RuntimeError:
+            current_loop = None
+
+        if self._client is None or self._client.is_closed or self._loop != current_loop:
+            recreate = True
+
+        if recreate:
+            self._loop = current_loop
             self._client = httpx.AsyncClient(
                 timeout=30.0,
                 limits=httpx.Limits(max_keepalive_connections=20, max_connections=50),

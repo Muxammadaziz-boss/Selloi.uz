@@ -335,21 +335,28 @@ async def renew_inbox_lease(
     db: AsyncSession,
     inbox_id: int,
     lease_token: str,
+    fencing_generation: int,
     extend_seconds: int = 60,
-    fencing_generation: int | None = None,
 ) -> bool:
-    """Extend the processing lease token while verifying fencing token and generation."""
+    """Extend the processing lease token while verifying fencing token, generation, and active lease."""
+    if fencing_generation is None or not isinstance(fencing_generation, int):
+        raise ValueError("fencing_generation is mandatory for renew_inbox_lease")
+
     now = _now()
     conditions = [
         TelegramInbox.id == inbox_id,
         TelegramInbox.lease_token == lease_token,
+        TelegramInbox.fencing_generation == fencing_generation,
+        TelegramInbox.lease_expires_at > now,
     ]
-    if fencing_generation is not None:
-        conditions.append(TelegramInbox.fencing_generation == fencing_generation)
 
     stmt = select(TelegramInbox).where(and_(*conditions)).with_for_update()
     item = (await db.execute(stmt)).scalar_one_or_none()
     if not item:
+        logger.warning(
+            "Fencing conflict or expired lease: cannot renew inbox %s with token %s (gen=%s)",
+            inbox_id, lease_token, fencing_generation,
+        )
         return False
 
     item.lease_expires_at = now + timedelta(seconds=extend_seconds)
@@ -361,22 +368,25 @@ async def complete_inbox_job(
     db: AsyncSession,
     inbox_id: int,
     lease_token: str,
-    fencing_generation: int | None = None,
+    fencing_generation: int,
 ) -> bool:
-    """Mark claimed inbox record as completed, strictly verifying fencing lease token and generation."""
+    """Mark claimed inbox record as completed, strictly verifying fencing lease token, generation, and active lease."""
+    if fencing_generation is None or not isinstance(fencing_generation, int):
+        raise ValueError("fencing_generation is mandatory for complete_inbox_job")
+
     now = _now()
     conditions = [
         TelegramInbox.id == inbox_id,
         TelegramInbox.lease_token == lease_token,
+        TelegramInbox.fencing_generation == fencing_generation,
+        TelegramInbox.lease_expires_at > now,
     ]
-    if fencing_generation is not None:
-        conditions.append(TelegramInbox.fencing_generation == fencing_generation)
 
     stmt = select(TelegramInbox).where(and_(*conditions)).with_for_update()
     item = (await db.execute(stmt)).scalar_one_or_none()
     if not item:
         logger.warning(
-            "Fencing conflict: cannot complete inbox %s with token %s (gen=%s)",
+            "Fencing conflict or expired lease: cannot complete inbox %s with token %s (gen=%s)",
             inbox_id, lease_token, fencing_generation,
         )
         return False
@@ -396,16 +406,18 @@ async def fail_inbox_job(
     inbox_id: int,
     lease_token: str,
     error_message: str,
-    fencing_generation: int | None = None,
+    fencing_generation: int,
 ) -> bool:
-    """Record failure with exponential retry backoff, or dead-letter if max attempts reached."""
+    """Record failure with exponential retry backoff, strictly verifying fencing token and generation."""
+    if fencing_generation is None or not isinstance(fencing_generation, int):
+        raise ValueError("fencing_generation is mandatory for fail_inbox_job")
+
     now = _now()
     conditions = [
         TelegramInbox.id == inbox_id,
         TelegramInbox.lease_token == lease_token,
+        TelegramInbox.fencing_generation == fencing_generation,
     ]
-    if fencing_generation is not None:
-        conditions.append(TelegramInbox.fencing_generation == fencing_generation)
 
     stmt = select(TelegramInbox).where(and_(*conditions)).with_for_update()
     item = (await db.execute(stmt)).scalar_one_or_none()
@@ -450,7 +462,7 @@ async def process_inbox_job_atomically(
     db: AsyncSession,
     inbox_id: int,
     lease_token: str,
-    fencing_generation: int | None,
+    fencing_generation: int,
     business_func: Callable[[dict, AsyncSession, int | None], Coroutine[Any, Any, Any]],
 ) -> bool:
     """Execute business mutations and complete inbox job within the SAME atomic database transaction.
@@ -461,14 +473,16 @@ async def process_inbox_job_atomically(
     - Rollback safety: if business_func or outbox staging fails, business state is cleanly rolled back
       and the failure is recorded with backoff in a fresh transaction.
     """
+    if fencing_generation is None or not isinstance(fencing_generation, int):
+        raise ValueError("fencing_generation is mandatory for process_inbox_job_atomically")
+
     now = _now()
     conditions = [
         TelegramInbox.id == inbox_id,
         TelegramInbox.lease_token == lease_token,
+        TelegramInbox.fencing_generation == fencing_generation,
         TelegramInbox.lease_expires_at > now,
     ]
-    if fencing_generation is not None:
-        conditions.append(TelegramInbox.fencing_generation == fencing_generation)
 
     stmt = select(TelegramInbox).where(and_(*conditions)).with_for_update()
     item = (await db.execute(stmt)).scalar_one_or_none()
@@ -549,13 +563,20 @@ async def process_single_inbox_job(
         handler_callable = execute_update_payload
 
     async with SessionLocal() as db:
-        return await process_inbox_job_atomically(
+        success = await process_inbox_job_atomically(
             db,
             inbox_id=inbox_id,
             lease_token=lease_token,
             fencing_generation=fencing_gen,
             business_func=handler_callable,
         )
+
+    if success and not getattr(settings, "run_background_workers", False):
+        # In non-worker mode (single process / test / dev), dispatch staged outbox batch immediately
+        async with SessionLocal() as db:
+            await dispatch_outbox_batch(db, batch_size=10)
+
+    return success
 
 
 # ============================================================================
@@ -605,12 +626,12 @@ async def claim_outbox_batch(
     lease_seconds: int = 60,
     worker_id: str | None = None,
     outbox_id: int | None = None,
-) -> list[tuple[int, str, str, dict, int | None, int]]:
+) -> list[tuple[int, str, str, dict, int | None, int, int]]:
     """Atomically claim pending and recoverable outbox events using SKIP LOCKED.
 
     Commits immediately after claiming to release row locks before external HTTP calls are made.
     Returns:
-        List of (outbox_id, lease_token, event_type, payload, organization_id, attempts)
+        List of (outbox_id, lease_token, event_type, payload, organization_id, attempts, fencing_generation)
     """
     now = _now()
     worker_name = worker_id or f"outbox_worker_{uuid.uuid4().hex[:8]}"
@@ -660,7 +681,8 @@ async def claim_outbox_batch(
         item.lease_token = lease_token
         item.lease_expires_at = now + timedelta(seconds=lease_seconds)
         item.attempts += 1
-        results.append((item.id, lease_token, item.event_type, item.payload or {}, item.organization_id, item.attempts))
+        item.fencing_generation = (item.fencing_generation or 0) + 1
+        results.append((item.id, lease_token, item.event_type, item.payload or {}, item.organization_id, item.attempts, item.fencing_generation))
 
     if results:
         await db.commit()
@@ -668,24 +690,65 @@ async def claim_outbox_batch(
     return results
 
 
+async def renew_outbox_lease(
+    db: AsyncSession,
+    outbox_id: int,
+    lease_token: str,
+    fencing_generation: int,
+    extend_seconds: int = 60,
+) -> bool:
+    """Extend outbox lease verifying token, fencing generation, and active lease."""
+    if fencing_generation is None or not isinstance(fencing_generation, int):
+        raise ValueError("fencing_generation is mandatory for renew_outbox_lease")
+
+    now = _now()
+    conditions = [
+        TelegramOutbox.id == outbox_id,
+        TelegramOutbox.lease_token == lease_token,
+        TelegramOutbox.fencing_generation == fencing_generation,
+        TelegramOutbox.lease_expires_at > now,
+    ]
+    stmt = select(TelegramOutbox).where(and_(*conditions)).with_for_update()
+    item = (await db.execute(stmt)).scalar_one_or_none()
+    if not item:
+        logger.warning(
+            "Fencing conflict or expired lease: cannot renew outbox %s with token %s (gen=%s)",
+            outbox_id, lease_token, fencing_generation,
+        )
+        return False
+
+    item.lease_expires_at = now + timedelta(seconds=extend_seconds)
+    await db.commit()
+    return True
+
+
 async def complete_outbox_event(
     db: AsyncSession,
     outbox_id: int,
     lease_token: str,
+    fencing_generation: int,
 ) -> bool:
-    """Mark claimed outbox record as sent, strictly verifying the lease token."""
+    """Mark claimed outbox record as sent, strictly verifying token, generation, and active lease."""
+    if fencing_generation is None or not isinstance(fencing_generation, int):
+        raise ValueError("fencing_generation is mandatory for complete_outbox_event")
+
     now = _now()
     stmt = (
         select(TelegramOutbox)
         .where(
             TelegramOutbox.id == outbox_id,
             TelegramOutbox.lease_token == lease_token,
+            TelegramOutbox.fencing_generation == fencing_generation,
+            TelegramOutbox.lease_expires_at > now,
         )
         .with_for_update()
     )
     item = (await db.execute(stmt)).scalar_one_or_none()
     if not item:
-        logger.warning("Fencing conflict: cannot complete outbox %s with token %s", outbox_id, lease_token)
+        logger.warning(
+            "Fencing conflict or expired lease: cannot complete outbox %s with token %s (gen=%s)",
+            outbox_id, lease_token, fencing_generation,
+        )
         return False
 
     item.status = OutboxStatus.SENT.value
@@ -703,21 +766,29 @@ async def fail_outbox_event(
     outbox_id: int,
     lease_token: str,
     error_message: str,
+    fencing_generation: int,
     is_uncertain: bool = False,
 ) -> bool:
-    """Record outbox delivery failure with exponential backoff, dead-letter, or uncertain state."""
+    """Record outbox delivery failure with exponential backoff, dead-letter, or uncertain state, verifying fencing."""
+    if fencing_generation is None or not isinstance(fencing_generation, int):
+        raise ValueError("fencing_generation is mandatory for fail_outbox_event")
+
     now = _now()
     stmt = (
         select(TelegramOutbox)
         .where(
             TelegramOutbox.id == outbox_id,
             TelegramOutbox.lease_token == lease_token,
+            TelegramOutbox.fencing_generation == fencing_generation,
         )
         .with_for_update()
     )
     item = (await db.execute(stmt)).scalar_one_or_none()
     if not item:
-        logger.warning("Fencing conflict: cannot fail outbox %s with token %s", outbox_id, lease_token)
+        logger.warning(
+            "Fencing conflict: cannot fail outbox %s with token %s (gen=%s)",
+            outbox_id, lease_token, fencing_generation,
+        )
         return False
 
     item.last_error = error_message[:2000]
@@ -749,6 +820,34 @@ async def fail_outbox_event(
     return True
 
 
+async def _record_outbox_assistant_message(
+    db: AsyncSession,
+    conversation_id: int,
+    telegram_message_id: int,
+    text: str,
+    reply_to_telegram_message_id: int | None = None,
+    organization_id: int | None = None,
+) -> None:
+    """Record outgoing assistant message in messages table upon successful Telegram dispatch."""
+    from app.services.conversations import save_message
+    try:
+        await save_message(
+            db,
+            conversation_id=conversation_id,
+            telegram_message_id=telegram_message_id,
+            direction="assistant",
+            text=text,
+            reply_to_telegram_message_id=reply_to_telegram_message_id,
+            organization_id=organization_id,
+        )
+        await db.commit()
+    except Exception as exc:
+        logger.warning(
+            "Could not record assistant message for conversation %s (msg_id=%s): %s",
+            conversation_id, telegram_message_id, exc,
+        )
+
+
 async def dispatch_outbox_batch(
     db: AsyncSession,
     batch_size: int = 10,
@@ -763,7 +862,7 @@ async def dispatch_outbox_batch(
 
     dispatched_count = 0
 
-    for item_id, lease_token, event_type, payload, org_id, attempts in claimed_events:
+    for item_id, lease_token, event_type, payload, org_id, attempts, fencing_gen in claimed_events:
         # Determine telegram service instance
         org = await db.get(Organization, org_id) if org_id else None
         bot_token = org.decrypted_bot_token if org else None
@@ -779,12 +878,44 @@ async def dispatch_outbox_batch(
                 raise RuntimeError("Telegram service is not configured")
             elif event_type == "send_message":
                 await tg_svc.send_message(payload["chat_id"], payload["text"])
+            elif event_type == "send_photo":
+                await tg_svc.call("sendPhoto", {
+                    "chat_id": payload["chat_id"],
+                    "photo": payload["photo"],
+                    "caption": payload.get("caption", "")[:1024],
+                })
             elif event_type == "send_business_text":
-                await tg_svc.send_business_text(
+                sent = await tg_svc.send_business_text(
                     payload["business_connection_id"],
                     payload["chat_id"],
                     payload["text"],
                 )
+                if payload.get("conversation_id") and sent and isinstance(sent, dict) and sent.get("message_id"):
+                    await _record_outbox_assistant_message(
+                        db,
+                        conversation_id=payload["conversation_id"],
+                        telegram_message_id=int(sent["message_id"]),
+                        text=payload["text"],
+                        reply_to_telegram_message_id=payload.get("reply_to_telegram_message_id"),
+                        organization_id=org_id,
+                    )
+            elif event_type == "send_business_photo":
+                sent = await tg_svc.send_business_photo(
+                    payload["business_connection_id"],
+                    payload["chat_id"],
+                    photo_file_id=payload.get("photo_file_id"),
+                    photo_path=payload.get("photo_path"),
+                    caption=payload.get("caption") or "",
+                )
+                if payload.get("conversation_id") and sent and isinstance(sent, dict) and sent.get("message_id"):
+                    await _record_outbox_assistant_message(
+                        db,
+                        conversation_id=payload["conversation_id"],
+                        telegram_message_id=int(sent["message_id"]),
+                        text=payload.get("caption") or "",
+                        reply_to_telegram_message_id=payload.get("reply_to_telegram_message_id"),
+                        organization_id=org_id,
+                    )
             elif event_type == "send_chat_action":
                 await tg_svc.send_chat_action(
                     payload["chat_id"],
@@ -812,14 +943,14 @@ async def dispatch_outbox_batch(
             else:
                 logger.warning("Unknown outbox event type: %s", event_type)
 
-            # Success: complete event guarded by lease token
-            await complete_outbox_event(db, item_id, lease_token)
+            # Success: complete event guarded by lease token and fencing generation
+            await complete_outbox_event(db, item_id, lease_token, fencing_generation=fencing_gen)
             dispatched_count += 1
         except Exception as exc:
             err_str = str(exc).lower()
-            is_timeout = "timeout" in err_str or "timed out" in err_str or "connection reset" in err_str
+            is_timeout = "timeout" in err_str or "timed out" in err_str or "connection reset" in err_str or "clientconnectorerror" in err_str
             logger.exception("Error dispatching outbox event %s: %s", item_id, exc)
-            await fail_outbox_event(db, item_id, lease_token, str(exc), is_uncertain=is_timeout)
+            await fail_outbox_event(db, item_id, lease_token, str(exc), fencing_generation=fencing_gen, is_uncertain=is_timeout)
 
     return dispatched_count
 
@@ -844,7 +975,7 @@ async def sweep_inbox_and_outbox(
         # Tuple format: (id, lease_token, payload, attempts, org_id, fencing_gen)
         item_id = item_tuple[0]
         lease_token = item_tuple[1]
-        fencing_gen = item_tuple[5] if len(item_tuple) > 5 else None
+        fencing_gen = int(item_tuple[5])
 
         async with SessionLocal() as db:
             success = await process_inbox_job_atomically(

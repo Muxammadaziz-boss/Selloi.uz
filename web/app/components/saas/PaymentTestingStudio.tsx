@@ -217,6 +217,8 @@ export function PaymentTestingStudio() {
         return <Badge variant="success">PAID (To'langan)</Badge>;
       case "pending":
         return <Badge variant="warning">PENDING (Kutilmoqda)</Badge>;
+      case "verification_required":
+        return <Badge variant="warning">VERIFICATION REQUIRED</Badge>;
       case "failed":
         return <Badge variant="danger">FAILED (Xato)</Badge>;
       case "cancelled":
@@ -685,6 +687,7 @@ export function PaymentTestingStudio() {
                 <option value="all">Barcha holat</option>
                 <option value="pending">Pending</option>
                 <option value="paid">Paid</option>
+                <option value="verification_required">Verification Req.</option>
                 <option value="failed">Failed</option>
                 <option value="cancelled">Cancelled</option>
                 <option value="expired">Expired</option>

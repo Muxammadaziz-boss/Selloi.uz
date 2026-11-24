@@ -310,7 +310,25 @@ class PaymentTestingService:
         # Map provider status
         new_status = old_status
         if raw_status in ("paid", "completed", "succeeded", "success", "payment.succeeded"):
-            new_status = "paid"
+            ret_amount = provider_status.get("amount_minor") or provider_status.get("amount")
+            ret_curr = provider_status.get("currency")
+            if ret_amount and int(ret_amount) != test_record.amount_tiyin:
+                logger.error(
+                    "Amount mismatch in synced status for %s: expected %s tiyin, received %s",
+                    test_id,
+                    test_record.amount_tiyin,
+                    ret_amount,
+                )
+                new_status = "verification_required"
+            elif ret_curr and ret_curr.upper() != "UZS":
+                logger.error(
+                    "Currency mismatch in synced status for %s: expected UZS, received %s",
+                    test_id,
+                    ret_curr,
+                )
+                new_status = "verification_required"
+            else:
+                new_status = "paid"
         elif raw_status in ("failed", "rejected", "error"):
             new_status = "failed"
         elif raw_status in ("cancelled", "canceled"):
@@ -375,8 +393,29 @@ class PaymentTestingService:
         normalized_status = status_str.lower()
 
         if normalized_status in ("paid", "completed", "success", "succeeded", "payment.succeeded"):
-            test_record.status = "paid"
-            test_record.completed_at = datetime.now(timezone.utc)
+            # 1. Amount validation against immutable record snapshot
+            if amount and int(amount) != test_record.amount_tiyin:
+                logger.error(
+                    "Amount mismatch on webhook for test %s: expected %s tiyin, received %s tiyin",
+                    test_record.test_id,
+                    test_record.amount_tiyin,
+                    amount,
+                )
+                test_record.status = "verification_required"
+            else:
+                # 2. Currency validation
+                inner_data = payload.get("data") if isinstance(payload.get("data"), dict) else {}
+                curr = inner_data.get("currency") or payload.get("currency") or "UZS"
+                if curr and curr.upper() != "UZS":
+                    logger.error(
+                        "Currency mismatch on webhook for test %s: expected UZS, received %s",
+                        test_record.test_id,
+                        curr,
+                    )
+                    test_record.status = "verification_required"
+                else:
+                    test_record.status = "paid"
+                    test_record.completed_at = datetime.now(timezone.utc)
         elif normalized_status in ("failed", "rejected", "error"):
             test_record.status = "failed"
             test_record.completed_at = datetime.now(timezone.utc)
@@ -386,6 +425,8 @@ class PaymentTestingService:
         elif normalized_status in ("expired", "timeout"):
             test_record.status = "expired"
             test_record.completed_at = datetime.now(timezone.utc)
+        elif normalized_status in ("verification_required",):
+            test_record.status = "verification_required"
 
         test_record.provider_response = payload
 

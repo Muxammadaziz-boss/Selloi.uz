@@ -229,12 +229,13 @@ async def test_b3_fencing_token_prevents_stale_worker_completion():
         item.lease_owner = "new_owner"
         item.lease_token = "new_valid_token_456"
         item.lease_expires_at = datetime.now(timezone.utc) + timedelta(seconds=60)
+        item.fencing_generation = 2
         await db.commit()
         inbox_id = item.id
 
     # Stale worker tries to complete with its old token
     async with core_db.SessionLocal() as db:
-        success = await complete_inbox_job(db, inbox_id, "old_stale_token_111")
+        success = await complete_inbox_job(db, inbox_id, "old_stale_token_111", fencing_generation=1)
         assert success is False
 
         # Verify record remains unchanged in processing state
@@ -253,11 +254,12 @@ async def test_b4_lease_renewal_extends_expiration():
         item.status = "processing"
         item.lease_token = token
         item.lease_expires_at = datetime.now(timezone.utc) + timedelta(seconds=20)
+        item.fencing_generation = 1
         await db.commit()
         inbox_id = item.id
 
     async with core_db.SessionLocal() as db:
-        renewed = await renew_inbox_lease(db, inbox_id, token, extend_seconds=120)
+        renewed = await renew_inbox_lease(db, inbox_id, token, fencing_generation=1, extend_seconds=120)
         assert renewed is True
 
         row = await db.get(TelegramInbox, inbox_id)
@@ -279,11 +281,12 @@ async def test_c1_transient_failure_schedules_exponential_retry():
         item.status = "processing"
         item.lease_token = token
         item.attempts = 2
+        item.fencing_generation = 1
         await db.commit()
         inbox_id = item.id
 
     async with core_db.SessionLocal() as db:
-        failed = await fail_inbox_job(db, inbox_id, token, "External Telegram API 502 Bad Gateway")
+        failed = await fail_inbox_job(db, inbox_id, token, "External Telegram API 502 Bad Gateway", fencing_generation=1)
         assert failed is True
 
         row = await db.get(TelegramInbox, inbox_id)
@@ -306,11 +309,12 @@ async def test_c2_max_attempts_exceeded_transitions_to_dead_letter():
         item.lease_token = token
         item.attempts = 5
         item.max_attempts = 5
+        item.fencing_generation = 1
         await db.commit()
         inbox_id = item.id
 
     async with core_db.SessionLocal() as db:
-        failed = await fail_inbox_job(db, inbox_id, token, "Permanent deserialization error")
+        failed = await fail_inbox_job(db, inbox_id, token, "Permanent deserialization error", fencing_generation=1)
         assert failed is True
 
         row = await db.get(TelegramInbox, inbox_id)

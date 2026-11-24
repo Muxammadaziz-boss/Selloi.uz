@@ -300,3 +300,57 @@ async def run_outbox_worker_once(
             sender_func=sender_func,
             worker_id=worker,
         )
+
+
+async def run_standalone_worker() -> None:
+    """Entry point for running WorkerSupervisor as an independent, dedicated process.
+
+    Usage:
+        python -m app.services.worker_supervisor
+    """
+    import signal
+    from app.core.logging import setup_logging
+    from app.main import verify_database_readiness
+    from app.core.db import engine
+
+    setup_logging()
+    logger.info("Starting standalone WorkerSupervisor process...")
+
+    # Verify database prerequisites before starting
+    async with engine.begin() as conn:
+        ready, missing = await verify_database_readiness(conn)
+        if not ready:
+            logger.critical("Standalone worker cannot start: database schema missing: %s", missing)
+            raise RuntimeError(f"Database schema prerequisite missing: {missing}")
+
+    await worker_supervisor.start()
+
+    stop_signal = asyncio.Event()
+
+    def _sig_handler(*_):
+        logger.info("Termination signal received. Requesting WorkerSupervisor stop...")
+        stop_signal.set()
+
+    loop = asyncio.get_running_loop()
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        try:
+            loop.add_signal_handler(sig, _sig_handler)
+        except (NotImplementedError, AttributeError):
+            # Windows signal handling fallback
+            signal.signal(sig, lambda *_: stop_signal.set())
+
+    logger.info("Standalone WorkerSupervisor running. Press Ctrl+C or send SIGTERM to stop.")
+    await stop_signal.wait()
+
+    logger.info("Shutting down standalone WorkerSupervisor...")
+    await worker_supervisor.stop(timeout=15.0)
+    await engine.dispose()
+    logger.info("Standalone WorkerSupervisor terminated cleanly.")
+
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(run_standalone_worker())
+    except (KeyboardInterrupt, SystemExit):
+        pass
+

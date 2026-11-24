@@ -256,13 +256,14 @@ async def test_b3_stale_worker_token_completion_rejected():
         inbox_id = item.id
         claimed = await claim_inbox_batch(db, batch_size=1, worker_id="active_w", bot_id="bot_b3")
         active_token = claimed[0][1]
+        active_gen = claimed[0][5]
 
         # Stale worker attempts complete with old token
-        success = await complete_inbox_job(db, inbox_id, "stale_token_999")
+        success = await complete_inbox_job(db, inbox_id, "stale_token_999", fencing_generation=active_gen)
         assert success is False
 
         # Active worker completes successfully
-        success_active = await complete_inbox_job(db, inbox_id, active_token)
+        success_active = await complete_inbox_job(db, inbox_id, active_token, fencing_generation=active_gen)
         assert success_active is True
 
 
@@ -273,10 +274,11 @@ async def test_b4_stale_worker_failure_rejected():
     async with core_db.SessionLocal() as db:
         item, _ = await record_inbox_update(db, bot_id="bot_b4", update_id=uid, payload={"test": True})
         inbox_id = item.id
-        await claim_inbox_batch(db, batch_size=1, worker_id="active_w", bot_id="bot_b4")
+        claimed = await claim_inbox_batch(db, batch_size=1, worker_id="active_w", bot_id="bot_b4")
+        active_gen = claimed[0][5]
 
         # Stale worker attempts fail_inbox_job
-        failed = await fail_inbox_job(db, inbox_id, "invalid_stale_token", "err")
+        failed = await fail_inbox_job(db, inbox_id, "invalid_stale_token", "err", fencing_generation=active_gen)
         assert failed is False
 
 
@@ -311,8 +313,9 @@ async def test_b6_lease_renewal_extends_expiration():
         claimed = await claim_inbox_batch(db, batch_size=1, bot_id=bot_name)
         assert len(claimed) == 1
         token = claimed[0][1]
+        current_gen = claimed[0][5]
 
-        renewed = await renew_inbox_lease(db, inbox_id, token, extend_seconds=120)
+        renewed = await renew_inbox_lease(db, inbox_id, token, fencing_generation=current_gen, extend_seconds=120)
         assert renewed is True
 
         row = (await db.execute(select(TelegramInbox).where(TelegramInbox.id == inbox_id))).scalar_one()
@@ -520,7 +523,7 @@ async def test_e1_outbox_claim_releases_locks_before_http_send():
 
         claimed = await claim_outbox_batch(db, batch_size=1, worker_id="w_lock_test", outbox_id=outbox_id)
         assert len(claimed) == 1
-        cid, token, event_type, payload, org_id, attempts = claimed[0]
+        cid, token, event_type, payload, org_id, attempts, fencing_gen = claimed[0]
         assert cid == outbox_id
 
         # Verify record is in processing status in database
@@ -529,7 +532,7 @@ async def test_e1_outbox_claim_releases_locks_before_http_send():
         assert row.lease_owner == "w_lock_test"
 
         # Complete to leave table clean
-        await complete_outbox_event(db, outbox_id, token)
+        await complete_outbox_event(db, outbox_id, token, fencing_generation=fencing_gen)
 
 
 @pytest.mark.anyio
@@ -627,13 +630,14 @@ async def test_e6_stale_worker_cannot_finalize_outbox():
 
         claimed = await claim_outbox_batch(db, batch_size=1, outbox_id=outbox_id)
         valid_token = claimed[0][1]
+        valid_gen = claimed[0][6]
 
         # Stale worker tries to complete with bad token
-        stale_res = await complete_outbox_event(db, outbox_id, "stale_outbox_token")
+        stale_res = await complete_outbox_event(db, outbox_id, "stale_outbox_token", fencing_generation=valid_gen)
         assert stale_res is False
 
         # Valid worker completes
-        valid_res = await complete_outbox_event(db, outbox_id, valid_token)
+        valid_res = await complete_outbox_event(db, outbox_id, valid_token, fencing_generation=valid_gen)
         assert valid_res is True
 
 

@@ -452,6 +452,7 @@ class TelegramOutbox(Base):
     lease_owner: Mapped[str | None] = mapped_column(String(64), nullable=True)
     lease_token: Mapped[str | None] = mapped_column(String(64), nullable=True)
     lease_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    fencing_generation: Mapped[int] = mapped_column(Integer, default=1, server_default="1", nullable=False)
     last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
     processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

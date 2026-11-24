@@ -330,10 +330,15 @@ async def _handle_business_message(message: dict, db: AsyncSession | None = None
             tg_svc = telegram
 
         # Immediately mark message as READ (turns single checkmark into double checkmark ✓✓)
-        # and show typing indicator right away
+        # and show typing indicator right away (ephemeral UI fire-and-forget effects)
         if msg_id_int and tg_svc:
-            asyncio.create_task(tg_svc.read_business_message(connection_id, chat_id_int, msg_id_int))
-            asyncio.create_task(tg_svc.send_chat_action(chat_id_int, "typing", business_connection_id=connection_id))
+            async def _safe_ephemeral(coro):
+                try:
+                    await coro
+                except Exception:
+                    pass
+            asyncio.create_task(_safe_ephemeral(tg_svc.read_business_message(connection_id, chat_id_int, msg_id_int)))
+            asyncio.create_task(_safe_ephemeral(tg_svc.send_chat_action(chat_id_int, "typing", business_connection_id=connection_id)))
 
         # A real account-owner reply means the human has taken over this chat.
         if sender.get("id") and connection.owner_user_id == int(sender["id"]):
@@ -363,6 +368,14 @@ async def _handle_business_message(message: dict, db: AsyncSession | None = None
         last_name = sender.get("last_name", "")
         customer_name = f"{first_name} {last_name}".strip() or "Mijoz"
         incoming_text = message.get("text") or message.get("caption") or ""
+
+        from app.services.durable_inbox import (
+            generate_order_idempotency_key,
+            generate_outbox_idempotency_key,
+            get_or_create_idempotent_order,
+            stage_outbox_event,
+        )
+
         if not (connection.rights or {}).get("can_reply", False):
             conversation = await get_or_create_conversation(
                 session,
@@ -382,18 +395,26 @@ async def _handle_business_message(message: dict, db: AsyncSession | None = None
             )
             conversation.status = "human_takeover"
             conversation.handoff_reason = "Telegram Business ulanishida can_reply huquqi yo'q"
+
+            outbox_key = generate_outbox_idempotency_key(
+                event_type="notify_admin",
+                organization_id=org_id,
+                entity_id=f"can_reply_missing_{connection_id}_{chat_id_int}_{msg_id_int}",
+            )
+            await stage_outbox_event(
+                session,
+                idempotency_key=outbox_key,
+                event_type="notify_admin",
+                payload={"text": f"⚠️ Business botda can_reply huquqi yo'q\nMijoz: {customer_name}\nChat ID: {chat['id']}"},
+                organization_id=org_id,
+            )
+
             if db is None:
                 await session.commit()
             else:
                 await session.flush()
-            try:
-                if tg_svc:
-                    await tg_svc.notify_admin(
-                        f"⚠️ Business botda can_reply huquqi yo'q\nMijoz: {customer_name}\nChat ID: {chat['id']}"
-                    )
-            except Exception:
-                logger.exception("Admin bildirishnoma yuborishda xatolik (can_reply)")
             return
+
         conversation = await get_or_create_conversation(
             session,
             business_connection_id=connection_id,
@@ -403,7 +424,7 @@ async def _handle_business_message(message: dict, db: AsyncSession | None = None
             organization_id=org_id,
         )
         incoming_saved = await save_message(
-            db,
+            session,
             conversation_id=conversation.id,
             telegram_message_id=msg_id_int,
             direction="customer",
@@ -411,42 +432,58 @@ async def _handle_business_message(message: dict, db: AsyncSession | None = None
             organization_id=org_id,
         )
         conversation.last_message_at = datetime.now(timezone.utc)
-        await db.flush()
+        await session.flush()
 
         # Auto-reactivate AI unless explicitly taken over via web admin panel
         if conversation.status == "human_takeover":
             if conversation.handoff_reason == "Admin panel orqali operator qabul qildi" and not sales_ai.is_greeting(incoming_text):
                 logger.info("Suhbat web admin panel orqali operator nazoratida: conversation_id=%s", conversation.id)
-                await db.commit()
+                if db is None:
+                    await session.commit()
+                else:
+                    await session.flush()
                 return
             else:
                 conversation.status = "ai_active"
                 conversation.handoff_reason = None
                 logger.info("AI qayta faollashtirildi: conversation_id=%s", conversation.id)
+
         if incoming_saved is None:
             # Telegram may retry a webhook. If this incoming message already has a reply,
             # do not send a duplicate. If it does not, continue so a transient failure can retry.
-            existing_reply = await db.execute(select(Message.id).where(
+            existing_reply = await session.execute(select(Message.id).where(
                 Message.conversation_id == conversation.id,
                 Message.reply_to_telegram_message_id == msg_id_int,
             ).limit(1))
             if existing_reply.scalar_one_or_none() is not None:
-                await db.commit()
+                if db is None:
+                    await session.commit()
+                else:
+                    await session.flush()
                 return
+
         if not incoming_text.strip():
             conversation.status = "human_takeover"
             conversation.handoff_reason = "Mijoz matn bo'lmagan xabar yubordi; operator tekshirishi kerak"
-            await db.commit()
-            try:
-                if tg_svc:
-                    await tg_svc.notify_admin(
-                        f"🧑‍💼 Operator kerak\nMijoz: {customer_name}\nChat ID: {chat['id']}\nSabab: matn bo'lmagan xabar"
-                    )
-            except Exception:
-                logger.exception("Admin bildirishnoma yuborishda xatolik (matn bo'lmagan xabar)")
+            outbox_key = generate_outbox_idempotency_key(
+                event_type="notify_admin",
+                organization_id=org_id,
+                entity_id=f"non_text_{connection_id}_{chat_id_int}_{msg_id_int}",
+            )
+            await stage_outbox_event(
+                session,
+                idempotency_key=outbox_key,
+                event_type="notify_admin",
+                payload={"text": f"🧑‍💼 Operator kerak\nMijoz: {customer_name}\nChat ID: {chat['id']}\nSabab: matn bo'lmagan xabar"},
+                organization_id=org_id,
+            )
+            if db is None:
+                await session.commit()
+            else:
+                await session.flush()
             return
 
-        history_rows = (await db.execute(
+        history_rows = (await session.execute(
             select(Message).where(Message.conversation_id == conversation.id).order_by(Message.created_at.desc()).limit(10)
         )).scalars().all()
         history = [{"direction": row.direction, "text": row.text} for row in reversed(history_rows)]
@@ -456,10 +493,10 @@ async def _handle_business_message(message: dict, db: AsyncSession | None = None
         try:
             if sales_ai.is_greeting(incoming_text):
                 evidence = []
-                decision = await sales_ai.answer(incoming_text, evidence, history, organization_id=org_id, db=db)
+                decision = await sales_ai.answer(incoming_text, evidence, history, organization_id=org_id, db=session)
             else:
-                evidence = await knowledge.search(db, incoming_text, limit=6, organization_id=org_id)
-                decision = await sales_ai.answer(incoming_text, evidence, history, organization_id=org_id, db=db)
+                evidence = await knowledge.search(session, incoming_text, limit=6, organization_id=org_id)
+                decision = await sales_ai.answer(incoming_text, evidence, history, organization_id=org_id, db=session)
         finally:
             stop_typing.set()
             typing_task.cancel()
@@ -468,52 +505,61 @@ async def _handle_business_message(message: dict, db: AsyncSession | None = None
             conversation.status = "human_takeover"
             conversation.handoff_reason = decision.get("reason") or "AI suhbatni operatorga topshirdi"
             handoff_reply = decision.get("reply") or "Savolingizni mutaxassisimizga yetkazdim. Tez orada javob beramiz."
-            try:
-                sent = await tg_svc.send_business_text(connection_id, chat_id_int, handoff_reply) if tg_svc else None
-                if sent:
-                    await save_message(
-                        db,
-                        conversation_id=conversation.id,
-                        telegram_message_id=int(sent["message_id"]),
-                        direction="assistant",
-                        text=handoff_reply,
-                        reply_to_telegram_message_id=msg_id_int,
-                        organization_id=org_id,
-                    )
-            except Exception:
-                logger.exception("Handoff javobini yuborishda xatolik: conversation=%s", conversation.id)
-            await db.commit()
-            try:
-                if tg_svc:
-                    alert_text = (
-                        "🧑‍💼 *AI suhbatni operatorga topshirdi*\n"
-                        f"Mijoz: {customer_name}\n"
-                        f"Chat ID: `{chat['id']}`\n"
-                        f"Savol: {incoming_text[:600]}\n"
-                        f"Sabab: {conversation.handoff_reason}"
-                    )
-                    takeover_markup = {
-                        "inline_keyboard": [
-                            [{"text": "💬 Suhbatni qabul qilish", "callback_data": f"admin:takeover:{conversation.id}"}]
-                        ]
-                    }
-                    if hasattr(tg_svc, "notify_organization_admins"):
-                        await tg_svc.notify_organization_admins(db, org_id, alert_text, reply_markup=takeover_markup)
-                    else:
-                        await tg_svc.notify_admin(alert_text)
-            except Exception:
-                logger.exception("Admin bildirishnoma yuborishda xatolik (handoff)")
-            return
 
+            # 1. Stage durable customer handoff reply to transactional outbox
+            handoff_outbox_key = generate_outbox_idempotency_key(
+                event_type="send_business_text",
+                organization_id=org_id,
+                entity_id=f"handoff_reply_{connection_id}_{chat_id_int}_{msg_id_int}",
+            )
+            await stage_outbox_event(
+                session,
+                idempotency_key=handoff_outbox_key,
+                event_type="send_business_text",
+                payload={
+                    "business_connection_id": connection_id,
+                    "chat_id": chat_id_int,
+                    "text": handoff_reply,
+                    "conversation_id": conversation.id,
+                    "reply_to_telegram_message_id": msg_id_int,
+                },
+                organization_id=org_id,
+            )
+
+            # 2. Stage durable operator notification to transactional outbox
+            alert_text = (
+                "🧑‍💼 *AI suhbatni operatorga topshirdi*\n"
+                f"Mijoz: {customer_name}\n"
+                f"Chat ID: `{chat['id']}`\n"
+                f"Savol: {incoming_text[:600]}\n"
+                f"Sabab: {conversation.handoff_reason}"
+            )
+            takeover_markup = {
+                "inline_keyboard": [
+                    [{"text": "💬 Suhbatni qabul qilish", "callback_data": f"admin:takeover:{conversation.id}"}]
+                ]
+            }
+            alert_outbox_key = generate_outbox_idempotency_key(
+                event_type="notify_organization_admins",
+                organization_id=org_id,
+                entity_id=f"handoff_alert_{conversation.id}_{msg_id_int}",
+            )
+            await stage_outbox_event(
+                session,
+                idempotency_key=alert_outbox_key,
+                event_type="notify_organization_admins",
+                payload={"text": alert_text, "reply_markup": takeover_markup},
+                organization_id=org_id,
+            )
+
+            if db is None:
+                await session.commit()
+            else:
+                await session.flush()
+            return
 
         # If AI successfully completed an order, save it and alert admin via transactional outbox
         if decision.get("order_created") and decision.get("order_data"):
-            from app.services.durable_inbox import (
-                generate_order_idempotency_key,
-                generate_outbox_idempotency_key,
-                get_or_create_idempotent_order,
-                stage_outbox_event,
-            )
             order_info = decision["order_data"]
             order_idempotency_key = generate_order_idempotency_key(
                 source="biz",
@@ -523,7 +569,7 @@ async def _handle_business_message(message: dict, db: AsyncSession | None = None
                 message_id=msg_id_int,
             )
             new_order, created = await get_or_create_idempotent_order(
-                db,
+                session,
                 idempotency_key=order_idempotency_key,
                 organization_id=org_id,
                 conversation_id=conversation.id,
@@ -556,44 +602,64 @@ async def _handle_business_message(message: dict, db: AsyncSession | None = None
                     entity_id=new_order.id or order_idempotency_key,
                 )
                 await stage_outbox_event(
-                    db,
+                    session,
                     idempotency_key=outbox_key,
                     event_type="notify_organization_admins",
                     payload={"text": order_notification},
                     organization_id=org_id,
                 )
 
-        sent = None
+        # Stage durable customer reply (photo or text) into transactional outbox
+        photo_staged = False
         if decision.get("attach_photo") and decision.get("source_post_id") is not None:
             selected_post = next((post for post in evidence if post.telegram_message_id == decision["source_post_id"]), None)
-            if selected_post and (selected_post.photo_file_id or selected_post.image_path) and tg_svc:
-                try:
-                    sent = await tg_svc.send_business_photo(
-                        connection_id,
-                        int(chat["id"]),
-                        photo_file_id=selected_post.photo_file_id,
-                        photo_path=selected_post.image_path,
-                        caption=decision["reply"],
-                    )
-                except Exception:
-                    logger.exception("Mahsulot rasmini yuborishda xatolik: post_id=%s", decision.get('source_post_id'))
-                    sent = None
-        if sent is None and tg_svc:
-            try:
-                sent = await tg_svc.send_business_text(connection_id, chat_id_int, decision["reply"])
-            except Exception:
-                logger.exception("Biznes xabarni yuborishda xatolik: chat_id=%s", chat_id_int)
-                sent = None
-        if sent:
-            await save_message(
-                db,
-                conversation_id=conversation.id,
-                telegram_message_id=int(sent["message_id"]),
-                direction="assistant",
-                text=decision["reply"],
-                reply_to_telegram_message_id=msg_id_int,
+            if selected_post and (selected_post.photo_file_id or selected_post.image_path):
+                photo_key = generate_outbox_idempotency_key(
+                    event_type="send_business_photo",
+                    organization_id=org_id,
+                    entity_id=f"biz_photo_{connection_id}_{chat_id_int}_{msg_id_int}",
+                )
+                await stage_outbox_event(
+                    session,
+                    idempotency_key=photo_key,
+                    event_type="send_business_photo",
+                    payload={
+                        "business_connection_id": connection_id,
+                        "chat_id": chat_id_int,
+                        "photo_file_id": selected_post.photo_file_id,
+                        "photo_path": selected_post.image_path,
+                        "caption": decision["reply"],
+                        "conversation_id": conversation.id,
+                        "reply_to_telegram_message_id": msg_id_int,
+                    },
+                    organization_id=org_id,
+                )
+                photo_staged = True
+
+        if not photo_staged:
+            reply_key = generate_outbox_idempotency_key(
+                event_type="send_business_text",
+                organization_id=org_id,
+                entity_id=f"biz_text_{connection_id}_{chat_id_int}_{msg_id_int}",
             )
-            await db.commit()
+            await stage_outbox_event(
+                session,
+                idempotency_key=reply_key,
+                event_type="send_business_text",
+                payload={
+                    "business_connection_id": connection_id,
+                    "chat_id": chat_id_int,
+                    "text": decision["reply"],
+                    "conversation_id": conversation.id,
+                    "reply_to_telegram_message_id": msg_id_int,
+                },
+                organization_id=org_id,
+            )
+
+        if db is None:
+            await session.commit()
+        else:
+            await session.flush()
 
 
 async def _handle_direct_bot_message(message: dict, db: AsyncSession, organization_id: int | None = None) -> None:
@@ -629,31 +695,55 @@ async def _handle_direct_bot_message(message: dict, db: AsyncSession, organizati
         stop_typing.set()
         typing_task.cancel()
 
-    # If photo requested and available
-    sent = None
-    if decision.get("attach_photo") and decision.get("source_post_id") is not None and tg_svc:
+    from app.services.durable_inbox import (
+        generate_order_idempotency_key,
+        generate_outbox_idempotency_key,
+        get_or_create_idempotent_order,
+        stage_outbox_event,
+    )
+
+    # Stage durable customer reply (photo or text) into transactional outbox
+    photo_staged = False
+    if decision.get("attach_photo") and decision.get("source_post_id") is not None:
         selected_post = next((post for post in evidence if post.telegram_message_id == decision["source_post_id"]), None)
         if selected_post and selected_post.photo_file_id:
-            try:
-                sent = await tg_svc.call("sendPhoto", {
+            photo_key = generate_outbox_idempotency_key(
+                event_type="send_photo",
+                organization_id=organization_id,
+                entity_id=f"direct_photo_{chat_id_int}_{message.get('message_id', 0)}",
+            )
+            await stage_outbox_event(
+                db,
+                idempotency_key=photo_key,
+                event_type="send_photo",
+                payload={
                     "chat_id": chat_id,
                     "photo": selected_post.photo_file_id,
                     "caption": decision["reply"][:1024],
-                })
-            except Exception:
-                sent = None
+                },
+                organization_id=organization_id,
+            )
+            photo_staged = True
 
-    if sent is None and tg_svc:
-        await tg_svc.send_message(chat_id, decision["reply"])
+    if not photo_staged:
+        msg_key = generate_outbox_idempotency_key(
+            event_type="send_message",
+            organization_id=organization_id,
+            entity_id=f"direct_text_{chat_id_int}_{message.get('message_id', 0)}",
+        )
+        await stage_outbox_event(
+            db,
+            idempotency_key=msg_key,
+            event_type="send_message",
+            payload={
+                "chat_id": chat_id,
+                "text": decision["reply"],
+            },
+            organization_id=organization_id,
+        )
 
     # If order was created in direct bot chat, notify admin via transactional outbox
     if decision.get("order_created") and decision.get("order_data"):
-        from app.services.durable_inbox import (
-            generate_order_idempotency_key,
-            generate_outbox_idempotency_key,
-            get_or_create_idempotent_order,
-            stage_outbox_event,
-        )
         order_info = decision["order_data"]
         direct_msg_id = message.get("message_id", 0)
         order_idempotency_key = generate_order_idempotency_key(
@@ -807,11 +897,13 @@ async def execute_update_payload(
     organization_id: int | None = None,
 ) -> None:
     """Execute update business logic across channels, messages, commands, and callback queries."""
+    from contextlib import nullcontext
     if update.get("business_connection"):
         data = update["business_connection"]
         conn_id = data.get("id")
         if conn_id:
-            async with SessionLocal() as session:
+            ctx = nullcontext(db) if db is not None else SessionLocal()
+            async with ctx as session:
                 row = await session.get(BusinessConnection, conn_id)
                 if row is None:
                     row = BusinessConnection(id=conn_id)
@@ -821,7 +913,10 @@ async def execute_update_payload(
                 row.owner_user_id = (data.get("user") or {}).get("id")
                 row.is_enabled = bool(data.get("is_enabled", False))
                 row.rights = data.get("rights") or {}
-                await session.commit()
+                if db is None:
+                    await session.commit()
+                else:
+                    await session.flush()
     elif update.get("channel_post"):
         await _store_channel_post(update["channel_post"])
     elif update.get("edited_channel_post"):
@@ -838,8 +933,13 @@ async def execute_update_payload(
             await _process_private_message(msg, db=db, organization_id=organization_id)
     elif update.get("callback_query"):
         cb = update["callback_query"]
-        async with SessionLocal() as session:
+        ctx = nullcontext(db) if db is not None else SessionLocal()
+        async with ctx as session:
             await handle_callback_query(cb, session)
+            if db is None:
+                await session.commit()
+            else:
+                await session.flush()
 
 
 async def _process_private_message(
