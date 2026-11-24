@@ -31,6 +31,25 @@ export interface SelloiTariflarTranslations {
   plans: SelloiPlanItem[];
 }
 
+export interface SelloiSinabKorishTranslations {
+  tag: string;
+  badge: string;
+  title: string;
+  desc: string;
+  cta: string;
+  note: string;
+  startLabel: string;
+  startPrice: number;
+  proLabel: string;
+  proPrice: number;
+  ultraLabel: string;
+  ultraPrice: number;
+  currency: string;
+  feature1: string;
+  feature2: string;
+  feature3: string;
+}
+
 export interface SelloiTranslations {
   nav: {
     boshSahifa: string;
@@ -116,6 +135,7 @@ export interface SelloiTranslations {
     typingIndicator: string;
     analyzingIndicator: string;
   };
+  sinabKorish: SelloiSinabKorishTranslations;
   tariflar: SelloiTariflarTranslations;
   faq: {
     tag: string;
@@ -252,10 +272,28 @@ export const SELLOI_I18N: Record<Language, SelloiTranslations> = {
       typingIndicator: "Selloi javob yozmoqda...",
       analyzingIndicator: "Selloi fotosuratni tahlil qilmoqda...",
     },
+    sinabKorish: {
+      tag: "7 KUNLIK SINOV",
+      badge: "MEGA CHEGIRMA",
+      title: "Avval 7 kunlik Mega Chegirma bilan sinab ko'ring.",
+      desc: "Do'koningiz uchun sun'iy intellekt sotuvchini 7 kun davomida to'liq imkoniyatlar bilan atigi 13 000 so'm ($1) dan boshlab sinab ko'ring. Hech qanday majburiyat yo'q!",
+      cta: "7 kun sinab ko'rish →",
+      note: "Do'koningiz uchun. O'sishingiz uchun.",
+      startLabel: "START sinovi",
+      startPrice: 13000,
+      proLabel: "PRO sinovi",
+      proPrice: 26000,
+      ultraLabel: "ULTRA sinovi",
+      ultraPrice: 39000,
+      currency: "so'm",
+      feature1: "Barcha AI savdo imkoniyatlari to'liq ochiq",
+      feature2: "Telegram Bot va WebApp bilan oson ulanish",
+      feature3: "24/7 avtomatik javoblar va buyurtma qabul qilish",
+    },
     tariflar: {
       tag: "TARIFLAR",
-      title: "Biznesingizga mos yechimni tanlang.",
-      desc: "Avval 7 kunlik Mega Chegirma bilan sinab ko'ring. Keyin do'koningiz ehtiyojiga mos tarifni tanlang.",
+      title: "Biznesingizga mos tarifni tanlang.",
+      desc: "Do'koningiz hajmiga mos tarif rejasini tanlang. Yillik to'lovda 17% gacha tejang.",
       billingMonthly: "Oylik to'lov",
       billingYearly: "Yillik to'lov",
       yearlyDiscountBadge: "-17% chegirma",
@@ -487,10 +525,28 @@ export const SELLOI_I18N: Record<Language, SelloiTranslations> = {
       typingIndicator: "Selloi печатает...",
       analyzingIndicator: "Selloi анализирует фото...",
     },
+    sinabKorish: {
+      tag: "7 ДНЕЙ ТЕСТА",
+      badge: "МЕГА СКИДКА",
+      title: "Сначала попробуйте 7 дней с мега-скидкой.",
+      desc: "Протестируйте AI-продавца Selloi на полную мощность в вашем магазине всего от 13 000 сум ($1). Без лишних рисков и обязательств!",
+      cta: "Попробовать 7 дней →",
+      note: "Для вашего магазина. Для вашего роста.",
+      startLabel: "Тест START",
+      startPrice: 13000,
+      proLabel: "Тест PRO",
+      proPrice: 26000,
+      ultraLabel: "Тест ULTRA",
+      ultraPrice: 39000,
+      currency: "сум",
+      feature1: "Все возможности AI доступны без ограничений",
+      feature2: "Быстрая интеграция с Telegram Bot и WebApp",
+      feature3: "Круглосуточный автоматический прием заказов",
+    },
     tariflar: {
       tag: "ТАРИФЫ",
-      title: "Выберите решение для вашего бизнеса.",
-      desc: "Сначала попробуйте 7-дневную Мега-скидку. Затем выберите подходящий тариф для вашего магазина.",
+      title: "Выберите подходящий тариф.",
+      desc: "Выберите тарифный план для масштаба вашего бизнеса. Экономьте до 17% при годовой оплате.",
       billingMonthly: "Ежемесячно",
       billingYearly: "Ежегодно",
       yearlyDiscountBadge: "Скидка -17%",
@@ -722,10 +778,28 @@ export const SELLOI_I18N: Record<Language, SelloiTranslations> = {
       typingIndicator: "Selloi is typing...",
       analyzingIndicator: "Selloi is analyzing photo...",
     },
+    sinabKorish: {
+      tag: "7-DAY TRIAL",
+      badge: "MEGA DISCOUNT",
+      title: "Try for 7 days with a Mega Discount first.",
+      desc: "Test Selloi AI sales assistant with full power in your store starting from only 13,000 UZS ($1). Zero risk, cancel anytime!",
+      cta: "Try 7 days →",
+      note: "For your store. For your growth.",
+      startLabel: "START trial",
+      startPrice: 13000,
+      proLabel: "PRO trial",
+      proPrice: 26000,
+      ultraLabel: "ULTRA trial",
+      ultraPrice: 39000,
+      currency: "UZS",
+      feature1: "All AI sales features unlocked during trial",
+      feature2: "Seamless Telegram Bot & WebApp integration",
+      feature3: "24/7 autonomous order taking & response",
+    },
     tariflar: {
       tag: "PRICING PLANS",
-      title: "Choose the right solution for your business.",
-      desc: "Start with a 7-day Mega Discount trial. Then select the tier that fits your store's volume.",
+      title: "Choose the plan that fits your business.",
+      desc: "Select the tier designed for your store volume. Save up to 17% with annual billing.",
       billingMonthly: "Monthly",
       billingYearly: "Yearly",
       yearlyDiscountBadge: "Save 17%",

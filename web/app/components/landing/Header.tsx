@@ -28,7 +28,7 @@ interface NavItemConfig {
 const NAV_ITEMS: NavItemConfig[] = [
   { id: "top", targetId: "top", labelKey: "boshSahifa" },
   { id: "imkoniyatlar", targetId: "imkoniyatlar", labelKey: "selloiHaqida" },
-  { id: "suhbat-namunasi", targetId: "suhbat-namunasi", labelKey: "sinabKorish" },
+  { id: "sinab-korish", targetId: "sinab-korish", labelKey: "sinabKorish" },
   { id: "tariflar", targetId: "tariflar", labelKey: "tariflar" },
   { id: "faq", targetId: "faq", labelKey: "aloqa" },
 ];
@@ -106,7 +106,7 @@ export default function Header({
       const sections = [
         { id: "faq", top: getDocTop(document.getElementById("faq")) },
         { id: "tariflar", top: getDocTop(document.getElementById("tariflar")) },
-        { id: "suhbat-namunasi", top: getDocTop(document.getElementById("suhbat-namunasi")) },
+        { id: "sinab-korish", top: getDocTop(document.getElementById("sinab-korish")) },
         { id: "imkoniyatlar", top: getDocTop(document.getElementById("imkoniyatlar")) },
         { id: "top", top: 0 },
       ];

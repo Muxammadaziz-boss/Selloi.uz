@@ -6,6 +6,7 @@ import HeroSection from "./HeroSection";
 import FeaturesSection from "./FeaturesSection";
 import HowItWorksSection from "./HowItWorksSection";
 import ConversationDemoSection from "./ConversationDemoSection";
+import TrialSection from "./TrialSection";
 import PricingSection from "./PricingSection";
 import FAQSection from "./FAQSection";
 import FinalCTA from "./FinalCTA";
@@ -150,7 +151,17 @@ function LandingPageContent({ isAuthenticated = false }: LandingPageProps) {
           t={t.suhbatNamunasi}
         />
 
-        {/* 5. Tariflar */}
+        {/* 5. Sinab ko'rish (Alohida section) */}
+        <TrialSection
+          onOpenOnboarding={(planCode) => {
+            setSelectedPlan(planCode || "start");
+            setIsOnboardingOpen(true);
+          }}
+          isAuthenticated={isAuthenticated}
+          t={t.sinabKorish}
+        />
+
+        {/* 6. Tariflar (Doim ochiq, berkitishsiz) */}
         <PricingSection
           onOpenOnboarding={(planCode) => {
             setSelectedPlan(planCode || "start");
