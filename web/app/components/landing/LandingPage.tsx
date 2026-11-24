@@ -33,23 +33,44 @@ function LandingPageContent({ isAuthenticated = false }: LandingPageProps) {
   const [loginError, setLoginError] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
 
-  // Smooth scroll reveal animations for sections
+  // Smooth scroll reveal animations for sections (low threshold + scroll fallback so tall mobile/laptop sections never stay hidden)
   useEffect(() => {
+    const revealItems = Array.from(document.querySelectorAll(".selloi-reveal-item"));
+
+    const checkVisible = () => {
+      const triggerLine = window.innerHeight * 0.96;
+      for (const el of revealItems) {
+        if (!el.classList.contains("selloi-in-view")) {
+          const rect = el.getBoundingClientRect();
+          if (rect.top <= triggerLine) {
+            el.classList.add("selloi-in-view");
+          }
+        }
+      }
+    };
+
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             entry.target.classList.add("selloi-in-view");
+            observer.unobserve(entry.target);
           }
         });
       },
-      { threshold: 0.12, rootMargin: "0px 0px -40px 0px" }
+      { threshold: 0.03, rootMargin: "0px 0px -15px 0px" }
     );
 
-    const revealItems = document.querySelectorAll(".selloi-reveal-item");
     revealItems.forEach((el) => observer.observe(el));
+    checkVisible();
+    const rafId = window.requestAnimationFrame(checkVisible);
+    window.addEventListener("scroll", checkVisible, { passive: true });
 
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      window.cancelAnimationFrame(rafId);
+      window.removeEventListener("scroll", checkVisible);
+    };
   }, []);
 
   // Cycle languages (uz -> ru -> en -> uz)

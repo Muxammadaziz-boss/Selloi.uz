@@ -37,20 +37,23 @@ export default function HeroSection({
               {t.subtitle}
             </p>
 
-            <button
-              type="button"
-              className="selloi-btn-glass selloi-hero-btn"
-              data-node-id="173:115"
-              onClick={handleCtaClick}
-            >
-              <span>{t.cta}</span>
-            </button>
+            <div className="selloi-hero-btn-wrap">
+              <button
+                type="button"
+                className="selloi-btn-glass selloi-hero-btn"
+                data-node-id="173:115"
+                onClick={handleCtaClick}
+              >
+                <span>{t.cta}</span>
+              </button>
+            </div>
           </div>
 
           {/* Right Hero Visual Mockup */}
           <div className="selloi-hero-right" data-node-id="116:48">
             <div className="selloi-hero-mockup-glow" />
-            <div className="selloi-browser-mockup" data-node-id="116:39">
+            <div className="selloi-hero-float-wrap">
+              <div className="selloi-browser-mockup" data-node-id="116:39">
               {/* Browser Window Header */}
               <div className="selloi-browser-header">
                 <div className="selloi-browser-dots">
@@ -91,6 +94,7 @@ export default function HeroSection({
                   fetchPriority="high"
                   decoding="async"
                 />
+              </div>
               </div>
             </div>
           </div>

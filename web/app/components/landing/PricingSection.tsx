@@ -80,6 +80,7 @@ export default function PricingSection({
                 key={plan.code}
                 className={`selloi-plan-card ${plan.isPopular ? "popular" : ""}`}
               >
+                <div className="selloi-card-glare-layer" aria-hidden="true" />
                 {plan.isPopular && (
                   <div className="selloi-popular-badge">
                     {plan.badge || t.popularBadge}

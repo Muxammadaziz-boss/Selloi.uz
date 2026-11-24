@@ -43,6 +43,7 @@ export default function Header({
 }: HeaderProps) {
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<string>("top");
+  const [hoveredNavId, setHoveredNavId] = useState<string | null>(null);
   const [pillStyle, setPillStyle] = useState<{ left: number; width: number; opacity: number }>({
     left: 0,
     width: 0,
@@ -136,12 +137,13 @@ export default function Header({
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Liquid Glass Sliding Pill Positioning
+  // Liquid Glass Sliding Pill Positioning (tracks hovered link or active section)
   useEffect(() => {
     const updatePill = () => {
       if (!navRef.current) return;
+      const targetNavId = hoveredNavId || activeSection;
       const activeEl = navRef.current.querySelector(
-        `[data-nav-id="${activeSection}"]`
+        `[data-nav-id="${targetNavId}"]`
       ) as HTMLElement | null;
 
       if (activeEl) {
@@ -161,7 +163,7 @@ export default function Header({
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", updatePill);
     };
-  }, [activeSection, language, t]);
+  }, [activeSection, hoveredNavId, language, t]);
 
   return (
     <header className="selloi-navbar" data-node-id="65:6">
@@ -198,10 +200,11 @@ export default function Header({
           ref={navRef}
           data-node-id="89:8"
           aria-label="Asosiy menyu"
+          onMouseLeave={() => setHoveredNavId(null)}
         >
           {/* Liquid Glass Sliding Pill */}
           <div
-            className="selloi-nav-liquid-pill"
+            className={`selloi-nav-liquid-pill ${hoveredNavId ? "hovered" : ""}`}
             style={{
               transform: `translateX(${pillStyle.left}px)`,
               width: `${pillStyle.width}px`,
@@ -211,13 +214,14 @@ export default function Header({
           />
 
           {NAV_ITEMS.map((item) => {
-            const isActive = activeSection === item.id;
+            const isActive = (hoveredNavId || activeSection) === item.id;
             return (
               <a
                 key={item.id}
                 href={`#${item.targetId}`}
                 data-nav-id={item.id}
                 className={`selloi-nav-link ${isActive ? "active" : ""}`}
+                onMouseEnter={() => setHoveredNavId(item.id)}
                 onClick={(e) => {
                   e.preventDefault();
                   setActiveSection(item.id);

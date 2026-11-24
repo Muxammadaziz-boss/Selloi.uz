@@ -45,7 +45,7 @@
   font-family: 'Quicksand', sans-serif;
   min-height: 100vh;
   width: 100%;
-  overflow-x: hidden;
+  overflow-x: clip;
   position: relative;
   -webkit-font-smoothing: antialiased;
 }
@@ -132,34 +132,36 @@
 .selloi-btn-glass::after {
   content: '';
   position: absolute;
-  top: -60%;
-  left: -160px;
-  width: 150px;
-  height: 220%;
+  top: -55%;
+  left: 0;
+  width: 100%;
+  min-width: 120px;
+  height: 210%;
   background: linear-gradient(
     90deg,
-    transparent 0px,
-    transparent 16px,
-    /* 1-nur: 20-30px oralig'idagi ingichka tiniq oq oyna nuri */
-    rgba(255, 255, 255, 0.45) 20px,
-    #FFFFFF 25px,
-    rgba(255, 255, 255, 0.45) 30px,
-    /* 2 nur orasidagi aniq qora/shaffof ajratuvchi bo'shliq (uzluksiz bitta tasma bo'lib qolmasligi uchun) */
-    transparent 32px,
-    transparent 56px,
-    /* 2-nur: 58-90px oralig'idagi kengroq va kuchli oq oyna nuri */
-    rgba(255, 255, 255, 0.4) 58px,
-    rgba(255, 255, 255, 0.95) 66px,
-    #FFFFFF 74px,
-    rgba(255, 255, 255, 0.95) 82px,
-    rgba(255, 255, 255, 0.4) 90px,
-    transparent 94px,
-    transparent 150px
+    transparent 0%,
+    transparent 8%,
+    /* 1-nur: ingichka tiniq oq oyna nuri */
+    rgba(255, 255, 255, 0.45) 13%,
+    #FFFFFF 17%,
+    rgba(255, 255, 255, 0.45) 21%,
+    /* 2 nur orasidagi aniq ajratuvchi shaffof bo'shliq */
+    transparent 24%,
+    transparent 30%,
+    /* 2-nur: kengroq va yorqin oq oyna nuri */
+    rgba(255, 255, 255, 0.45) 34%,
+    rgba(255, 255, 255, 0.96) 40%,
+    #FFFFFF 44%,
+    rgba(255, 255, 255, 0.96) 48%,
+    rgba(255, 255, 255, 0.45) 54%,
+    transparent 60%,
+    transparent 100%
   );
-  transform: skewX(-25deg);
+  transform: translate3d(-85%, 0, 0) skewX(-25deg);
   pointer-events: none;
   opacity: 0;
   z-index: 3;
+  will-change: transform, opacity;
 }
 
 .selloi-btn-glass:hover,
@@ -183,8 +185,9 @@
 }
 
 /* Hover glare animatsiyasi: sichqoncha / kursor hover bo'lganda 2 ta oq diagonal nur chapdan o'ngga o'tadi */
-.selloi-btn-glass:hover::after {
-  animation: selloi-glass-glare 1.6s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+.selloi-btn-glass:hover::after,
+.selloi-btn-glass:focus-visible::after {
+  animation: selloi-glass-glare 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
 /* Faqatgina sof sensorli ekranli (hover imkoniyati bo'lmagan) mobil qurilmalarda qotib qolmasligi uchun o'chirish */
@@ -198,22 +201,22 @@
 
 @keyframes selloi-glass-glare {
   0% {
-    left: -160px;
+    transform: translate3d(-85%, 0, 0) skewX(-25deg);
     opacity: 0;
   }
   8% {
     opacity: 1;
   }
-  65% {
-    left: calc(100% + 40px);
+  72% {
+    transform: translate3d(115%, 0, 0) skewX(-25deg);
     opacity: 1;
   }
-  75% {
-    left: calc(100% + 40px);
+  85% {
+    transform: translate3d(115%, 0, 0) skewX(-25deg);
     opacity: 0;
   }
   100% {
-    left: calc(100% + 40px);
+    transform: translate3d(115%, 0, 0) skewX(-25deg);
     opacity: 0;
   }
 }
@@ -339,11 +342,44 @@
   height: 50%;
   background: linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.25) 0%,
+    rgba(255, 255, 255, 0.28) 0%,
     rgba(255, 255, 255, 0.02) 100%
   );
   border-radius: 40px 40px 0 0;
   pointer-events: none;
+}
+
+.selloi-nav-liquid-pill::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: 0;
+  width: 100%;
+  height: 200%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.35) 35%,
+    rgba(255, 255, 255, 0.6) 45%,
+    rgba(255, 255, 255, 0.35) 55%,
+    transparent 80%
+  );
+  transform: translate3d(-110%, 0, 0) skewX(-25deg);
+  pointer-events: none;
+  opacity: 0;
+}
+
+.selloi-nav-liquid-pill.hovered {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.48);
+  box-shadow:
+    0 6px 24px 0 rgba(0, 0, 0, 0.5),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.65),
+    0 0 22px 0 rgba(255, 255, 255, 0.18);
+}
+
+.selloi-nav-liquid-pill.hovered::after {
+  animation: selloi-glass-glare 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
 .selloi-nav-link {
@@ -448,6 +484,12 @@
   animation: selloi-fade-in-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
 }
 
+.selloi-hero-btn-wrap {
+  display: inline-block;
+  max-width: 100%;
+  animation: selloi-fade-in-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both;
+}
+
 .selloi-hero-btn {
   width: 450px;
   max-width: 100%;
@@ -458,7 +500,6 @@
   font-size: 20px;
   font-weight: 600;
   letter-spacing: -0.4px;
-  animation: selloi-fade-in-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both;
 }
 
 @keyframes selloi-fade-in-up {
@@ -518,6 +559,13 @@
   }
 }
 
+.selloi-hero-float-wrap {
+  position: relative;
+  z-index: 2;
+  animation: selloi-hero-float 6s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
 .selloi-browser-mockup {
   width: 873px;
   height: 470px;
@@ -527,8 +575,28 @@
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 30px rgba(255, 76, 99, 0.12);
   position: relative;
   z-index: 2;
-  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.5s ease;
-  animation: selloi-hero-float 6s ease-in-out infinite alternate;
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.45s ease;
+}
+
+.selloi-browser-mockup::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: 0;
+  width: 100%;
+  height: 200%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.08) 32%,
+    rgba(255, 255, 255, 0.24) 40%,
+    rgba(255, 255, 255, 0.08) 48%,
+    transparent 65%
+  );
+  transform: translate3d(-90%, 0, 0) skewX(-22deg);
+  pointer-events: none;
+  opacity: 0;
+  z-index: 4;
 }
 
 @keyframes selloi-hero-float {
@@ -544,8 +612,12 @@
 }
 
 .selloi-browser-mockup:hover {
-  transform: translateY(-12px) scale(1.01) !important;
-  box-shadow: 0 28px 75px rgba(0, 0, 0, 0.65), 0 0 45px rgba(255, 76, 99, 0.22);
+  transform: translateY(-8px) scale(1.012);
+  box-shadow: 0 28px 75px rgba(0, 0, 0, 0.65), 0 0 45px rgba(255, 76, 99, 0.24);
+}
+
+.selloi-browser-mockup:hover::after {
+  animation: selloi-glass-glare 1.6s cubic-bezier(0.4, 0, 0.2, 1) 1;
 }
 
 .selloi-browser-header {
@@ -656,6 +728,8 @@
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
   opacity: 0;
   transform: translateY(22px);
   transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
@@ -664,16 +738,66 @@
               opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+.selloi-card-tall > *,
+.selloi-card-small > *,
+.selloi-demo-card > *,
+.selloi-trial-card > *,
+.selloi-trial-plan-item > *,
+.selloi-cta-card > * {
+  position: relative;
+  z-index: 2;
+}
+
+.selloi-card-tall::after,
+.selloi-card-small::after,
+.selloi-demo-card::after,
+.selloi-trial-card::after,
+.selloi-trial-plan-item::after,
+.selloi-cta-card::after,
+.selloi-card-glare-layer::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: 0;
+  width: 100%;
+  height: 200%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.05) 32%,
+    rgba(255, 255, 255, 0.16) 40%,
+    rgba(255, 255, 255, 0.05) 48%,
+    transparent 65%
+  );
+  transform: translate3d(-95%, 0, 0) skewX(-25deg);
+  pointer-events: none;
+  opacity: 0;
+  z-index: 3;
+  will-change: transform, opacity;
+}
+
 .selloi-imkoniyatlar-section.selloi-in-view .selloi-card-tall {
   opacity: 1;
   transform: translateY(0);
   transition-delay: 0.1s;
 }
 
+.selloi-imkoniyatlar-section.selloi-in-view .selloi-card-tall:hover,
 .selloi-card-tall:hover {
-  transform: translateY(-5px);
+  transform: translateY(-6px);
+  transition-delay: 0s;
   border-color: rgba(255, 76, 99, 0.45);
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45), 0 0 25px rgba(255, 76, 99, 0.08);
+}
+
+.selloi-card-tall:hover::after,
+.selloi-card-small:hover::after,
+.selloi-demo-card:hover::after,
+.selloi-trial-card:hover::after,
+.selloi-trial-plan-item:hover::after,
+.selloi-cta-card:hover::after,
+.selloi-plan-card:hover .selloi-card-glare-layer::after {
+  animation: selloi-glass-glare 1.4s cubic-bezier(0.4, 0, 0.2, 1) 1;
 }
 
 .selloi-card-tag {
@@ -766,6 +890,8 @@
   height: 208px;
   padding: 24px 27px;
   box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
   opacity: 0;
   transform: translateY(22px);
   transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
@@ -777,17 +903,19 @@
 .selloi-imkoniyatlar-section.selloi-in-view .selloi-cards-stacked > .selloi-card-small:nth-child(1) {
   opacity: 1;
   transform: translateY(0);
-  transition-delay: 0.22s;
+  transition-delay: 0.2s;
 }
 
 .selloi-imkoniyatlar-section.selloi-in-view .selloi-cards-stacked > .selloi-card-small:nth-child(2) {
   opacity: 1;
   transform: translateY(0);
-  transition-delay: 0.36s;
+  transition-delay: 0.32s;
 }
 
+.selloi-imkoniyatlar-section.selloi-in-view .selloi-cards-stacked > .selloi-card-small:hover,
 .selloi-card-small:hover {
-  transform: translateY(-4px);
+  transform: translateY(-5px);
+  transition-delay: 0s;
   border-color: rgba(255, 76, 99, 0.45);
   box-shadow: 0 14px 32px rgba(0, 0, 0, 0.4), 0 0 22px rgba(255, 76, 99, 0.08);
 }
@@ -858,8 +986,10 @@
   transition-delay: 0.38s;
 }
 
+.selloi-how-section.selloi-in-view .selloi-how-step:hover,
 .selloi-how-step:hover {
-  transform: translateY(-4px);
+  transform: translateY(-5px);
+  transition-delay: 0s;
 }
 
 .selloi-how-line {
@@ -974,6 +1104,13 @@
   display: flex;
   flex-direction: column;
   position: relative;
+  overflow: hidden;
+  transition: border-color 0.35s ease, box-shadow 0.35s ease;
+}
+
+.selloi-demo-card:hover {
+  border-color: rgba(255, 76, 99, 0.35);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.45);
 }
 
 .selloi-demo-header {
@@ -1530,12 +1667,39 @@
   padding: 14px 10px;
   cursor: pointer;
   text-align: center;
-  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(18px);
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.25s ease,
+              box-shadow 0.25s ease,
+              opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1);
   user-select: none;
 }
 
+.selloi-trial-section.selloi-in-view .selloi-trial-plan-item:nth-child(1) {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.1s;
+}
+
+.selloi-trial-section.selloi-in-view .selloi-trial-plan-item:nth-child(2) {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.22s;
+}
+
+.selloi-trial-section.selloi-in-view .selloi-trial-plan-item:nth-child(3) {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.34s;
+}
+
+.selloi-trial-section.selloi-in-view .selloi-trial-plan-item:hover,
 .selloi-trial-plan-item:hover {
-  transform: translateY(-3px);
+  transform: translateY(-4px);
+  transition-delay: 0s;
   border-color: rgba(255, 76, 99, 0.5);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
 }
@@ -1727,13 +1891,45 @@
   flex-direction: column;
   justify-content: space-between;
   position: relative;
-  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+  opacity: 0;
+  transform: translateY(24px);
+  transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1),
               border-color 0.35s ease,
-              box-shadow 0.35s ease;
+              box-shadow 0.35s ease,
+              opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+.selloi-card-glare-layer {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.selloi-tarif-section.selloi-in-view .selloi-plan-card:nth-child(1) {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.08s;
+}
+
+.selloi-tarif-section.selloi-in-view .selloi-plan-card:nth-child(2) {
+  opacity: 1;
+  transform: translateY(-4px);
+  transition-delay: 0.2s;
+}
+
+.selloi-tarif-section.selloi-in-view .selloi-plan-card:nth-child(3) {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.32s;
+}
+
+.selloi-tarif-section.selloi-in-view .selloi-plan-card:hover,
 .selloi-plan-card:hover {
   transform: translateY(-6px);
+  transition-delay: 0s;
   border-color: rgba(255, 255, 255, 0.25);
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
 }
@@ -1743,11 +1939,12 @@
   border-color: var(--selloi-accent);
   background: linear-gradient(180deg, rgba(255, 76, 99, 0.08) 0%, #161617 40%);
   box-shadow: 0 0 35px rgba(255, 76, 99, 0.18), 0 16px 36px rgba(0, 0, 0, 0.5);
-  transform: translateY(-4px);
 }
 
+.selloi-tarif-section.selloi-in-view .selloi-plan-card.popular:hover,
 .selloi-plan-card.popular:hover {
   transform: translateY(-10px);
+  transition-delay: 0s;
   box-shadow: 0 0 45px rgba(255, 76, 99, 0.28), 0 24px 50px rgba(0, 0, 0, 0.55);
 }
 
@@ -1766,6 +1963,7 @@
   border-radius: 9999px;
   box-shadow: 0 4px 12px rgba(255, 76, 99, 0.4);
   white-space: nowrap;
+  z-index: 5;
 }
 
 .selloi-plan-header {
@@ -1884,14 +2082,23 @@
 }
 
 .selloi-plan-cta-default {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.12) 0%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.18);
   color: var(--selloi-text-primary);
 }
 
 .selloi-plan-cta-default:hover {
-  background: rgba(255, 255, 255, 0.14);
-  border-color: rgba(255, 255, 255, 0.25);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.26) 0%,
+    rgba(255, 255, 255, 0.12) 55%,
+    rgba(255, 255, 255, 0.06) 100%
+  );
+  border-color: rgba(255, 255, 255, 0.6);
   transform: translateY(-2px);
 }
 
@@ -1929,8 +2136,9 @@
     gap: 20px;
   }
 
+  .selloi-tarif-section.selloi-in-view .selloi-plan-card:nth-child(2),
   .selloi-plan-card.popular {
-    transform: none;
+    transform: translateY(0);
   }
 
   .selloi-pricing-title {
@@ -2093,9 +2301,11 @@
   transition-delay: 0.38s;
 }
 
+.selloi-faq-section.selloi-in-view .selloi-faq-item:hover,
 .selloi-faq-item:hover {
   border-top-color: rgba(255, 76, 99, 0.4);
   padding-left: 6px;
+  transition-delay: 0s;
 }
 
 .selloi-faq-item:last-child {
@@ -2807,42 +3017,13 @@
 }
 
 /* --------------------------------------------------------------------------
-   ACCESSIBILITY: PREFERS-REDUCED-MOTION (WCAG 2.1 Compliant)
+   ACCESSIBILITY: SMOOTH ACCESSIBLE MOTION FALLBACK
+   Preserves user-triggered hover glass glare & interactive reveals even when OS
+   "Show animations in Windows" / battery saver toggles prefers-reduced-motion.
    -------------------------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-
-  .selloi-reveal-item,
-  .selloi-card-tall,
-  .selloi-card-small,
-  .selloi-how-step,
-  .selloi-faq-item,
-  .selloi-hero-right,
-  .selloi-hero-title,
-  .selloi-hero-subtitle,
-  .selloi-hero-btn {
-    opacity: 1 !important;
-    transform: none !important;
-    transition: none !important;
-    animation: none !important;
-  }
-
-  .selloi-browser-mockup {
-    animation: none !important;
-  }
-
+  .selloi-hero-float-wrap,
   .selloi-hero-mockup-glow {
-    animation: none !important;
-  }
-
-  .selloi-btn-glass::after {
-    display: none !important;
+    animation-duration: 10s;
   }
 }

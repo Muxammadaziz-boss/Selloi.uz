@@ -26,8 +26,29 @@ export default function ConversationDemoSection({
   // 8: Order confirmation card delivered
   const [step, setStep] = useState<number>(0);
   const [typedInput, setTypedInput] = useState<string>("");
+  const [hasStarted, setHasStarted] = useState<boolean>(false);
+  const sectionRef = useRef<HTMLElement | null>(null);
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
   const isHoveredRef = useRef<boolean>(false);
+
+  // Start live typing simulation only once section enters viewport
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el || hasStarted) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setHasStarted(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.15 }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasStarted]);
 
   // Auto-scroll ONLY the chat messages container smoothly whenever step advances
   // (Never scroll window/viewport, preventing page jumping bugs)
@@ -42,6 +63,7 @@ export default function ConversationDemoSection({
 
   // Main automated simulation sequence
   useEffect(() => {
+    if (!hasStarted) return;
     let timer: NodeJS.Timeout;
 
     if (step === 0) {
@@ -112,10 +134,11 @@ export default function ConversationDemoSection({
     }
 
     return () => clearTimeout(timer);
-  }, [step, t]);
+  }, [hasStarted, step, t]);
 
   const handleRestart = (e: React.MouseEvent) => {
     e.stopPropagation();
+    setHasStarted(true);
     setTypedInput("");
     setStep(0);
   };
@@ -129,7 +152,7 @@ export default function ConversationDemoSection({
   };
 
   return (
-    <section className="selloi-demo-section selloi-reveal-item" id="suhbat-namunasi" data-node-id="182:375">
+    <section ref={sectionRef} className="selloi-demo-section selloi-reveal-item" id="suhbat-namunasi" data-node-id="182:375">
       <div className="selloi-container">
         <div className="selloi-demo-grid">
           {/* Left Column Content */}

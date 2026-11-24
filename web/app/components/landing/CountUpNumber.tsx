@@ -22,23 +22,38 @@ export default function CountUpNumber({
   const elementRef = useRef<HTMLSpanElement>(null);
   const prevValueRef = useRef<number>(0);
 
-  // Trigger animation once element enters viewport
+  // Trigger animation once element enters viewport (with initial + scroll fallback)
   useEffect(() => {
     const el = elementRef.current;
-    if (!el) return;
+    if (!el || isVisible) return;
+
+    const checkInView = () => {
+      const rect = el.getBoundingClientRect();
+      if (rect.top <= window.innerHeight * 0.96 && rect.bottom >= 0) {
+        setIsVisible(true);
+        return true;
+      }
+      return false;
+    };
 
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0] && entries[0].isIntersecting) {
           setIsVisible(true);
+          observer.disconnect();
         }
       },
-      { threshold: 0.15 }
+      { threshold: 0.05 }
     );
 
     observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
+    checkInView();
+    window.addEventListener("scroll", checkInView, { passive: true });
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("scroll", checkInView);
+    };
+  }, [isVisible]);
 
   // Animate number when visible or when target value changes
   useEffect(() => {
@@ -60,13 +75,14 @@ export default function CountUpNumber({
       const easeProgress = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
       const nextVal = Math.round(startValue + (endValue - startValue) * easeProgress);
 
+      prevValueRef.current = nextVal;
       setCurrentValue(nextVal);
 
       if (progress < 1) {
         animFrameId = window.requestAnimationFrame(step);
       } else {
-        setCurrentValue(endValue);
         prevValueRef.current = endValue;
+        setCurrentValue(endValue);
       }
     };
 
