@@ -164,10 +164,11 @@ function LandingPageContent({ isAuthenticated = false }: LandingPageProps) {
         {/* 3. Qanday ishlaydi? */}
         <HowItWorksSection t={t.qandayIshlaydi} />
 
-        {/* 4. Suhbatdan namuna (Jonli Demo) */}
+        {/* 4. Suhbatdan namuna (Telegram Live Demo) */}
         <ConversationDemoSection
           onOpenOnboarding={() => setIsOnboardingOpen(true)}
           isAuthenticated={isAuthenticated}
+          language={language}
           t={t.suhbatNamunasi}
         />
 

@@ -700,7 +700,6 @@
 
 .selloi-card-tall > *,
 .selloi-card-small > *,
-.selloi-demo-card > *,
 .selloi-cta-card > * {
   position: relative;
   z-index: 2;
@@ -1035,7 +1034,7 @@
 }
 
 /* --------------------------------------------------------------------------
-   4. SUHBAT NAMUNASI
+   4. SUHBAT NAMUNASI (AUTHENTIC TELEGRAM DARK LIVE DEMO)
    -------------------------------------------------------------------------- */
 .selloi-demo-section {
   padding-top: 80px;
@@ -1046,28 +1045,31 @@
   display: flex;
   justify-content: space-between;
   align-items: stretch;
+  gap: 36px;
 }
 
 .selloi-demo-left {
-  width: 575px;
-  padding-top: 30px;
+  width: 472px;
+  flex-shrink: 0;
+  padding-top: 24px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
 }
 
 .selloi-demo-title {
-  font-size: 43px;
+  font-size: 40px;
   font-weight: 700;
-  line-height: 50.74px;
+  line-height: 47px;
   color: var(--selloi-text-primary);
   margin: 0 0 20px 0;
+  letter-spacing: -0.5px;
 }
 
 .selloi-demo-desc {
-  font-size: 18px;
+  font-size: 17.5px;
   font-weight: 500;
-  line-height: 25.2px;
+  line-height: 25px;
   color: var(--selloi-text-secondary);
   margin: 0 0 32px 0;
 }
@@ -1080,113 +1082,350 @@
   letter-spacing: -0.4px;
 }
 
-.selloi-demo-card {
-  width: 594px;
-  height: 590px;
-  background: var(--selloi-card-bg);
-  border: 1px solid var(--selloi-card-border);
-  border-radius: 22px;
-  padding: 20px 24px 18px 24px;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  position: relative;
+/* Telegram Desktop Window Shell */
+.selloi-tg-window {
+  flex: 1;
+  max-width: 732px;
+  height: 620px;
+  background: #17212B;
+  border: 1px solid #242F3D;
+  border-radius: 20px;
   overflow: hidden;
+  display: flex;
+  position: relative;
+  box-shadow: 0 26px 64px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(82, 136, 193, 0.1);
   transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1),
               border-color 0.35s ease,
               box-shadow 0.35s ease;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
-.selloi-demo-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 24px;
-  right: 24px;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.65), rgba(255, 76, 99, 0.55), transparent);
-  opacity: 0.25;
-  transition: opacity 0.35s ease;
-  pointer-events: none;
-  z-index: 3;
-}
-
-.selloi-demo-card:hover {
+.selloi-tg-window:hover {
   transform: translateY(-4px);
-  border-color: rgba(255, 76, 99, 0.4);
-  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.5), 0 0 28px rgba(16, 185, 129, 0.08);
+  border-color: rgba(82, 136, 193, 0.58);
+  box-shadow: 0 32px 76px rgba(0, 0, 0, 0.65), 0 0 36px rgba(42, 171, 238, 0.15);
 }
 
-.selloi-demo-card:hover::before {
-  opacity: 1;
+/* Mobile Switcher Tabs (hidden on desktop) */
+.selloi-tg-mobile-tabs {
+  display: none;
 }
 
-.selloi-demo-card:hover .selloi-demo-live-badge {
-  border-color: rgba(16, 185, 129, 0.6);
-  box-shadow: 0 0 14px rgba(16, 185, 129, 0.28);
+/* Left Telegram Sidebar */
+.selloi-tg-sidebar {
+  width: 222px;
+  flex-shrink: 0;
+  background: #17212B;
+  border-right: 1px solid #0E1621;
+  display: flex;
+  flex-direction: column;
 }
 
-.selloi-demo-header {
+.selloi-tg-sidebar-top {
+  padding: 12px 10px 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.selloi-tg-menu-btn {
+  color: #7F91A4;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.selloi-tg-sidebar-search {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  background: #242F3C;
+  border-radius: 16px;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #6C7883;
+}
+
+.selloi-tg-sidebar-search input {
+  width: 100%;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #F5F5F5;
+  font-size: 12.5px;
+  font-family: inherit;
+}
+
+.selloi-tg-sidebar-search input::placeholder {
+  color: #6C7883;
+}
+
+.selloi-tg-chat-list {
+  flex: 1;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  overflow-y: auto;
+}
+
+.selloi-tg-chat-item {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  padding: 8px 8px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.2s ease;
+  font-family: inherit;
+}
+
+.selloi-tg-chat-item:hover {
+  background: #202B36;
+}
+
+.selloi-tg-chat-item.active {
+  background: #2B5278;
+}
+
+.selloi-tg-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFFFFF;
+  position: relative;
+}
+
+.selloi-tg-avatar.small {
+  width: 34px;
+  height: 34px;
+}
+
+.selloi-tg-avatar-bot {
+  background: linear-gradient(135deg, #2AABEE 0%, #229ED9 100%);
+  box-shadow: 0 4px 12px rgba(42, 171, 238, 0.28);
+}
+
+.selloi-tg-avatar-channel {
+  background: linear-gradient(135deg, #3B4E70 0%, #24344D 100%);
+  border: 1px solid rgba(100, 181, 246, 0.28);
+}
+
+.selloi-tg-online-ring {
+  position: absolute;
+  bottom: 1px;
+  right: 1px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #4ADE80;
+  border: 2px solid #17212B;
+}
+
+.selloi-tg-chat-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.selloi-tg-chat-row1 {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  gap: 4px;
+  margin-bottom: 3px;
 }
 
-.selloi-demo-card-title {
-  font-size: 22px;
-  font-weight: 700;
-  line-height: 28px;
-  color: var(--selloi-text-primary);
-  margin: 0;
-}
-
-.selloi-demo-card-sub {
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 18px;
-  color: var(--selloi-text-secondary);
-  margin: 2px 0 0 0;
-}
-
-.selloi-demo-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.selloi-demo-live-badge {
+.selloi-tg-chat-name {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  background: rgba(16, 185, 129, 0.12);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 12px;
+  gap: 4px;
+  font-size: 13px;
   font-weight: 600;
-  color: #10B981;
+  color: #F5F5F5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.selloi-demo-live-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #10B981;
-  box-shadow: 0 0 8px #10B981;
-  animation: selloi-pulse-dot 1.8s infinite;
+.selloi-tg-verified {
+  flex-shrink: 0;
+  display: inline-block;
 }
 
-@keyframes selloi-pulse-dot {
-  0% { transform: scale(0.9); opacity: 0.6; }
-  50% { transform: scale(1.2); opacity: 1; }
-  100% { transform: scale(0.9); opacity: 0.6; }
+.selloi-tg-chat-time {
+  font-size: 11px;
+  color: #7F91A4;
+  flex-shrink: 0;
+}
+
+.selloi-tg-chat-item.active .selloi-tg-chat-time {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.selloi-tg-chat-row2 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px;
+}
+
+.selloi-tg-chat-preview {
+  font-size: 12px;
+  color: #7F91A4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.selloi-tg-chat-preview.typing {
+  color: #64B5F6;
+}
+
+.selloi-tg-chat-item.active .selloi-tg-chat-preview {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.selloi-tg-unread {
+  background: #5288C1;
+  color: #FFFFFF;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 9999px;
+  flex-shrink: 0;
+}
+
+.selloi-tg-unread.count {
+  background: rgba(82, 136, 193, 0.22);
+  color: #7BC0F8;
+  border: 1px solid rgba(100, 181, 246, 0.25);
+}
+
+.selloi-tg-sidebar-footer {
+  margin: 8px;
+  padding: 10px;
+  border-radius: 10px;
+  background: #1C2733;
+  border: 1px solid rgba(100, 181, 246, 0.14);
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  font-size: 11.5px;
+  line-height: 15.5px;
+  color: #8CA2B8;
+}
+
+.selloi-tg-sidebar-footer svg {
+  flex-shrink: 0;
+  color: #5288C1;
+  margin-top: 1px;
+}
+
+/* Main Telegram Chat & Wallpaper Area */
+.selloi-tg-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.selloi-tg-wallpaper {
+  background-color: #0E1621;
+  background-image:
+    radial-gradient(circle at 80% 15%, rgba(42, 171, 238, 0.08) 0%, transparent 55%),
+    radial-gradient(circle at 15% 85%, rgba(82, 136, 193, 0.07) 0%, transparent 55%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg fill='none' stroke='%2388A4C4' stroke-opacity='0.055' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m26 18 14-5-3 14-4-4-7 2 3-4z'/%3E%3Crect x='74' y='16' width='22' height='14' rx='2'/%3E%3Cpath d='M71 33h28'/%3E%3Ccircle cx='30' cy='76' r='9'/%3E%3Cpath d='M27 76h6M30 73v6'/%3E%3Crect x='72' y='68' width='24' height='16' rx='3'/%3E%3Cpath d='M77 74h14M77 79h9'/%3E%3Cpath d='M48 48c0-4 3.5-7 8-7s8 3 8 7c0 3-2 5.5-5 6.5L55 58v-3c-4-.5-7-3-7-7z'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: auto, auto, 120px 120px;
+}
+
+.selloi-tg-header {
+  background: #17212B;
+  border-bottom: 1px solid #0E1621;
+  padding: 9px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  z-index: 2;
+}
+
+.selloi-tg-header-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.selloi-tg-header-title {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #F5F5F5;
+  line-height: 1.25;
+}
+
+.selloi-tg-header-status {
+  font-size: 12px;
+  color: #7F91A4;
+  line-height: 1.25;
+}
+
+.selloi-tg-header-status.typing {
+  color: #64B5F6;
+  font-weight: 600;
+}
+
+.selloi-tg-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.selloi-tg-switch-pill {
+  background: rgba(82, 136, 193, 0.16);
+  border: 1px solid rgba(100, 181, 246, 0.28);
+  color: #7BC0F8;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.selloi-tg-switch-pill:hover {
+  background: rgba(82, 136, 193, 0.3);
+  color: #FFFFFF;
+}
+
+.selloi-tg-switch-pill.chat {
+  background: rgba(42, 171, 238, 0.2);
+  color: #FFFFFF;
 }
 
 .selloi-demo-restart-btn {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  color: var(--selloi-text-secondary);
+  color: #8CA2B8;
   width: 28px;
   height: 28px;
   border-radius: 50%;
@@ -1198,41 +1437,93 @@
 }
 
 .selloi-demo-restart-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: var(--selloi-text-primary);
+  background: rgba(82, 136, 193, 0.25);
+  color: #FFFFFF;
   transform: rotate(180deg);
 }
 
-.selloi-demo-messages {
-  flex: 1;
-  overflow-y: auto;
+/* Telegram Pinned Bar */
+.selloi-tg-pinned {
+  width: 100%;
+  background: rgba(23, 33, 43, 0.94);
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 6px 14px;
   display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding-right: 4px;
-  scroll-behavior: smooth;
-  margin-bottom: 8px;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  text-align: left;
+  color: #64B5F6;
+  font-family: inherit;
+  transition: background-color 0.2s ease;
 }
 
-.selloi-demo-messages::-webkit-scrollbar {
+.selloi-tg-pinned:hover {
+  background: #1F2C39;
+}
+
+.selloi-tg-pinned-bar {
+  width: 2.5px;
+  height: 16px;
+  border-radius: 2px;
+  background: #5288C1;
+  flex-shrink: 0;
+}
+
+.selloi-tg-pinned-text {
+  font-size: 12px;
+  font-weight: 500;
+  color: #D2E3F4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Telegram Messages Area */
+.selloi-tg-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 14px 8px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  scroll-behavior: smooth;
+}
+
+.selloi-tg-messages::-webkit-scrollbar,
+.selloi-tg-channel-feed::-webkit-scrollbar,
+.selloi-tg-chat-list::-webkit-scrollbar {
   width: 4px;
 }
-.selloi-demo-messages::-webkit-scrollbar-track {
-  background: transparent;
-}
-.selloi-demo-messages::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
+
+.selloi-tg-messages::-webkit-scrollbar-thumb,
+.selloi-tg-channel-feed::-webkit-scrollbar-thumb,
+.selloi-tg-chat-list::-webkit-scrollbar-thumb {
+  background: rgba(127, 145, 164, 0.25);
   border-radius: 4px;
 }
 
+.selloi-tg-date-pill {
+  align-self: center;
+  background: rgba(14, 22, 33, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  color: #C4D4E4;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  margin-bottom: 2px;
+}
+
 .selloi-demo-msg-enter {
-  animation: selloi-msg-fade 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: selloi-msg-fade 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes selloi-msg-fade {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -1240,129 +1531,249 @@
   }
 }
 
-.selloi-demo-user-msg {
-  background: var(--selloi-user-bubble);
-  border-radius: 16px 16px 4px 16px;
-  padding: 10px 16px;
-  font-size: 14.5px;
-  font-weight: 500;
-  line-height: 20px;
-  color: var(--selloi-text-primary);
-  max-width: 410px;
-  margin-left: auto;
-  box-sizing: border-box;
+.selloi-tg-bubble-wrap {
+  display: flex;
+  flex-direction: column;
+  max-width: 84%;
+  gap: 4px;
 }
 
-.selloi-demo-bot-msg {
-  background: var(--selloi-demo-selloi-bubble);
-  border-radius: 16px 16px 16px 4px;
-  padding: 10px 16px;
-  font-size: 14.5px;
-  font-weight: 500;
-  line-height: 20px;
-  color: var(--selloi-text-primary);
-  max-width: 440px;
-  margin-right: auto;
-  box-sizing: border-box;
+.selloi-tg-bubble-wrap.out {
+  align-self: flex-end;
+  align-items: flex-end;
 }
 
-.selloi-demo-typing-bubble {
-  background: var(--selloi-demo-selloi-bubble);
-  border-radius: 16px 16px 16px 4px;
-  padding: 8px 14px;
+.selloi-tg-bubble-wrap.in {
+  align-self: flex-start;
+  align-items: flex-start;
+}
+
+.selloi-tg-bubble {
+  padding: 8px 12px 6px 12px;
+  font-size: 13.5px;
+  line-height: 19px;
+  color: #F5F5F5;
+  position: relative;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.28);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.selloi-tg-bubble.out {
+  background: #2B5278;
+  border-radius: 14px 14px 4px 14px;
+}
+
+.selloi-tg-bubble.in {
+  background: #182533;
+  border-radius: 14px 14px 14px 4px;
+}
+
+.selloi-tg-bubble.receipt {
+  padding: 10px 12px 8px 12px;
+  border: 1px solid rgba(100, 181, 246, 0.22);
+}
+
+.selloi-tg-bubble-text {
+  margin: 0;
+  word-break: break-word;
+}
+
+.selloi-tg-msg-meta {
+  align-self: flex-end;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  width: fit-content;
-  margin-right: auto;
+  gap: 3px;
+  font-size: 10.5px;
+  color: #7F91A4;
+  line-height: 1;
+  margin-top: 1px;
 }
 
-.selloi-demo-typing-dot {
+.selloi-tg-bubble.out .selloi-tg-msg-meta {
+  color: #8FC0E9;
+}
+
+.selloi-tg-checks {
+  color: #64B5F6;
+}
+
+/* Telegram Quote Block inside Bubble */
+.selloi-tg-quote {
+  border-left: 2.5px solid #64B5F6;
+  background: rgba(0, 0, 0, 0.16);
+  border-radius: 0 6px 6px 0;
+  padding: 4px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.selloi-tg-quote-author {
+  font-size: 11px;
+  font-weight: 700;
+  color: #7BC0F8;
+}
+
+.selloi-tg-quote-text {
+  font-size: 11.5px;
+  color: rgba(245, 245, 245, 0.85);
+}
+
+/* Photo Attachment Card inside Outgoing Bubble */
+.selloi-tg-photo-msg {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 215px;
+}
+
+.selloi-tg-photo-art {
+  background: linear-gradient(135deg, #101A26 0%, #1D2D3E 100%);
+  border: 1px solid rgba(100, 181, 246, 0.2);
+  border-radius: 10px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.selloi-tg-photo-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10.5px;
+}
+
+.selloi-tg-photo-pill {
+  background: rgba(42, 171, 238, 0.22);
+  color: #7BC0F8;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+.selloi-tg-photo-code {
+  color: #8CA2B8;
+  font-weight: 700;
+}
+
+.selloi-tg-photo-icon-wrap {
+  height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64B5F6;
+  background: rgba(42, 171, 238, 0.06);
+  border-radius: 8px;
+}
+
+.selloi-tg-photo-caption-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11.5px;
+}
+
+.selloi-tg-photo-caption-bar strong {
+  color: #FFFFFF;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.selloi-tg-photo-caption-bar span {
+  color: #7BC0F8;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Matched Catalog Results inside Bot Reply */
+.selloi-tg-matched-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.selloi-tg-matched-item {
+  background: rgba(14, 22, 33, 0.55);
+  border: 1px solid rgba(100, 181, 246, 0.16);
+  border-radius: 9px;
+  padding: 7px 9px;
+}
+
+.selloi-tg-matched-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.selloi-tg-matched-head strong {
+  font-size: 12.5px;
+  color: #FFFFFF;
+}
+
+.selloi-tg-matched-price {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64B5F6;
+  white-space: nowrap;
+}
+
+.selloi-tg-matched-specs {
+  font-size: 11.5px;
+  color: #93A7BA;
+  line-height: 1.35;
+}
+
+/* Typing & Vision Analysis Pills */
+.selloi-tg-typing-bubble {
+  background: #182533;
+  border-radius: 14px 14px 14px 4px;
+  padding: 10px 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.selloi-tg-typing-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--selloi-accent);
+  background: #64B5F6;
   animation: selloi-bounce-dot 1.2s infinite ease-in-out;
 }
-.selloi-demo-typing-dot:nth-child(2) { animation-delay: 0.2s; }
-.selloi-demo-typing-dot:nth-child(3) { animation-delay: 0.4s; }
+.selloi-tg-typing-dot:nth-child(2) { animation-delay: 0.18s; }
+.selloi-tg-typing-dot:nth-child(3) { animation-delay: 0.36s; }
 
 @keyframes selloi-bounce-dot {
   0%, 80%, 100% { transform: translateY(0); opacity: 0.35; }
   40% { transform: translateY(-4px); opacity: 1; }
 }
 
-.selloi-demo-typing-label {
-  font-size: 12px;
-  color: var(--selloi-text-secondary);
-  margin-left: 4px;
-}
-
-.selloi-demo-user-photo-card {
-  background: var(--selloi-user-bubble);
-  border-radius: 16px 16px 4px 16px;
-  padding: 6px 6px 10px 6px;
-  max-width: 270px;
-  margin-left: auto;
-  box-sizing: border-box;
-}
-
-.selloi-demo-user-photo-wrapper {
-  position: relative;
-  width: 100%;
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-.selloi-demo-user-photo-img {
-  width: 100%;
-  height: 140px;
-  object-fit: cover;
-  object-position: center 30%;
-  display: block;
-}
-
-.selloi-demo-user-photo-pill {
-  position: absolute;
-  bottom: 6px;
-  left: 6px;
-  background: rgba(0, 0, 0, 0.75);
-  backdrop-filter: blur(4px);
-  padding: 2px 8px;
-  border-radius: 8px;
-  font-size: 11px;
-  font-weight: 600;
-  color: #fff;
-}
-
-.selloi-demo-user-photo-caption {
-  font-size: 13.5px;
-  font-weight: 500;
-  line-height: 19.6px;
-  color: var(--selloi-text-primary);
-  margin: 8px 4px 0 4px;
-}
-
-.selloi-demo-analyzing {
-  background: rgba(255, 76, 99, 0.08);
-  border: 1px dashed rgba(255, 76, 99, 0.4);
+.selloi-tg-analyzing {
+  background: rgba(24, 37, 51, 0.95);
+  border: 1px dashed rgba(100, 181, 246, 0.45);
   border-radius: 12px;
-  padding: 8px 14px;
-  font-size: 13px;
+  padding: 8px 12px;
+  font-size: 12.5px;
   font-weight: 600;
-  color: var(--selloi-accent);
+  color: #64B5F6;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  width: fit-content;
-  margin-right: auto;
 }
 
-.selloi-demo-analyzing-spinner {
+.selloi-tg-spinner {
   width: 12px;
   height: 12px;
-  border: 2px solid rgba(255, 76, 99, 0.3);
-  border-top-color: var(--selloi-accent);
+  border: 2px solid rgba(100, 181, 246, 0.25);
+  border-top-color: #64B5F6;
   border-radius: 50%;
   animation: selloi-spin 0.8s linear infinite;
 }
@@ -1371,200 +1782,224 @@
   to { transform: rotate(360deg); }
 }
 
-.selloi-demo-order-card {
-  background: linear-gradient(135deg, rgba(255, 76, 99, 0.12) 0%, rgba(29, 29, 32, 0.95) 100%);
-  border: 1px solid rgba(255, 76, 99, 0.45);
-  border-radius: 16px;
-  padding: 12px 16px;
-  max-width: 450px;
-  margin-right: auto;
-  box-shadow: 0 8px 24px rgba(255, 76, 99, 0.12);
-}
-
-.selloi-demo-order-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  padding-bottom: 8px;
-  margin-bottom: 8px;
-}
-
-.selloi-demo-order-badge {
-  font-size: 14px;
-  font-weight: 700;
-  color: #F6F6F7;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.selloi-demo-order-check {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #10B981;
-  color: #fff;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.selloi-demo-order-chip {
-  font-size: 10px;
-  font-weight: 700;
-  color: #10B981;
-  background: rgba(16, 185, 129, 0.15);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  padding: 2px 7px;
-  border-radius: 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.selloi-demo-order-body {
-  font-size: 13px;
-  color: #D1D1D6;
-  line-height: 18px;
-}
-
-.selloi-demo-order-row {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 4px;
-}
-
-.selloi-demo-order-label {
-  color: var(--selloi-text-secondary);
-}
-
-.selloi-demo-order-val {
-  color: var(--selloi-text-primary);
-  font-weight: 600;
-}
-
-.selloi-demo-order-price {
-  color: var(--selloi-accent);
-  font-weight: 700;
-}
-
-.selloi-demo-order-status-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  color: #10B981;
-  margin-top: 6px;
-  padding-top: 6px;
-  border-top: 1px dashed rgba(255, 255, 255, 0.08);
-}
-
-.selloi-demo-order-status-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #10B981;
-}
-
-.selloi-demo-chips {
+/* Telegram Inline Bot Keyboard Buttons */
+.selloi-tg-inline-kbd {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 10px;
+  gap: 4px;
+  width: 100%;
 }
 
-.selloi-demo-chip {
-  background: rgba(255, 255, 255, 0.045);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 9999px;
-  padding: 5px 10px;
-  font-size: 11.5px;
+.selloi-tg-inline-kbd.dual {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+
+.selloi-tg-inline-btn {
+  flex: 1 1 auto;
+  background: rgba(82, 136, 193, 0.22);
+  border: 1px solid rgba(100, 181, 246, 0.18);
+  border-radius: 8px;
+  padding: 7px 10px;
+  color: #E3F2FD;
+  font-size: 12px;
   font-weight: 600;
-  line-height: 1.25;
-  color: rgba(255, 255, 255, 0.85);
   cursor: pointer;
-  transition: transform 0.2s ease, border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+  text-align: center;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
   font-family: inherit;
-  white-space: nowrap;
 }
 
-.selloi-demo-chip:hover:not(:disabled) {
-  transform: translateY(-1px);
-  background: rgba(255, 76, 99, 0.14);
-  border-color: rgba(255, 76, 99, 0.45);
+.selloi-tg-inline-btn:hover:not(:disabled) {
+  background: rgba(82, 136, 193, 0.42);
+  border-color: rgba(100, 181, 246, 0.45);
   color: #FFFFFF;
 }
 
-.selloi-demo-chip:disabled {
-  opacity: 0.5;
-  cursor: wait;
+.selloi-tg-inline-btn.primary {
+  background: rgba(42, 171, 238, 0.24);
+  border-color: rgba(42, 171, 238, 0.35);
 }
 
-.selloi-demo-disclaimer {
-  font-size: 11.5px;
-  font-weight: 500;
-  line-height: 16px;
-  color: var(--selloi-text-secondary);
-  margin: 8px 0 0 0;
+.selloi-tg-inline-btn.primary:hover:not(:disabled) {
+  background: #2AABEE;
+  color: #FFFFFF;
 }
 
-.selloi-demo-input {
-  background: var(--selloi-input-bg);
-  border-radius: 22px;
-  height: 44px;
+/* Telegram Order Confirmation Card inside Bot Bubble */
+.selloi-tg-order-card {
+  background: linear-gradient(135deg, rgba(42, 171, 238, 0.12) 0%, rgba(14, 22, 33, 0.85) 100%);
+  border: 1px solid rgba(100, 181, 246, 0.3);
+  border-radius: 10px;
+  padding: 9px 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.selloi-tg-order-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 0 10px 0 18px;
-  box-sizing: border-box;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  gap: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 6px;
 }
 
-.selloi-demo-input:focus-within {
-  border-color: rgba(255, 76, 99, 0.55);
-  box-shadow: 0 0 0 3px rgba(255, 76, 99, 0.12);
+.selloi-tg-order-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #FFFFFF;
 }
 
-.selloi-demo-input-field {
+.selloi-tg-order-check {
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: #22C55E;
+  color: #FFFFFF;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.selloi-tg-order-badge {
+  font-size: 10px;
+  font-weight: 700;
+  color: #64B5F6;
+  background: rgba(82, 136, 193, 0.22);
+  padding: 2px 6px;
+  border-radius: 5px;
+}
+
+.selloi-tg-order-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 12px;
+}
+
+.selloi-tg-order-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.selloi-tg-order-row span {
+  color: #8CA2B8;
+}
+
+.selloi-tg-order-row strong {
+  color: #F5F5F5;
+  text-align: right;
+}
+
+.selloi-tg-order-price {
+  color: #64B5F6 !important;
+}
+
+.selloi-tg-order-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #4ADE80;
+  padding-top: 5px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.08);
+}
+
+.selloi-tg-order-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #4ADE80;
+}
+
+/* Telegram Compose Area & Quick Chips */
+.selloi-tg-composer-wrap {
+  background: #17212B;
+  border-top: 1px solid #0E1621;
+  padding: 8px 12px 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.selloi-tg-quick-row {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.selloi-tg-quick-row::-webkit-scrollbar {
+  display: none;
+}
+
+.selloi-tg-quick-chip {
+  background: #202B36;
+  border: 1px solid rgba(100, 181, 246, 0.2);
+  border-radius: 9999px;
+  padding: 4px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #C7DBF0;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  flex-shrink: 0;
+}
+
+.selloi-tg-quick-chip:hover:not(:disabled) {
+  background: #2B5278;
+  border-color: #5288C1;
+  color: #FFFFFF;
+}
+
+.selloi-tg-composer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #0E1621;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 18px;
+  padding: 5px 6px 5px 10px;
+  transition: border-color 0.2s ease;
+}
+
+.selloi-tg-composer:focus-within {
+  border-color: rgba(82, 136, 193, 0.65);
+}
+
+.selloi-tg-compose-input {
   flex: 1;
   min-width: 0;
   background: transparent;
   border: none;
   outline: none;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--selloi-text-secondary);
-  line-height: 20px;
+  font-size: 13.5px;
+  color: #F5F5F5;
   font-family: inherit;
+  padding: 4px 2px;
 }
 
-.selloi-demo-input-field::placeholder {
-  color: var(--selloi-text-secondary);
-  opacity: 0.85;
+.selloi-tg-compose-input::placeholder {
+  color: #6C7883;
 }
 
-.selloi-demo-input-typing,
-.selloi-demo-input-field:focus {
-  color: var(--selloi-text-primary);
-}
-
-.selloi-demo-input-actions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-}
-
-.selloi-demo-input-icon-btn,
-.selloi-demo-input-send-btn {
+.selloi-tg-compose-icon {
   background: transparent;
   border: none;
-  color: var(--selloi-text-secondary);
+  color: #7F91A4;
   width: 30px;
   height: 30px;
   border-radius: 50%;
@@ -1573,32 +2008,364 @@
   justify-content: center;
   cursor: pointer;
   padding: 0;
+  transition: color 0.2s ease, background-color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.selloi-tg-compose-icon:hover:not(:disabled),
+.selloi-tg-compose-icon.active {
+  color: #64B5F6;
+  background: rgba(82, 136, 193, 0.16);
+}
+
+.selloi-tg-send-btn {
+  background: rgba(82, 136, 193, 0.18);
+  border: none;
+  color: #64B5F6;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
   transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 
-.selloi-demo-input-icon-btn:hover:not(:disabled) {
+.selloi-tg-send-btn.ready,
+.selloi-tg-send-btn:not(:disabled):hover {
+  background: #2AABEE;
   color: #FFFFFF;
-  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 2px 10px rgba(42, 171, 238, 0.4);
 }
 
-.selloi-demo-input-icon-active {
-  color: var(--selloi-accent);
-  transform: scale(1.1);
-  filter: drop-shadow(0 0 6px rgba(255, 76, 99, 0.6));
-}
-
-.selloi-demo-input-arrow-active,
-.selloi-demo-input-send-btn:not(:disabled):hover {
-  color: #FFFFFF;
-  background: var(--selloi-accent);
-  transform: translateX(1px);
-  box-shadow: 0 2px 10px rgba(255, 76, 99, 0.35);
-}
-
-.selloi-demo-input-send-btn:disabled,
-.selloi-demo-input-icon-btn:disabled {
+.selloi-tg-send-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+/* Telegram 100-Product Channel Styles */
+.selloi-tg-channel-toolbar {
+  background: #17212B;
+  border-bottom: 1px solid #0E1621;
+  padding: 8px 12px 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.selloi-tg-channel-search-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.selloi-tg-channel-search {
+  flex: 1;
+  min-width: 0;
+  height: 34px;
+  background: #0E1621;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #7F91A4;
+}
+
+.selloi-tg-channel-search:focus-within {
+  border-color: rgba(82, 136, 193, 0.65);
+}
+
+.selloi-tg-channel-search input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 12.5px;
+  color: #F5F5F5;
+  font-family: inherit;
+}
+
+.selloi-tg-channel-search input::placeholder {
+  color: #6C7883;
+}
+
+.selloi-tg-clear-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  color: #C7DBF0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-size: 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.selloi-tg-count-pill {
+  background: rgba(82, 136, 193, 0.22);
+  border: 1px solid rgba(100, 181, 246, 0.3);
+  color: #7BC0F8;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: 9px;
+  white-space: nowrap;
+}
+
+.selloi-tg-cat-pills {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.selloi-tg-cat-pills::-webkit-scrollbar {
+  display: none;
+}
+
+.selloi-tg-cat-pill {
+  background: #202B36;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 9999px;
+  padding: 4px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #9EB3C8;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.selloi-tg-cat-pill:hover {
+  background: #283645;
+  color: #FFFFFF;
+}
+
+.selloi-tg-cat-pill.active {
+  background: #5288C1;
+  border-color: #64B5F6;
+  color: #FFFFFF;
+}
+
+.selloi-tg-channel-feed {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 12px 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.selloi-tg-post-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.selloi-tg-post-bubble {
+  background: #182533;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 14px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.selloi-tg-post-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.selloi-tg-post-author {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #64B5F6;
+}
+
+.selloi-tg-post-sku {
+  background: rgba(255, 255, 255, 0.07);
+  color: #C7DBF0;
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 5px;
+}
+
+.selloi-tg-post-badge {
+  background: rgba(42, 171, 238, 0.18);
+  color: #7BC0F8;
+  border: 1px solid rgba(42, 171, 238, 0.3);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 6px;
+  letter-spacing: 0.4px;
+}
+
+.selloi-tg-post-card-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.selloi-tg-post-thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.selloi-tg-post-thumb.cat-laptop {
+  background: rgba(42, 171, 238, 0.14);
+  color: #64B5F6;
+  border: 1px solid rgba(42, 171, 238, 0.24);
+}
+
+.selloi-tg-post-thumb.cat-pc {
+  background: rgba(255, 76, 99, 0.14);
+  color: #FF8A98;
+  border: 1px solid rgba(255, 76, 99, 0.24);
+}
+
+.selloi-tg-post-thumb.cat-monitor {
+  background: rgba(34, 211, 238, 0.14);
+  color: #67E8F9;
+  border: 1px solid rgba(34, 211, 238, 0.24);
+}
+
+.selloi-tg-post-thumb.cat-accessory {
+  background: rgba(74, 222, 128, 0.14);
+  color: #4ADE80;
+  border: 1px solid rgba(74, 222, 128, 0.24);
+}
+
+.selloi-tg-post-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.selloi-tg-post-title {
+  margin: 0 0 2px 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #FFFFFF;
+  line-height: 1.3;
+}
+
+.selloi-tg-post-specs {
+  margin: 0 0 4px 0;
+  font-size: 11.5px;
+  color: #8CA2B8;
+  line-height: 1.35;
+}
+
+.selloi-tg-post-pricing {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.selloi-tg-post-price {
+  font-size: 13px;
+  font-weight: 700;
+  color: #FFFFFF;
+}
+
+.selloi-tg-post-installment {
+  font-size: 11px;
+  color: #7BC0F8;
+  font-weight: 500;
+}
+
+.selloi-tg-post-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 2px;
+}
+
+.selloi-tg-post-reactions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.selloi-tg-react-pill {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid transparent;
+  color: #D2E3F4;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.selloi-tg-react-pill.liked,
+.selloi-tg-react-pill:hover {
+  background: rgba(82, 136, 193, 0.28);
+  border-color: rgba(100, 181, 246, 0.4);
+  color: #FFFFFF;
+}
+
+.selloi-tg-stock-tag {
+  font-size: 11px;
+  color: #4ADE80;
+  font-weight: 600;
+}
+
+.selloi-tg-post-views {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #7F91A4;
+}
+
+.selloi-tg-empty-state {
+  margin: auto;
+  text-align: center;
+  padding: 36px 20px;
+  color: #7F91A4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.selloi-tg-disclaimer {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 17px;
+  color: var(--selloi-text-secondary);
+  margin: 12px 0 0 auto;
+  max-width: 732px;
+  text-align: left;
 }
 
 /* --------------------------------------------------------------------------
@@ -2578,6 +3345,14 @@
   .selloi-cta-card {
     width: 100%;
   }
+
+  .selloi-demo-left {
+    width: 380px;
+  }
+
+  .selloi-tg-sidebar {
+    width: 196px;
+  }
 }
 
 @media (max-width: 1080px) {
@@ -2639,7 +3414,7 @@
 
   .selloi-demo-grid {
     flex-direction: column;
-    gap: 40px;
+    gap: 32px;
   }
 
   .selloi-demo-left {
@@ -2647,15 +3422,15 @@
     padding-top: 0;
   }
 
-  .selloi-demo-card {
+  .selloi-tg-window {
     width: 100%;
-    height: auto;
-    min-height: 540px;
+    max-width: 100%;
+    height: 600px;
   }
 
-  .selloi-demo-messages {
-    min-height: 280px;
-    max-height: 360px;
+  .selloi-tg-disclaimer {
+    margin-left: 0;
+    max-width: 100%;
   }
 
   .selloi-faq-grid {
@@ -2798,12 +3573,62 @@
     box-sizing: border-box;
     padding: 0 16px;
     font-size: 16px;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
   }
 
-  .selloi-demo-user-msg,
-  .selloi-demo-bot-msg {
-    width: 100%;
+  .selloi-tg-window {
+    flex-direction: column;
+    height: auto;
+    border-radius: 16px;
+  }
+
+  .selloi-tg-sidebar {
+    display: none;
+  }
+
+  .selloi-tg-mobile-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    background: #17212B;
+    border-bottom: 1px solid #0E1621;
+  }
+
+  .selloi-tg-mobile-tab {
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 10px 8px;
+    color: #7F91A4;
+    font-size: 12.5px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s ease;
+  }
+
+  .selloi-tg-mobile-tab.active {
+    color: #64B5F6;
+    border-bottom-color: #2AABEE;
+    background: rgba(42, 171, 238, 0.08);
+  }
+
+  .selloi-tg-messages,
+  .selloi-tg-channel-feed {
+    min-height: 310px;
+    max-height: 390px;
+  }
+
+  .selloi-tg-bubble-wrap {
+    max-width: 92%;
+  }
+
+  .selloi-tg-switch-pill {
+    font-size: 11px;
+    padding: 4px 8px;
   }
 
   .selloi-tarif-card {

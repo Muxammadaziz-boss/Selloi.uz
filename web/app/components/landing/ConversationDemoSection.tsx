@@ -1,48 +1,136 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { Language } from "@/app/lib/i18n/types";
 import { SelloiTranslations } from "./selloiI18n";
+import {
+  TELEGRAM_COMPUTER_CATALOG,
+  TelegramComputerProduct,
+  ComputerCategory,
+  formatUzs,
+  matchCatalogProducts,
+} from "./telegramDemoCatalog";
+import {
+  TgPaperPlaneIcon,
+  TgVerifiedBadge,
+  TgDoubleCheckIcon,
+  TgMegaphoneIcon,
+  TgBotIcon,
+  TgSearchIcon,
+  TgMenuIcon,
+  TgAttachIcon,
+  TgSmileIcon,
+  TgEyeIcon,
+  TgPinIcon,
+  TgHardwareIcon,
+} from "./TelegramIcons";
 
 interface ConversationDemoSectionProps {
   onOpenOnboarding: () => void;
   isAuthenticated?: boolean;
+  language?: Language;
   t: SelloiTranslations["suhbatNamunasi"];
 }
 
-interface CustomDemoMessage {
+interface TgChatMessage {
   id: string;
   role: "user" | "bot";
   text: string;
-  hasPhoto?: boolean;
-  hasOrder?: boolean;
+  time: string;
+  quote?: {
+    author: string;
+    text: string;
+  };
+  photoProduct?: TelegramComputerProduct;
+  matchedProducts?: TelegramComputerProduct[];
+  showUtilityButtons?: boolean;
+  orderProduct?: TelegramComputerProduct;
+  orderCode?: string;
 }
 
-function DemoOrderCard({ t }: { t: SelloiTranslations["suhbatNamunasi"] }) {
+const HERO_LAPTOP = TELEGRAM_COMPUTER_CATALOG[0]; // TZ-001 ASUS ROG Strix G16
+const VISION_RIG = TELEGRAM_COMPUTER_CATALOG[37] || TELEGRAM_COMPUTER_CATALOG[35]; // TZ-038 / PC build
+
+function formatTimeNow(): string {
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2, "0");
+  const m = String(now.getMinutes()).padStart(2, "0");
+  return `${h}:${m}`;
+}
+
+function TgOrderCard({
+  product,
+  orderCode,
+  language,
+  t,
+}: {
+  product: TelegramComputerProduct;
+  orderCode: string;
+  language: Language;
+  t: SelloiTranslations["suhbatNamunasi"];
+}) {
   return (
-    <div className="selloi-demo-order-card selloi-demo-msg-enter">
-      <div className="selloi-demo-order-header">
-        <div className="selloi-demo-order-badge">
-          <span className="selloi-demo-order-check">✓</span>
-          <span>{t.orderBadge}</span>
-        </div>
-        <span className="selloi-demo-order-chip">{t.orderChipLabel}</span>
-      </div>
-      <div className="selloi-demo-order-body">
-        <div className="selloi-demo-order-row">
-          <span className="selloi-demo-order-label">{t.orderProductLabel}</span>
-          <span className="selloi-demo-order-val">{t.orderProduct}</span>
-        </div>
-        <div className="selloi-demo-order-row">
-          <span className="selloi-demo-order-label">{t.orderPriceLabel}</span>
-          <span className="selloi-demo-order-val selloi-demo-order-price">
-            {t.orderPrice}
+    <div className="selloi-tg-order-card">
+      <div className="selloi-tg-order-top">
+        <span className="selloi-tg-order-title">
+          <span className="selloi-tg-order-check">✓</span>
+          <span>
+            {t.orderBadge.replace("#TZ-4821", `#${orderCode}`)}
           </span>
+        </span>
+        <span className="selloi-tg-order-badge">{t.orderChipLabel}</span>
+      </div>
+      <div className="selloi-tg-order-rows">
+        <div className="selloi-tg-order-row">
+          <span>{t.orderProductLabel}</span>
+          <strong>
+            {product.name} ({product.code})
+          </strong>
         </div>
-        <div className="selloi-demo-order-status-row">
-          <span className="selloi-demo-order-status-dot" />
-          <span>{t.orderStatus}</span>
+        <div className="selloi-tg-order-row">
+          <span>{t.orderPriceLabel}</span>
+          <strong className="selloi-tg-order-price">
+            {formatUzs(product.priceUzs, language)}
+          </strong>
         </div>
       </div>
+      <div className="selloi-tg-order-status">
+        <span className="selloi-tg-order-dot" />
+        <span>
+          {t.orderStatus} • {product.warrantyMonths} {t.tg.warrantyLabel}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function TgPhotoAttachment({
+  product,
+  language,
+  photoLabel,
+  caption,
+}: {
+  product: TelegramComputerProduct;
+  language: Language;
+  photoLabel: string;
+  caption: string;
+}) {
+  return (
+    <div className="selloi-tg-photo-msg">
+      <div className="selloi-tg-photo-art">
+        <div className="selloi-tg-photo-top-row">
+          <span className="selloi-tg-photo-pill">{photoLabel}</span>
+          <span className="selloi-tg-photo-code">{product.code}</span>
+        </div>
+        <div className="selloi-tg-photo-icon-wrap">
+          <TgHardwareIcon category={product.category} size={36} />
+        </div>
+        <div className="selloi-tg-photo-caption-bar">
+          <strong>{product.name}</strong>
+          <span>{formatUzs(product.priceUzs, language)}</span>
+        </div>
+      </div>
+      <p className="selloi-tg-bubble-text">{caption}</p>
     </div>
   );
 }
@@ -50,28 +138,31 @@ function DemoOrderCard({ t }: { t: SelloiTranslations["suhbatNamunasi"] }) {
 export default function ConversationDemoSection({
   onOpenOnboarding,
   isAuthenticated = false,
+  language = "uz",
   t,
 }: ConversationDemoSectionProps) {
-  // Step sequence (auto showcase until user interacts):
-  // 0: Typing initial question in input box
-  // 1: User message 1 sent
-  // 2: Bot typing indicator
-  // 3: Bot message 1 delivered
-  // 4: Simulated input uploading photo
-  // 5: User photo message sent
-  // 6: Bot AI vision analyzing photo
-  // 7: Bot recognition message delivered
-  // 8: Order confirmation card delivered
+  const tg = t.tg;
+
+  // Pane state: "chat" = Selloi AI seller, "channel" = TechZone UZ 100-product channel
+  const [activePane, setActivePane] = useState<"chat" | "channel">("chat");
+
+  // Automated demo state (runs until user interacts)
   const [step, setStep] = useState<number>(0);
   const [typedInput, setTypedInput] = useState<string>("");
   const [hasStarted, setHasStarted] = useState<boolean>(false);
 
-  // Interactive Live Demo state
+  // Interactive Live Telegram Chat state
   const [interactiveMode, setInteractiveMode] = useState<boolean>(false);
   const [userInput, setUserInput] = useState<string>("");
-  const [customMessages, setCustomMessages] = useState<CustomDemoMessage[]>([]);
-  const [isBotResponding, setIsBotResponding] = useState<boolean>(false);
+  const [customMessages, setCustomMessages] = useState<TgChatMessage[]>([]);
+  const [isBotTyping, setIsBotTyping] = useState<boolean>(false);
   const [isAnalyzingPhoto, setIsAnalyzingPhoto] = useState<boolean>(false);
+
+  // Sidebar & 100-Product Channel Filter state
+  const [sidebarSearch, setSidebarSearch] = useState<string>("");
+  const [channelCategory, setChannelCategory] = useState<"all" | ComputerCategory>("all");
+  const [channelQuery, setChannelQuery] = useState<string>("");
+  const [likedPosts, setLikedPosts] = useState<Record<number, boolean>>({});
 
   const sectionRef = useRef<HTMLElement | null>(null);
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
@@ -79,7 +170,20 @@ export default function ConversationDemoSection({
   const isHoveredRef = useRef<boolean>(false);
   const replyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Start automated live demo only once section enters viewport
+  const filteredCatalog = useMemo(() => {
+    const q = channelQuery.trim().toLowerCase();
+    return TELEGRAM_COMPUTER_CATALOG.filter((item) => {
+      if (channelCategory !== "all" && item.category !== channelCategory) {
+        return false;
+      }
+      if (!q) return true;
+      return `${item.code} ${item.brand} ${item.name} ${item.specs} ${item.category}`
+        .toLowerCase()
+        .includes(q);
+    });
+  }, [channelCategory, channelQuery]);
+
+  // Viewport Intersection trigger
   useEffect(() => {
     const el = sectionRef.current;
     if (!el || hasStarted) return;
@@ -91,33 +195,32 @@ export default function ConversationDemoSection({
           observer.disconnect();
         }
       },
-      { threshold: 0.15 }
+      { threshold: 0.12 }
     );
 
     observer.observe(el);
     return () => observer.disconnect();
   }, [hasStarted]);
 
-  // Smoothly auto-scroll chat container when automated steps or custom replies update
+  // Keep chat scrolled smoothly to bottom (never scrolling outer window)
   useEffect(() => {
-    if (messagesContainerRef.current) {
+    if (activePane === "chat" && messagesContainerRef.current) {
       messagesContainerRef.current.scrollTo({
         top: messagesContainerRef.current.scrollHeight,
         behavior: "smooth",
       });
     }
-  }, [step, customMessages.length, isBotResponding]);
+  }, [activePane, step, customMessages.length, isBotTyping]);
 
-  // Cleanup pending interactive reply timer on unmount
   useEffect(() => {
     return () => {
       if (replyTimerRef.current) clearTimeout(replyTimerRef.current);
     };
   }, []);
 
-  // Main automated simulation loop (paused cleanly when user enters interactive mode)
+  // Automated Telegram Showcase sequence
   useEffect(() => {
-    if (!hasStarted || interactiveMode) return;
+    if (!hasStarted || interactiveMode || activePane !== "chat") return;
     let timer: ReturnType<typeof setTimeout>;
     let checkHover: ReturnType<typeof setInterval> | null = null;
 
@@ -134,9 +237,9 @@ export default function ConversationDemoSection({
           timer = setTimeout(() => {
             setTypedInput("");
             setStep(1);
-          }, 350);
+          }, 320);
         }
-      }, 22);
+      }, 20);
 
       return () => {
         clearInterval(typeInterval);
@@ -145,25 +248,25 @@ export default function ConversationDemoSection({
     }
 
     if (step === 1) {
-      timer = setTimeout(() => setStep(2), 850);
+      timer = setTimeout(() => setStep(2), 750);
     } else if (step === 2) {
-      timer = setTimeout(() => setStep(3), 1600);
+      timer = setTimeout(() => setStep(3), 1350);
     } else if (step === 3) {
       timer = setTimeout(() => {
         setTypedInput(t.uploadingPhotoText);
         setStep(4);
-      }, 1500);
+      }, 1600);
     } else if (step === 4) {
       timer = setTimeout(() => {
         setTypedInput("");
         setStep(5);
-      }, 1000);
+      }, 850);
     } else if (step === 5) {
-      timer = setTimeout(() => setStep(6), 800);
+      timer = setTimeout(() => setStep(6), 700);
     } else if (step === 6) {
-      timer = setTimeout(() => setStep(7), 1600);
+      timer = setTimeout(() => setStep(7), 1350);
     } else if (step === 7) {
-      timer = setTimeout(() => setStep(8), 1200);
+      timer = setTimeout(() => setStep(8), 1000);
     } else if (step === 8) {
       timer = setTimeout(() => {
         if (!isHoveredRef.current) {
@@ -176,128 +279,206 @@ export default function ConversationDemoSection({
             }
           }, 1000);
         }
-      }, 10000);
+      }, 11000);
     }
 
     return () => {
       clearTimeout(timer);
       if (checkHover) clearInterval(checkHover);
     };
-  }, [hasStarted, interactiveMode, step, t]);
+  }, [hasStarted, interactiveMode, activePane, step, t]);
 
   const enterInteractiveMode = () => {
-    if (!interactiveMode) {
-      setHasStarted(true);
-      setInteractiveMode(true);
-      setTypedInput("");
-    }
+    setHasStarted(true);
+    setInteractiveMode(true);
+    setTypedInput("");
   };
 
-  const resolveBotReply = (
-    messageText: string,
+  const buildSmartBotResponse = (
+    query: string,
     explicitPrompt?: SelloiTranslations["suhbatNamunasi"]["quickPrompts"][number]
-  ): { text: string; hasOrder?: boolean } => {
-    if (explicitPrompt) {
+  ): Omit<TgChatMessage, "id" | "role" | "time"> => {
+    const q = query.toLowerCase();
+
+    if (explicitPrompt?.id === "order") {
       return {
         text: explicitPrompt.botReply,
-        hasOrder: explicitPrompt.id === "order",
+        orderProduct: HERO_LAPTOP,
+        orderCode: "TZ-4821",
       };
     }
 
-    const q = messageText.toLowerCase();
-    const byId = (id: SelloiTranslations["suhbatNamunasi"]["quickPrompts"][number]["id"]) =>
-      t.quickPrompts.find((p) => p.id === id);
+    if (/(yetkaz|dostav|достав|courier|kuryer|manzil|adres|deliver|shipping)/i.test(q)) {
+      return {
+        text: tg.deliveryReplyText,
+        showUtilityButtons: true,
+      };
+    }
 
-    if (/(yetkaz|dostav|достав|manzil|adres|deliver|shipping)/i.test(q)) {
-      return { text: byId("delivery")?.botReply || t.botMsgLine1 + " " + t.botMsgLine2 };
+    if (/(buyurtma|zakaz|заказ|olaman|rasmiy|order|checkout|buy now)/i.test(q)) {
+      const { matches } = matchCatalogProducts(query, TELEGRAM_COMPUTER_CATALOG);
+      const chosen = matches[0] || HERO_LAPTOP;
+      return {
+        text: tg.orderConfirmedPrefix,
+        orderProduct: chosen,
+        orderCode: `TZ-${4800 + chosen.id}`,
+      };
     }
-    if (/(buyurtma|zakaz|заказ|olaman|rasmiy|order|checkout|buy)/i.test(q)) {
-      return { text: byId("order")?.botReply || t.orderBadge, hasOrder: true };
+
+    const { matches, budgetUzs } = matchCatalogProducts(query, TELEGRAM_COMPUTER_CATALOG);
+    if (explicitPrompt) {
+      return {
+        text: explicitPrompt.botReply,
+        matchedProducts: matches,
+        showUtilityButtons: true,
+      };
     }
-    if (/(rasm|foto|фото|photo|image|ko'rsat|покаж)/i.test(q)) {
-      return { text: t.step4BotRecognition };
-    }
-    if (/(razmer|o'lcham|narx|qancha|necha|bormi|rang|размер|цена|цвет|сколько|наличи|size|price|color|stock)/i.test(q)) {
-      return { text: byId("stock")?.botReply || t.step2BotText };
-    }
-    return { text: t.fallbackReply };
+
+    const prefix = budgetUzs ? tg.matchedBudgetText : tg.matchedHeaderText;
+    return {
+      text: prefix,
+      matchedProducts: matches,
+      showUtilityButtons: true,
+    };
   };
 
-  const sendMessage = (
+  const sendUserText = (
     rawText: string,
     options?: {
-      hasPhoto?: boolean;
+      quote?: { author: string; text: string };
+      photoProduct?: TelegramComputerProduct;
       prompt?: SelloiTranslations["suhbatNamunasi"]["quickPrompts"][number];
+      directOrderProduct?: TelegramComputerProduct;
+      directConsultProduct?: TelegramComputerProduct;
     }
   ) => {
     const clean = rawText.trim();
-    if (!clean || isBotResponding) return;
+    if (!clean || isBotTyping) return;
 
     enterInteractiveMode();
+    setActivePane("chat");
     if (replyTimerRef.current) clearTimeout(replyTimerRef.current);
 
-    const userMsgId = `u-${Date.now()}`;
-    setCustomMessages((prev) => [
-      ...prev,
-      {
-        id: userMsgId,
-        role: "user",
-        text: clean,
-        hasPhoto: options?.hasPhoto,
-      },
-    ]);
+    const nowTime = formatTimeNow();
+    const userMsg: TgChatMessage = {
+      id: `u-${Date.now()}`,
+      role: "user",
+      text: clean,
+      time: nowTime,
+      quote: options?.quote,
+      photoProduct: options?.photoProduct,
+    };
+
+    setCustomMessages((prev) => [...prev, userMsg]);
     setUserInput("");
 
-    const isPhoto = Boolean(options?.hasPhoto);
-    setIsBotResponding(true);
+    const isPhoto = Boolean(options?.photoProduct);
+    setIsBotTyping(true);
     setIsAnalyzingPhoto(isPhoto);
 
     replyTimerRef.current = setTimeout(() => {
-      const reply = resolveBotReply(clean, options?.prompt);
-      setIsBotResponding(false);
+      setIsBotTyping(false);
       setIsAnalyzingPhoto(false);
+
+      let botPayload: Omit<TgChatMessage, "id" | "role" | "time">;
+      if (options?.directOrderProduct) {
+        const prod = options.directOrderProduct;
+        botPayload = {
+          text: tg.orderConfirmedPrefix,
+          orderProduct: prod,
+          orderCode: `TZ-${4800 + prod.id}`,
+        };
+      } else if (options?.directConsultProduct) {
+        const prod = options.directConsultProduct;
+        const monthly = Math.round((prod.priceUzs * 1.16) / 12);
+        botPayload = {
+          text: `${prod.name} (${prod.code}) • ${prod.specs} — ${tg.inStockLabel}: ${prod.stock}, ${prod.warrantyMonths} ${tg.warrantyLabel}. ${formatUzs(prod.priceUzs, language)} (${formatUzs(monthly, language).replace(/ (so‘m|сум|UZS)$/i, "")} ${tg.installmentSuffix}).`,
+          matchedProducts: [prod],
+          showUtilityButtons: true,
+        };
+      } else if (options?.photoProduct) {
+        botPayload = {
+          text: tg.photoVisionReply,
+          matchedProducts: [options.photoProduct],
+          showUtilityButtons: true,
+        };
+      } else {
+        botPayload = buildSmartBotResponse(clean, options?.prompt);
+      }
+
       setCustomMessages((prev) => [
         ...prev,
         {
           id: `b-${Date.now()}`,
           role: "bot",
-          text: reply.text,
-          hasOrder: reply.hasOrder,
+          time: formatTimeNow(),
+          ...botPayload,
         },
       ]);
-    }, isPhoto ? 1250 : 850);
+    }, isPhoto ? 1100 : 720);
   };
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    sendMessage(userInput);
+    sendUserText(userInput);
   };
 
   const handleQuickPrompt = (
     prompt: SelloiTranslations["suhbatNamunasi"]["quickPrompts"][number]
   ) => {
-    sendMessage(prompt.userText, {
-      hasPhoto: prompt.id === "photo",
-      prompt,
-    });
+    if (prompt.id === "photo") {
+      sendUserText(prompt.userText, { photoProduct: VISION_RIG, prompt });
+    } else {
+      sendUserText(prompt.userText, { prompt });
+    }
   };
 
   const handlePhotoAttachClick = () => {
-    const photoPrompt = t.quickPrompts.find((p) => p.id === "photo");
-    if (photoPrompt) {
-      handleQuickPrompt(photoPrompt);
-    } else {
-      sendMessage(t.step3UserCaption, { hasPhoto: true });
-    }
+    sendUserText(tg.photoVisionPrompt, { photoProduct: VISION_RIG });
+  };
+
+  const handleProductConsult = (product: TelegramComputerProduct) => {
+    sendUserText(
+      `${product.name} (${product.code}) — ${tg.askProductPromptPrefix}`,
+      {
+        quote: {
+          author: `${tg.channelTitle} • ${product.code}`,
+          text: `${product.name} — ${formatUzs(product.priceUzs, language)}`,
+        },
+        directConsultProduct: product,
+      }
+    );
+  };
+
+  const handleProductOrder = (product: TelegramComputerProduct) => {
+    sendUserText(
+      `${product.name} (${product.code}) — ${tg.orderButton.replace(/^🛒\s*/, "")}`,
+      {
+        quote: {
+          author: `${tg.channelTitle} • ${product.code}`,
+          text: `${product.name} — ${formatUzs(product.priceUzs, language)}`,
+        },
+        directOrderProduct: product,
+      }
+    );
+  };
+
+  const handleAskDelivery = () => {
+    sendUserText(tg.deliveryInfoButton.replace(/^🚚\s*/, ""));
+  };
+
+  const handleToggleLike = (productId: number) => {
+    setLikedPosts((prev) => ({ ...prev, [productId]: !prev[productId] }));
   };
 
   const handleRestart = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (replyTimerRef.current) clearTimeout(replyTimerRef.current);
     setInteractiveMode(false);
+    setActivePane("chat");
     setUserInput("");
     setCustomMessages([]);
-    setIsBotResponding(false);
+    setIsBotTyping(false);
     setIsAnalyzingPhoto(false);
     setHasStarted(true);
     setTypedInput("");
@@ -312,8 +493,33 @@ export default function ConversationDemoSection({
     }
   };
 
+  const isAutoTypingHeader = !interactiveMode && (step === 2 || step === 6);
+  const botTypingNow = isBotTyping || isAutoTypingHeader;
+  const analyzingNow = isAnalyzingPhoto || (!interactiveMode && step === 6);
+  const headerStatusText = analyzingNow
+    ? tg.botAnalyzingStatus
+    : botTypingNow
+    ? tg.botTypingStatus
+    : tg.botOnlineSub;
+
   const activeInputValue = interactiveMode ? userInput : typedInput;
-  const canSubmit = interactiveMode && userInput.trim().length > 0 && !isBotResponding;
+  const canSubmit = interactiveMode && userInput.trim().length > 0 && !isBotTyping;
+
+  // Sidebar live preview text
+  const lastMsg = customMessages[customMessages.length - 1];
+  const sidebarBotPreview = botTypingNow
+    ? headerStatusText
+    : lastMsg
+    ? lastMsg.text
+    : interactiveMode
+    ? tg.chatPreviewFallback
+    : step >= 3
+    ? t.step2BotText
+    : tg.chatPreviewFallback;
+
+  const sq = sidebarSearch.trim().toLowerCase();
+  const showBotRow = !sq || `${tg.botTitle} selloi ai bot`.toLowerCase().includes(sq);
+  const showChannelRow = !sq || `${tg.channelTitle} ${tg.channelHandle} kompyuter pc laptop`.toLowerCase().includes(sq);
 
   return (
     <section
@@ -354,9 +560,9 @@ export default function ConversationDemoSection({
             </button>
           </div>
 
-          {/* Right Column Demo Card — Suhbatdan namuna (Jonli Demo) */}
+          {/* Right Column: Authentic Modern Telegram Dark Client */}
           <div
-            className="selloi-demo-card"
+            className="selloi-tg-window"
             data-node-id="182:380"
             onMouseEnter={() => {
               isHoveredRef.current = true;
@@ -365,265 +571,729 @@ export default function ConversationDemoSection({
               isHoveredRef.current = false;
             }}
           >
-            {/* Header with Title and Live Indicator */}
-            <div className="selloi-demo-header">
-              <div>
-                <h3 className="selloi-demo-card-title" data-node-id="182:381">
-                  {t.cardTitle}
-                </h3>
-                <p className="selloi-demo-card-sub" data-node-id="182:382">
-                  {t.cardSub}
-                </p>
-              </div>
-
-              <div className="selloi-demo-header-actions">
-                <div className="selloi-demo-live-badge" title={t.liveBadge}>
-                  <span className="selloi-demo-live-dot" />
-                  <span>{t.liveBadge}</span>
-                </div>
-                <button
-                  type="button"
-                  className="selloi-demo-restart-btn"
-                  onClick={handleRestart}
-                  title="Qaytadan boshlash"
-                  aria-label="Restart simulation"
-                >
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" />
-                  </svg>
-                </button>
-              </div>
+            {/* Mobile Compact Chat/Channel Switcher */}
+            <div className="selloi-tg-mobile-tabs" role="tablist">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activePane === "chat"}
+                className={`selloi-tg-mobile-tab ${activePane === "chat" ? "active" : ""}`}
+                onClick={() => setActivePane("chat")}
+              >
+                <TgBotIcon size={15} />
+                <span>{tg.botTitle}</span>
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activePane === "channel"}
+                className={`selloi-tg-mobile-tab ${activePane === "channel" ? "active" : ""}`}
+                onClick={() => setActivePane("channel")}
+              >
+                <TgMegaphoneIcon size={15} />
+                <span>{tg.channelTitle} (100)</span>
+              </button>
             </div>
 
-            {/* Live Animated + Interactive Messages Container */}
-            <div className="selloi-demo-messages" ref={messagesContainerRef}>
-              {/* Automated Steps */}
-              {step >= 1 && (
-                <div className="selloi-demo-user-msg selloi-demo-msg-enter" data-node-id="182:383">
-                  <span data-node-id="182:384">{t.step1UserText}</span>
+            {/* Desktop Telegram Left Sidebar */}
+            <aside className="selloi-tg-sidebar">
+              <div className="selloi-tg-sidebar-top">
+                <span className="selloi-tg-menu-btn" aria-hidden="true">
+                  <TgMenuIcon size={17} />
+                </span>
+                <div className="selloi-tg-sidebar-search">
+                  <TgSearchIcon size={14} />
+                  <input
+                    type="text"
+                    value={sidebarSearch}
+                    onChange={(e) => setSidebarSearch(e.target.value)}
+                    placeholder={tg.searchSidebarPlaceholder}
+                    aria-label={tg.searchSidebarPlaceholder}
+                  />
                 </div>
-              )}
+              </div>
 
-              {!interactiveMode && step === 2 && (
-                <div className="selloi-demo-typing-bubble selloi-demo-msg-enter">
-                  <span className="selloi-demo-typing-dot" />
-                  <span className="selloi-demo-typing-dot" />
-                  <span className="selloi-demo-typing-dot" />
-                  <span className="selloi-demo-typing-label">{t.typingIndicator}</span>
-                </div>
-              )}
+              <div className="selloi-tg-chat-list">
+                {showBotRow && (
+                  <button
+                    type="button"
+                    className={`selloi-tg-chat-item ${activePane === "chat" ? "active" : ""}`}
+                    onClick={() => setActivePane("chat")}
+                  >
+                    <div className="selloi-tg-avatar selloi-tg-avatar-bot">
+                      <TgPaperPlaneIcon size={19} />
+                      <span className="selloi-tg-online-ring" />
+                    </div>
+                    <div className="selloi-tg-chat-meta">
+                      <div className="selloi-tg-chat-row1">
+                        <span className="selloi-tg-chat-name">
+                          <span>{tg.botTitle}</span>
+                          <TgVerifiedBadge size={13} />
+                        </span>
+                        <span className="selloi-tg-chat-time">14:04</span>
+                      </div>
+                      <div className="selloi-tg-chat-row2">
+                        <span
+                          className={`selloi-tg-chat-preview ${
+                            botTypingNow ? "typing" : ""
+                          }`}
+                        >
+                          {sidebarBotPreview}
+                        </span>
+                        {!interactiveMode && activePane !== "chat" && (
+                          <span className="selloi-tg-unread">1</span>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                )}
 
-              {step >= 3 && (
-                <div className="selloi-demo-bot-msg selloi-demo-msg-enter" data-node-id="182:385">
-                  <span data-node-id="182:386">{t.step2BotText}</span>
-                </div>
-              )}
+                {showChannelRow && (
+                  <button
+                    type="button"
+                    className={`selloi-tg-chat-item ${activePane === "channel" ? "active" : ""}`}
+                    onClick={() => setActivePane("channel")}
+                  >
+                    <div className="selloi-tg-avatar selloi-tg-avatar-channel">
+                      <TgHardwareIcon category="pc" size={20} />
+                    </div>
+                    <div className="selloi-tg-chat-meta">
+                      <div className="selloi-tg-chat-row1">
+                        <span className="selloi-tg-chat-name">
+                          <TgMegaphoneIcon size={13} />
+                          <span>{tg.channelTitle}</span>
+                          <TgVerifiedBadge size={13} />
+                        </span>
+                        <span className="selloi-tg-chat-time">13:58</span>
+                      </div>
+                      <div className="selloi-tg-chat-row2">
+                        <span className="selloi-tg-chat-preview">
+                          {tg.channelSidebarPreview}
+                        </span>
+                        <span className="selloi-tg-unread count">100</span>
+                      </div>
+                    </div>
+                  </button>
+                )}
 
-              {step >= 5 && (
-                <div className="selloi-demo-user-photo-card selloi-demo-msg-enter">
-                  <div className="selloi-demo-user-photo-wrapper">
-                    <img
-                      src="/figma/sample-sneaker.jpg"
-                      alt="Nike Air Force (tovar rasmini AI orqali tanish namunasi)"
-                      width={600}
-                      height={400}
-                      loading="lazy"
-                      decoding="async"
-                      className="selloi-demo-user-photo-img"
-                    />
-                    <div className="selloi-demo-user-photo-pill">
-                      <span>{t.photoLabel}</span>
+                {sq && !showBotRow && !showChannelRow && (
+                  <button
+                    type="button"
+                    className="selloi-tg-chat-item active"
+                    onClick={() => {
+                      setChannelCategory("all");
+                      setChannelQuery(sidebarSearch);
+                      setActivePane("channel");
+                    }}
+                  >
+                    <div className="selloi-tg-avatar selloi-tg-avatar-channel">
+                      <TgSearchIcon size={16} />
+                    </div>
+                    <div className="selloi-tg-chat-meta">
+                      <div className="selloi-tg-chat-row1">
+                        <span className="selloi-tg-chat-name">{tg.channelHandle}</span>
+                      </div>
+                      <div className="selloi-tg-chat-row2">
+                        <span className="selloi-tg-chat-preview typing">
+                          “{sidebarSearch}” →
+                        </span>
+                      </div>
+                    </div>
+                  </button>
+                )}
+              </div>
+
+              <div className="selloi-tg-sidebar-footer">
+                <TgBotIcon size={15} />
+                <span>{tg.sidebarHint}</span>
+              </div>
+            </aside>
+
+            {/* Main Active Telegram View */}
+            <div className="selloi-tg-main selloi-tg-wallpaper">
+              {activePane === "chat" ? (
+                <>
+                  {/* Telegram Chat Top Bar */}
+                  <div className="selloi-tg-header">
+                    <div className="selloi-tg-header-info">
+                      <div className="selloi-tg-avatar selloi-tg-avatar-bot small">
+                        <TgPaperPlaneIcon size={16} />
+                      </div>
+                      <div>
+                        <div className="selloi-tg-header-title">
+                          <span>{tg.botTitle}</span>
+                          <TgVerifiedBadge size={14} />
+                        </div>
+                        <div
+                          className={`selloi-tg-header-status ${
+                            botTypingNow ? "typing" : ""
+                          }`}
+                        >
+                          {headerStatusText}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="selloi-tg-header-actions">
+                      <button
+                        type="button"
+                        className="selloi-tg-switch-pill"
+                        onClick={() => setActivePane("channel")}
+                      >
+                        {tg.switchToChannelBtn}
+                      </button>
+                      <button
+                        type="button"
+                        className="selloi-demo-restart-btn"
+                        onClick={handleRestart}
+                        title="Reset"
+                        aria-label="Restart simulation"
+                      >
+                        <svg
+                          width="13"
+                          height="13"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.4"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" />
+                        </svg>
+                      </button>
                     </div>
                   </div>
-                  <p className="selloi-demo-user-photo-caption">{t.step3UserCaption}</p>
-                </div>
-              )}
 
-              {!interactiveMode && step === 6 && (
-                <div className="selloi-demo-analyzing selloi-demo-msg-enter">
-                  <span className="selloi-demo-analyzing-spinner" />
-                  <span>{t.analyzingIndicator}</span>
-                </div>
-              )}
+                  {/* Telegram Pinned Bar */}
+                  <button
+                    type="button"
+                    className="selloi-tg-pinned"
+                    onClick={() => setActivePane("channel")}
+                  >
+                    <span className="selloi-tg-pinned-bar" />
+                    <TgPinIcon size={13} />
+                    <span className="selloi-tg-pinned-text">{tg.pinnedText}</span>
+                  </button>
 
-              {step >= 7 && (
-                <div className="selloi-demo-bot-msg selloi-demo-msg-enter">
-                  <span>{t.step4BotRecognition}</span>
-                </div>
-              )}
+                  {/* Telegram Messages Stream */}
+                  <div className="selloi-tg-messages" ref={messagesContainerRef}>
+                    <div className="selloi-tg-date-pill">
+                      <span>{tg.todayLabel}</span>
+                    </div>
 
-              {step >= 8 && <DemoOrderCard t={t} />}
+                    {/* Automated Demo Flow */}
+                    {step >= 1 && (
+                      <div className="selloi-tg-bubble-wrap out selloi-demo-msg-enter" data-node-id="182:383">
+                        <div className="selloi-tg-bubble out">
+                          <div className="selloi-tg-quote">
+                            <span className="selloi-tg-quote-author">
+                              {tg.quoteChannelLabel} • {HERO_LAPTOP.code}
+                            </span>
+                            <span className="selloi-tg-quote-text">
+                              {HERO_LAPTOP.name}
+                            </span>
+                          </div>
+                          <p className="selloi-tg-bubble-text" data-node-id="182:384">
+                            {t.step1UserText}
+                          </p>
+                          <span className="selloi-tg-msg-meta">
+                            <span>14:01</span>
+                            <TgDoubleCheckIcon size={14} />
+                          </span>
+                        </div>
+                      </div>
+                    )}
 
-              {/* Initial friendly seed prompt when user focuses before step 1 fires */}
-              {interactiveMode && step < 1 && customMessages.length === 0 && !isBotResponding && (
-                <>
-                  <div className="selloi-demo-user-msg selloi-demo-msg-enter">
-                    <span>{t.userMsg}</span>
+                    {!interactiveMode && step === 2 && (
+                      <div className="selloi-tg-bubble-wrap in selloi-demo-msg-enter">
+                        <div className="selloi-tg-typing-bubble">
+                          <span className="selloi-tg-typing-dot" />
+                          <span className="selloi-tg-typing-dot" />
+                          <span className="selloi-tg-typing-dot" />
+                        </div>
+                      </div>
+                    )}
+
+                    {step >= 3 && (
+                      <div className="selloi-tg-bubble-wrap in selloi-demo-msg-enter" data-node-id="182:385">
+                        <div className="selloi-tg-bubble in">
+                          <p className="selloi-tg-bubble-text" data-node-id="182:386">
+                            {t.step2BotText}
+                          </p>
+                          <span className="selloi-tg-msg-meta">
+                            <span>14:01</span>
+                          </span>
+                        </div>
+                        <div className="selloi-tg-inline-kbd">
+                          <button
+                            type="button"
+                            className="selloi-tg-inline-btn"
+                            onClick={() => handleProductOrder(HERO_LAPTOP)}
+                          >
+                            {tg.orderButton} ({HERO_LAPTOP.code})
+                          </button>
+                          <button
+                            type="button"
+                            className="selloi-tg-inline-btn"
+                            onClick={() => setActivePane("channel")}
+                          >
+                            {tg.otherOptionsButton}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {step >= 5 && (
+                      <div className="selloi-tg-bubble-wrap out selloi-demo-msg-enter">
+                        <div className="selloi-tg-bubble out photo">
+                          <TgPhotoAttachment
+                            product={HERO_LAPTOP}
+                            language={language}
+                            photoLabel={t.photoLabel}
+                            caption={t.step3UserCaption}
+                          />
+                          <span className="selloi-tg-msg-meta">
+                            <span>14:02</span>
+                            <TgDoubleCheckIcon size={14} />
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {!interactiveMode && step === 6 && (
+                      <div className="selloi-tg-bubble-wrap in selloi-demo-msg-enter">
+                        <div className="selloi-tg-analyzing">
+                          <span className="selloi-tg-spinner" />
+                          <span>{t.analyzingIndicator}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {step >= 7 && (
+                      <div className="selloi-tg-bubble-wrap in selloi-demo-msg-enter">
+                        <div className="selloi-tg-bubble in">
+                          <p className="selloi-tg-bubble-text">{t.step4BotRecognition}</p>
+                          <span className="selloi-tg-msg-meta">
+                            <span>14:02</span>
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {step >= 8 && (
+                      <div className="selloi-tg-bubble-wrap in selloi-demo-msg-enter">
+                        <div className="selloi-tg-bubble in receipt">
+                          <TgOrderCard
+                            product={HERO_LAPTOP}
+                            orderCode="TZ-4821"
+                            language={language}
+                            t={t}
+                          />
+                          <span className="selloi-tg-msg-meta">
+                            <span>14:03</span>
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {interactiveMode && step < 1 && customMessages.length === 0 && !isBotTyping && (
+                      <>
+                        <div className="selloi-tg-bubble-wrap out selloi-demo-msg-enter">
+                          <div className="selloi-tg-bubble out">
+                            <p className="selloi-tg-bubble-text">{t.userMsg}</p>
+                            <span className="selloi-tg-msg-meta">
+                              <span>14:00</span>
+                              <TgDoubleCheckIcon size={14} />
+                            </span>
+                          </div>
+                        </div>
+                        <div className="selloi-tg-bubble-wrap in selloi-demo-msg-enter">
+                          <div className="selloi-tg-bubble in">
+                            <p className="selloi-tg-bubble-text">
+                              {t.botMsgLine1} {t.botMsgLine2}
+                            </p>
+                            <span className="selloi-tg-msg-meta">
+                              <span>14:00</span>
+                            </span>
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {/* Custom Interactive Messages */}
+                    {customMessages.map((msg) =>
+                      msg.role === "user" ? (
+                        <div key={msg.id} className="selloi-tg-bubble-wrap out selloi-demo-msg-enter">
+                          <div className={`selloi-tg-bubble out ${msg.photoProduct ? "photo" : ""}`}>
+                            {msg.quote && (
+                              <div className="selloi-tg-quote">
+                                <span className="selloi-tg-quote-author">{msg.quote.author}</span>
+                                <span className="selloi-tg-quote-text">{msg.quote.text}</span>
+                              </div>
+                            )}
+                            {msg.photoProduct ? (
+                              <TgPhotoAttachment
+                                product={msg.photoProduct}
+                                language={language}
+                                photoLabel={t.photoLabel}
+                                caption={msg.text}
+                              />
+                            ) : (
+                              <p className="selloi-tg-bubble-text">{msg.text}</p>
+                            )}
+                            <span className="selloi-tg-msg-meta">
+                              <span>{msg.time}</span>
+                              <TgDoubleCheckIcon size={14} />
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div key={msg.id} className="selloi-tg-bubble-wrap in selloi-demo-msg-enter">
+                          <div className={`selloi-tg-bubble in ${msg.orderProduct ? "receipt" : ""}`}>
+                            <p className="selloi-tg-bubble-text">{msg.text}</p>
+
+                            {msg.matchedProducts && msg.matchedProducts.length > 0 && (
+                              <div className="selloi-tg-matched-list">
+                                {msg.matchedProducts.map((item) => (
+                                  <div key={item.code} className="selloi-tg-matched-item">
+                                    <div className="selloi-tg-matched-head">
+                                      <strong>{item.name}</strong>
+                                      <span className="selloi-tg-matched-price">
+                                        {formatUzs(item.priceUzs, language)}
+                                      </span>
+                                    </div>
+                                    <div className="selloi-tg-matched-specs">{item.specs}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {msg.orderProduct && (
+                              <TgOrderCard
+                                product={msg.orderProduct}
+                                orderCode={msg.orderCode || "TZ-4890"}
+                                language={language}
+                                t={t}
+                              />
+                            )}
+
+                            <span className="selloi-tg-msg-meta">
+                              <span>{msg.time}</span>
+                            </span>
+                          </div>
+
+                          {(msg.matchedProducts?.length || msg.showUtilityButtons) && (
+                            <div className="selloi-tg-inline-kbd">
+                              {msg.matchedProducts?.map((prod) => (
+                                <button
+                                  key={prod.code}
+                                  type="button"
+                                  className="selloi-tg-inline-btn"
+                                  disabled={isBotTyping}
+                                  onClick={() => handleProductOrder(prod)}
+                                >
+                                  {tg.orderButton} • {prod.code}
+                                </button>
+                              ))}
+                              {msg.showUtilityButtons && (
+                                <>
+                                  <button
+                                    type="button"
+                                    className="selloi-tg-inline-btn"
+                                    disabled={isBotTyping}
+                                    onClick={handleAskDelivery}
+                                  >
+                                    {tg.deliveryInfoButton}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="selloi-tg-inline-btn"
+                                    onClick={() => setActivePane("channel")}
+                                  >
+                                    {tg.otherOptionsButton}
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    )}
+
+                    {isBotTyping &&
+                      (isAnalyzingPhoto ? (
+                        <div className="selloi-tg-bubble-wrap in selloi-demo-msg-enter">
+                          <div className="selloi-tg-analyzing">
+                            <span className="selloi-tg-spinner" />
+                            <span>{t.analyzingIndicator}</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="selloi-tg-bubble-wrap in selloi-demo-msg-enter">
+                          <div className="selloi-tg-typing-bubble">
+                            <span className="selloi-tg-typing-dot" />
+                            <span className="selloi-tg-typing-dot" />
+                            <span className="selloi-tg-typing-dot" />
+                          </div>
+                        </div>
+                      ))}
+
+                    <div style={{ height: "4px" }} />
                   </div>
-                  <div className="selloi-demo-bot-msg selloi-demo-msg-enter">
-                    <span>
-                      {t.botMsgLine1} {t.botMsgLine2}
-                    </span>
+
+                  {/* Telegram Quick Prompts + Compose Input Bar */}
+                  <div className="selloi-tg-composer-wrap">
+                    <div className="selloi-tg-quick-row">
+                      {t.quickPrompts.map((prompt) => (
+                        <button
+                          key={prompt.id}
+                          type="button"
+                          className="selloi-tg-quick-chip"
+                          disabled={isBotTyping}
+                          onClick={() => handleQuickPrompt(prompt)}
+                        >
+                          {prompt.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    <form className="selloi-tg-composer" data-node-id="182:388" onSubmit={handleFormSubmit}>
+                      <button
+                        type="button"
+                        className={`selloi-tg-compose-icon ${
+                          step === 4 || isAnalyzingPhoto ? "active" : ""
+                        }`}
+                        onClick={handlePhotoAttachClick}
+                        title={t.photoLabel}
+                        aria-label={t.photoLabel}
+                        disabled={isBotTyping}
+                      >
+                        <TgAttachIcon size={18} />
+                      </button>
+
+                      <input
+                        ref={inputRef}
+                        type="text"
+                        className="selloi-tg-compose-input"
+                        data-node-id="182:389"
+                        value={activeInputValue}
+                        placeholder={t.placeholder}
+                        aria-label={t.placeholder}
+                        onFocus={enterInteractiveMode}
+                        onChange={(e) => {
+                          if (!interactiveMode) enterInteractiveMode();
+                          setUserInput(e.target.value);
+                        }}
+                      />
+
+                      <button
+                        type="button"
+                        className="selloi-tg-compose-icon"
+                        onClick={() => {
+                          enterInteractiveMode();
+                          setUserInput((prev) => `${prev}${prev ? " " : ""}🔥`);
+                          inputRef.current?.focus();
+                        }}
+                        aria-label="Emoji"
+                      >
+                        <TgSmileIcon size={18} />
+                      </button>
+
+                      <button
+                        type="submit"
+                        className={`selloi-tg-send-btn ${
+                          canSubmit || (step === 0 && typedInput.length > 4) ? "ready" : ""
+                        }`}
+                        data-node-id="182:390"
+                        aria-label={t.sendAriaLabel}
+                        disabled={interactiveMode && !canSubmit}
+                      >
+                        <TgPaperPlaneIcon size={17} />
+                      </button>
+                    </form>
+                  </div>
+                </>
+              ) : (
+                /* Telegram Channel Feed: TechZone UZ (@techzone_uz) — 100 Computer Store Products */
+                <>
+                  <div className="selloi-tg-header">
+                    <div className="selloi-tg-header-info">
+                      <div className="selloi-tg-avatar selloi-tg-avatar-channel small">
+                        <TgHardwareIcon category="pc" size={16} />
+                      </div>
+                      <div>
+                        <div className="selloi-tg-header-title">
+                          <span>{tg.channelTitle}</span>
+                          <TgVerifiedBadge size={14} />
+                        </div>
+                        <div className="selloi-tg-header-status">{tg.channelSubs}</div>
+                      </div>
+                    </div>
+
+                    <div className="selloi-tg-header-actions">
+                      <button
+                        type="button"
+                        className="selloi-tg-switch-pill chat"
+                        onClick={() => setActivePane("chat")}
+                      >
+                        {tg.switchToChatBtn}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Sticky Search + Category Filter Toolbar inside Channel */}
+                  <div className="selloi-tg-channel-toolbar">
+                    <div className="selloi-tg-channel-search-row">
+                      <div className="selloi-tg-channel-search">
+                        <TgSearchIcon size={14} />
+                        <input
+                          type="text"
+                          value={channelQuery}
+                          onChange={(e) => setChannelQuery(e.target.value)}
+                          placeholder={tg.channelSearchPlaceholder}
+                          aria-label={tg.channelSearchPlaceholder}
+                        />
+                        {channelQuery && (
+                          <button
+                            type="button"
+                            className="selloi-tg-clear-btn"
+                            onClick={() => setChannelQuery("")}
+                            aria-label="Clear search"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                      <span className="selloi-tg-count-pill">
+                        {filteredCatalog.length} / {TELEGRAM_COMPUTER_CATALOG.length}
+                      </span>
+                    </div>
+
+                    <div className="selloi-tg-cat-pills" role="tablist">
+                      {(
+                        [
+                          { id: "all", label: tg.catAll },
+                          { id: "laptop", label: tg.catLaptop },
+                          { id: "pc", label: tg.catPc },
+                          { id: "monitor", label: tg.catMonitor },
+                          { id: "accessory", label: tg.catAccessory },
+                        ] as const
+                      ).map((cat) => (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          role="tab"
+                          aria-selected={channelCategory === cat.id}
+                          className={`selloi-tg-cat-pill ${
+                            channelCategory === cat.id ? "active" : ""
+                          }`}
+                          onClick={() => setChannelCategory(cat.id)}
+                        >
+                          {cat.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 100-Product Telegram Channel Posts Feed */}
+                  <div className="selloi-tg-channel-feed">
+                    {filteredCatalog.length === 0 ? (
+                      <div className="selloi-tg-empty-state">
+                        <TgSearchIcon size={24} />
+                        <p>{tg.emptySearchText}</p>
+                      </div>
+                    ) : (
+                      filteredCatalog.map((product) => {
+                        const isLiked = Boolean(likedPosts[product.id]);
+                        const fireCount = product.reactions.fire + (isLiked ? 1 : 0);
+                        const monthly = Math.round((product.priceUzs * 1.16) / 12);
+
+                        return (
+                          <article key={product.code} className="selloi-tg-post-wrap">
+                            <div className="selloi-tg-post-bubble">
+                              <div className="selloi-tg-post-head">
+                                <span className="selloi-tg-post-author">
+                                  {tg.channelTitle}
+                                  <span className="selloi-tg-post-sku">{product.code}</span>
+                                </span>
+                                {product.tag && (
+                                  <span className="selloi-tg-post-badge">{product.tag}</span>
+                                )}
+                              </div>
+
+                              <div className="selloi-tg-post-card-row">
+                                <div
+                                  className={`selloi-tg-post-thumb cat-${product.category}`}
+                                >
+                                  <TgHardwareIcon category={product.category} size={24} />
+                                </div>
+                                <div className="selloi-tg-post-info">
+                                  <h4 className="selloi-tg-post-title">{product.name}</h4>
+                                  <p className="selloi-tg-post-specs">{product.specs}</p>
+                                  <div className="selloi-tg-post-pricing">
+                                    <span className="selloi-tg-post-price">
+                                      {formatUzs(product.priceUzs, language)}
+                                    </span>
+                                    <span className="selloi-tg-post-installment">
+                                      ~{formatUzs(monthly, language).replace(/ (so‘m|сум|UZS)$/i, "")}{" "}
+                                      {tg.installmentSuffix}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="selloi-tg-post-footer">
+                                <div className="selloi-tg-post-reactions">
+                                  <button
+                                    type="button"
+                                    className={`selloi-tg-react-pill ${isLiked ? "liked" : ""}`}
+                                    onClick={() => handleToggleLike(product.id)}
+                                  >
+                                    🔥 {fireCount}
+                                  </button>
+                                  <span className="selloi-tg-stock-tag">
+                                    ✓ {tg.inStockLabel}: {product.stock}
+                                  </span>
+                                </div>
+                                <div className="selloi-tg-post-views">
+                                  <TgEyeIcon size={13} />
+                                  <span>{product.views}</span>
+                                  <span>14:{String(product.id % 60).padStart(2, "0")}</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Authentic Telegram Channel Post Inline Bot Buttons */}
+                            <div className="selloi-tg-inline-kbd dual">
+                              <button
+                                type="button"
+                                className="selloi-tg-inline-btn"
+                                onClick={() => handleProductConsult(product)}
+                              >
+                                {tg.askAiButton}
+                              </button>
+                              <button
+                                type="button"
+                                className="selloi-tg-inline-btn primary"
+                                onClick={() => handleProductOrder(product)}
+                              >
+                                {tg.orderButton}
+                              </button>
+                            </div>
+                          </article>
+                        );
+                      })
+                    )}
                   </div>
                 </>
               )}
-
-              {/* User-submitted Interactive Live Demo Messages */}
-              {customMessages.map((msg) =>
-                msg.role === "user" ? (
-                  msg.hasPhoto ? (
-                    <div
-                      key={msg.id}
-                      className="selloi-demo-user-photo-card selloi-demo-msg-enter"
-                    >
-                      <div className="selloi-demo-user-photo-wrapper">
-                        <img
-                          src="/figma/sample-sneaker.jpg"
-                          alt="Nike Air Force"
-                          width={600}
-                          height={400}
-                          loading="lazy"
-                          decoding="async"
-                          className="selloi-demo-user-photo-img"
-                        />
-                        <div className="selloi-demo-user-photo-pill">
-                          <span>{t.photoLabel}</span>
-                        </div>
-                      </div>
-                      <p className="selloi-demo-user-photo-caption">{msg.text}</p>
-                    </div>
-                  ) : (
-                    <div key={msg.id} className="selloi-demo-user-msg selloi-demo-msg-enter">
-                      <span>{msg.text}</span>
-                    </div>
-                  )
-                ) : (
-                  <React.Fragment key={msg.id}>
-                    <div className="selloi-demo-bot-msg selloi-demo-msg-enter">
-                      <span>{msg.text}</span>
-                    </div>
-                    {msg.hasOrder && <DemoOrderCard t={t} />}
-                  </React.Fragment>
-                )
-              )}
-
-              {/* Live Typing / Photo Vision Indicator for interactive replies */}
-              {isBotResponding &&
-                (isAnalyzingPhoto ? (
-                  <div className="selloi-demo-analyzing selloi-demo-msg-enter">
-                    <span className="selloi-demo-analyzing-spinner" />
-                    <span>{t.analyzingIndicator}</span>
-                  </div>
-                ) : (
-                  <div className="selloi-demo-typing-bubble selloi-demo-msg-enter">
-                    <span className="selloi-demo-typing-dot" />
-                    <span className="selloi-demo-typing-dot" />
-                    <span className="selloi-demo-typing-dot" />
-                    <span className="selloi-demo-typing-label">{t.typingIndicator}</span>
-                  </div>
-                ))}
-
-              <div style={{ height: "4px" }} />
             </div>
-
-            {/* Quick Interactive Test Chips */}
-            <div className="selloi-demo-chips" role="group" aria-label={t.cardSub}>
-              {t.quickPrompts.map((prompt) => (
-                <button
-                  key={prompt.id}
-                  type="button"
-                  className="selloi-demo-chip"
-                  disabled={isBotResponding}
-                  onClick={() => handleQuickPrompt(prompt)}
-                >
-                  {prompt.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Interactive Input Form */}
-            <form className="selloi-demo-input" data-node-id="182:388" onSubmit={handleFormSubmit}>
-              <input
-                ref={inputRef}
-                type="text"
-                className={`selloi-demo-input-field ${activeInputValue ? "selloi-demo-input-typing" : ""}`}
-                data-node-id="182:389"
-                value={activeInputValue}
-                placeholder={t.placeholder}
-                aria-label={t.placeholder}
-                onFocus={enterInteractiveMode}
-                onChange={(e) => {
-                  if (!interactiveMode) enterInteractiveMode();
-                  setUserInput(e.target.value);
-                }}
-              />
-              <div className="selloi-demo-input-actions">
-                <button
-                  type="button"
-                  className={`selloi-demo-input-icon-btn ${
-                    step === 4 || isAnalyzingPhoto ? "selloi-demo-input-icon-active" : ""
-                  }`}
-                  onClick={handlePhotoAttachClick}
-                  title={t.photoLabel}
-                  aria-label={t.photoLabel}
-                  disabled={isBotResponding}
-                >
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <rect x="3" y="3" width="18" height="18" rx="4" />
-                    <circle cx="8.5" cy="8.5" r="1.5" />
-                    <polyline points="21 15 16 10 5 21" />
-                  </svg>
-                </button>
-                <button
-                  type="submit"
-                  className={`selloi-demo-input-send-btn ${
-                    canSubmit || (step === 0 && typedInput.length > 5)
-                      ? "selloi-demo-input-arrow-active"
-                      : ""
-                  }`}
-                  data-node-id="182:390"
-                  aria-label={t.sendAriaLabel}
-                  disabled={interactiveMode && !canSubmit}
-                >
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <line x1="5" y1="12" x2="19" y2="12" />
-                    <polyline points="12 5 19 12 12 19" />
-                  </svg>
-                </button>
-              </div>
-            </form>
-            <p className="selloi-demo-disclaimer" data-node-id="182:387">
-              {t.disclaimer}
-            </p>
           </div>
         </div>
+        <p className="selloi-tg-disclaimer" data-node-id="182:387">
+          {t.disclaimer}
+        </p>
       </div>
     </section>
   );
