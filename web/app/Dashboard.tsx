@@ -636,7 +636,7 @@ function DashboardContent({
   });
 
   const [platformSubTab, setPlatformSubTab] = useState<
-    "overview" | "stores" | "users" | "plans" | "usage" | "system" | "audit"
+    "overview" | "stores" | "users" | "plans" | "usage" | "system" | "audit" | "payment-testing"
   >("overview");
 
   const [isOwnerImpersonating, setIsOwnerImpersonating] = useState<boolean>(() => {
@@ -2156,6 +2156,7 @@ function DashboardContent({
       platformSubTab === "stores" ? t("nav.item.stores") :
       platformSubTab === "users" ? t("nav.item.users") :
       platformSubTab === "plans" ? t("nav.item.plans") :
+      platformSubTab === "payment-testing" ? "Payment Testing Studio" :
       platformSubTab === "usage" ? t("nav.item.usage") :
       platformSubTab === "system" ? t("nav.item.system_health") :
       t("nav.item.audit_logs")

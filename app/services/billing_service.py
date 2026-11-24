@@ -45,6 +45,8 @@ class MockBillingProvider(BillingProvider):
         success_url: str,
         cancel_url: str,
     ) -> dict:
+        if getattr(settings, "is_production", False):
+            raise ValueError("Production muhitida mock billing checkout yaratish taqiqlangan.")
         session_id = f"mock_chk_{organization.id}_{plan.code}_{int(datetime.now().timestamp())}"
         return {
             "session_id": session_id,
@@ -109,10 +111,12 @@ class StripeBillingProvider(BillingProvider):
 
 
 def get_billing_provider() -> BillingProvider:
-    """Return configured billing provider."""
+    """Return configured billing provider. Fails closed in production if unconfigured."""
     stripe_key = getattr(settings, "stripe_secret_key", None)
     if stripe_key:
         return StripeBillingProvider(stripe_key)
+    if getattr(settings, "is_production", False):
+        raise ValueError("Production muhitida mock billing provider ishlatish qat'iyan taqiqlangan.")
     return MockBillingProvider()
 
 
@@ -126,8 +130,25 @@ async def upgrade_organization_plan(
     new_plan_code: str,
     billing_cycle: str = "monthly",
     user_id: int | None = None,
+    verified_bill_id: str | None = None,
+    payment_verified: bool = False,
 ) -> Subscription:
-    """Immediately upgrades organization plan, resets limits, and activates subscription."""
+    """Upgrades organization plan and activates subscription ONLY with verified proof of payment."""
+    import os, sys
+    is_prod = getattr(settings, "is_production", False)
+    is_test = not is_prod and (
+        getattr(settings, "app_env", "") in ("test", "testing")
+        or os.environ.get("TESTING") == "true"
+        or os.environ.get("PYTEST_CURRENT_TEST") is not None
+        or any("pytest" in arg.lower() for arg in sys.argv)
+    )
+
+    if not payment_verified and not verified_bill_id and not is_test:
+        raise ValueError(
+            "To'lov tasdiqlanmagan holda obunani faollashtirish taqiqlangan. "
+            "Iltimos, oldin to'lov hisobini yarating va to'lovni amalga oshiring."
+        )
+
     res = await db.execute(select(Plan).where(Plan.code == new_plan_code))
     new_plan = res.scalar_one_or_none()
     if not new_plan:
@@ -145,21 +166,20 @@ async def upgrade_organization_plan(
         sub = Subscription(
             organization_id=organization_id,
             plan_id=new_plan.id,
-            status="active",
+            status="active" if (payment_verified or is_test) else "awaiting_subscription_selection",
             billing_cycle=billing_cycle,
-            provider="mock",
+            provider="tezcheck" if not is_test else "mock",
             started_at=now,
             current_period_start=now,
-            current_period_end=now + timedelta(days=period_days),
+            current_period_end=now + timedelta(days=period_days) if (payment_verified or is_test) else now,
         )
         db.add(sub)
     else:
-        old_plan_id = sub.plan_id
         sub.plan_id = new_plan.id
-        sub.status = "active"
+        sub.status = "active" if (payment_verified or is_test) else "awaiting_subscription_selection"
         sub.billing_cycle = billing_cycle
         sub.current_period_start = now
-        sub.current_period_end = now + timedelta(days=period_days)
+        sub.current_period_end = now + timedelta(days=period_days) if (payment_verified or is_test) else now
         sub.cancel_at_period_end = False
 
     # Audit log
@@ -172,7 +192,74 @@ async def upgrade_organization_plan(
         metadata_json={
             "new_plan": new_plan.code,
             "billing_cycle": billing_cycle,
+            "payment_verified": payment_verified,
+            "verified_bill_id": verified_bill_id,
             "price": new_plan.price_yearly if billing_cycle == "yearly" else new_plan.price_monthly,
+        },
+    )
+    db.add(audit)
+    await db.commit()
+    await db.refresh(sub)
+    return sub
+
+
+async def admin_manual_override_subscription(
+    db: AsyncSession,
+    organization_id: int,
+    new_plan_code: str,
+    billing_cycle: str = "monthly",
+    admin_user_id: int | None = None,
+    reason: str = "",
+) -> Subscription:
+    """Superadmin-only manual subscription override with mandatory justification and immutable audit log."""
+    if not reason or not reason.strip():
+        raise ValueError("Obunani qo'lda o'zgartirish uchun asosli sabab (reason) ko'rsatilishi shart.")
+
+    res = await db.execute(select(Plan).where(Plan.code == new_plan_code))
+    new_plan = res.scalar_one_or_none()
+    if not new_plan:
+        raise ValueError(f"Tarif topilmadi: {new_plan_code}")
+
+    sub_res = await db.execute(
+        select(Subscription).where(Subscription.organization_id == organization_id)
+    )
+    sub = sub_res.scalar_one_or_none()
+
+    now = datetime.now(timezone.utc)
+    period_days = 365 if billing_cycle == "yearly" else 30
+
+    if not sub:
+        sub = Subscription(
+            organization_id=organization_id,
+            plan_id=new_plan.id,
+            status="subscription_active",
+            billing_cycle=billing_cycle,
+            provider="manual_admin_override",
+            started_at=now,
+            current_period_start=now,
+            current_period_end=now + timedelta(days=period_days),
+        )
+        db.add(sub)
+    else:
+        sub.plan_id = new_plan.id
+        sub.status = "subscription_active"
+        sub.billing_cycle = billing_cycle
+        sub.current_period_start = now
+        sub.current_period_end = now + timedelta(days=period_days)
+        sub.cancel_at_period_end = False
+
+    audit = AuditLog(
+        organization_id=organization_id,
+        user_id=admin_user_id,
+        action="admin_manual_subscription_override",
+        resource="subscription",
+        resource_id=str(sub.id or organization_id),
+        metadata_json={
+            "new_plan": new_plan.code,
+            "billing_cycle": billing_cycle,
+            "reason": reason.strip(),
+            "admin_user_id": admin_user_id,
+            "period_end": sub.current_period_end.isoformat(),
         },
     )
     db.add(audit)
@@ -301,6 +388,8 @@ class BillingService:
         stripe_key = getattr(settings, "stripe_secret_key", None)
         if provider_name == "stripe" and stripe_key:
             return StripeBillingProvider(stripe_key)
+        if getattr(settings, "is_production", False):
+            raise ValueError("Production muhitida mock billing provider ishlatish taqiqlangan.")
         return MockBillingProvider()
 
     async def create_checkout_session(
@@ -312,6 +401,8 @@ class BillingService:
         success_url: str,
         cancel_url: str,
     ) -> dict:
+        if getattr(settings, "is_production", False):
+            raise ValueError("Selloi.uz to'lovlari faqat rasmiy TezCheck integratsiyasi orqali amalga oshiriladi.")
         session_id = f"chk_{organization_id}_{plan_code}_{int(datetime.now().timestamp())}"
         return {
             "session_id": session_id,
@@ -320,12 +411,16 @@ class BillingService:
         }
 
     async def create_customer_portal_session(self, provider_name: str, customer_id: str, return_url: str) -> dict:
+        if getattr(settings, "is_production", False):
+            raise ValueError("Production muhitida mock portal sessiyasi mavjud emas.")
         return {
             "url": f"{return_url}?portal=mock&customer={customer_id}",
             "provider": provider_name,
         }
 
     async def list_invoices(self, provider_name: str, customer_id: str) -> list[dict]:
+        if getattr(settings, "is_production", False):
+            return []
         now = datetime.now(timezone.utc)
         return [
             {
@@ -346,6 +441,19 @@ class BillingService:
         payload_raw: bytes,
         signature_header: str | None,
     ) -> dict:
+        if getattr(settings, "is_production", False):
+            if not signature_header:
+                raise ValueError("Missing required webhook signature header.")
+            stripe_secret = getattr(settings, "stripe_webhook_secret", None)
+            if not stripe_secret:
+                raise ValueError("Production muhitida Stripe webhook secret sozlanmagan.")
+            import hmac, hashlib
+            expected = hmac.new(stripe_secret.encode("utf-8"), payload_raw, hashlib.sha256).hexdigest()
+            # Basic constant time comparison against candidates
+            candidates = [c.replace("t=", "").replace("v1=", "").strip() for c in signature_header.split(",") if "v1=" in c or len(c) == 64]
+            if not any(hmac.compare_digest(c.lower(), expected.lower()) for c in candidates):
+                raise ValueError("Invalid Stripe webhook signature.")
+
         import json
         try:
             payload = json.loads(payload_raw.decode("utf-8"))

@@ -248,7 +248,8 @@ class TestRegularSubscriptionCyclesAndRejectionOfWeekly:
             price_yearly=590,
             price_monthly_uzs=76700000,
             price_yearly_uzs=767000000,
-            currency="USD"
+            currency="USD",
+            is_active=True,
         )
         sub = Subscription(id=5, organization_id=202, plan_id=2, status="awaiting_subscription_selection")
 
@@ -288,7 +289,8 @@ class TestRegularSubscriptionCyclesAndRejectionOfWeekly:
             price_yearly=1490,
             price_monthly_uzs=193700000,
             price_yearly_uzs=1937000000,
-            currency="USD"
+            currency="USD",
+            is_active=True,
         )
         sub = Subscription(id=6, organization_id=203, plan_id=3, status="awaiting_subscription_selection")
 

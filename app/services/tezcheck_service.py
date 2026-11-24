@@ -50,18 +50,63 @@ class TezCheckService:
         self.merchant_id = merchant_id or getattr(settings, "tezcheck_merchant_id", None)
         self.cash_desk_code = cash_desk_code or getattr(settings, "tezcheck_cash_desk_code", None) or self.merchant_id
         
-        # If API key is missing, explicitly set to mock, or running under test, run in mock simulation mode
+        # If running under test or development, allow mock simulation mode when unprovisioned.
+        # In production, mock mode is STRICTLY FORBIDDEN (fail-closed).
+        is_prod = getattr(settings, "is_production", False)
         if mock_mode is not None:
+            if is_prod and mock_mode:
+                raise TezCheckError("Production muhitida mock to'lov rejimini yoqish taqiqlangan.")
             self.mock_mode = mock_mode
         else:
             import os, sys
             is_test = (
-                getattr(settings, "app_env", "") == "test"
+                getattr(settings, "app_env", "") in ("test", "testing")
                 or os.environ.get("TESTING") == "true"
                 or os.environ.get("PYTEST_CURRENT_TEST") is not None
                 or any("pytest" in arg.lower() for arg in sys.argv)
             )
-            self.mock_mode = is_test or not bool(self.api_key and self.secret_key)
+            if is_prod:
+                self.mock_mode = False
+            else:
+                self.mock_mode = is_test or not bool(self.api_key and self.secret_key)
+
+    async def get_bill_status(self, bill_id: str) -> Dict[str, Any]:
+        """Fetch real-time bill status from TezCheck API via GET /bills/{bill_id}."""
+        if self.mock_mode:
+            return {
+                "bill_id": bill_id,
+                "status": "pending",
+                "mode": "mock",
+            }
+
+        if getattr(settings, "is_production", False) and not (self.api_key and self.secret_key):
+            raise TezCheckError("Production muhitida TezCheck API kalitlari to'liq sozlanmagan.")
+
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Accept": "application/json"
+        }
+        if self.cash_desk_code:
+            headers["X-Cash-Desk-Code"] = self.cash_desk_code
+        elif self.merchant_id:
+            headers["X-Merchant-Id"] = self.merchant_id
+
+        try:
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                resp = await client.get(f"{self.api_url}/bills/{bill_id}", headers=headers)
+                resp.raise_for_status()
+                data = resp.json()
+                inner_data = data.get("data") if isinstance(data.get("data"), dict) else data
+                return {
+                    "bill_id": inner_data.get("id") or inner_data.get("bill_id") or bill_id,
+                    "status": inner_data.get("status") or inner_data.get("state") or "pending",
+                    "amount_minor": inner_data.get("amount_minor") or inner_data.get("amount"),
+                    "currency": inner_data.get("currency", "UZS"),
+                    "raw_response": data
+                }
+        except httpx.HTTPError as exc:
+            logger.exception("Failed to fetch TezCheck bill status %s: %s", bill_id, exc)
+            raise TezCheckError(f"TezCheck bill status fetch failed: {exc}") from exc
 
     async def create_bill(
         self,
@@ -82,6 +127,8 @@ class TezCheckService:
         - description: Invoice description shown to user on hosted checkout page
         - return_url: Hosted redirect destination upon completion
         """
+        if getattr(settings, "is_production", False) and not (self.api_key and self.secret_key):
+            raise TezCheckError("Production muhitida TezCheck API kalitlari to'liq sozlanmagan. To'lov rad etildi.")
         if self.mock_mode:
             bill_id = f"tzc_{order_id}_{secrets.token_hex(4)}"
             pay_url = f"{return_url}?bill_id={bill_id}&status=pending&amount={amount}&currency={currency}"
@@ -156,7 +203,7 @@ class TezCheckService:
     ) -> bool:
         """Verify HMAC-SHA256 signature of incoming TezCheck webhook payload."""
         if not signature_header:
-            if self.mock_mode:
+            if self.mock_mode and not getattr(settings, "is_production", False):
                 return True
             raise TezCheckSignatureVerificationError("Missing required signature header.")
 

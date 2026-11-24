@@ -1,6 +1,7 @@
 """Platform Owner Endpoints (Financial Metrics, Tenant Portfolio, Profitability, Cost Control)."""
 
 from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List, Optional
 import re
 import secrets
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -124,7 +125,8 @@ class PricingScheduleRequest(BaseModel):
     plan_code: str
     billing_period: str  # MEGA_DISCOUNT_7D, MONTHLY, YEARLY
     new_price_uzs: int
-    effective_from: datetime
+    effective_from: datetime | None = None
+    effective_at: datetime | None = None
     change_reason: str | None = None
 
 
@@ -1008,7 +1010,7 @@ async def schedule_tariff_price_change(
             "plan_code": req.plan_code,
             "admin_id": getattr(admin, "id", None),
             "change_reason": req.change_reason or "Scheduled future price change",
-            "effective_from": req.effective_from,
+            "effective_from": req.effective_from or req.effective_at or datetime.now(timezone.utc),
             "approval_status": "scheduled",
         }
         period = req.billing_period.upper()
@@ -1213,4 +1215,186 @@ async def get_system_health(
         "openai_configured": bool(settings.openai_api_key),
         "telegram_configured": bool(settings.telegram_bot_token),
     }
+
+
+# ============================================================================
+# PAYMENT TESTING STUDIO (OWNER ADMIN DIAGNOSTIC MODULE)
+# ============================================================================
+
+class PaymentTestCreateRequest(BaseModel):
+    amount_uzs: Any
+    environment: str = "sandbox"
+    confirm_live: bool = False
+    description: str | None = None
+    idempotency_key: str | None = None
+    return_url: str | None = None
+
+
+@router.get("/payment-testing/config")
+async def get_payment_testing_config(
+    admin: Admin = Depends(require_platform_owner),
+):
+    """Retrieve diagnostic configuration, limits, and supported environments for TezCheck testing."""
+    from app.services.payment_testing_service import payment_testing_service
+    return payment_testing_service.get_config()
+
+
+@router.post("/payment-testing/create", status_code=status.HTTP_201_CREATED)
+async def create_payment_test(
+    req: PaymentTestCreateRequest,
+    admin: Admin = Depends(require_platform_owner),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a single-use payment diagnostic invoice for platform owner testing.
+
+    Strictly validates amounts (1,000 - 10,000 UZS) and requires explicit confirmation for LIVE transactions.
+    CRITICAL: Never activates subscriptions or modifies plan prices.
+    """
+    from app.services.payment_testing_service import payment_testing_service, PaymentTestingValidationError
+    from app.services.tezcheck_service import TezCheckError
+
+    try:
+        test_record = await payment_testing_service.create_test_payment(
+            db=db,
+            admin=admin,
+            amount_uzs=req.amount_uzs,
+            environment=req.environment,
+            confirm_live=req.confirm_live,
+            description=req.description,
+            idempotency_key=req.idempotency_key,
+            return_url=req.return_url,
+        )
+        return {
+            "test_id": test_record.test_id,
+            "provider_bill_id": test_record.provider_bill_id,
+            "external_reference": test_record.external_reference,
+            "amount_uzs": test_record.amount_uzs,
+            "amount_tiyin": test_record.amount_tiyin,
+            "currency": test_record.currency,
+            "environment": test_record.environment,
+            "status": test_record.status,
+            "checkout_url": test_record.checkout_url,
+            "created_at": test_record.created_at.isoformat() if test_record.created_at else None,
+            "payment_purpose": test_record.payment_purpose,
+        }
+    except PaymentTestingValidationError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+    except TezCheckError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"TezCheck to'lov xizmati xatosi: {exc}")
+
+
+@router.get("/payment-testing/history")
+async def list_payment_test_history(
+    status: str | None = None,
+    environment: str | None = None,
+    min_amount: int | None = None,
+    max_amount: int | None = None,
+    limit: int = 50,
+    offset: int = 0,
+    admin: Admin = Depends(require_platform_owner),
+    db: AsyncSession = Depends(get_db),
+):
+    """Paginated, filterable payment testing history."""
+    from app.services.payment_testing_service import payment_testing_service
+
+    records, total = await payment_testing_service.list_test_history(
+        db=db,
+        status_filter=status,
+        environment_filter=environment,
+        min_amount=min_amount,
+        max_amount=max_amount,
+        limit=limit,
+        offset=offset,
+    )
+    return {
+        "total": total,
+        "items": [
+            {
+                "test_id": r.test_id,
+                "admin_email": r.admin_email,
+                "amount_uzs": r.amount_uzs,
+                "amount_tiyin": r.amount_tiyin,
+                "currency": r.currency,
+                "environment": r.environment,
+                "provider": r.provider,
+                "provider_bill_id": r.provider_bill_id,
+                "external_reference": r.external_reference,
+                "status": r.status,
+                "checkout_url": r.checkout_url,
+                "created_at": r.created_at.isoformat() if r.created_at else None,
+                "completed_at": r.completed_at.isoformat() if r.completed_at else None,
+                "payment_purpose": r.payment_purpose,
+            }
+            for r in records
+        ],
+    }
+
+
+@router.get("/payment-testing/stats")
+async def get_payment_testing_stats(
+    admin: Admin = Depends(require_platform_owner),
+    db: AsyncSession = Depends(get_db),
+):
+    """Financial reporting stats separating simulated sandbox volume from live test collections."""
+    from app.services.payment_testing_service import payment_testing_service
+    return await payment_testing_service.get_test_stats(db)
+
+
+@router.get("/payment-testing/{test_id}")
+async def get_payment_test_details(
+    test_id: str,
+    admin: Admin = Depends(require_platform_owner),
+    db: AsyncSession = Depends(get_db),
+):
+    """Fetch complete immutable diagnostic details for an admin payment test."""
+    from app.services.payment_testing_service import payment_testing_service
+
+    record = await payment_testing_service.get_test_by_id(db, test_id)
+    if not record:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Test to'lov yozuvi topilmadi")
+
+    return {
+        "test_id": record.test_id,
+        "admin_id": record.admin_id,
+        "admin_email": record.admin_email,
+        "amount_uzs": record.amount_uzs,
+        "amount_tiyin": record.amount_tiyin,
+        "currency": record.currency,
+        "environment": record.environment,
+        "provider": record.provider,
+        "provider_bill_id": record.provider_bill_id,
+        "external_reference": record.external_reference,
+        "status": record.status,
+        "checkout_url": record.checkout_url,
+        "confirm_live": record.confirm_live,
+        "idempotency_key": record.idempotency_key,
+        "payment_purpose": record.payment_purpose,
+        "created_at": record.created_at.isoformat() if record.created_at else None,
+        "completed_at": record.completed_at.isoformat() if record.completed_at else None,
+        "metadata_snapshot": record.metadata_snapshot,
+        "provider_response": record.provider_response,
+    }
+
+
+@router.post("/payment-testing/{test_id}/sync")
+async def sync_payment_test_status(
+    test_id: str,
+    admin: Admin = Depends(require_platform_owner),
+    db: AsyncSession = Depends(get_db),
+):
+    """Query live provider payment status and synchronize record."""
+    from app.services.payment_testing_service import payment_testing_service, PaymentTestingValidationError
+
+    try:
+        updated = await payment_testing_service.sync_test_payment_status(db, test_id, admin)
+        return {
+            "test_id": updated.test_id,
+            "status": updated.status,
+            "environment": updated.environment,
+            "provider_bill_id": updated.provider_bill_id,
+            "completed_at": updated.completed_at.isoformat() if updated.completed_at else None,
+        }
+    except PaymentTestingValidationError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+
 

@@ -375,7 +375,8 @@ async def seed_plans_and_defaults(db: AsyncSession):
             started_at=now,
             current_period_start=now,
             current_period_end=now + timedelta(days=365),
-            trial_ends_at=now + timedelta(days=14),
+            trial_ends_at=None,
+            mega_discount_used=True,
         )
         db.add(sub)
         logger.info("Active PRO subscription bound to default organization.")
@@ -512,18 +513,19 @@ async def create_organization_with_trial(
         plan = res.scalar_one_or_none()
 
     now = datetime.now(timezone.utc)
-    trial_end = now + timedelta(days=trial_days)
-
+    # Under Selloi official billing, newly registered organizations start in awaiting_subscription_selection
+    # Commercial access and store activation unlock exclusively upon verified 7-day Mega Discount purchase.
     subscription = Subscription(
         organization_id=org.id,
         plan_id=plan.id,
-        status="trialing",
+        status="awaiting_subscription_selection",
         billing_cycle="monthly",
-        provider="mock",
+        provider="tezcheck",
         started_at=now,
         current_period_start=now,
-        current_period_end=trial_end,
-        trial_ends_at=trial_end,
+        current_period_end=now,
+        trial_ends_at=None,
+        mega_discount_used=False,
     )
     db.add(subscription)
     await db.commit()

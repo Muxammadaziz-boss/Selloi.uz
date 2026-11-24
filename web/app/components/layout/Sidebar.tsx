@@ -43,7 +43,7 @@ export type NavTabId =
   | "pricing"
   | "platform";
 
-export type PlatformSubTabId = "overview" | "stores" | "users" | "plans" | "usage" | "system" | "audit";
+export type PlatformSubTabId = "overview" | "stores" | "users" | "plans" | "usage" | "system" | "audit" | "payment-testing";
 
 export interface NavItem {
   id: NavTabId;
@@ -169,6 +169,12 @@ export function Sidebar({
         { id: "platform", label: t("nav.item.users"), icon: IconUsers, subTab: "users" },
         { id: "platform", label: t("nav.item.plans"), icon: IconLayersLinked, subTab: "plans" },
         { id: "platform", label: t("nav.item.usage"), icon: IconCpu, subTab: "usage" },
+      ],
+    },
+    {
+      title: "Finance",
+      items: [
+        { id: "platform", label: "Payment Testing", icon: IconCreditCard, subTab: "payment-testing" },
       ],
     },
     {

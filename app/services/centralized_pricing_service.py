@@ -286,7 +286,7 @@ class CentralizedPricingService:
         if not plan:
             raise ValueError(f"Tarif topilmadi: {plan_code}")
 
-        if not plan.is_active:
+        if plan.is_active is False:
             raise ValueError(f"'{plan.name}' tarifi ayni vaqtda faol emas.")
 
         price_version = getattr(plan, "price_version", 1)

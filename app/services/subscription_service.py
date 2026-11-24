@@ -444,7 +444,12 @@ class SubscriptionService:
         verified_paid_at: Optional[datetime] = None
     ) -> Dict[str, Any]:
         """Confirm bill payment from TezCheck webhook and activate subscription entitlement."""
-        res = await db.execute(select(PaymentBill).where(PaymentBill.bill_id == bill_id))
+        stmt = select(PaymentBill).where(PaymentBill.bill_id == bill_id)
+        try:
+            stmt = stmt.with_for_update()
+        except Exception:
+            pass
+        res = await db.execute(stmt)
         bill = res.scalar_one_or_none()
         if not bill:
             raise SubscriptionError(f"Hisob-faktura topilmadi: {bill_id}")
@@ -527,6 +532,38 @@ class SubscriptionService:
             "subscription_status": sub.status,
             "plan_code": bill.plan_code,
             "current_period_end": sub.current_period_end.isoformat()
+        }
+
+    async def verify_and_sync_payment_from_provider(
+        self,
+        db: AsyncSession,
+        bill_id: str
+    ) -> Dict[str, Any]:
+        """Direct server-to-server verification with TezCheck GET /bills/{bill_id}."""
+        res = await db.execute(select(PaymentBill).where(PaymentBill.bill_id == bill_id))
+        bill = res.scalar_one_or_none()
+        if not bill:
+            raise SubscriptionError(f"Hisob-faktura topilmadi: {bill_id}")
+
+        if bill.status == "paid":
+            return {"status": "already_paid", "bill_id": bill_id}
+
+        provider_data = await tezcheck_service.get_bill_status(bill_id)
+        provider_status = str(provider_data.get("status", "")).lower()
+
+        if provider_status in ("paid", "succeeded", "completed"):
+            paid_amount = int(provider_data.get("amount_minor") or bill.amount)
+            return await self.confirm_payment_and_activate(
+                db=db,
+                bill_id=bill_id,
+                paid_amount=paid_amount,
+                currency=provider_data.get("currency", bill.currency)
+            )
+
+        return {
+            "status": bill.status,
+            "provider_status": provider_status,
+            "bill_id": bill_id
         }
 
     async def evaluate_and_sync_subscription_state(

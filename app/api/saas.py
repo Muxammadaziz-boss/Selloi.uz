@@ -58,6 +58,7 @@ router = APIRouter(prefix="/api", tags=["saas"])
 class UpgradeRequest(BaseModel):
     new_plan_code: str
     billing_cycle: str = "monthly"  # monthly or yearly
+    return_url: str = "/settings/billing?status=upgrade_success"
 
 
 class CreateOrgRequest(BaseModel):
@@ -293,16 +294,34 @@ async def upgrade_plan(
     admin: Admin = Depends(require_saas_permission("can_manage_billing")),
     db: AsyncSession = Depends(get_db),
 ):
-    """Upgrade or downgrade tenant subscription plan."""
+    """Initiate tenant subscription plan upgrade by generating a verified TezCheck payment order.
+
+    CRITICAL SECURITY ENFORCEMENT:
+    Free/direct activation without verified payment proof is strictly forbidden.
+    Subscription entitlement upgrades exclusively upon cryptographic webhook receipt.
+    """
     try:
-        updated = await upgrade_organization_plan(
-            db,
+        user_id = admin.user_id if admin.user_id else 1
+        checkout = await subscription_service.create_subscription_checkout(
+            db=db,
             organization_id=org_id,
-            new_plan_code=req.new_plan_code,
+            user_id=user_id,
+            plan_code=req.new_plan_code,
             billing_cycle=req.billing_cycle,
+            return_url=getattr(req, "return_url", "/settings/billing?status=upgrade_success"),
         )
-        return {"status": "success", "subscription": updated}
-    except ValueError as e:
+        return {
+            "status": "payment_required",
+            "message": "Tarifni yangilash uchun to'lov hisobi yaratildi. To'lov tasdiqlangach obuna faollashadi.",
+            "checkout_url": checkout["checkout_url"],
+            "bill_id": checkout["bill_id"],
+            "order_id": checkout["order_id"],
+            "plan_code": checkout["plan_code"],
+            "billing_cycle": checkout["billing_cycle"],
+            "amount_uzs": checkout["amount_uzs"],
+            "amount_tiyin": checkout["amount_tiyin"],
+        }
+    except (SubscriptionError, TezCheckError, ValueError) as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
@@ -699,7 +718,18 @@ async def create_checkout(
     admin: Admin = Depends(require_saas_permission("can_manage_billing")),
     db: AsyncSession = Depends(get_db),
 ):
-    """Create a checkout session (Stripe or Mock provider)."""
+    """Create a checkout session. Enforces official TezCheck UZS integration in production."""
+    if getattr(settings, "is_production", False):
+        user_id = admin.user_id if admin.user_id else 1
+        return await subscription_service.create_subscription_checkout(
+            db=db,
+            organization_id=org_id,
+            user_id=user_id,
+            plan_code=req.plan_code,
+            billing_cycle=req.billing_cycle,
+            return_url=req.success_url,
+        )
+
     sub_res = await db.execute(select(Subscription).where(Subscription.organization_id == org_id))
     sub = sub_res.scalar_one_or_none()
     provider_name = sub.provider if sub else "mock"
@@ -769,6 +799,9 @@ async def list_invoices(
             for b in bills
         ]
         return {"invoices": invoices}
+
+    if getattr(settings, "is_production", False):
+        return {"invoices": []}
 
     sub_res = await db.execute(select(Subscription).where(Subscription.organization_id == org_id))
     sub = sub_res.scalar_one_or_none()
@@ -1018,6 +1051,40 @@ async def tezcheck_webhook(
             return {"ok": True, "status": "already_processed", "idempotent": True}
     else:
         event_record = existing_event
+
+    # Check if this bill is an Admin Payment Testing Studio diagnostic transaction
+    from app.models import AdminPaymentTest
+    from app.services.payment_testing_service import payment_testing_service
+
+    admin_test_stmt = select(AdminPaymentTest).where(
+        or_(
+            AdminPaymentTest.provider_bill_id == bill_id,
+            AdminPaymentTest.external_reference == bill_id,
+            AdminPaymentTest.test_id == bill_id,
+        )
+    )
+    admin_test = (await db.execute(admin_test_stmt)).scalar_one_or_none()
+
+    metadata_purpose = (
+        (inner_data.get("metadata") or {}).get("payment_purpose")
+        or (payload.get("metadata") or {}).get("payment_purpose")
+        or inner_data.get("payment_purpose")
+        or payload.get("payment_purpose")
+    )
+
+    if admin_test or metadata_purpose == "admin_payment_test":
+        test_result = await payment_testing_service.confirm_test_payment(
+            db=db,
+            test_record=admin_test,
+            bill_id=bill_id,
+            status_str=status_str,
+            payload=payload,
+            amount=amount,
+        )
+        event_record.status = "processed"
+        event_record.processed_at = datetime.now(timezone.utc)
+        await db.commit()
+        return {"ok": True, "type": "admin_payment_test", "result": test_result}
 
     try:
         result = await subscription_service.confirm_payment_and_activate(

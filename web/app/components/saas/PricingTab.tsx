@@ -42,7 +42,7 @@ export function PricingTab({
   loading = false,
 }: PricingTabProps) {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
-  const [currency, setCurrency] = useState<"USD" | "UZS">("USD");
+  const [currency, setCurrency] = useState<"USD" | "UZS">("UZS");
   const [busyPlanCode, setBusyPlanCode] = useState<string | null>(null);
 
   // Authenticated quotes state
@@ -177,6 +177,12 @@ export function PricingTab({
           let catalogPriceFormatted = quote?.catalog_base_price_formatted;
 
           if (!effectivePriceFormatted) {
+            const canonicalUzsPrices: Record<string, { monthly: number; yearly: number }> = {
+              start: { monthly: 244000, yearly: 2440000 },
+              pro: { monthly: 499000, yearly: 4990000 },
+              ultra: { monthly: 999000, yearly: 9990000 },
+            };
+            const canonical = canonicalUzsPrices[p.code.toLowerCase()] || { monthly: 244000, yearly: 2440000 };
             if (currency === "USD") {
               effectivePriceFormatted =
                 billingCycle === "yearly"
@@ -185,8 +191,8 @@ export function PricingTab({
             } else {
               effectivePriceFormatted =
                 billingCycle === "yearly"
-                  ? `${((p.price_yearly * 12800) || 2450000).toLocaleString("uz-UZ")} so'm`
-                  : `${((p.price_monthly * 12800) || 245000).toLocaleString("uz-UZ")} so'm`;
+                  ? `${canonical.yearly.toLocaleString("uz-UZ")} so'm`
+                  : `${canonical.monthly.toLocaleString("uz-UZ")} so'm`;
             }
           }
 

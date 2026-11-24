@@ -55,6 +55,12 @@ class Settings(BaseSettings):
     tezcheck_merchant_id: str = ""
     tezcheck_cash_desk_code: str = ""
 
+    # Background Workers
+    run_background_workers: bool = False
+    worker_concurrency: int = 2
+    worker_batch_size: int = 10
+    worker_poll_interval_seconds: float = 1.0
+
     telegram_api_id: int | None = None
     telegram_api_hash: str = ""
     telegram_phone: str = ""
@@ -76,6 +82,10 @@ class Settings(BaseSettings):
     @property
     def is_testing(self) -> bool:
         return self.app_env.strip().lower() in ("test", "testing")
+
+    @property
+    def base_url(self) -> str:
+        return self.public_webhook_url or f"http://{self.api_host}:{self.api_port}"
 
     @model_validator(mode="after")
     def validate_security_settings(self) -> "Settings":

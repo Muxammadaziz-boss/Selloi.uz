@@ -21,14 +21,17 @@ from datetime import datetime, timezone, timedelta
 from unittest.mock import patch
 import httpx
 from sqlalchemy import select
+from sqlalchemy.pool import StaticPool
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 
 from app.models import (
     Base,
     Admin,
+    User,
     Plan,
     PlanPriceHistory,
     PaymentBill,
+    CustomerPricing,
 )
 from app.services.centralized_pricing_service import (
     CentralizedPricingService,
@@ -46,16 +49,24 @@ from app.services.cbu_currency_service import CbuCurrencyService
 def run_in_test_db(coro_fn):
     """Run an async test function inside an isolated in-memory SQLite database session."""
     async def _runner():
-        engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False)
+        engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False, poolclass=StaticPool)
+        tables = [
+            Admin.__table__,
+            User.__table__,
+            Plan.__table__,
+            PlanPriceHistory.__table__,
+            PaymentBill.__table__,
+            CustomerPricing.__table__,
+        ]
         async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
+            await conn.run_sync(lambda sync_conn: Base.metadata.create_all(sync_conn, tables=tables))
         session_factory = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
         async with session_factory() as session:
             service = CentralizedPricingService()
             await service.seed_or_verify_tariffs(session)
             await coro_fn(session, service)
         async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.drop_all)
+            await conn.run_sync(lambda sync_conn: Base.metadata.drop_all(sync_conn, tables=tables))
         await engine.dispose()
 
     asyncio.run(_runner())

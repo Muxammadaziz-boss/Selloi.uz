@@ -60,25 +60,15 @@ async def test_auth_and_organization_onboarding_lifecycle():
         assert g_resp2.status_code == 200
         assert g_resp2.json()["user_id"] == g_data["user_id"]
 
-        # 2c. Test Telegram Auth endpoint
+        # 2c. Test Telegram Auth endpoint (direct unverified login is strictly rejected)
         tg_handle = f"seller_{int(datetime.now().timestamp())}"
         tg_resp = await client.post("/api/v1/auth/telegram", json={
             "username": tg_handle,
             "telegram_id": 99887766,
             "full_name": "Telegram Seller",
         })
-        assert tg_resp.status_code == 200, tg_resp.text
-        tg_data = tg_resp.json()
-        assert "access_token" in tg_data
-        assert tg_data["email"] == f"{tg_handle}@telegram.selloi.uz"
-
-        # Re-authenticating existing Telegram user (idempotent)
-        tg_resp2 = await client.post("/api/v1/auth/telegram", json={
-            "username": tg_handle,
-            "telegram_id": 99887766,
-        })
-        assert tg_resp2.status_code == 200
-        assert tg_resp2.json()["user_id"] == tg_data["user_id"]
+        assert tg_resp.status_code == 400
+        assert "bot tasdig'i" in tg_resp.text
 
         # 3. Create an organization with dedicated bot token & AI keys
         slug = f"shop-{int(datetime.now().timestamp())}"

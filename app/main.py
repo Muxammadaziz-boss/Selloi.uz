@@ -23,28 +23,54 @@ logger = get_logger(__name__)
 
 
 async def _subscription_maintenance_loop():
-    """Background task checking and expiring overdue trials periodically."""
+    """Background task checking and synchronizing subscription lifecycle transitions."""
     while True:
         try:
             await asyncio.sleep(1800)  # Check every 30 minutes
             async with SessionLocal() as db:
-                from datetime import datetime, timezone
+                from datetime import datetime, timedelta, timezone
                 from sqlalchemy import update
                 from app.models import Subscription
 
                 now = datetime.now(timezone.utc)
-                stmt = (
+                # 1. Expire 7-day Mega Discounts
+                stmt_promo = (
                     update(Subscription)
                     .where(
-                        Subscription.status == "trialing",
+                        Subscription.status == "mega_discount_active",
                         Subscription.current_period_end < now,
                     )
-                    .values(status="trial_expired")
+                    .values(status="mega_discount_expired")
                 )
-                res = await db.execute(stmt)
-                if res.rowcount and res.rowcount > 0:
+                res_promo = await db.execute(stmt_promo)
+
+                # 2. Flag due regular subscriptions
+                stmt_due = (
+                    update(Subscription)
+                    .where(
+                        Subscription.status == "subscription_active",
+                        Subscription.current_period_end < now,
+                    )
+                    .values(status="renewal_due")
+                )
+                res_due = await db.execute(stmt_due)
+
+                # 3. Expire overdue subscriptions after 3-day grace period
+                grace_cutoff = now - timedelta(days=3)
+                stmt_exp = (
+                    update(Subscription)
+                    .where(
+                        Subscription.status.in_(["renewal_due", "renewal_pending", "trialing"]),
+                        Subscription.current_period_end < grace_cutoff,
+                    )
+                    .values(status="subscription_expired")
+                )
+                res_exp = await db.execute(stmt_exp)
+
+                total_affected = (res_promo.rowcount or 0) + (res_due.rowcount or 0) + (res_exp.rowcount or 0)
+                if total_affected > 0:
                     await db.commit()
-                    logger.info("Muddati tugagan %s ta sinov obunasi 'trial_expired' holatiga o'tkazildi", res.rowcount)
+                    logger.info("Obunalar fon tekshiruvi: %s ta obuna holati yangilandi", total_affected)
         except asyncio.CancelledError:
             break
         except Exception:
@@ -184,8 +210,17 @@ async def lifespan(application: FastAPI):
 
     maintenance_task = asyncio.create_task(_subscription_maintenance_loop())
     bot_task = asyncio.create_task(bot_manager.start())
+
+    if settings.run_background_workers:
+        from app.services.worker_supervisor import worker_supervisor
+        await worker_supervisor.start()
+
     logger.info("Application ready")
     yield
+    if settings.run_background_workers:
+        from app.services.worker_supervisor import worker_supervisor
+        await worker_supervisor.stop()
+
     await bot_manager.stop()
     bot_task.cancel()
     maintenance_task.cancel()

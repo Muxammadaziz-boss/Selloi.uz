@@ -418,7 +418,7 @@ export const PRICING_PLANS_BY_LANG: Record<Language, AdvancedPricingPlan[]> = {
         { name: "Click va Payme to‘lov integratsiyasi", included: false },
         { name: "Jamoa a'zolari (bir nechta admin)", included: false },
       ],
-      ctaLabel: "7 kunlik sinovni boshlash",
+      ctaLabel: "7 kun sinab ko‘rish →",
     },
     {
       id: "pro",
@@ -439,7 +439,7 @@ export const PRICING_PLANS_BY_LANG: Record<Language, AdvancedPricingPlan[]> = {
         { name: "Ustuvor texnik qo‘llab-quvvatlash 24/7", included: true },
         { name: "Maxsus do‘kon so‘zlashuv ohangi (tone of voice)", included: true },
       ],
-      ctaLabel: "7 kunlik sinovni boshlash",
+      ctaLabel: "7 kun sinab ko‘rish →",
     },
     {
       id: "ultra",

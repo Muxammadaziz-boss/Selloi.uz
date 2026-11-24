@@ -126,7 +126,7 @@
   z-index: 2;
 }
 
-/* 2 whitish glass reflection shimmer streaks passing across from left to right on hover */
+/* 2 distinct whitish glass reflection shimmer streaks passing across from left to right on hover */
 .selloi-btn-glass::after {
   content: '';
   position: absolute;
@@ -137,21 +137,21 @@
   background: linear-gradient(
     90deg,
     transparent 0px,
-    transparent 15px,
-    /* 1-chiziq: birinchi ingichka tiniq oyna nuri */
-    rgba(255, 255, 255, 0.5) 20px,
+    transparent 16px,
+    /* 1-nur: 20-30px oralig'idagi ingichka tiniq oq oyna nuri */
+    rgba(255, 255, 255, 0.45) 20px,
     #FFFFFF 25px,
-    rgba(255, 255, 255, 0.5) 30px,
-    /* 2 chiziq orasidagi oyna masofasi */
-    transparent 38px,
-    transparent 50px,
-    /* 2-chiziq: ikkinchi qalinroq va kuchli oq oyna nuri */
-    rgba(255, 255, 255, 0.5) 58px,
+    rgba(255, 255, 255, 0.45) 30px,
+    /* 2 nur orasidagi aniq qora/shaffof ajratuvchi bo'shliq (uzluksiz bitta tasma bo'lib qolmasligi uchun) */
+    transparent 32px,
+    transparent 56px,
+    /* 2-nur: 58-90px oralig'idagi kengroq va kuchli oq oyna nuri */
+    rgba(255, 255, 255, 0.4) 58px,
     rgba(255, 255, 255, 0.95) 66px,
     #FFFFFF 74px,
     rgba(255, 255, 255, 0.95) 82px,
-    rgba(255, 255, 255, 0.5) 90px,
-    transparent 105px,
+    rgba(255, 255, 255, 0.4) 90px,
+    transparent 94px,
     transparent 150px
   );
   transform: skewX(-25deg);
@@ -180,8 +180,18 @@
   transform: translateY(-2px);
 }
 
+/* Hover glare animatsiyasi: sichqoncha / kursor hover bo'lganda 2 ta oq diagonal nur chapdan o'ngga o'tadi */
 .selloi-btn-glass:hover::after {
   animation: selloi-glass-glare 1.6s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+}
+
+/* Faqatgina sof sensorli ekranli (hover imkoniyati bo'lmagan) mobil qurilmalarda qotib qolmasligi uchun o'chirish */
+@media (hover: none) and (pointer: coarse) {
+  .selloi-btn-glass::after {
+    display: none !important;
+    animation: none !important;
+    opacity: 0 !important;
+  }
 }
 
 @keyframes selloi-glass-glare {

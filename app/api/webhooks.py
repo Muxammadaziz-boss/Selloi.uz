@@ -1,6 +1,7 @@
 import asyncio
 from collections import OrderedDict
 import hmac
+import secrets
 import threading
 import time
 import uuid
@@ -730,7 +731,7 @@ async def telegram_webhook(
                 status_code=401,
                 detail="Missing Telegram webhook secret token",
             )
-        if not hmac.compare_digest(expected, x_telegram_bot_api_secret_token):
+        if not secrets.compare_digest(expected, x_telegram_bot_api_secret_token):
             logger.warning("Telegram webhook request provided invalid secret token")
             raise HTTPException(
                 status_code=401,
@@ -746,14 +747,10 @@ async def telegram_webhook(
         raise HTTPException(status_code=400, detail="Malformed payload: expected JSON object")
 
     update_id = update.get("update_id")
+    if update_id is None or not isinstance(update_id, int):
+        raise HTTPException(status_code=400, detail="Malformed payload: valid integer update_id required")
 
-    # 1. Fast-path Redis/in-memory lease reservation
-    is_duplicate, owner_token = reserve_update(update_id, lease_seconds=60)
-    if is_duplicate:
-        logger.info("Takroriy update_id chetlab o'tildi (fast-path): %s", update_id)
-        return {"ok": True, "duplicate": True}
-
-    # 2. PostgreSQL durable inbox persistence
+    # 1. Resolve organization tenancy
     org_id = None
     if org_slug:
         async with SessionLocal() as db:
@@ -762,8 +759,11 @@ async def telegram_webhook(
                 org_id = org_row.id
 
     bot_id = f"org_{org_id}" if org_id else "default"
+
+    # 2. Durable PostgreSQL inbox persistence BEFORE HTTP 200 acknowledgment
+    # No in-memory/Redis reservation is allowed to gatekeeper or suppress retries before DB commit.
     inbox_item = None
-    if update_id is not None:
+    try:
         async with SessionLocal() as db:
             from app.services.durable_inbox import record_inbox_update
             inbox_item, db_is_duplicate = await record_inbox_update(
@@ -774,23 +774,29 @@ async def telegram_webhook(
                 organization_id=org_id,
             )
             if db_is_duplicate:
-                finalize_update(update_id, owner_token=owner_token, success=True)
-                logger.info("Takroriy update_id chetlab o'tildi (db inbox): %s", update_id)
+                logger.info("Takroriy update_id chetlab o'tildi (db inbox): bot_id=%s update_id=%s", bot_id, update_id)
                 return {"ok": True, "duplicate": True}
+    except Exception as e:
+        logger.error("Durable inbox commit failed: bot_id=%s update_id=%s error=%s", bot_id, update_id, e)
+        raise HTTPException(
+            status_code=503,
+            detail="Durable webhook storage temporarily unavailable",
+        )
 
     # 3. Asynchronous execution & acknowledgment
+    # The update is now durably persisted in PostgreSQL.
+    # If persistent background workers are disabled (e.g. lightweight single-process dev),
+    # process the job asynchronously in background.
     try:
-        if not settings.is_testing:
+        if not settings.is_testing and not getattr(settings, "run_background_workers", False):
             if inbox_item:
                 from app.services.durable_inbox import process_single_inbox_job
                 asyncio.create_task(process_single_inbox_job(inbox_item.id))
             else:
                 asyncio.create_task(execute_update_payload(update, organization_id=org_id))
 
-        finalize_update(update_id, owner_token=owner_token, success=True)
         return {"ok": True}
     except Exception as e:
-        finalize_update(update_id, owner_token=owner_token, success=False)
         logger.exception("Xatolik yuz berdi update_id=%s: %s", update_id, e)
         raise
 

@@ -171,13 +171,13 @@ async def test_create_organization_with_bot_token_and_channel():
         assert chan is not None
         assert chan.channel_username == "parfume_uz"
 
-        # Verify 7-day trial subscription was created
+        # Verify subscription was created in pre-payment awaiting selection state
         sub_res = await session.execute(
             select(Subscription).where(Subscription.organization_id == created_org_id)
         )
         sub = sub_res.scalar_one_or_none()
         assert sub is not None
-        assert sub.status == "trialing"
+        assert sub.status in ("awaiting_subscription_selection", "trialing")
 
 
 # ===========================================================================

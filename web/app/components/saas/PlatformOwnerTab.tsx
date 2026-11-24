@@ -27,6 +27,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { OwnerPricingStudio } from "./OwnerPricingStudio";
+import { PaymentTestingStudio } from "./PaymentTestingStudio";
 
 export interface PlatformFinancialMetrics {
   mrr_usd: number;
@@ -89,7 +90,7 @@ export interface PlatformSystemHealth {
 }
 
 interface PlatformOwnerTabProps {
-  subTab?: "overview" | "stores" | "users" | "plans" | "usage" | "system" | "audit";
+  subTab?: "overview" | "stores" | "users" | "plans" | "usage" | "system" | "audit" | "payment-testing";
   metrics: PlatformFinancialMetrics | null;
   organizations: OrganizationProfitability[];
   usersList?: PlatformUser[];
@@ -99,7 +100,7 @@ interface PlatformOwnerTabProps {
   onRefresh: () => void;
   onUpdatePlan: (planCode: string, payload: any) => Promise<void>;
   onEnterStore?: (store: OrganizationProfitability) => void;
-  onSwitchSubTab?: (subTab: "overview" | "stores" | "users" | "plans" | "usage" | "system" | "audit") => void;
+  onSwitchSubTab?: (subTab: "overview" | "stores" | "users" | "plans" | "usage" | "system" | "audit" | "payment-testing") => void;
   onCreateStore?: (payload: any) => Promise<any>;
   onUpdateStoreStatus?: (storeId: number, status: string) => Promise<void>;
   onDeleteStore?: (storeId: number) => Promise<void>;
@@ -222,6 +223,7 @@ export function PlatformOwnerTab({
     { id: "stores", label: "Do'konlar", icon: IconBuildingSkyscraper, count: organizations.length },
     { id: "users", label: "Foydalanuvchilar", icon: IconUsers, count: usersList.length },
     { id: "plans", label: "Tariflar & Narxlar", icon: IconLayersLinked },
+    { id: "payment-testing", label: "Payment Testing", icon: IconCreditCard },
     { id: "usage", label: "AI Xarajati", icon: IconCpu },
     { id: "system", label: "Tizim Holati", icon: IconShieldLock },
     { id: "audit", label: "Audit Tarixi", icon: IconHistory },
@@ -820,6 +822,11 @@ export function PlatformOwnerTab({
           organizations={organizations}
           onRefreshParent={onRefresh}
         />
+      )}
+
+      {/* SUBTAB: PAYMENT TESTING STUDIO */}
+      {subTab === "payment-testing" && (
+        <PaymentTestingStudio />
       )}
 
       {/* SUBTAB: USAGE */}

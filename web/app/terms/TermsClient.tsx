@@ -281,7 +281,7 @@ export default function TermsClient() {
             <section className="selloi-legal-section">
               <h2>5. Billing, Subscriptions & Cancellations</h2>
               <p>
-                Selloi operates on a SaaS recurring subscription model with tiered service quotas. Users may evaluate the service under a free trial period. Subscriptions can be managed and cancelled at any time directly through the merchant billing portal.
+                Selloi operates on a SaaS recurring subscription model with tiered service quotas. Users may evaluate the service under a 7-day introductory promotional period (Mega Discount). Subscriptions can be managed and cancelled at any time directly through the merchant billing portal.
               </p>
             </section>
 

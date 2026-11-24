@@ -188,7 +188,7 @@ export const LANDING_CONTENT_BY_LANG: Record<Language, LandingContent> = {
       headlineHighlight: "24/7 ishlovchi AI sotuvchi.",
       description:
         "Mijozlar savollariga soniyalar ichida aniq javob beradi, fotosuratdagi tovarlarni taniydi va buyurtmalarni avtomatik qabul qiladi. Tun-u kun, operatorlarsiz.",
-      primaryCta: "7 kun sinab ko‘rish",
+      primaryCta: "7 kun sinab ko‘rish →",
       secondaryCta: "Imkoniyatlarni ko‘rish",
       trust1: "O‘zbek, rus va ingliz tillarida",
       trust2: "Telegram bot va kanalga ulanadi",

@@ -85,6 +85,10 @@ def package_media_directory(
             "total_uncompressed_bytes": total_uncompressed_bytes,
             "archive_size_bytes": archive_size
         }
+    except SymlinkSecurityError:
+        if temp_out.exists():
+            temp_out.unlink()
+        raise
     except Exception as e:
         if temp_out.exists():
             temp_out.unlink()

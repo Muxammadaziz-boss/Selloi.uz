@@ -323,6 +323,46 @@ class PaymentBill(Base):
         return self.status
 
 
+class AdminPaymentTest(Base):
+    """Admin Payment Testing Studio records.
+
+    Exclusively for platform owners to diagnose and test TezCheck payment integrations
+    with configurable small amounts (1,000 - 10,000 UZS).
+    NEVER activates plans, subscriptions, or tenant entitlements.
+    """
+    __tablename__ = "admin_payment_tests"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    test_id: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
+    admin_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), index=True, nullable=True)
+    admin_email: Mapped[str] = mapped_column(String(255), nullable=False)
+
+    amount_uzs: Mapped[int] = mapped_column(BigInteger, nullable=False)  # 1,000 to 10,000 UZS
+    amount_tiyin: Mapped[int] = mapped_column(BigInteger, nullable=False)  # 100,000 to 1,000,000 tiyin
+    currency: Mapped[str] = mapped_column(String(8), default="UZS", nullable=False)
+
+    environment: Mapped[str] = mapped_column(String(16), default="sandbox", index=True, nullable=False)  # sandbox, live
+    payment_purpose: Mapped[str] = mapped_column(String(64), default="admin_payment_test", nullable=False)
+
+    provider: Mapped[str] = mapped_column(String(32), default="tezcheck", nullable=False)
+    provider_bill_id: Mapped[str | None] = mapped_column(String(128), unique=True, index=True, nullable=True)
+    external_reference: Mapped[str] = mapped_column(String(128), unique=True, index=True, nullable=False)
+
+    status: Mapped[str] = mapped_column(String(32), default="pending", index=True, nullable=False)  # created, pending, paid, failed, cancelled, expired
+    checkout_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+
+    idempotency_key: Mapped[str | None] = mapped_column(String(128), unique=True, index=True, nullable=True)
+    confirm_live: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    metadata_snapshot: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    provider_response: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+
+    admin: Mapped["User"] = relationship()
+
+
 class UsageRecord(Base):
     """Centralized metrics tracking for monthly and lifetime tenant usage."""
     __tablename__ = "usage_records"
@@ -341,10 +381,13 @@ class UsageRecord(Base):
 class WebhookEvent(Base):
     """Idempotent store for payment and external platform webhook receipts."""
     __tablename__ = "webhook_events"
+    __table_args__ = (
+        UniqueConstraint("provider", "event_id", name="uq_webhook_events_provider_event"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     provider: Mapped[str] = mapped_column(String(32), index=True)
-    event_id: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    event_id: Mapped[str] = mapped_column(String(255), index=True)
     event_type: Mapped[str] = mapped_column(String(128), index=True)
     payload: Mapped[dict] = mapped_column(JSON, default=dict)
     status: Mapped[str] = mapped_column(String(32), default="pending")  # pending, processed, failed, ignored
@@ -395,7 +438,6 @@ class TelegramOutbox(Base):
     __tablename__ = "telegram_outbox"
     __table_args__ = (
         Index("ix_telegram_outbox_status_retry", "status", "next_retry_at"),
-        Index("ix_telegram_outbox_lease_expires_at", "lease_expires_at"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
