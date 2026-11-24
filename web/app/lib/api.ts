@@ -40,10 +40,15 @@ export async function fetchApi<T = any>(path: string, options?: ApiOptions): Pro
 
   if (!response.ok) {
     const errorDetail =
+      (data.error && typeof data.error.message === "string" ? data.error.message : null) ||
+      (data.error && typeof data.error.code === "string" ? data.error.code : null) ||
       data.detail ||
       (typeof data.message === "string" ? data.message : "") ||
       (rawText.length < 200 && rawText ? rawText : `HTTP ${response.status}`);
-    throw new Error(errorDetail);
+    const err: any = new Error(errorDetail);
+    err.status = response.status;
+    err.data = data;
+    throw err;
   }
 
   return data as T;

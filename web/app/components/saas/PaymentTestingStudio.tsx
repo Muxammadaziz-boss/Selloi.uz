@@ -30,11 +30,11 @@ export interface PaymentTestItem {
   amount_uzs: number;
   amount_tiyin: number;
   currency: string;
-  environment: "sandbox" | "live";
+  environment: "test" | "sandbox" | "live";
   provider: string;
   provider_bill_id?: string;
   external_reference: string;
-  status: "created" | "pending" | "paid" | "failed" | "cancelled" | "expired";
+  status: "created" | "pending" | "paid" | "failed" | "cancelled" | "expired" | "verification_required";
   checkout_url?: string;
   created_at?: string;
   completed_at?: string;
@@ -49,6 +49,13 @@ export interface PaymentTestStats {
     simulated_paid_uzs: number;
     simulated_paid_tiyin: number;
     is_revenue: boolean;
+  };
+  test_provider?: {
+    total_count: number;
+    simulated_paid_uzs: number;
+    simulated_paid_tiyin: number;
+    is_revenue: boolean;
+    deducts_real_money: boolean;
   };
   live: {
     total_count: number;
@@ -65,13 +72,19 @@ export function PaymentTestingStudio() {
   // Amount & Environment State
   const [amountUzs, setAmountUzs] = useState<number>(1000);
   const [customInput, setCustomInput] = useState<string>("1000");
-  const [environment, setEnvironment] = useState<"sandbox" | "live">("sandbox");
+  const [environment, setEnvironment] = useState<"test" | "live">("test");
   const [confirmLive, setConfirmLive] = useState<boolean>(false);
   const [description, setDescription] = useState<string>("");
 
   // Request & Active Invoice State
   const [createBusy, setCreateBusy] = useState<boolean>(false);
   const [createError, setCreateError] = useState<string>("");
+  const [createErrorInfo, setCreateErrorInfo] = useState<{
+    code?: string;
+    message: string;
+    requestId?: string;
+    retryable?: boolean;
+  } | null>(null);
   const [activeBill, setActiveBill] = useState<PaymentTestItem | null>(null);
 
   // History & Stats State
@@ -117,6 +130,7 @@ export function PaymentTestingStudio() {
     setAmountUzs(val);
     setCustomInput(String(val));
     setCreateError("");
+    setCreateErrorInfo(null);
   };
 
   // Handle custom amount input
@@ -124,6 +138,7 @@ export function PaymentTestingStudio() {
     const valStr = e.target.value.replace(/[^0-9]/g, "");
     setCustomInput(valStr);
     setCreateError("");
+    setCreateErrorInfo(null);
     if (valStr) {
       const parsed = parseInt(valStr, 10);
       setAmountUzs(parsed);
@@ -133,6 +148,7 @@ export function PaymentTestingStudio() {
   // Create payment test
   const handleCreateTest = async () => {
     setCreateError("");
+    setCreateErrorInfo(null);
 
     if (!amountUzs || isNaN(amountUzs)) {
       setCreateError("To'lov summasi kiritilishi shart.");
@@ -169,7 +185,32 @@ export function PaymentTestingStudio() {
       setConfirmLive(false);
       await loadHistoryAndStats();
     } catch (err: any) {
-      setCreateError(err.message || "To'lov hisobini yaratishda xatolik yuz berdi");
+      const errData = err.data?.error || (err.data?.detail ? { message: err.data.detail } : null);
+      const code = errData?.code;
+      let msg = errData?.message || err.message || "To'lov hisobini yaratishda xatolik yuz berdi";
+
+      // Map known error codes into clear, user-friendly Uzbek messages
+      if (code === "TEZCHECK_AUTH_FAILED") {
+        msg = "TezCheck API kaliti yaroqsiz yoki noto‘g‘ri sozlangan.";
+      } else if (code === "TEZCHECK_CASH_DESK_MISSING" || code === "TEZCHECK_RESOURCE_NOT_FOUND") {
+        msg = "TezCheck kassasi bilan bog‘lanishni tekshiring.";
+      } else if (code === "TEZCHECK_TEST_PROVIDER_NOT_ENABLED") {
+        msg = "TezCheck kabinetida Test provider faollashtirilmagan.";
+      } else if (code === "TEZCHECK_SIGNATURE_INVALID") {
+        msg = "TezCheck so‘rovi imzosini tekshirishda xatolik.";
+      } else if (code === "TEZCHECK_SERVER_ERROR" || err.message === "HTTP 502" || err.message?.includes("502")) {
+        msg = "TezCheck serveri vaqtincha javob bermayapti.";
+      } else if (code === "TEZCHECK_TIMEOUT") {
+        msg = "TezCheck serveriga ulanish vaqti tugadi (timeout).";
+      }
+
+      setCreateErrorInfo({
+        code,
+        message: msg,
+        requestId: errData?.request_id,
+        retryable: errData?.retryable,
+      });
+      setCreateError(msg);
     } finally {
       setCreateBusy(false);
     }
@@ -316,16 +357,16 @@ export function PaymentTestingStudio() {
             <div>
               <div className="d-flex align-items-center justify-content-between mb-2">
                 <span className="text-secondary small fw-bold text-uppercase" style={{ fontSize: "0.72rem" }}>
-                  Sandbox (Simulyatsiya)
+                  Test Provider (Sinov)
                 </span>
                 <Badge variant="info">Zero Risk</Badge>
               </div>
               <div className="fs-2 fw-bold font-monospace text-primary mb-1">
-                {stats?.sandbox.total_count || 0} <span className="fs-5 text-secondary fw-normal">ta</span>
+                {(stats?.test_provider?.total_count ?? stats?.sandbox.total_count) || 0} <span className="fs-5 text-secondary fw-normal">ta</span>
               </div>
             </div>
             <div className="text-secondary small pt-2 border-top" style={{ borderColor: "var(--border-subtle)", fontSize: "0.76rem" }}>
-              Simulyatsiya: <strong className="font-monospace text-info">{(stats?.sandbox.simulated_paid_uzs || 0).toLocaleString()} UZS</strong> (Tushum emas)
+              Sinov hajmi: <strong className="font-monospace text-info">{((stats?.test_provider?.simulated_paid_uzs ?? stats?.sandbox.simulated_paid_uzs) || 0).toLocaleString()} UZS</strong> (Pul yechilmaydi)
             </div>
           </div>
         </div>
@@ -388,15 +429,16 @@ export function PaymentTestingStudio() {
                     <button
                       type="button"
                       className={`btn flex-fill py-2 d-flex align-items-center justify-content-center gap-2 ${
-                        environment === "sandbox" ? "btn-primary" : "btn-outline-secondary"
+                        environment === "test" ? "btn-primary" : "btn-outline-secondary"
                       }`}
                       onClick={() => {
-                        setEnvironment("sandbox");
+                        setEnvironment("test");
                         setConfirmLive(false);
                       }}
                     >
                       <IconShieldCheck size={18} />
-                      <span className="fw-bold">SANDBOX (Sinov)</span>
+                      <span className="fw-bold">TEZCHECK TEST PROVIDER</span>
+                      <Badge variant="info">TEST</Badge>
                     </button>
 
                     <button
@@ -411,13 +453,13 @@ export function PaymentTestingStudio() {
                     </button>
                   </div>
                   <div className="text-secondary small mt-1.5" style={{ fontSize: "0.78rem" }}>
-                    {environment === "sandbox" ? (
+                    {environment === "test" ? (
                       <span className="text-info">
-                        ℹ️ Sandbox rejimi: TezCheck sinov muhiti ishlatiladi. Real kartadan mablag' yechilmaydi.
+                        ℹ️ <strong>TezCheck Test provider</strong> orqali haqiqiy pul yechilmaydi. Test tranzaksiyalari <code>environment=test</code> bilan belgilanadi.
                       </span>
                     ) : (
                       <span className="text-warning fw-semibold">
-                        ⚠️ LIVE rejimi: Haqiqiy TezCheck merchant hisobidan to'lov havolasi yaratiladi va hisobdan pul yechiladi.
+                        ⚠️ LIVE rejimi: Haqiqiy TezCheck merchant hisobidan to‘lov havolasi yaratiladi va hisobdan pul yechiladi.
                       </span>
                     )}
                   </div>
@@ -517,10 +559,24 @@ export function PaymentTestingStudio() {
                 )}
 
                 {/* Error Banner */}
-                {createError && (
-                  <div className="alert alert-danger py-2 px-3 small d-flex align-items-center gap-2 mb-0">
-                    <IconAlertCircle size={16} className="flex-shrink-0" />
-                    <span>{createError}</span>
+                {createErrorInfo && (
+                  <div className="alert alert-danger py-2.5 px-3 small mb-0 d-flex flex-column gap-1.5 border-danger">
+                    <div className="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                      <div className="d-flex align-items-center gap-2 fw-semibold text-danger">
+                        <IconAlertCircle size={16} className="flex-shrink-0" />
+                        <span>{createErrorInfo.message}</span>
+                      </div>
+                      {createErrorInfo.code && (
+                        <span className="badge bg-danger-subtle text-danger border border-danger-subtle font-monospace px-2 py-0.5" style={{ fontSize: "0.72rem" }}>
+                          {createErrorInfo.code}
+                        </span>
+                      )}
+                    </div>
+                    {createErrorInfo.requestId && (
+                      <div className="text-secondary font-monospace" style={{ fontSize: "0.72rem" }}>
+                        Diagnostika ID: <span className="user-select-all text-dark">{createErrorInfo.requestId}</span>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -540,7 +596,7 @@ export function PaymentTestingStudio() {
                   ) : (
                     <>
                       <IconSparkles size={18} />
-                      <span>Sandbox Test To'lovini Yaratish ({amountUzs?.toLocaleString()} UZS)</span>
+                      <span>Test Provider To'lovini Yaratish ({amountUzs?.toLocaleString()} UZS)</span>
                     </>
                   )}
                 </Button>
@@ -670,9 +726,10 @@ export function PaymentTestingStudio() {
                 className="form-select form-select-sm"
                 value={envFilter}
                 onChange={(e) => setEnvFilter(e.target.value)}
-                style={{ width: "130px" }}
+                style={{ width: "140px" }}
               >
                 <option value="all">Barcha muhit</option>
+                <option value="test">Test Provider</option>
                 <option value="sandbox">Sandbox</option>
                 <option value="live">Live</option>
               </select>
@@ -731,7 +788,7 @@ export function PaymentTestingStudio() {
                     {item.environment === "live" ? (
                       <Badge variant="warning">LIVE</Badge>
                     ) : (
-                      <Badge variant="default">SANDBOX</Badge>
+                      <Badge variant="info">TEST</Badge>
                     )}
                   </td>
                   <td>{renderStatusBadge(item.status)}</td>

@@ -437,7 +437,7 @@ async function runEntitlementIntegration() {
     recordTest("logout_revocation", "storage_cleared", storedAfterLogout === null, `localStorage=${storedAfterLogout}`);
 
     // 4. Verify unauthenticated login card rendered
-    const loginCardVisible = await page.locator("#admin-pwd").isVisible();
+    const loginCardVisible = await page.locator("#admin-pwd, input[type='password']").first().isVisible();
     recordTest("logout_revocation", "unauthenticated_view_rendered", loginCardVisible, `login card visible=${loginCardVisible}`);
 
     // -------------------------------------------------------------

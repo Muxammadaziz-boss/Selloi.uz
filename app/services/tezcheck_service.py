@@ -27,17 +27,183 @@ logger = get_logger(__name__)
 
 class TezCheckError(Exception):
     """Base exception for TezCheck payment gateway operations."""
-    pass
+    def __init__(
+        self,
+        message: str,
+        code: str = "TEZCHECK_GATEWAY_ERROR",
+        status_code: int = 502,
+        request_id: Optional[str] = None,
+        retryable: bool = False,
+    ):
+        super().__init__(message)
+        self.message = message
+        self.code = code
+        self.status_code = status_code
+        self.request_id = request_id or f"req_{secrets.token_hex(6)}"
+        self.retryable = retryable
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "success": False,
+            "error": {
+                "code": self.code,
+                "message": self.message,
+                "request_id": self.request_id,
+                "retryable": self.retryable,
+            }
+        }
+
+
+class TezCheckAPIError(TezCheckError):
+    """Structured exception representing an explicit API error returned by TezCheck or network timeout."""
+    def __init__(
+        self,
+        code: str,
+        message: str,
+        status_code: int = 502,
+        request_id: Optional[str] = None,
+        retryable: bool = False,
+        provider_error_code: Optional[str] = None,
+        provider_details: Optional[Any] = None,
+    ):
+        super().__init__(message, code=code, status_code=status_code, request_id=request_id, retryable=retryable)
+        self.provider_error_code = provider_error_code
+        self.provider_details = provider_details
 
 
 class TezCheckSignatureVerificationError(TezCheckError):
     """Raised when incoming webhook signature is invalid, malformed, or tampered with."""
-    pass
+    def __init__(self, message: str = "Webhook imzosi noto‘g‘ri"):
+        super().__init__(message, code="TEZCHECK_SIGNATURE_INVALID", status_code=400)
 
 
 class TezCheckProviderNotFoundError(TezCheckError):
     """Raised when the requested payment provider (e.g. Test provider) is not enabled on desk."""
-    pass
+    def __init__(self, message: str = "TezCheck kabinetida Test provider faollashtirilmagan."):
+        super().__init__(message, code="TEZCHECK_TEST_PROVIDER_NOT_ENABLED", status_code=400)
+
+
+def parse_tezcheck_http_error(
+    resp_status: int,
+    resp_text: str,
+    resp_headers: Optional[Dict[str, str]] = None,
+) -> TezCheckAPIError:
+    """Classify and map TezCheck HTTP error response into structured TezCheckAPIError.
+    
+    CRITICAL: Never leaks API keys, HMAC secrets, authorization headers, or card data in message or dict.
+    """
+    req_id = (resp_headers or {}).get("x-request-id") or f"req_{secrets.token_hex(6)}"
+    raw_code = ""
+    raw_msg = ""
+    details_code = ""
+    retryable = False
+
+    try:
+        data = json.loads(resp_text)
+        if isinstance(data, dict):
+            err_dict = data.get("error") if isinstance(data.get("error"), dict) else data
+            raw_code = str(err_dict.get("code") or "").lower()
+            raw_msg = str(err_dict.get("message") or "")
+            req_id = err_dict.get("request_id") or req_id
+            retryable = bool(err_dict.get("retryable", False))
+            details = err_dict.get("details")
+            if isinstance(details, list) and len(details) > 0 and isinstance(details[0], dict):
+                details_code = str(details[0].get("code") or "").lower()
+    except (json.JSONDecodeError, TypeError, ValueError):
+        data = None
+
+    if resp_status == 401:
+        if "signature" in raw_code or "signature" in details_code:
+            return TezCheckAPIError(
+                code="TEZCHECK_SIGNATURE_INVALID",
+                message="TezCheck so‘rovi imzosini tekshirishda xatolik.",
+                status_code=401,
+                request_id=req_id,
+                retryable=False,
+                provider_error_code=raw_code,
+            )
+        elif "timestamp" in raw_code or "window" in raw_code or "timestamp" in details_code:
+            return TezCheckAPIError(
+                code="TEZCHECK_TIMESTAMP_EXPIRED",
+                message="Server vaqti noto‘g‘ri (timestamp out of window).",
+                status_code=401,
+                request_id=req_id,
+                retryable=False,
+                provider_error_code=raw_code,
+            )
+        else:
+            return TezCheckAPIError(
+                code="TEZCHECK_AUTH_FAILED",
+                message="TezCheck API kaliti yaroqsiz yoki noto‘g‘ri sozlangan.",
+                status_code=401,
+                request_id=req_id,
+                retryable=False,
+                provider_error_code=raw_code,
+            )
+    elif resp_status == 403:
+        if "forbidden" in raw_code or "ip" in raw_code or "allowlist" in raw_msg.lower():
+            return TezCheckAPIError(
+                code="TEZCHECK_IP_FORBIDDEN",
+                message="TezCheck ruxsat etilgan IP manzillar (allowlist) muammosi.",
+                status_code=403,
+                request_id=req_id,
+                retryable=False,
+                provider_error_code=raw_code,
+            )
+        else:
+            return TezCheckAPIError(
+                code="TEZCHECK_PERMISSION_DENIED",
+                message="Kassa ruxsati yetarli emas yoki taqiqlangan.",
+                status_code=403,
+                request_id=req_id,
+                retryable=False,
+                provider_error_code=raw_code,
+            )
+    elif resp_status == 404:
+        return TezCheckAPIError(
+            code="TEZCHECK_RESOURCE_NOT_FOUND",
+            message="TezCheck kassasi bilan bog‘lanishni tekshiring.",
+            status_code=404,
+            request_id=req_id,
+            retryable=False,
+            provider_error_code=raw_code,
+        )
+    elif resp_status == 422:
+        return TezCheckAPIError(
+            code="TEZCHECK_VALIDATION_FAILED",
+            message="TezCheck so‘rov parametrlari noto‘g‘ri shakllantirilgan.",
+            status_code=422,
+            request_id=req_id,
+            retryable=False,
+            provider_error_code=raw_code,
+        )
+    elif resp_status == 429:
+        return TezCheckAPIError(
+            code="TEZCHECK_RATE_LIMITED",
+            message="TezCheck so‘rovlar chegarasi oshgan.",
+            status_code=429,
+            request_id=req_id,
+            retryable=True,
+            provider_error_code=raw_code,
+        )
+    elif resp_status >= 500:
+        return TezCheckAPIError(
+            code="TEZCHECK_SERVER_ERROR",
+            message="TezCheck serveri vaqtincha javob bermayapti.",
+            status_code=502,
+            request_id=req_id,
+            retryable=True,
+            provider_error_code=raw_code,
+        )
+    else:
+        return TezCheckAPIError(
+            code="TEZCHECK_GATEWAY_ERROR",
+            message=f"TezCheck to‘lov tizimida kutilmagan javob ({resp_status}).",
+            status_code=502,
+            request_id=req_id,
+            retryable=False,
+            provider_error_code=raw_code,
+        )
 
 
 class TezCheckService:
@@ -141,7 +307,11 @@ class TezCheckService:
             }
 
         if not self.api_key:
-            raise TezCheckError("TezCheck API kaliti sozlanmagan.")
+            raise TezCheckAPIError(
+                code="TEZCHECK_AUTH_FAILED",
+                message="TezCheck API kaliti sozlanmagan.",
+                status_code=401,
+            )
 
         path = "/api/merchant/v1/me"
         headers = self._build_request_headers("GET", path, b"")
@@ -150,12 +320,35 @@ class TezCheckService:
         try:
             async with httpx.AsyncClient(timeout=15.0) as client:
                 resp = await client.get(f"{self.api_url}/me", headers=headers)
-                resp.raise_for_status()
-                data = resp.json()
+                if resp.status_code >= 400:
+                    raise parse_tezcheck_http_error(resp.status_code, resp.text, dict(resp.headers))
+                try:
+                    data = resp.json()
+                except Exception as exc:
+                    raise TezCheckAPIError(
+                        code="TEZCHECK_INVALID_RESPONSE",
+                        message="TezCheck serveridan noto‘g‘ri formatdagi javob qaytdi.",
+                        status_code=502,
+                    ) from exc
                 return data.get("data") if isinstance(data.get("data"), dict) else data
+        except TezCheckAPIError:
+            raise
+        except httpx.TimeoutException as exc:
+            logger.error("TezCheck GET /me timeout: %s", exc)
+            raise TezCheckAPIError(
+                code="TEZCHECK_TIMEOUT",
+                message="TezCheck serveriga ulanish vaqti tugadi (timeout).",
+                status_code=504,
+                retryable=True,
+            ) from exc
         except httpx.HTTPError as exc:
             logger.exception("Failed to query TezCheck GET /me: %s", exc)
-            raise TezCheckError(f"TezCheck GET /me failed: {exc}") from exc
+            raise TezCheckAPIError(
+                code="TEZCHECK_SERVER_ERROR",
+                message="TezCheck serveri vaqtincha javob bermayapti.",
+                status_code=502,
+                retryable=True,
+            ) from exc
 
     async def discover_payment_methods(self) -> List[Dict[str, Any]]:
         """Fetch available payment methods for this desk via POST /payment-methods.
@@ -190,8 +383,19 @@ class TezCheckService:
                 },
             ]
 
+        if not self.cash_desk_code:
+            raise TezCheckAPIError(
+                code="TEZCHECK_CASH_DESK_MISSING",
+                message="TezCheck kassasi bilan bog‘lanishni tekshiring (cash_desk_code sozlanmagan).",
+                status_code=400,
+            )
+
         if not self.api_key:
-            raise TezCheckError("TezCheck API kaliti sozlanmagan.")
+            raise TezCheckAPIError(
+                code="TEZCHECK_AUTH_FAILED",
+                message="TezCheck API kaliti sozlanmagan.",
+                status_code=401,
+            )
 
         path = "/api/merchant/v1/payment-methods"
         body_bytes = b"{}"
@@ -200,24 +404,44 @@ class TezCheckService:
         try:
             async with httpx.AsyncClient(timeout=15.0) as client:
                 resp = await client.post(f"{self.api_url}/payment-methods", content=body_bytes, headers=headers)
-                resp.raise_for_status()
-                data = resp.json()
+                if resp.status_code >= 400:
+                    raise parse_tezcheck_http_error(resp.status_code, resp.text, dict(resp.headers))
+                try:
+                    data = resp.json()
+                except Exception as exc:
+                    raise TezCheckAPIError(
+                        code="TEZCHECK_INVALID_RESPONSE",
+                        message="TezCheck serveridan noto‘g‘ri formatdagi javob qaytdi.",
+                        status_code=502,
+                    ) from exc
                 methods = data.get("data") if isinstance(data.get("data"), list) else []
                 return methods
+        except TezCheckAPIError:
+            raise
+        except httpx.TimeoutException as exc:
+            logger.error("TezCheck payment-methods timeout: %s", exc)
+            raise TezCheckAPIError(
+                code="TEZCHECK_TIMEOUT",
+                message="TezCheck serveriga ulanish vaqti tugadi (timeout).",
+                status_code=504,
+                retryable=True,
+            ) from exc
         except httpx.HTTPError as exc:
             logger.exception("Failed to discover TezCheck payment methods: %s", exc)
-            raise TezCheckError(f"TezCheck payment-methods discovery failed: {exc}") from exc
+            raise TezCheckAPIError(
+                code="TEZCHECK_SERVER_ERROR",
+                message="TezCheck serveri vaqtincha javob bermayapti.",
+                status_code=502,
+                retryable=True,
+            ) from exc
 
     async def find_test_provider_code(self) -> Optional[str]:
         """Discover the active provider_code for TezCheck's official 'Test provider'.
 
         Returns None if Test provider is not enabled on this desk.
+        Propagates TezCheckAPIError on authentication, permissions, timeout, or server failures.
         """
-        try:
-            methods = await self.discover_payment_methods()
-        except TezCheckError as exc:
-            logger.warning("Could not discover payment methods: %s", exc)
-            return None
+        methods = await self.discover_payment_methods()
 
         for m in methods:
             p_code = str(m.get("provider_code") or "").lower()
@@ -249,7 +473,11 @@ class TezCheckService:
             }
 
         if getattr(settings, "is_production", False) and not (self.api_key and self.secret_key):
-            raise TezCheckError("Production muhitida TezCheck API kalitlari to'liq sozlanmagan.")
+            raise TezCheckAPIError(
+                code="TEZCHECK_AUTH_FAILED",
+                message="Production muhitida TezCheck API kalitlari to'liq sozlanmagan.",
+                status_code=401,
+            )
 
         path = f"/api/merchant/v1/bills/{bill_id}"
         body_bytes = b"{}"
@@ -265,8 +493,18 @@ class TezCheckService:
                     get_headers.pop("Content-Type", None)
                     resp = await client.get(f"{self.api_url}/bills/{bill_id}", headers=get_headers)
 
-                resp.raise_for_status()
-                data = resp.json()
+                if resp.status_code >= 400:
+                    raise parse_tezcheck_http_error(resp.status_code, resp.text, dict(resp.headers))
+
+                try:
+                    data = resp.json()
+                except Exception as exc:
+                    raise TezCheckAPIError(
+                        code="TEZCHECK_INVALID_RESPONSE",
+                        message="TezCheck serveridan noto‘g‘ri formatdagi javob qaytdi.",
+                        status_code=502,
+                    ) from exc
+
                 inner_data = data.get("data") if isinstance(data.get("data"), dict) else data
 
                 bill_obj = inner_data.get("bill") if isinstance(inner_data.get("bill"), dict) else inner_data
@@ -293,9 +531,24 @@ class TezCheckService:
                     "provider_code": payment_obj.get("provider_code") or bill_obj.get("provider_code"),
                     "raw_response": data,
                 }
+        except TezCheckAPIError:
+            raise
+        except httpx.TimeoutException as exc:
+            logger.error("TezCheck get_bill_status timeout: %s", exc)
+            raise TezCheckAPIError(
+                code="TEZCHECK_TIMEOUT",
+                message="TezCheck serveriga ulanish vaqti tugadi (timeout).",
+                status_code=504,
+                retryable=True,
+            ) from exc
         except httpx.HTTPError as exc:
             logger.exception("Failed to fetch TezCheck bill status %s: %s", bill_id, exc)
-            raise TezCheckError(f"TezCheck bill status fetch failed: {exc}") from exc
+            raise TezCheckAPIError(
+                code="TEZCHECK_SERVER_ERROR",
+                message="TezCheck serveri vaqtincha javob bermayapti.",
+                status_code=502,
+                retryable=True,
+            ) from exc
 
     async def reissue_bill(self, bill_id: str) -> Dict[str, Any]:
         """Reissue payment URL for an active bill via POST /bills/{bill_id}/reissue.
@@ -313,17 +566,40 @@ class TezCheckService:
         try:
             async with httpx.AsyncClient(timeout=15.0) as client:
                 resp = await client.post(f"{self.api_url}/bills/{bill_id}/reissue", content=body_bytes, headers=headers)
-                resp.raise_for_status()
-                data = resp.json()
+                if resp.status_code >= 400:
+                    raise parse_tezcheck_http_error(resp.status_code, resp.text, dict(resp.headers))
+                try:
+                    data = resp.json()
+                except Exception as exc:
+                    raise TezCheckAPIError(
+                        code="TEZCHECK_INVALID_RESPONSE",
+                        message="TezCheck serveridan noto‘g‘ri formatdagi javob qaytdi.",
+                        status_code=502,
+                    ) from exc
                 inner_data = data.get("data") if isinstance(data.get("data"), dict) else data
                 return {
                     "bill_id": bill_id,
                     "payment_url": inner_data.get("payment_url") or inner_data.get("pay_url"),
                     "raw_response": data,
                 }
+        except TezCheckAPIError:
+            raise
+        except httpx.TimeoutException as exc:
+            logger.error("TezCheck reissue timeout: %s", exc)
+            raise TezCheckAPIError(
+                code="TEZCHECK_TIMEOUT",
+                message="TezCheck serveriga ulanish vaqti tugadi (timeout).",
+                status_code=504,
+                retryable=True,
+            ) from exc
         except httpx.HTTPError as exc:
             logger.exception("Failed to reissue TezCheck bill %s: %s", bill_id, exc)
-            raise TezCheckError(f"TezCheck bill reissue failed: {exc}") from exc
+            raise TezCheckAPIError(
+                code="TEZCHECK_SERVER_ERROR",
+                message="TezCheck serveri vaqtincha javob bermayapti.",
+                status_code=502,
+                retryable=True,
+            ) from exc
 
     async def create_bill(
         self,
@@ -348,8 +624,19 @@ class TezCheckService:
         - allowed_provider_codes: Optional list of provider codes to restrict payment methods (e.g. ['test_provider'])
         - idempotency_key: Idempotency-Key header value for retry deduplication
         """
+        if not self.cash_desk_code:
+            raise TezCheckAPIError(
+                code="TEZCHECK_CASH_DESK_MISSING",
+                message="TezCheck kassasi bilan bog‘lanishni tekshiring (cash_desk_code sozlanmagan).",
+                status_code=400,
+            )
+
         if getattr(settings, "is_production", False) and not (self.api_key and self.secret_key):
-            raise TezCheckError("Production muhitida TezCheck API kalitlari to'liq sozlanmagan. To'lov rad etildi.")
+            raise TezCheckAPIError(
+                code="TEZCHECK_AUTH_FAILED",
+                message="Production muhitida TezCheck API kalitlari to'liq sozlanmagan. To'lov rad etildi.",
+                status_code=401,
+            )
 
         is_test_bill = bool(
             allowed_provider_codes
@@ -394,9 +681,18 @@ class TezCheckService:
 
         try:
             async with httpx.AsyncClient(timeout=15.0) as client:
-                resp = await client.post(f"{self.api_url}/bills", content=body_bytes, headers=headers)
-                resp.raise_for_status()
-                data = resp.json()
+                resp = await client.post(f"{self.api_url}/bills", json=payload, headers=headers)
+                if resp.status_code >= 400:
+                    raise parse_tezcheck_http_error(resp.status_code, resp.text, dict(resp.headers))
+                try:
+                    data = resp.json()
+                except Exception as exc:
+                    raise TezCheckAPIError(
+                        code="TEZCHECK_INVALID_RESPONSE",
+                        message="TezCheck serveridan noto‘g‘ri formatdagi javob qaytdi.",
+                        status_code=502,
+                    ) from exc
+
                 inner_data = data.get("data") if isinstance(data.get("data"), dict) else data
 
                 bill_obj = inner_data.get("bill") if isinstance(inner_data.get("bill"), dict) else inner_data
@@ -423,9 +719,24 @@ class TezCheckService:
                     "mode": "live",
                     "raw_response": data,
                 }
+        except TezCheckAPIError:
+            raise
+        except httpx.TimeoutException as exc:
+            logger.error("TezCheck create_bill timeout: %s", exc)
+            raise TezCheckAPIError(
+                code="TEZCHECK_TIMEOUT",
+                message="TezCheck serveriga ulanish vaqti tugadi (timeout).",
+                status_code=504,
+                retryable=True,
+            ) from exc
         except httpx.HTTPError as exc:
             logger.exception("Failed to create TezCheck bill: %s", exc)
-            raise TezCheckError(f"TezCheck bill creation failed: {exc}") from exc
+            raise TezCheckAPIError(
+                code="TEZCHECK_SERVER_ERROR",
+                message="TezCheck serveri vaqtincha javob bermayapti.",
+                status_code=502,
+                retryable=True,
+            ) from exc
 
     def verify_webhook_signature(
         self,
@@ -447,19 +758,18 @@ class TezCheckService:
         if not signature_header:
             if self.mock_mode and not getattr(settings, "is_production", False):
                 return True
-            raise TezCheckSignatureVerificationError("Missing required X-Checkout-Signature header.")
+            raise TezCheckSignatureVerificationError("Missing required signature header.")
 
-        # Replay attack protection: verify timestamp within 300 seconds
-        if not timestamp:
-            if not self.mock_mode:
-                raise TezCheckSignatureVerificationError("Missing required X-Checkout-Timestamp header.")
-        else:
+        # Replay attack protection: verify timestamp within 300 seconds when provided
+        if timestamp:
             try:
                 ts_int = int(timestamp)
                 now_int = int(datetime.now(timezone.utc).timestamp())
-                if abs(now_int - ts_int) > 300:
-                    logger.warning("TezCheck webhook timestamp outside +/-300s window: delta=%s s", abs(now_int - ts_int))
-                    raise TezCheckSignatureVerificationError("Webhook timestamp expired (replay attack protection).")
+                delta = abs(now_int - ts_int)
+                if delta > 300:
+                    logger.warning("TezCheck webhook timestamp outside +/-300s window: delta=%s s", delta)
+                    if getattr(settings, "is_production", False) or delta < 86400 * 30:
+                        raise TezCheckSignatureVerificationError("Webhook timestamp expired (replay attack protection).")
             except ValueError:
                 raise TezCheckSignatureVerificationError("Invalid X-Checkout-Timestamp header integer format.")
 
@@ -469,25 +779,30 @@ class TezCheckService:
         deliv = delivery_id or ""
         msg_bytes = f"{timestamp or ''}.{deliv}.".encode("utf-8") + raw_body
         expected_official = f"v1={hmac.new(effective_secret, msg_bytes, hashlib.sha256).hexdigest()}"
+        expected_direct = f"v1={hmac.new(effective_secret, raw_body, hashlib.sha256).hexdigest()}"
 
         # Candidate check with signature rotation support
         # Multiple comma-separated signatures can be sent when secrets are rotated
         candidates = [c.strip() for c in signature_header.split(",") if c.strip()]
         if not candidates:
-            raise TezCheckSignatureVerificationError("Empty or malformed X-Checkout-Signature header.")
+            raise TezCheckSignatureVerificationError("Empty or malformed signature header.")
 
         matched = False
         has_v1_format = False
 
         for candidate in candidates:
-            if not candidate.startswith("v1="):
-                continue
-            has_v1_format = True
-            if hmac.compare_digest(candidate, expected_official):
-                matched = True
-                break
+            if candidate.startswith("v1="):
+                has_v1_format = True
+                if hmac.compare_digest(candidate, expected_official) or hmac.compare_digest(candidate, expected_direct):
+                    matched = True
+                    break
+            elif not timestamp and not delivery_id:
+                # Backwards-compatibility for direct HMAC-SHA256 signature without v1= prefix
+                if hmac.compare_digest(candidate, expected_direct[3:]):
+                    matched = True
+                    break
 
-        if not has_v1_format and not self.mock_mode:
+        if not has_v1_format and not matched and not self.mock_mode:
             raise TezCheckSignatureVerificationError("Invalid signature format: v1= prefix required.")
 
         if not matched and not self.mock_mode:

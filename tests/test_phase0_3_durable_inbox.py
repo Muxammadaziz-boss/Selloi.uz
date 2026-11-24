@@ -196,8 +196,9 @@ async def test_b1_concurrent_workers_claim_disjoint_batches():
 async def test_b2_worker_crash_allows_safe_recovery_after_lease_expires():
     """If a worker crashes mid-processing, its expired lease is reclaimed by another worker."""
     uid = 940000 + (uuid.uuid4().int % 100000)
+    bot_id = f"crash_bot_{uuid.uuid4().hex[:8]}"
     async with core_db.SessionLocal() as db:
-        item, _ = await record_inbox_update(db, bot_id="crash_bot", update_id=uid, payload={"step": 1})
+        item, _ = await record_inbox_update(db, bot_id=bot_id, update_id=uid, payload={"step": 1})
         # Simulate worker that claimed and crashed 70 seconds ago
         item.status = "processing"
         item.lease_owner = "crashed_worker"
@@ -209,7 +210,7 @@ async def test_b2_worker_crash_allows_safe_recovery_after_lease_expires():
 
     # New recovery worker claims the batch
     async with core_db.SessionLocal() as db:
-        recovered = await claim_inbox_batch(db, batch_size=10, worker_id="recovery_worker", bot_id="crash_bot")
+        recovered = await claim_inbox_batch(db, batch_size=10, worker_id="recovery_worker", bot_id=bot_id)
         claimed_ids = [r[0] for r in recovered]
         assert inbox_id in claimed_ids
 
@@ -280,6 +281,7 @@ async def test_c1_transient_failure_schedules_exponential_retry():
         item, _ = await record_inbox_update(db, bot_id="retry_bot", update_id=uid, payload={})
         item.status = "processing"
         item.lease_token = token
+        item.lease_expires_at = datetime.now(timezone.utc) + timedelta(seconds=60)
         item.attempts = 2
         item.fencing_generation = 1
         await db.commit()
@@ -307,6 +309,7 @@ async def test_c2_max_attempts_exceeded_transitions_to_dead_letter():
         item, _ = await record_inbox_update(db, bot_id="dead_bot", update_id=uid, payload={})
         item.status = "processing"
         item.lease_token = token
+        item.lease_expires_at = datetime.now(timezone.utc) + timedelta(seconds=60)
         item.attempts = 5
         item.max_attempts = 5
         item.fencing_generation = 1

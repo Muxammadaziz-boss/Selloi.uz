@@ -339,14 +339,20 @@ async def renew_inbox_lease(
     extend_seconds: int = 60,
 ) -> bool:
     """Extend the processing lease token while verifying fencing token, generation, and active lease."""
-    if fencing_generation is None or not isinstance(fencing_generation, int):
-        raise ValueError("fencing_generation is mandatory for renew_inbox_lease")
+    if (
+        fencing_generation is None
+        or isinstance(fencing_generation, bool)
+        or not isinstance(fencing_generation, int)
+        or fencing_generation <= 0
+    ):
+        raise ValueError(f"fencing_generation is mandatory and must be a positive integer, got {fencing_generation!r}")
 
     now = _now()
     conditions = [
         TelegramInbox.id == inbox_id,
         TelegramInbox.lease_token == lease_token,
         TelegramInbox.fencing_generation == fencing_generation,
+        TelegramInbox.status == InboxStatus.PROCESSING.value,
         TelegramInbox.lease_expires_at > now,
     ]
 
@@ -371,14 +377,20 @@ async def complete_inbox_job(
     fencing_generation: int,
 ) -> bool:
     """Mark claimed inbox record as completed, strictly verifying fencing lease token, generation, and active lease."""
-    if fencing_generation is None or not isinstance(fencing_generation, int):
-        raise ValueError("fencing_generation is mandatory for complete_inbox_job")
+    if (
+        fencing_generation is None
+        or isinstance(fencing_generation, bool)
+        or not isinstance(fencing_generation, int)
+        or fencing_generation <= 0
+    ):
+        raise ValueError(f"fencing_generation is mandatory and must be a positive integer, got {fencing_generation!r}")
 
     now = _now()
     conditions = [
         TelegramInbox.id == inbox_id,
         TelegramInbox.lease_token == lease_token,
         TelegramInbox.fencing_generation == fencing_generation,
+        TelegramInbox.status == InboxStatus.PROCESSING.value,
         TelegramInbox.lease_expires_at > now,
     ]
 
@@ -408,22 +420,29 @@ async def fail_inbox_job(
     error_message: str,
     fencing_generation: int,
 ) -> bool:
-    """Record failure with exponential retry backoff, strictly verifying fencing token and generation."""
-    if fencing_generation is None or not isinstance(fencing_generation, int):
-        raise ValueError("fencing_generation is mandatory for fail_inbox_job")
+    """Record failure with exponential retry backoff, strictly verifying fencing token, generation, and active lease."""
+    if (
+        fencing_generation is None
+        or isinstance(fencing_generation, bool)
+        or not isinstance(fencing_generation, int)
+        or fencing_generation <= 0
+    ):
+        raise ValueError(f"fencing_generation is mandatory and must be a positive integer, got {fencing_generation!r}")
 
     now = _now()
     conditions = [
         TelegramInbox.id == inbox_id,
         TelegramInbox.lease_token == lease_token,
         TelegramInbox.fencing_generation == fencing_generation,
+        TelegramInbox.status == InboxStatus.PROCESSING.value,
+        TelegramInbox.lease_expires_at > now,
     ]
 
     stmt = select(TelegramInbox).where(and_(*conditions)).with_for_update()
     item = (await db.execute(stmt)).scalar_one_or_none()
     if not item:
         logger.warning(
-            "Fencing conflict: cannot fail inbox %s with token %s (gen=%s)",
+            "Fencing conflict or expired lease: cannot fail inbox %s with token %s (gen=%s)",
             inbox_id, lease_token, fencing_generation,
         )
         return False
@@ -473,14 +492,20 @@ async def process_inbox_job_atomically(
     - Rollback safety: if business_func or outbox staging fails, business state is cleanly rolled back
       and the failure is recorded with backoff in a fresh transaction.
     """
-    if fencing_generation is None or not isinstance(fencing_generation, int):
-        raise ValueError("fencing_generation is mandatory for process_inbox_job_atomically")
+    if (
+        fencing_generation is None
+        or isinstance(fencing_generation, bool)
+        or not isinstance(fencing_generation, int)
+        or fencing_generation <= 0
+    ):
+        raise ValueError(f"fencing_generation is mandatory and must be a positive integer, got {fencing_generation!r}")
 
     now = _now()
     conditions = [
         TelegramInbox.id == inbox_id,
         TelegramInbox.lease_token == lease_token,
         TelegramInbox.fencing_generation == fencing_generation,
+        TelegramInbox.status == InboxStatus.PROCESSING.value,
         TelegramInbox.lease_expires_at > now,
     ]
 
@@ -499,6 +524,10 @@ async def process_inbox_job_atomically(
     try:
         # Execute business mutations and outbox staging within this SAME transaction
         await business_func(payload, db, org_id)
+
+        # Verify lease did not expire during execution
+        if item.lease_expires_at and item.lease_expires_at <= _now():
+            raise RuntimeError(f"Lease expired during atomic processing for inbox {inbox_id}")
 
         # Mark inbox completed within this SAME transaction
         item.status = InboxStatus.COMPLETED.value
@@ -698,14 +727,20 @@ async def renew_outbox_lease(
     extend_seconds: int = 60,
 ) -> bool:
     """Extend outbox lease verifying token, fencing generation, and active lease."""
-    if fencing_generation is None or not isinstance(fencing_generation, int):
-        raise ValueError("fencing_generation is mandatory for renew_outbox_lease")
+    if (
+        fencing_generation is None
+        or isinstance(fencing_generation, bool)
+        or not isinstance(fencing_generation, int)
+        or fencing_generation <= 0
+    ):
+        raise ValueError(f"fencing_generation is mandatory and must be a positive integer, got {fencing_generation!r}")
 
     now = _now()
     conditions = [
         TelegramOutbox.id == outbox_id,
         TelegramOutbox.lease_token == lease_token,
         TelegramOutbox.fencing_generation == fencing_generation,
+        TelegramOutbox.status == OutboxStatus.PROCESSING.value,
         TelegramOutbox.lease_expires_at > now,
     ]
     stmt = select(TelegramOutbox).where(and_(*conditions)).with_for_update()
@@ -729,8 +764,13 @@ async def complete_outbox_event(
     fencing_generation: int,
 ) -> bool:
     """Mark claimed outbox record as sent, strictly verifying token, generation, and active lease."""
-    if fencing_generation is None or not isinstance(fencing_generation, int):
-        raise ValueError("fencing_generation is mandatory for complete_outbox_event")
+    if (
+        fencing_generation is None
+        or isinstance(fencing_generation, bool)
+        or not isinstance(fencing_generation, int)
+        or fencing_generation <= 0
+    ):
+        raise ValueError(f"fencing_generation is mandatory and must be a positive integer, got {fencing_generation!r}")
 
     now = _now()
     stmt = (
@@ -739,6 +779,7 @@ async def complete_outbox_event(
             TelegramOutbox.id == outbox_id,
             TelegramOutbox.lease_token == lease_token,
             TelegramOutbox.fencing_generation == fencing_generation,
+            TelegramOutbox.status == OutboxStatus.PROCESSING.value,
             TelegramOutbox.lease_expires_at > now,
         )
         .with_for_update()
@@ -770,8 +811,13 @@ async def fail_outbox_event(
     is_uncertain: bool = False,
 ) -> bool:
     """Record outbox delivery failure with exponential backoff, dead-letter, or uncertain state, verifying fencing."""
-    if fencing_generation is None or not isinstance(fencing_generation, int):
-        raise ValueError("fencing_generation is mandatory for fail_outbox_event")
+    if (
+        fencing_generation is None
+        or isinstance(fencing_generation, bool)
+        or not isinstance(fencing_generation, int)
+        or fencing_generation <= 0
+    ):
+        raise ValueError(f"fencing_generation is mandatory and must be a positive integer, got {fencing_generation!r}")
 
     now = _now()
     stmt = (
@@ -780,13 +826,15 @@ async def fail_outbox_event(
             TelegramOutbox.id == outbox_id,
             TelegramOutbox.lease_token == lease_token,
             TelegramOutbox.fencing_generation == fencing_generation,
+            TelegramOutbox.status == OutboxStatus.PROCESSING.value,
+            TelegramOutbox.lease_expires_at > now,
         )
         .with_for_update()
     )
     item = (await db.execute(stmt)).scalar_one_or_none()
     if not item:
         logger.warning(
-            "Fencing conflict: cannot fail outbox %s with token %s (gen=%s)",
+            "Fencing conflict or expired lease: cannot fail outbox %s with token %s (gen=%s)",
             outbox_id, lease_token, fencing_generation,
         )
         return False

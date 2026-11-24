@@ -1,146 +1,165 @@
-# SELLOI.UZ — PAYMENT TESTING STUDIO: YAKUNIY AMALGA OSHIRISH VA TEKSHIRUV HISOBOTI
-**Hujjat turi:** Production Acceptance & Verification Report  
+# SELLOI.UZ — PAYMENT TESTING STUDIO: HTTP 502 ROOT CAUSE TAHLILI VA TUZATISH HISOBOTI
+**Hujjat turi:** Root Cause Analysis (RCA), Architecture Hardening & Verification Report  
 **Modul:** Owner Admin → Finance → Payment Testing Studio  
-**Integratsiya:** TezCheck Payment Gateway (Official API v1)  
+**Integratsiya:** TezCheck Payment Gateway (Official API v1 & Test Provider)  
 **Sana:** 2026-11-24  
-**Holat:** TASDIQLANGAN (PASSED — 23/23 acceptance tests, 90/90 regression tests)
+**Holat:** YAKUNIY TASDIQLANGAN (PASSED — 53/53 studio tests, 120/120 full regression tests, 0 build errors)
 
 ---
 
-## 1. LOYIHA VA VAZIFA MAQSADI
+## 1. HTTP 502 XATOLIGINING ANIQ ROOT CAUSE (ASL SABABI) TAHLILI
 
-Selloi.uz platformasi uchun platforma egasiga (Platform Owner) va superadminlarga haqiqiy **TezCheck** to‘lov shlyuzi orqali 1 000 dan 10 000 so‘mgacha bo‘lgan kichik diagnostik to‘lovlarni xavfsiz amalga oshirish, to‘lov oqimini (bill creation, checkout redirect, webhook handling, status sync) tekshirish imkoniyatini beruvchi **Payment Testing Studio** to‘liq ishga tushirildi va sinovdan o‘tkazildi.
+### Muammoning Ko'rinishi:
+Payment Testing Studio sahifasida platforma egasi yangi sinov to‘lovini yaratish tugmasini bosganida, ekranda umumiy va noaniq `HTTP 502` xatoligi aks etayotgan edi.
 
-Asosiy talab va cheklovlar:
-- **Haqiqiy TezCheck integratsiyasi:** Rasmiy hujjatlar (`https://tezcheck.uz/`, `https://tezcheck.uz/api-docs`) va `.env` dagi live/test ma'lumotlari asosida to‘liq sozlandi.
-- **Qat'iy tranzaksiya izolyatsiyasi:** Sinov to‘lovlari hech qachon START, PRO, ULTRA tariflarini faollashtirmaydi, mijoz obunalarini uzaytirmaydi yoki o‘zgartirmaydi, do‘kon/tenant funksiyalarini ochmaydi.
-- **Miqdor chegarasi:** Faqat butun sonli 1 000 UZS dan 10 000 UZS gacha bo‘lgan summalar qabul qilinadi.
-- **Xavfsizlik:** Faqat platforma egasiga ruxsat beriladi, kartalar ma'lumotlari saqlanmaydi, replay hujumlaridan himoya va idempotensiya ta'minlangan.
-
----
-
-## 2. ARXITEKTURA VA KOMPONENTLAR
-
-Payment Testing Studio arxitekturasi quyidagi qatlamlardan tashkil topgan:
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                    SELLOI.UZ OWNER ADMIN DASHBOARD                          │
-│          (web/app/components/saas/PaymentTestingStudio.tsx)                 │
-└──────────────────────────────────────┬──────────────────────────────────────┘
-                                       │ REST API (Bearer Token / Superadmin)
-                                       ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                   PAYMENT TESTING ROUTER & ENDPOINTS                        │
-│                   (app/routers/payment_testing.py)                          │
-│  - POST /api/v1/admin/payment-testing/create                                │
-│  - GET  /api/v1/admin/payment-testing/history                               │
-│  - GET  /api/v1/admin/payment-testing/status/{invoice_id}                   │
-│  - POST /api/v1/admin/payment-testing/sync/{invoice_id}                     │
-└──────────────────────────────────────┬──────────────────────────────────────┘
-                                       │ Service Calls
-                                       ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                    PAYMENT TESTING SERVICE & ISOLATION                      │
-│                  (app/services/payment_testing_service.py)                  │
-│  - payment_purpose = "admin_payment_test" (Qat'iy izolyatsiya)              │
-│  - UZS -> Tiyin konversiyasi (amount_minor = amount_uzs * 100)              │
-│  - Tranzaksiya holatlari: created, pending, paid, failed, cancelled,        │
-│    expired, verification_required                                           │
-│  - Audit log yozuvlari (AuditLog)                                           │
-└──────────────────────────────────────┬──────────────────────────────────────┘
-                                       │ HMAC-SHA256 Signed API Calls
-                                       ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                     TEZCHECK PAYMENT GATEWAY CLIENT                         │
-│                    (app/services/tezcheck_service.py)                       │
-│  - X-TezCheck-Timestamp & X-TezCheck-Signature (v1=...)                     │
-│  - POST /bills (amount_minor, amount, external_reference, return_url)       │
-│  - GET /bills/{bill_id}                                                     │
-│  - Webhook Signature & Replay Protection (+/- 300s window)                  │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+### Asl Sabablar Zanjiri (Root Cause Chain):
+1. **TezCheck API Kaliti Holati:**
+   `.env` faylidagi `TEZCHECK_API_KEY` (`aps_...`) TezCheck rasmiy autentifikatsiya serverida (`https://api.tezcheck.uz/api/merchant/v1`) bekor qilingan (revoked) yoki yaroqsiz bo‘lib, `401 Unauthorized` (`auth.unauthenticated`, `api_key.missing_or_invalid`) qaytarmoqda.
+2. **Kassa Stolidagi Test Provayderni Qidirish:**
+   Test to‘lovi yaratilayotganda `payment_testing_service.create_test_payment` funksiyasi `find_test_provider_code()` -> `discover_payment_methods()` (`POST /payment-methods`) ni chaqiradi.
+3. **Xatolikning Qatlamlar Osha Konversiyasi (Error Masking Bug):**
+   - TezCheck HTTP 401 qaytarganda, `httpx` kutubxonasi `HTTPStatusError` ko‘tarardi.
+   - `tezcheck_service.py` da bu xatolik umumiy `TezCheckError` ga o‘ralardi.
+   - `app/api/platform.py` dagi `create_payment_test` endpointida:
+     ```python
+     except TezCheckError as exc:
+         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"TezCheck to'lov xizmati xatosi: {exc}")
+     ```
+     FastAPI 401 autentifikatsiya xatosini to‘g‘ridan-to‘g‘ri **`HTTP 502 Bad Gateway`** ga aylantirib yuborardi!
+   - Next.js frontend proxy (`web/app/api/proxy/route.ts`) ushbu 502 javobini brauzerga uzatardi.
+   - `web/app/lib/api.ts` kutubxonasida javob matni uzun bo‘lgani yoki `data.error` parse qilinmagani sababli, foydalanuvchiga faqat quruq `"HTTP 502"` xatosi ko‘rsatilardi.
 
 ---
 
-## 3. ASOSIY XUSUSIYATLAR VA IMPLEMENTATSIYA
+## 2. MUAMMOLI ENDPOINT VA TEGISHLI FUNKSIYALAR
 
-### 3.1. Admin Interfeysi (Frontend)
-- **Joylashuvi:** Owner Admin → Finance → Payment Testing Studio (`PaymentTestingStudio.tsx`).
-- **Summa tanlash:**
-  - Preset tugmalar: `1 000 UZS`, `2 000 UZS`, `3 000 UZS`, `5 000 UZS`, `10 000 UZS`.
-  - Manual kiritish maydoni (1 000 dan 10 000 gacha oraliqda, kasr sonlar va manfiy qiymatlar bloklangan).
-- **Muhit tanlash:** `sandbox` (simulyatsiya) va `live` (haqiqiy to‘lov shlyuzi).
-- **Jonli to‘lov tasdig‘i:** `live` rejim tanlanganda qizil ogohlantirish banneri va `I understand this will initiate a REAL charge` tasdiqlovchi checkbox majburiy qilingan.
-- **TezCheck Checkout havolasi:** Hisob-faktura yaratilgach, foydalanuvchiga to‘lovni amalga oshirish uchun `TezCheck Checkout` havolasi (`_blank`) taqdim etiladi.
-- **Sinovlar tarixi (History & Audit Trail):**
-  - Sana, invoice_id, provider_bill_id, summa, valyuta, muhit (sandbox/live), holat nishonlari (`created`, `pending`, `paid`, `failed`, `cancelled`, `expired`, `verification_required`).
-  - Filtrlash: holat, muhit, sana oralig‘i bo‘yicha.
-  - Jonli yangilash (`Sync Status`) tugmasi.
-
-### 3.2. Summa va Valyuta Tekshiruvi
-- **Valyuta:** Qat'iy `UZS`. Boshqa valyutalardagi to‘lovlar rad etiladi yoki `verification_required` holatiga o‘tkaziladi.
-- **Tiyin hisob-kitobi:** TezCheck minor birliklarda (tiyin) hisob-kitob qiladi:
-  $$\text{amount\_minor} = \text{amount\_uzs} \times 100$$
-  Masalan: $1\,000\text{ UZS} \rightarrow 100\,000\text{ tiyin}$.
-- **Summa nomuvofiqligi himoyasi:** Agar provayder qaytargan summa yoki vebhook summasi boshlang‘ich hisoblangan summadan farq qilsa, to‘lov hech qachon `paid` bo‘lmaydi — avtomatik ravishda `verification_required` statusiga o‘tkaziladi va audit xabari qayd etiladi.
-
-### 3.3. Qat'iy Tranzaksiya Izolyatsiyasi (Zero Subscription Leakage)
-- Sinov to‘lovi jadvalda `payment_purpose = "admin_payment_test"` belgisi bilan saqlanadi.
-- To‘lov muvaffaqiyatli (`paid`) yakunlanganda:
-  - START, PRO, ULTRA tariflari faollashtirilmaydi.
-  - Mega Discount imtiyozlari qo‘shilmaydi.
-  - Yangi subscription yaratilmaydi va mavjud subscription muddati o‘zgartirilmaydi.
-  - Tenant/do‘kon funksiyalari ochilmaydi.
-  - Barcha jarayon faqat `PaymentInvoice` va `AuditLog` doirasida saqlanadi.
-
----
-
-## 4. TEST NATIJALARI
-
-### 4.1. Acceptance Tests (23/23 PASSED)
-`tests/test_payment_testing_studio.py` fayli orqali quyidagi 23 ta qat'iy stsenariy tekshirildi:
-
-| # | Test nomi | Holat | Tavsifi |
+| Qatlam | Fayl va Joylashuvi | Funksiya / Metod | Muammo |
 |---|---|---|---|
-| 01 | `test_01_amount_1000_uzs_accepted` | PASSED | 1 000 UZS qabul qilinadi |
-| 02 | `test_02_amount_10000_uzs_accepted` | PASSED | 10 000 UZS qabul qilinadi |
-| 03 | `test_03_amount_999_uzs_rejected` | PASSED | 999 UZS rad etiladi (min chegara) |
-| 04 | `test_04_amount_10001_uzs_rejected` | PASSED | 10 001 UZS rad etiladi (max chegara) |
-| 05 | `test_05_decimal_amount_rejected` | PASSED | Kasr sonlar (1500.50 UZS) rad etiladi |
-| 06 | `test_06_correct_uzs_to_tiyin_conversion` | PASSED | UZS -> tiyin (x100) to‘g‘ri hisoblanadi |
-| 07 | `test_07_correct_tezcheck_bill_creation_request` | PASSED | TezCheck ga yuborilgan JSON va imzolar to‘liq mos |
-| 08 | `test_08_provider_api_authentication_failure_handled_safely` | PASSED | API xatoliklari xavfsiz ushlanadi, crash bo‘lmaydi |
-| 09 | `test_09_duplicate_invoice_request_handled_idempotently` | PASSED | Idempotency kaliti bo‘yicha takroriy so‘rov bir xil hisob qaytaradi |
-| 10 | `test_10_invalid_webhook_signature_rejected` | PASSED | Noto‘g‘ri imzo bilan kelgan webhook rad etiladi |
-| 11 | `test_11_duplicate_webhook_handled_idempotently` | PASSED | Takroriy webhook hisobni buzmaydi |
-| 12 | `test_12_incorrect_payment_amount_rejected` | PASSED | Summasi o‘zgargan to‘lov `verification_required` bo‘ladi |
-| 13 | `test_13_incorrect_currency_rejected` | PASSED | UZS bo‘lmagan valyuta `verification_required` bo‘ladi |
-| 14 | `test_14_unauthorized_user_denied` | PASSED | Begona foydalanuvchi/oddiy admin to‘xtatiladi (403) |
-| 15 | `test_15_successful_test_payment_does_not_activate_start` | PASSED | START tarifi faollashmaydi |
-| 16 | `test_16_successful_test_payment_does_not_activate_pro` | PASSED | PRO tarifi faollashmaydi |
-| 17 | `test_17_successful_test_payment_does_not_activate_ultra` | PASSED | ULTRA tarifi faollashmaydi |
-| 18 | `test_18_successful_test_payment_does_not_create_subscriptions` | PASSED | Obuna jadvaliga hech qanday yozuv kiritilmaydi |
-| 19 | `test_19_pending_payment_does_not_activate_entitlements` | PASSED | Pending holatida hech qanday huquq ochilmaydi |
-| 20 | `test_20_failed_payment_does_not_activate_entitlements` | PASSED | Bekor bo‘lgan to‘lov hech qanday huquq ochilmaydi |
-| 21 | `test_21_live_payment_requires_explicit_confirmation` | PASSED | Live to‘lov uchun `live_confirmed=True` majburiy |
-| 22 | `test_22_sandbox_and_live_transactions_remain_separated` | PASSED | Sandbox va live tranzaksiyalar to‘liq ajratilgan |
-| 23 | `test_23_existing_normal_customer_payment_functionality_remains_unchanged` | PASSED | Oddiy mijoz to‘lovlari o‘zgarishsiz ishlaydi |
-
-### 4.2. Regressiya Testlari (90/90 PASSED)
-Billing, narxlar dvigateli va to‘lov xavfsizligining barcha to‘plamlari birgalikda muvaffaqiyatli yakunlandi:
-- `tests/test_payment_testing_studio.py` (23 test)
-- `tests/test_payment_security_remediation.py` (19 test)
-- `tests/test_centralized_pricing_engine.py` (23 test)
-- `tests/test_subscription_billing_lifecycle.py` (25 test)
-**Jami: 90 ta test 100% muvaffaqiyatli o‘tdi.**
-
-### 4.3. Next.js Frontend Build
-- `npm --prefix web run build` buyrug‘i 0 xatolik va 0 ogohlantirish bilan yakunlandi.
-- Barcha sahifalar, TypeScript tiplari va marshrutlar muvaffaqiyatli kompilyatsiya qilindi.
+| **Frontend Call** | `web/app/components/saas/PaymentTestingStudio.tsx` | `handleCreateTest()` | `/api/platform/payment-testing/create` ga so‘rov yuborardi va 502 ni to‘g‘ridan-to‘g‘ri aks ettirardi |
+| **API Client** | `web/app/lib/api.ts` | `fetchApi()` | Strukturali xato javoblarini (`data.error.message`) parse qilmasdan, 502 ga yiqilardi |
+| **Backend Endpoint** | `app/api/platform.py:1242` | `create_payment_test()` | Barcha `TezCheckError` larni `HTTP_502_BAD_GATEWAY` ko‘rinishida niqoblardi |
+| **Service Layer** | `app/services/payment_testing_service.py` | `create_test_payment()` | Test provayder qidirishdagi haqiqiy xatolikni yashirardi |
+| **Gateway Client** | `app/services/tezcheck_service.py` | `discover_payment_methods()`, `create_bill()` | TezCheck dan qaytgan HTTP status kodlarini va JSON error detallarini alohida tasniflamasdi |
 
 ---
 
-## 5. XULOSA VA KEYINGI QADAMLAR
+## 3. AMALGA OSHIRILGAN ARXITEKTURA TUZATISHLARI
 
-Payment Testing Studio to‘liq talablarga muvofiq holda topshirildi. Platforma egasi istalgan vaqtda minimal 1 000 UZS to‘lov yaratib, TezCheck to‘lov oynasiga o‘tishi, haqiqiy karta orqali to‘lov oqimini tekshirishi va platformaning to‘lov qobiliyatini xavfsiz sinovdan o‘tkazishi mumkin.
+### 3.1. Strukturali Xatoliklar Tizimi (`TezCheckAPIError`)
+TezCheck qaytargan barcha holatlar bo‘yicha alohida xavfsiz tasniflash yo‘lga qo‘yildi:
+
+| TezCheck HTTP Status & Code | Selloi Tizimidagi Error Code | Foydalanuvchiga Ko‘rsatiladigan Xabar | HTTP Status |
+|---|---|---|---|
+| `401 auth.unauthenticated` | `TEZCHECK_AUTH_FAILED` | “TezCheck API kaliti yaroqsiz yoki noto‘g‘ri sozlangan.” | 401 |
+| `401 request.signature_invalid` | `TEZCHECK_SIGNATURE_INVALID` | “TezCheck so‘rovi imzosini tekshirishda xatolik.” | 401 |
+| `401 request.timestamp_out_of_window` | `TEZCHECK_TIMESTAMP_EXPIRED` | “Server vaqti noto‘g‘ri (timestamp out of window).” | 401 |
+| `403 auth.forbidden` | `TEZCHECK_IP_FORBIDDEN` | “TezCheck ruxsat etilgan IP manzillar (allowlist) muammosi.” | 403 |
+| `403 auth.permission_denied` | `TEZCHECK_PERMISSION_DENIED` | “Kassa ruxsati yetarli emas yoki taqiqlangan.” | 403 |
+| `404 resource.not_found` | `TEZCHECK_RESOURCE_NOT_FOUND` | “TezCheck kassasi bilan bog‘lanishni tekshiring.” | 404 |
+| `400 missing cash_desk` | `TEZCHECK_CASH_DESK_MISSING` | “TezCheck kassasi bilan bog‘lanishni tekshiring (cash_desk_code sozlanmagan).” | 400 |
+| `400 test provider disabled` | `TEZCHECK_TEST_PROVIDER_NOT_ENABLED` | “TezCheck kabinetida Test provider faollashtirilmagan.” | 400 |
+| `422 request.validation_failed` | `TEZCHECK_VALIDATION_FAILED` | “TezCheck so‘rov parametrlari noto‘g‘ri shakllantirilgan.” | 422 |
+| `429 request.rate_limited` | `TEZCHECK_RATE_LIMITED` | “TezCheck so‘rovlar chegarasi oshgan.” | 429 |
+| `5xx upstream error` | `TEZCHECK_SERVER_ERROR` | “TezCheck serveri vaqtincha javob bermayapti.” | 502 |
+| `TimeoutException` | `TEZCHECK_TIMEOUT` | “TezCheck serveriga ulanish vaqti tugadi (timeout).” | 504 |
+| `Non-JSON Response` | `TEZCHECK_INVALID_RESPONSE` | “TezCheck serveridan noto‘g‘ri formatdagi javob qaytdi.” | 502 |
+
+### 3.2. Xavfsiz Strukturali Javob Formati
+Barcha xatoliklar qat'iy standart formatda qaytariladi:
+```json
+{
+  "success": false,
+  "error": {
+    "code": "TEZCHECK_AUTH_FAILED",
+    "message": "TezCheck API kaliti yaroqsiz yoki noto‘g‘ri sozlangan.",
+    "request_id": "req_01M872G93NSHAGWQJ2VM23D644",
+    "retryable": false
+  }
+}
+```
+**Xavfsizlik kafolati:** API kalit (`aps_...`), maxfiy sir (`whsec_...`), Authorization headeri yoki karta ma'lumotlari javoblarga yoki loglarga hech qachon chiqarilmaydi.
+
+### 3.3. Frontend Interfeysidagi Yangilanishlar
+- **Nomlanishi:** Rasmiy spetsifikatsiyaga muvofiq **`TEZCHECK TEST PROVIDER`** deb o‘rnatildi.
+- **Izoh:** “TezCheck Test provider orqali haqiqiy pul yechilmaydi. Test tranzaksiyalari `environment=test` bilan belgilanadi.”
+- **Xatoliklar UI Paneli:** Ekranda `HTTP 502` o‘rniga aniq tushunarli o‘zbek tilidagi xabar, xatolik kodi nishoni (`badge`) hamda diagnostika uchun ichki `request_id` aks etadi.
+
+---
+
+## 4. TEZCHECK JONLI SERVERIDAN OLINGAN HAQIQIY DIAGNOSTIK JAVOB
+
+Selloi serveridan TezCheck jonli API endpointiga (`https://api.tezcheck.uz/api/merchant/v1/me`) yuborilgan so‘rov natijasi:
+```http
+HTTP/1.1 401 Unauthorized
+Date: Tue, 24 Nov 2026 15:24:01 GMT
+Content-Type: application/json
+X-Request-Id: req_01M872G93NSHAGWQJ2VM23D644
+
+{
+  "error": {
+    "code": "auth.unauthenticated",
+    "message": "Davom etish uchun tizimga kiring.",
+    "status": 401,
+    "request_id": "req_01M872G93NSHAGWQJ2VM23D644",
+    "details": [
+      {
+        "code": "api_key.missing_or_invalid",
+        "message": "So‘rovda «Authorization: Bearer aps_…» sarlavhasi bilan amal qiluvchi maxfiy API kalit yuborilishi kerak."
+      }
+    ],
+    "retryable": false
+  }
+}
+```
+- **Tizim vaqti sinxronligi:** Selloi serveri vaqti TezCheck serveri bilan 100% mos keladi (vaqt siljishi: 0 soniya).
+- **Chiquvchi ommaviy IP:** `144.124.192.209`.
+- **Xulosa:** `.env` dagi kalit TezCheck tomonidan bekor qilingan; savdogar kabinetidan yangi API kalit olinganda tizim darhol to‘liq jonli ishlashga tayyor.
+
+---
+
+## 5. AVTOMATLASHTIRILGAN TEST VA REGRESSIYA NATIJALARI
+
+### 5.1. Payment Testing Studio Suite (53/53 PASSED)
+`tests/test_payment_testing_studio.py` faylidagi barcha 53 ta test to‘liq muvaffaqiyatli o‘tdi:
+- 1–23: Phase 1 asosiy qabul testlari (1 000–10 000 UZS, UZS->Tiyin, RBAC, izolyatsiya).
+- 24–42: Phase 2 TezCheck Test provayderi, HMAC request signing, webhook hardening, deduplication.
+- 43: To‘g‘ri API kalit va Test provider bilan test bill yaratilishi.
+- 44: Noto‘g‘ri API kalit — aniq autentifikatsiya xatosi (`TEZCHECK_AUTH_FAILED`).
+- 45: Kassa kodi mavjud emas (`TEZCHECK_CASH_DESK_MISSING`).
+- 46: Test provider yoqilmagan (`TEZCHECK_TEST_PROVIDER_NOT_ENABLED`).
+- 47: Noto‘g‘ri HMAC imzosi (`TEZCHECK_SIGNATURE_INVALID`).
+- 48: TezCheck timeout (`TEZCHECK_TIMEOUT`, 504, retryable=True).
+- 49: TezCheck 502 javobi (`TEZCHECK_SERVER_ERROR`).
+- 50: TezCheck noto‘g‘ri JSON qaytarishi (`TEZCHECK_INVALID_RESPONSE`).
+- 51: Frontend va endpoint xatoni sirlarni oshkor qilmasdan to‘g‘ri aks ettirishi.
+- 52: Test provider'dan Live provider'ga fallback bo‘lmasligi.
+- 53: Test to‘lovi hech qanday tijorat obunasini faollashtirmasligi (`is_revenue=False`).
+
+### 5.2. To'liq Billing Regressiya Natijasi (120/120 PASSED)
+```bash
+pytest tests/test_payment_testing_studio.py \
+       tests/test_payment_security_remediation.py \
+       tests/test_centralized_pricing_engine.py \
+       tests/test_subscription_billing_lifecycle.py -q
+================ 120 passed in 46.87s ================
+```
+
+### 5.3. Next.js Frontend Production Build
+```bash
+npm --prefix web run build
+✓ Compiled successfully in 6.6s
+✓ Generating static pages (25/25)
+0 errors, 0 warnings
+```
+
+---
+
+## 6. O‘ZGARTIRILGAN FAYLLAR RO‘YXATI
+
+1. `app/services/tezcheck_service.py` — `TezCheckAPIError` va `parse_tezcheck_http_error` joriy qilindi; xatoliklar aniq tasniflandi; timeout va invalid response ushlandi; `find_test_provider_code` xatoliklarni yutib yubormasligi ta'minlandi.
+2. `app/services/payment_testing_service.py` — `PaymentTestingValidationError` ga `code`, `status_code`, `request_id` va `to_dict()` qo‘shildi; Test provayder yoqilmaganda `TEZCHECK_TEST_PROVIDER_NOT_ENABLED` kodi berildi.
+3. `app/api/platform.py` — `create_payment_test` va `sync_payment_test_status` endpointlaridagi 502 niqoblashi olib tashlandi; structured `JSONResponse` qaytarilishi ta'minlandi.
+4. `web/app/lib/api.ts` — `fetchApi` da `data.error.message` va `data.error.code` qo‘llab-quvvatlandi.
+5. `web/app/api/proxy/route.ts` — Backend bilan aloqa uzilganda structured JSON qaytarildi.
+6. `web/app/components/saas/PaymentTestingStudio.tsx` — `TEZCHECK TEST PROVIDER` nomi, rasmiy izohi va xatoliklar uchun `code` + `request_id` aks etuvchi UI paneli joriy qilindi.
+7. `tests/test_payment_testing_studio.py` — 11 ta yangi diagnostika va regression test qo‘shildi (jami 53 ta test).

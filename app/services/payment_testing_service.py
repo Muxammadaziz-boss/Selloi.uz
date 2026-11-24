@@ -1,7 +1,7 @@
 """Admin Payment Testing Studio Service.
 
 Allows platform owners to test and diagnose the TezCheck payment integration
-with small UZS amounts (1,000 to 10,000 UZS) across SANDBOX and LIVE environments.
+with small UZS amounts (1,000 to 10,000 UZS) across TEST PROVIDER and LIVE environments.
 
 CRITICAL ARCHITECTURAL SAFETY GUARANTEE:
 Transactions in this module have payment_purpose='admin_payment_test'.
@@ -11,6 +11,7 @@ They are completely isolated from subscriptions and NEVER:
 - Create monthly or yearly subscriptions.
 - Unlock tenant features or change entitlements.
 - Modify platform pricing configurations.
+- Record test transactions as commercial sales revenue.
 """
 
 from datetime import datetime, timezone
@@ -22,7 +23,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.models import Admin, AdminPaymentTest, AuditLog
-from app.services.tezcheck_service import TezCheckError, TezCheckService, tezcheck_service
+from app.services.tezcheck_service import (
+    TezCheckError,
+    TezCheckService,
+    tezcheck_service,
+)
 
 logger = get_logger(__name__)
 
@@ -38,7 +43,31 @@ LIVE_WARNING_TEXT = (
 
 class PaymentTestingValidationError(ValueError):
     """Raised when payment testing input validation fails."""
-    pass
+    def __init__(
+        self,
+        message: str,
+        code: str = "VALIDATION_FAILED",
+        status_code: int = 400,
+        request_id: Optional[str] = None,
+        retryable: bool = False,
+    ):
+        super().__init__(message)
+        self.message = message
+        self.code = code
+        self.status_code = status_code
+        self.request_id = request_id or f"selloi_req_{secrets.token_hex(6)}"
+        self.retryable = retryable
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "success": False,
+            "error": {
+                "code": self.code,
+                "message": self.message,
+                "request_id": self.request_id,
+                "retryable": self.retryable,
+            }
+        }
 
 
 class PaymentTestingService:
@@ -105,8 +134,8 @@ class PaymentTestingService:
             "min_amount_uzs": MIN_TEST_AMOUNT_UZS,
             "max_amount_uzs": MAX_TEST_AMOUNT_UZS,
             "preset_amounts_uzs": PRESET_AMOUNTS_UZS,
-            "default_environment": "sandbox",
-            "supported_environments": ["sandbox", "live"],
+            "default_environment": "test",
+            "supported_environments": ["test", "sandbox", "live"],
             "is_live_configured": has_live_keys,
             "merchant_id": getattr(settings, "tezcheck_merchant_id", "") or "",
             "cash_desk_code": getattr(settings, "tezcheck_cash_desk_code", "") or "",
@@ -118,7 +147,7 @@ class PaymentTestingService:
         db: AsyncSession,
         admin: Admin,
         amount_uzs: Any,
-        environment: str = "sandbox",
+        environment: str = "test",
         confirm_live: bool = False,
         description: Optional[str] = None,
         idempotency_key: Optional[str] = None,
@@ -128,17 +157,27 @@ class PaymentTestingService:
 
         Ensures:
         - Rigorous integer amount validation (1,000 - 10,000 UZS).
+        - Test provider is default testing option.
+        - Allowed provider codes restricted to Test provider for test payments.
+        - No silent fallback from Test provider to Live payment.
         - Explicit confirmation check for LIVE transactions.
         - Exact tiyin conversion (amount_tiyin = amount_uzs * 100).
-        - Idempotency deduplication.
+        - Idempotency deduplication using persistent Idempotency-Key.
         - Zero subscription or plan entitlement modification.
         """
         valid_amount = self.validate_amount(amount_uzs)
-        clean_env = (environment or "sandbox").strip().lower()
+        raw_env = (environment or "test").strip().lower()
 
-        if clean_env not in ("sandbox", "live"):
+        # Support 'test' (default) and 'sandbox' (diagnostic test alias)
+        if raw_env in ("test", "test_provider"):
+            clean_env = "test"
+        elif raw_env == "sandbox":
+            clean_env = "sandbox"
+        elif raw_env == "live":
+            clean_env = "live"
+        else:
             raise PaymentTestingValidationError(
-                "Noto'g'ri muhit tanlandi. Faqat 'sandbox' yoki 'live' ruxsat etiladi."
+                "Noto'g'ri muhit tanlandi. Faqat 'test' (Test provider) yoki 'live' ruxsat etiladi."
             )
 
         if clean_env == "live" and not confirm_live:
@@ -146,7 +185,7 @@ class PaymentTestingService:
                 "LIVE to'lov uchun qat'iy tasdiqlash talab etiladi: " + LIVE_WARNING_TEXT
             )
 
-        # 1. Idempotency Check
+        # 1. Idempotency Check: if key already exists, return existing immutable record
         if idempotency_key:
             existing_stmt = select(AdminPaymentTest).where(
                 AdminPaymentTest.idempotency_key == idempotency_key
@@ -175,9 +214,6 @@ class PaymentTestingService:
         )
         admin_user_id = admin.id if getattr(admin, "__tablename__", "") == "users" else None
 
-        # 3. Create invoice with provider
-        # In SANDBOX mode, simulate or call sandbox endpoint
-        # In LIVE mode, call production TezCheck API
         metadata = {
             "payment_purpose": "admin_payment_test",
             "test_id": test_id,
@@ -186,16 +222,39 @@ class PaymentTestingService:
             "environment": clean_env,
         }
 
-        if clean_env == "sandbox":
-            # Resilient sandbox execution
-            sandbox_service = TezCheckService(mock_mode=True)
-            bill_result = await sandbox_service.create_bill(
+        # 3. Provider selection and restriction
+        allowed_provider_codes: Optional[List[str]] = None
+
+        if clean_env in ("test", "sandbox"):
+            # Discover official Test provider code
+            test_provider_code = await tezcheck_service.find_test_provider_code()
+
+            if not test_provider_code:
+                if tezcheck_service.mock_mode:
+                    test_provider_code = "test_provider"
+                else:
+                    # Merchant account has not enabled Test provider on this desk
+                    # NEVER silently fall back to live payment!
+                    raise PaymentTestingValidationError(
+                        "TezCheck savdogar kabinetida ushbu kassa uchun 'Test provider' to'lov usulini yoqish talab etiladi. "
+                        "Jonli kartadan to'lovga avtomatik o'tilmaydi.",
+                        code="TEZCHECK_TEST_PROVIDER_NOT_ENABLED",
+                        status_code=400,
+                    )
+
+            allowed_provider_codes = [test_provider_code]
+            metadata["allowed_provider_codes"] = allowed_provider_codes
+
+            # Create bill restricted to Test provider
+            bill_result = await tezcheck_service.create_bill(
                 amount=amount_tiyin,
                 currency="UZS",
                 order_id=order_id,
                 description=desc_text,
                 return_url=ret_url,
                 metadata=metadata,
+                allowed_provider_codes=allowed_provider_codes,
+                idempotency_key=idempotency_key,
             )
         else:
             # LIVE execution using authoritative merchant configuration
@@ -206,12 +265,14 @@ class PaymentTestingService:
                 description=desc_text,
                 return_url=ret_url,
                 metadata=metadata,
+                allowed_provider_codes=None,
+                idempotency_key=idempotency_key,
             )
 
         provider_bill_id = bill_result.get("bill_id")
         checkout_url = bill_result.get("pay_url") or bill_result.get("checkout_url")
 
-        # 4. Persist immutable diagnostic record
+        # 4. Persist immutable diagnostic record immediately with single-use checkout URL
         test_record = AdminPaymentTest(
             test_id=test_id,
             admin_id=admin_user_id,
@@ -247,36 +308,46 @@ class PaymentTestingService:
                 "order_id": order_id,
                 "provider_bill_id": provider_bill_id,
                 "admin_email": admin_email_str,
+                "allowed_provider_codes": allowed_provider_codes,
             },
         )
         db.add(audit)
-
         await db.commit()
         await db.refresh(test_record)
 
         logger.info(
-            "Created admin payment test %s (%s UZS / %s) for admin %s",
+            "Created AdminPaymentTest %s for %s UZS in %s environment (bill_id: %s)",
             test_id,
             valid_amount,
             clean_env,
-            admin.email,
+            provider_bill_id,
         )
         return test_record
 
-    async def get_test_by_id(
-        self, db: AsyncSession, test_id: str
-    ) -> Optional[AdminPaymentTest]:
-        """Fetch test payment by its test_id."""
-        stmt = select(AdminPaymentTest).where(AdminPaymentTest.test_id == test_id)
+    async def get_test_by_id(self, db: AsyncSession, test_id: str) -> Optional[AdminPaymentTest]:
+        """Fetch an admin payment test by test_id, external_reference, or provider_bill_id."""
+        stmt = select(AdminPaymentTest).where(
+            or_(
+                AdminPaymentTest.test_id == test_id,
+                AdminPaymentTest.external_reference == test_id,
+                AdminPaymentTest.provider_bill_id == test_id,
+            )
+        )
         return (await db.execute(stmt)).scalar_one_or_none()
 
     async def sync_test_payment_status(
-        self, db: AsyncSession, test_id: str, admin: Admin
+        self,
+        db: AsyncSession,
+        test_id: str,
+        admin_user_id: Optional[int] = None,
     ) -> AdminPaymentTest:
-        """Query real-time payment status from TezCheck provider via GET /bills/{bill_id}.
+        """Poll and reconcile status directly from TezCheck API via POST /bills/{bill}.
 
-        Only verified provider responses can transition a test to paid/failed/cancelled/expired.
-        NEVER activates subscriptions or plans.
+        Validates:
+        - Correct bill ID and external reference.
+        - Correct amount in tiyin and currency UZS.
+        - For test payments: paid=true, livemode=false, environment='test'.
+        - Unreconciled / unknown statuses remain pending or verification_required.
         """
         test_record = await self.get_test_by_id(db, test_id)
         if not test_record:
@@ -285,33 +356,31 @@ class PaymentTestingService:
         if not test_record.provider_bill_id:
             return test_record
 
-        # Check with provider
-        if test_record.environment == "sandbox":
-            # Sandbox simulated status
-            provider_status = {
-                "bill_id": test_record.provider_bill_id,
-                "status": test_record.status,
-                "mode": "sandbox",
-            }
-        else:
-            try:
-                provider_status = await tezcheck_service.get_bill_status(
-                    test_record.provider_bill_id
-                )
-            except TezCheckError as exc:
-                logger.warning(
-                    "Failed to fetch live provider status for %s: %s", test_id, exc
-                )
-                return test_record
+        # Check with provider (tezcheck_service handles mock_mode internally)
+        try:
+            provider_status = await tezcheck_service.get_bill_status(
+                test_record.provider_bill_id
+            )
+        except TezCheckError as exc:
+            logger.warning(
+                "Failed to fetch provider status for %s: %s", test_id, exc
+            )
+            return test_record
 
         raw_status = (provider_status.get("status") or "").lower()
+        is_paid = bool(provider_status.get("paid") or raw_status in ("paid", "completed", "succeeded", "success", "payment.succeeded"))
+        livemode = provider_status.get("livemode")
+        env = provider_status.get("environment")
         old_status = test_record.status
 
-        # Map provider status
+        # Map and validate provider status
         new_status = old_status
-        if raw_status in ("paid", "completed", "succeeded", "success", "payment.succeeded"):
+
+        if is_paid:
             ret_amount = provider_status.get("amount_minor") or provider_status.get("amount")
             ret_curr = provider_status.get("currency")
+
+            # 1. Amount verification
             if ret_amount and int(ret_amount) != test_record.amount_tiyin:
                 logger.error(
                     "Amount mismatch in synced status for %s: expected %s tiyin, received %s",
@@ -320,11 +389,21 @@ class PaymentTestingService:
                     ret_amount,
                 )
                 new_status = "verification_required"
+            # 2. Currency verification
             elif ret_curr and ret_curr.upper() != "UZS":
                 logger.error(
                     "Currency mismatch in synced status for %s: expected UZS, received %s",
                     test_id,
                     ret_curr,
+                )
+                new_status = "verification_required"
+            # 3. Test environment validation (livemode=false, environment=test)
+            elif test_record.environment in ("test", "sandbox") and (livemode is True or env == "live"):
+                logger.error(
+                    "Livemode violation for test payment %s: livemode=%s, env=%s",
+                    test_id,
+                    livemode,
+                    env,
                 )
                 new_status = "verification_required"
             else:
@@ -335,6 +414,13 @@ class PaymentTestingService:
             new_status = "cancelled"
         elif raw_status in ("expired", "timeout"):
             new_status = "expired"
+        elif raw_status in ("requires_action", "processing", "pending", "active", "created"):
+            # Legitimate ongoing state: retain pending
+            new_status = "pending"
+        elif raw_status:
+            # Uncertain / unrecognized state: retain verification_required, NEVER mark failed
+            logger.warning("Uncertain status '%s' from provider for %s", raw_status, test_id)
+            new_status = "verification_required"
 
         if new_status != old_status:
             test_record.status = new_status
@@ -351,6 +437,8 @@ class PaymentTestingService:
                     "old_status": old_status,
                     "new_status": new_status,
                     "provider_bill_id": test_record.provider_bill_id,
+                    "livemode": livemode,
+                    "environment": env,
                 },
             )
             db.add(audit)
@@ -371,6 +459,7 @@ class PaymentTestingService:
         """Webhook-driven payment status confirmation exclusively for AdminPaymentTest.
 
         CRITICAL: Never activates plans, subscriptions, or tenant entitlements.
+        Verifies paid=true, livemode=false, environment=test for test payments.
         """
         if not test_record:
             stmt = select(AdminPaymentTest).where(
@@ -391,6 +480,7 @@ class PaymentTestingService:
 
         old_status = test_record.status
         normalized_status = status_str.lower()
+        inner_data = payload.get("data") if isinstance(payload.get("data"), dict) else {}
 
         if normalized_status in ("paid", "completed", "success", "succeeded", "payment.succeeded"):
             # 1. Amount validation against immutable record snapshot
@@ -404,7 +494,6 @@ class PaymentTestingService:
                 test_record.status = "verification_required"
             else:
                 # 2. Currency validation
-                inner_data = payload.get("data") if isinstance(payload.get("data"), dict) else {}
                 curr = inner_data.get("currency") or payload.get("currency") or "UZS"
                 if curr and curr.upper() != "UZS":
                     logger.error(
@@ -414,8 +503,21 @@ class PaymentTestingService:
                     )
                     test_record.status = "verification_required"
                 else:
-                    test_record.status = "paid"
-                    test_record.completed_at = datetime.now(timezone.utc)
+                    # 3. Test environment validation (livemode=false, environment=test)
+                    livemode = inner_data.get("livemode") if "livemode" in inner_data else payload.get("livemode")
+                    env = inner_data.get("environment") or payload.get("environment")
+
+                    if test_record.environment in ("test", "sandbox") and (livemode is True or env == "live"):
+                        logger.error(
+                            "Livemode violation in webhook for test %s: livemode=%s, env=%s",
+                            test_record.test_id,
+                            livemode,
+                            env,
+                        )
+                        test_record.status = "verification_required"
+                    else:
+                        test_record.status = "paid"
+                        test_record.completed_at = datetime.now(timezone.utc)
         elif normalized_status in ("failed", "rejected", "error"):
             test_record.status = "failed"
             test_record.completed_at = datetime.now(timezone.utc)
@@ -478,7 +580,11 @@ class PaymentTestingService:
         if status_filter:
             query = query.where(AdminPaymentTest.status == status_filter.strip().lower())
         if environment_filter:
-            query = query.where(AdminPaymentTest.environment == environment_filter.strip().lower())
+            env_clean = environment_filter.strip().lower()
+            if env_clean in ("sandbox", "test"):
+                query = query.where(AdminPaymentTest.environment.in_(["sandbox", "test"]))
+            else:
+                query = query.where(AdminPaymentTest.environment == env_clean)
         if min_amount is not None:
             query = query.where(AdminPaymentTest.amount_uzs >= min_amount)
         if max_amount is not None:
@@ -499,7 +605,10 @@ class PaymentTestingService:
         return list(items), total
 
     async def get_test_stats(self, db: AsyncSession) -> Dict[str, Any]:
-        """Separate sandbox transactions from live financial settlements."""
+        """Separate test provider transactions from live financial settlements.
+
+        CRITICAL: Neither test nor live admin diagnostics are counted as sales revenue.
+        """
         all_tests = (await db.execute(select(AdminPaymentTest))).scalars().all()
 
         total_count = len(all_tests)
@@ -513,7 +622,7 @@ class PaymentTestingService:
             if t.status == "pending":
                 pending_count += 1
 
-            if t.environment == "sandbox":
+            if t.environment in ("sandbox", "test"):
                 sandbox_count += 1
                 if t.status == "paid":
                     sandbox_paid_uzs += t.amount_uzs
@@ -531,11 +640,18 @@ class PaymentTestingService:
                 "simulated_paid_tiyin": sandbox_paid_uzs * 100,
                 "is_revenue": False,
             },
+            "test_provider": {
+                "total_count": sandbox_count,
+                "simulated_paid_uzs": sandbox_paid_uzs,
+                "simulated_paid_tiyin": sandbox_paid_uzs * 100,
+                "is_revenue": False,
+                "deducts_real_money": False,
+            },
             "live": {
                 "total_count": live_count,
                 "collected_paid_uzs": live_paid_uzs,
                 "collected_paid_tiyin": live_paid_uzs * 100,
-                "is_revenue": True,
+                "is_revenue": False,
                 "settlement_note": "Administrative diagnostics settlement — must be reconciled in merchant reports",
             },
         }

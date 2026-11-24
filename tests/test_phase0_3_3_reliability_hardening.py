@@ -381,8 +381,9 @@ async def test_a5_outbox_timeout_enters_uncertain_state():
 
 @pytest.mark.anyio
 async def test_b1_inbox_operations_require_mandatory_fencing_generation():
-    """Calling complete_inbox_job, fail_inbox_job, or renew_inbox_lease without fencing_generation raises ValueError."""
+    """Calling complete_inbox_job, fail_inbox_job, renew_inbox_lease, or process_inbox_job_atomically with invalid fencing raises ValueError."""
     async with core_db.SessionLocal() as db:
+        # None
         with pytest.raises(ValueError, match="mandatory"):
             await complete_inbox_job(db, 1, "token", None)  # type: ignore
 
@@ -391,6 +392,24 @@ async def test_b1_inbox_operations_require_mandatory_fencing_generation():
 
         with pytest.raises(ValueError, match="mandatory"):
             await renew_inbox_lease(db, 1, "token", None)  # type: ignore
+
+        with pytest.raises(ValueError, match="mandatory"):
+            await process_inbox_job_atomically(db, 1, "token", None, AsyncMock())  # type: ignore
+
+        # Boolean
+        with pytest.raises(ValueError, match="mandatory"):
+            await complete_inbox_job(db, 1, "token", True)  # type: ignore
+
+        # Zero or negative
+        with pytest.raises(ValueError, match="mandatory"):
+            await complete_inbox_job(db, 1, "token", 0)
+
+        with pytest.raises(ValueError, match="mandatory"):
+            await fail_inbox_job(db, 1, "token", "err", -1)
+
+        # String
+        with pytest.raises(ValueError, match="mandatory"):
+            await renew_inbox_lease(db, 1, "token", "1")  # type: ignore
 
 
 @pytest.mark.anyio
@@ -481,7 +500,7 @@ async def test_b4_outbox_operations_enforce_mandatory_fencing():
         await db.commit()
         outbox_id = item.id
 
-        # Missing fencing raises ValueError
+        # Missing or invalid fencing raises ValueError
         with pytest.raises(ValueError, match="mandatory"):
             await complete_outbox_event(db, outbox_id, "token", None)  # type: ignore
 
@@ -490,6 +509,18 @@ async def test_b4_outbox_operations_enforce_mandatory_fencing():
 
         with pytest.raises(ValueError, match="mandatory"):
             await renew_outbox_lease(db, outbox_id, "token", None)  # type: ignore
+
+        with pytest.raises(ValueError, match="mandatory"):
+            await complete_outbox_event(db, outbox_id, "token", True)  # type: ignore
+
+        with pytest.raises(ValueError, match="mandatory"):
+            await complete_outbox_event(db, outbox_id, "token", 0)
+
+        with pytest.raises(ValueError, match="mandatory"):
+            await fail_outbox_event(db, outbox_id, "token", "err", -1)
+
+        with pytest.raises(ValueError, match="mandatory"):
+            await renew_outbox_lease(db, outbox_id, "token", "1")  # type: ignore
 
         # Worker 1 claims
         claimed_1 = await claim_outbox_batch(db, batch_size=1, outbox_id=outbox_id, lease_seconds=1)

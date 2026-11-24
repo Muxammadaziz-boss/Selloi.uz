@@ -956,6 +956,7 @@ async def tezcheck_webhook(
     )
     ts = request.headers.get("x-checkout-timestamp") or request.headers.get("x-tezcheck-timestamp")
     delivery_id = request.headers.get("x-checkout-delivery") or request.headers.get("x-delivery-id")
+    event_id_header = request.headers.get("x-checkout-event-id") or request.headers.get("x-event-id")
 
     import json
     try:
@@ -1019,7 +1020,14 @@ async def tezcheck_webhook(
         return {"status": "ignored", "reason": f"Status '{status_str}' not actionable"}
 
     # Atomic deduplication via WebhookEvent
-    unique_event_id = str(delivery_id or inner_data.get("id") or f"tezcheck_{bill_id}_{status_str}")
+    # CRITICAL: Use X-Checkout-Event-Id (or payload body 'id') as primary deduplication key.
+    # Do NOT use X-Checkout-Delivery as deduplication identifier (different semantics).
+    unique_event_id = str(
+        event_id_header
+        or payload.get("id")
+        or inner_data.get("id")
+        or f"tezcheck_{bill_id}_{status_str}"
+    )
 
     existing_event = (
         await db.execute(

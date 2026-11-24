@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional
 import re
 import secrets
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import JSONResponse
 import httpx
 from pydantic import BaseModel, EmailStr
 from sqlalchemy import select
@@ -1223,7 +1224,7 @@ async def get_system_health(
 
 class PaymentTestCreateRequest(BaseModel):
     amount_uzs: Any
-    environment: str = "sandbox"
+    environment: str = "test"
     confirm_live: bool = False
     description: str | None = None
     idempotency_key: str | None = None
@@ -1251,7 +1252,7 @@ async def create_payment_test(
     CRITICAL: Never activates subscriptions or modifies plan prices.
     """
     from app.services.payment_testing_service import payment_testing_service, PaymentTestingValidationError
-    from app.services.tezcheck_service import TezCheckError
+    from app.services.tezcheck_service import TezCheckError, TezCheckAPIError
 
     try:
         test_record = await payment_testing_service.create_test_payment(
@@ -1277,10 +1278,37 @@ async def create_payment_test(
             "created_at": test_record.created_at.isoformat() if test_record.created_at else None,
             "payment_purpose": test_record.payment_purpose,
         }
+    except TezCheckAPIError as exc:
+        return JSONResponse(
+            status_code=exc.status_code,
+            content=exc.to_dict(),
+        )
     except PaymentTestingValidationError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+        return JSONResponse(
+            status_code=getattr(exc, "status_code", status.HTTP_400_BAD_REQUEST),
+            content=exc.to_dict() if hasattr(exc, "to_dict") else {
+                "success": False,
+                "error": {
+                    "code": getattr(exc, "code", "VALIDATION_FAILED"),
+                    "message": str(exc),
+                    "request_id": getattr(exc, "request_id", f"selloi_req_{secrets.token_hex(6)}"),
+                    "retryable": False,
+                }
+            },
+        )
     except TezCheckError as exc:
-        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"TezCheck to'lov xizmati xatosi: {exc}")
+        return JSONResponse(
+            status_code=getattr(exc, "status_code", status.HTTP_502_BAD_GATEWAY),
+            content=exc.to_dict() if hasattr(exc, "to_dict") else {
+                "success": False,
+                "error": {
+                    "code": getattr(exc, "code", "TEZCHECK_GATEWAY_ERROR"),
+                    "message": str(exc),
+                    "request_id": f"selloi_req_{secrets.token_hex(6)}",
+                    "retryable": False,
+                }
+            },
+        )
 
 
 @router.get("/payment-testing/history")
@@ -1384,6 +1412,7 @@ async def sync_payment_test_status(
 ):
     """Query live provider payment status and synchronize record."""
     from app.services.payment_testing_service import payment_testing_service, PaymentTestingValidationError
+    from app.services.tezcheck_service import TezCheckError, TezCheckAPIError
 
     try:
         updated = await payment_testing_service.sync_test_payment_status(db, test_id, admin)
@@ -1395,6 +1424,35 @@ async def sync_payment_test_status(
             "completed_at": updated.completed_at.isoformat() if updated.completed_at else None,
         }
     except PaymentTestingValidationError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+        return JSONResponse(
+            status_code=getattr(exc, "status_code", status.HTTP_404_NOT_FOUND),
+            content=exc.to_dict() if hasattr(exc, "to_dict") else {
+                "success": False,
+                "error": {
+                    "code": getattr(exc, "code", "NOT_FOUND"),
+                    "message": str(exc),
+                    "request_id": f"selloi_req_{secrets.token_hex(6)}",
+                    "retryable": False,
+                }
+            },
+        )
+    except TezCheckAPIError as exc:
+        return JSONResponse(
+            status_code=exc.status_code,
+            content=exc.to_dict(),
+        )
+    except TezCheckError as exc:
+        return JSONResponse(
+            status_code=getattr(exc, "status_code", status.HTTP_502_BAD_GATEWAY),
+            content=exc.to_dict() if hasattr(exc, "to_dict") else {
+                "success": False,
+                "error": {
+                    "code": getattr(exc, "code", "TEZCHECK_GATEWAY_ERROR"),
+                    "message": str(exc),
+                    "request_id": f"selloi_req_{secrets.token_hex(6)}",
+                    "retryable": False,
+                }
+            },
+        )
 
 

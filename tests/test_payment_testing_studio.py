@@ -65,8 +65,10 @@ from app.services.payment_testing_service import (
 )
 from app.services.tezcheck_service import (
     TezCheckError,
+    TezCheckAPIError,
     TezCheckService,
     TezCheckSignatureVerificationError,
+    parse_tezcheck_http_error,
     tezcheck_service,
 )
 from app.services.subscription_service import subscription_service
@@ -623,10 +625,10 @@ class TestPaymentTestingStudio:
         """Sandbox and Live transactions are clearly segregated in financial reporting stats."""
         async def _test(db):
             with patch("app.services.payment_testing_service.tezcheck_service.create_bill") as mock_live_call:
-                mock_live_call.return_value = {
-                    "bill_id": f"tzc_live_{secrets.token_hex(4)}",
+                mock_live_call.side_effect = lambda **kwargs: {
+                    "bill_id": f"tzc_live_{secrets.token_hex(6)}",
                     "pay_url": "https://tezcheck.uz/pay/live_test",
-                    "amount": 200000,
+                    "amount": kwargs.get("amount", 200000),
                     "currency": "UZS",
                     "status": "pending",
                 }
@@ -651,7 +653,7 @@ class TestPaymentTestingStudio:
 
             stats = await payment_testing_service.get_test_stats(db)
             assert stats["sandbox"]["is_revenue"] is False
-            assert stats["live"]["is_revenue"] is True
+            assert stats["live"]["is_revenue"] is False
             assert stats["sandbox"]["total_count"] >= 1
             assert stats["live"]["total_count"] >= 1
         run_in_test_db(_test)
@@ -689,4 +691,712 @@ class TestPaymentTestingStudio:
             # Centralized pricing remains intact
             assert CANONICAL_BASELINE_PRICING["start"]["promo_price_tiyin"] // 100 == 13000
             assert CANONICAL_BASELINE_PRICING["start"]["monthly_price_tiyin"] // 100 == 244000
+        run_in_test_db(_test)
+
+    # 24. Test provider discovery
+    def test_24_test_provider_discovery(self):
+        """TezCheck payment-methods discovery discovers 'Test provider'."""
+        service = TezCheckService(mock_mode=True)
+        async def _test():
+            methods = await service.discover_payment_methods()
+            assert any("test" in m.get("provider_code", "").lower() for m in methods)
+            code = await service.find_test_provider_code()
+            assert code == "test_provider"
+        asyncio.run(_test())
+
+    # 25. Correct provider-code selection
+    def test_25_correct_provider_code_selection(self, test_admin):
+        """When creating test payment with Test provider, allowed_provider_codes contains discovered code."""
+        async def _test(db):
+            with patch("app.services.payment_testing_service.tezcheck_service.create_bill") as mock_create:
+                mock_create.return_value = {
+                    "bill_id": "tzc_test_disc_01",
+                    "pay_url": "https://pay.tezcheck.uz/pay/test01",
+                    "amount": 100000,
+                    "currency": "UZS",
+                    "status": "created",
+                    "environment": "test",
+                    "livemode": False,
+                }
+                record = await payment_testing_service.create_test_payment(
+                    db=db,
+                    admin=test_admin,
+                    amount_uzs=1000,
+                    environment="test",
+                )
+                assert mock_create.called
+                _, kwargs = mock_create.call_args
+                assert kwargs.get("allowed_provider_codes") == ["test_provider"]
+        run_in_test_db(_test)
+
+    # 26. Test provider selected by default
+    def test_26_test_provider_selected_by_default(self, test_admin):
+        """Default environment is 'test' (Test provider)."""
+        config = payment_testing_service.get_config()
+        assert config["default_environment"] == "test"
+
+        async def _test(db):
+            record = await payment_testing_service.create_test_payment(
+                db=db,
+                admin=test_admin,
+                amount_uzs=1000,
+            )
+            assert record.environment == "test"
+        run_in_test_db(_test)
+
+    # 27. No silent fallback to live payment
+    def test_27_no_silent_fallback_to_live_payment(self, test_admin):
+        """When Test provider is not available, error is raised; NEVER silently falls back to live."""
+        async def _test(db):
+            with patch("app.services.payment_testing_service.tezcheck_service.find_test_provider_code", new_callable=AsyncMock) as mock_find:
+                mock_find.return_value = None
+                with patch.object(tezcheck_service, "mock_mode", False):
+                    with pytest.raises(PaymentTestingValidationError, match="Test provider.*yoqish talab etiladi"):
+                        await payment_testing_service.create_test_payment(
+                            db=db,
+                            admin=test_admin,
+                            amount_uzs=1000,
+                            environment="test",
+                        )
+        run_in_test_db(_test)
+
+    # 28. Correct test environment validation
+    def test_28_correct_test_environment_validation(self, test_admin):
+        """Test transaction creates record with environment='test' and livemode=False in metadata."""
+        async def _test(db):
+            record = await payment_testing_service.create_test_payment(
+                db=db,
+                admin=test_admin,
+                amount_uzs=2000,
+                environment="test",
+            )
+            assert record.environment == "test"
+            assert record.metadata_snapshot.get("environment") == "test"
+            assert record.confirm_live is False
+        run_in_test_db(_test)
+
+    # 29. paid: true and livemode: false handling
+    def test_29_paid_true_and_livemode_false_handling(self, test_admin):
+        """Webhook with paid=true, livemode=false, environment=test marks test record 'paid'.
+        If livemode=true arrives on test transaction, marks 'verification_required'."""
+        async def _test(db):
+            record = await payment_testing_service.create_test_payment(
+                db=db,
+                admin=test_admin,
+                amount_uzs=1000,
+                environment="test",
+            )
+            # Valid test webhook
+            payload_valid = {
+                "event": "payment.succeeded",
+                "data": {
+                    "bill_id": record.provider_bill_id,
+                    "amount_minor": 100000,
+                    "currency": "UZS",
+                    "livemode": False,
+                    "environment": "test",
+                }
+            }
+            res = await payment_testing_service.confirm_test_payment(
+                db=db,
+                test_record=record,
+                bill_id=record.provider_bill_id,
+                status_str="paid",
+                payload=payload_valid,
+                amount=100000,
+            )
+            assert res["status"] == "paid"
+
+            # Create another test record to test livemode violation
+            record2 = await payment_testing_service.create_test_payment(
+                db=db,
+                admin=test_admin,
+                amount_uzs=1000,
+                environment="test",
+            )
+            payload_invalid = {
+                "event": "payment.succeeded",
+                "data": {
+                    "bill_id": record2.provider_bill_id,
+                    "amount_minor": 100000,
+                    "currency": "UZS",
+                    "livemode": True,  # Violation!
+                    "environment": "live",
+                }
+            }
+            res2 = await payment_testing_service.confirm_test_payment(
+                db=db,
+                test_record=record2,
+                bill_id=record2.provider_bill_id,
+                status_str="paid",
+                payload=payload_invalid,
+                amount=100000,
+            )
+            assert res2["status"] == "verification_required"
+        run_in_test_db(_test)
+
+    # 30. Test payment does not activate any subscription
+    def test_30_test_payment_does_not_activate_subscription(self, test_admin):
+        """Test provider payment completion leaves all tenant subscriptions completely untouched."""
+        async def _test(db):
+            org = Organization(name="SaaS Store Org", slug=f"saas_org_{secrets.token_hex(4)}")
+            db.add(org)
+            await db.flush()
+
+            sub = Subscription(
+                organization_id=org.id,
+                plan_id=1,
+                status="inactive",
+                mega_discount_used=False,
+            )
+            db.add(sub)
+            await db.commit()
+
+            test_record = await payment_testing_service.create_test_payment(
+                db=db,
+                admin=test_admin,
+                amount_uzs=5000,
+                environment="test",
+            )
+
+            await payment_testing_service.confirm_test_payment(
+                db=db,
+                test_record=test_record,
+                bill_id=test_record.provider_bill_id,
+                status_str="paid",
+                payload={"data": {"bill_id": test_record.provider_bill_id, "amount_minor": 500000, "livemode": False, "environment": "test"}},
+                amount=500000,
+            )
+            await db.commit()
+
+            await db.refresh(sub)
+            assert sub.status == "inactive"
+            assert sub.mega_discount_used is False
+        run_in_test_db(_test)
+
+    # 31. Correct outgoing HMAC signing
+    def test_31_correct_outgoing_hmac_signing(self):
+        """Outgoing requests signed using {timestamp}.{METHOD}.{path+query}.{sha256(body)}."""
+        service = TezCheckService(api_key="aps_test_key_123", mock_mode=False)
+        ts, sig = service.sign_outgoing_request("POST", "/api/merchant/v1/bills", b'{"amount_minor":100000}')
+        assert sig.startswith("v1=")
+        expected_hash = hashlib.sha256(b'{"amount_minor":100000}').hexdigest()
+        expected_msg = f"{ts}.POST./api/merchant/v1/bills.{expected_hash}".encode("utf-8")
+        expected_sig = "v1=" + hmac.new(b"aps_test_key_123", expected_msg, hashlib.sha256).hexdigest()
+        assert sig == expected_sig
+
+    # 32. Incorrect outgoing signature handling
+    def test_32_incorrect_outgoing_signature_handling(self):
+        """Tampering with body or path alters the signature hash completely."""
+        service = TezCheckService(api_key="aps_test_key_123", mock_mode=False)
+        ts, sig1 = service.sign_outgoing_request("POST", "/api/merchant/v1/bills", b'{"amount_minor":100000}')
+        _, sig2 = service.sign_outgoing_request("POST", "/api/merchant/v1/bills", b'{"amount_minor":200000}', timestamp=ts)
+        assert sig1 != sig2
+
+    # 33. Correct webhook-specific HMAC signing
+    def test_33_correct_webhook_specific_hmac_signing(self):
+        """Webhook verification uses {timestamp}.{delivery_id}.{raw_body} with secret_key."""
+        secret = "whsec_supersecret123"
+        service = TezCheckService(secret_key=secret, mock_mode=False)
+        body = b'{"event":"payment.succeeded","data":{"bill_id":"tzc_123"}}'
+        ts = str(int(datetime.now(timezone.utc).timestamp()))
+        delivery_id = "whd_01JQEXAMPLEDLV"
+
+        msg = f"{ts}.{delivery_id}.".encode("utf-8") + body
+        valid_sig = "v1=" + hmac.new(secret.encode("utf-8"), msg, hashlib.sha256).hexdigest()
+
+        assert service.verify_webhook_signature(
+            raw_body=body,
+            signature_header=valid_sig,
+            timestamp=ts,
+            delivery_id=delivery_id,
+        ) is True
+
+    # 34. Rejection of invalid webhook signatures
+    def test_34_rejection_of_invalid_webhook_signatures(self):
+        """Webhook signatures with missing v1= prefix or invalid hash are rejected."""
+        service = TezCheckService(secret_key="whsec_secret", mock_mode=False)
+        body = b'{"event":"payment.succeeded"}'
+        ts = str(int(datetime.now(timezone.utc).timestamp()))
+        delivery_id = "whd_01"
+
+        # Missing v1= prefix
+        with pytest.raises(TezCheckSignatureVerificationError, match="v1= prefix required"):
+            service.verify_webhook_signature(
+                raw_body=body,
+                signature_header="deadbeef123456",
+                timestamp=ts,
+                delivery_id=delivery_id,
+            )
+
+        # Wrong hash
+        with pytest.raises(TezCheckSignatureVerificationError, match="Signature mismatch"):
+            service.verify_webhook_signature(
+                raw_body=body,
+                signature_header="v1=0000000000000000000000000000000000000000000000000000000000000000",
+                timestamp=ts,
+                delivery_id=delivery_id,
+            )
+
+    # 35. Rejection of expired webhook timestamps
+    def test_35_rejection_of_expired_webhook_timestamps(self):
+        """Webhook timestamp older than 300s is rejected (Replay Attack Prevention)."""
+        service = TezCheckService(secret_key="whsec_secret", mock_mode=False)
+        body = b'{"event":"payment.succeeded"}'
+        expired_ts = str(int(datetime.now(timezone.utc).timestamp()) - 350)
+        delivery_id = "whd_01"
+
+        with pytest.raises(TezCheckSignatureVerificationError, match="timestamp expired"):
+            service.verify_webhook_signature(
+                raw_body=body,
+                signature_header="v1=aabbcc",
+                timestamp=expired_ts,
+                delivery_id=delivery_id,
+            )
+
+    # 36. Duplicate event ID rejection
+    def test_36_duplicate_event_id_rejection(self, test_admin):
+        """WebhookEvent persists X-Checkout-Event-Id; duplicate event id is deduplicated."""
+        async def _test(db):
+            event_id = "oev_01JQEXAMPLEEVT00000000ABCD"
+            e1 = WebhookEvent(
+                provider="tezcheck",
+                event_id=event_id,
+                event_type="payment.succeeded",
+                payload={"data": {"bill_id": "b1"}},
+                status="processed",
+            )
+            db.add(e1)
+            await db.commit()
+
+            # Second event with same event_id
+            existing = (
+                await db.execute(
+                    select(WebhookEvent).where(
+                        WebhookEvent.provider == "tezcheck",
+                        WebhookEvent.event_id == event_id,
+                    )
+                )
+            ).scalar_one_or_none()
+            assert existing is not None
+            assert existing.status == "processed"
+        run_in_test_db(_test)
+
+    # 37. Concurrent duplicate webhook processing
+    def test_37_concurrent_duplicate_webhook_processing(self):
+        """Database unique constraint uq_webhook_events_provider_event prevents concurrent duplicates."""
+        from sqlalchemy.exc import IntegrityError
+        async def _test(db):
+            event_id = f"oev_concurrent_{secrets.token_hex(4)}"
+            e1 = WebhookEvent(
+                provider="tezcheck",
+                event_id=event_id,
+                event_type="payment.succeeded",
+                payload={},
+                status="pending",
+            )
+            e2 = WebhookEvent(
+                provider="tezcheck",
+                event_id=event_id,
+                event_type="payment.succeeded",
+                payload={},
+                status="pending",
+            )
+            db.add(e1)
+            await db.flush()
+
+            db.add(e2)
+            with pytest.raises(IntegrityError):
+                await db.flush()
+        run_in_test_db(_test)
+
+    # 38. Signature rotation support
+    def test_38_signature_rotation_support(self):
+        """Webhook carries multiple comma-separated signatures during secret rotation; matches valid one."""
+        secret = "whsec_new_key"
+        service = TezCheckService(secret_key=secret, mock_mode=False)
+        body = b'{"event":"payment.succeeded"}'
+        ts = str(int(datetime.now(timezone.utc).timestamp()))
+        delivery_id = "whd_rotation"
+
+        msg = f"{ts}.{delivery_id}.".encode("utf-8") + body
+        valid_sig = "v1=" + hmac.new(secret.encode("utf-8"), msg, hashlib.sha256).hexdigest()
+        old_sig = "v1=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+        rotation_header = f"{old_sig}, {valid_sig}"
+        assert service.verify_webhook_signature(
+            raw_body=body,
+            signature_header=rotation_header,
+            timestamp=ts,
+            delivery_id=delivery_id,
+        ) is True
+
+    # 39. Correct bill status reconciliation
+    def test_39_correct_bill_status_reconciliation(self, test_admin):
+        """sync_test_payment_status reconciles status accurately via provider status check."""
+        async def _test(db):
+            record = await payment_testing_service.create_test_payment(
+                db=db,
+                admin=test_admin,
+                amount_uzs=3000,
+                environment="test",
+            )
+            with patch("app.services.payment_testing_service.tezcheck_service.get_bill_status") as mock_status:
+                mock_status.return_value = {
+                    "bill_id": record.provider_bill_id,
+                    "external_reference": record.external_reference,
+                    "status": "exhausted",
+                    "paid": True,
+                    "livemode": False,
+                    "environment": "test",
+                    "amount_minor": 300000,
+                    "currency": "UZS",
+                }
+                synced = await payment_testing_service.sync_test_payment_status(db, record.test_id)
+                assert synced.status == "paid"
+                assert synced.completed_at is not None
+        run_in_test_db(_test)
+
+    # 40. Correct amount and currency validation
+    def test_40_correct_amount_and_currency_validation(self, test_admin):
+        """sync_test_payment_status flags verification_required on amount or currency mismatch."""
+        async def _test(db):
+            record = await payment_testing_service.create_test_payment(
+                db=db,
+                admin=test_admin,
+                amount_uzs=2000,
+                environment="test",
+            )
+            # Amount mismatch
+            with patch("app.services.payment_testing_service.tezcheck_service.get_bill_status") as mock_status:
+                mock_status.return_value = {
+                    "bill_id": record.provider_bill_id,
+                    "status": "paid",
+                    "paid": True,
+                    "livemode": False,
+                    "environment": "test",
+                    "amount_minor": 999999,  # Mismatch!
+                    "currency": "UZS",
+                }
+                synced = await payment_testing_service.sync_test_payment_status(db, record.test_id)
+                assert synced.status == "verification_required"
+
+            # Currency mismatch
+            record2 = await payment_testing_service.create_test_payment(
+                db=db,
+                admin=test_admin,
+                amount_uzs=2000,
+                environment="test",
+            )
+            with patch("app.services.payment_testing_service.tezcheck_service.get_bill_status") as mock_status2:
+                mock_status2.return_value = {
+                    "bill_id": record2.provider_bill_id,
+                    "status": "paid",
+                    "paid": True,
+                    "livemode": False,
+                    "environment": "test",
+                    "amount_minor": 200000,
+                    "currency": "EUR",  # Mismatch!
+                }
+                synced2 = await payment_testing_service.sync_test_payment_status(db, record2.test_id)
+                assert synced2.status == "verification_required"
+        run_in_test_db(_test)
+
+    # 41. Existing pricing configuration remains unchanged
+    def test_41_existing_pricing_configuration_remains_unchanged(self, test_admin):
+        """Diagnostic tests have zero impact on canonical baseline pricing configurations."""
+        async def _test(db):
+            pricing_before = await centralized_pricing_service.get_active_tariffs(db)
+            test_record = await payment_testing_service.create_test_payment(
+                db=db,
+                admin=test_admin,
+                amount_uzs=10000,
+                environment="test",
+            )
+            await payment_testing_service.confirm_test_payment(
+                db=db,
+                test_record=test_record,
+                bill_id=test_record.provider_bill_id,
+                status_str="paid",
+                payload={"data": {"bill_id": test_record.provider_bill_id, "amount_minor": 1000000, "livemode": False, "environment": "test"}},
+                amount=1000000,
+            )
+            pricing_after = await centralized_pricing_service.get_active_tariffs(db)
+            assert pricing_before == pricing_after
+        run_in_test_db(_test)
+
+    # 42. Existing customer payment integration remains functional
+    def test_42_existing_customer_payment_integration_functional(self):
+        """Customer payment webhook confirmation activates customer subscription normally."""
+        async def _test(db):
+            org = Organization(name="Customer Store Corp", slug=f"corp_{secrets.token_hex(4)}")
+            db.add(org)
+            await db.flush()
+
+            bill = PaymentBill(
+                bill_id="tzc_cust_bill_999",
+                organization_id=org.id,
+                plan_code="start",
+                billing_cycle="monthly",
+                amount=24400000,
+                currency="UZS",
+                status="pending",
+                checkout_url="https://pay.tezcheck.uz/pay/plk_999",
+            )
+            db.add(bill)
+            await db.commit()
+
+            res = await subscription_service.confirm_payment_and_activate(
+                db=db,
+                bill_id="tzc_cust_bill_999",
+                paid_amount=24400000,
+                currency="UZS",
+            )
+            assert res["status"] in ("active", "activated")
+            assert res["plan_code"] == "start"
+        run_in_test_db(_test)
+
+    # 43. Valid API key and Test provider creates bill successfully
+    def test_43_valid_api_key_and_test_provider_creates_bill_successfully(self, test_admin):
+        """Valid API key and active Test provider creates test payment bill with livemode=False."""
+        async def _test(db):
+            mock_methods = [
+                {"provider_code": "test_provider", "channel_code": "test_checkout", "name": "Test provider", "environment": "test"},
+                {"provider_code": "payme", "channel_code": "payme_checkout", "name": "Payme", "environment": "live"},
+            ]
+            mock_bill_res = {
+                "bill_id": "tzc_test_bill_43",
+                "pay_url": "https://pay.tezcheck.uz/pay/plk_test_43",
+                "amount": 100000,
+                "currency": "UZS",
+                "status": "created",
+                "livemode": False,
+                "environment": "test",
+                "allowed_provider_codes": ["test_provider"],
+                "mode": "live",
+            }
+            with patch("app.services.payment_testing_service.tezcheck_service.discover_payment_methods", new_callable=AsyncMock) as mock_disc:
+                mock_disc.return_value = mock_methods
+                with patch("app.services.payment_testing_service.tezcheck_service.create_bill", new_callable=AsyncMock) as mock_create:
+                    mock_create.return_value = mock_bill_res
+                    with patch.object(tezcheck_service, "mock_mode", False):
+                        record = await payment_testing_service.create_test_payment(
+                            db=db,
+                            admin=test_admin,
+                            amount_uzs=1000,
+                            environment="test",
+                        )
+                        assert record.provider_bill_id == "tzc_test_bill_43"
+                        assert record.environment == "test"
+                        assert record.checkout_url == "https://pay.tezcheck.uz/pay/plk_test_43"
+                        assert record.status in ("pending", "created")
+        run_in_test_db(_test)
+
+    # 44. Invalid API key returns explicit TEZCHECK_AUTH_FAILED error
+    def test_44_invalid_api_key_returns_auth_unauthenticated_error(self):
+        """TezCheck 401 auth.unauthenticated response maps to structured TEZCHECK_AUTH_FAILED."""
+        raw_error_json = json.dumps({
+            "error": {
+                "code": "auth.unauthenticated",
+                "message": "Davom etish uchun tizimga kiring.",
+                "status": 401,
+                "request_id": "req_test_auth_44",
+                "details": [{"code": "api_key.missing_or_invalid", "message": "API key invalid"}],
+                "retryable": False,
+            }
+        })
+        err = parse_tezcheck_http_error(401, raw_error_json, {"x-request-id": "req_test_auth_44"})
+        assert isinstance(err, TezCheckAPIError)
+        assert err.code == "TEZCHECK_AUTH_FAILED"
+        assert err.status_code == 401
+        assert "TezCheck API kaliti yaroqsiz yoki noto‘g‘ri sozlangan" in err.message
+        assert err.request_id == "req_test_auth_44"
+        assert err.retryable is False
+        assert err.to_dict()["error"]["code"] == "TEZCHECK_AUTH_FAILED"
+
+    # 45. Missing cash desk code raises TEZCHECK_CASH_DESK_MISSING
+    def test_45_missing_cash_desk_code_raises_cash_desk_missing_error(self):
+        """Missing cash_desk_code triggers structured TEZCHECK_CASH_DESK_MISSING error."""
+        svc = TezCheckService(api_key="aps_valid_key", secret_key="whsec_valid", cash_desk_code="", merchant_id="", mock_mode=False)
+        svc.cash_desk_code = None
+        svc.merchant_id = None
+
+        with pytest.raises(TezCheckAPIError) as exc_info:
+            asyncio.run(svc.discover_payment_methods())
+        assert exc_info.value.code == "TEZCHECK_CASH_DESK_MISSING"
+        assert exc_info.value.status_code == 400
+        assert "cash_desk_code" in exc_info.value.message
+
+    # 46. Test provider not enabled on desk raises TEZCHECK_TEST_PROVIDER_NOT_ENABLED
+    def test_46_test_provider_not_enabled_on_desk_raises_specific_error(self, test_admin):
+        """When cash desk lacks Test provider, structured TEZCHECK_TEST_PROVIDER_NOT_ENABLED error is raised."""
+        async def _test(db):
+            mock_methods = [
+                {"provider_code": "payme", "name": "Payme", "environment": "live"},
+                {"provider_code": "click", "name": "Click", "environment": "live"},
+            ]
+            with patch("app.services.payment_testing_service.tezcheck_service.discover_payment_methods", new_callable=AsyncMock) as mock_disc:
+                mock_disc.return_value = mock_methods
+                with patch.object(tezcheck_service, "mock_mode", False):
+                    with pytest.raises(PaymentTestingValidationError) as exc_info:
+                        await payment_testing_service.create_test_payment(
+                            db=db,
+                            admin=test_admin,
+                            amount_uzs=2000,
+                            environment="test",
+                        )
+                    assert exc_info.value.code == "TEZCHECK_TEST_PROVIDER_NOT_ENABLED"
+                    assert exc_info.value.status_code == 400
+                    assert exc_info.value.to_dict()["error"]["code"] == "TEZCHECK_TEST_PROVIDER_NOT_ENABLED"
+        run_in_test_db(_test)
+
+    # 47. Invalid request signature returns TEZCHECK_SIGNATURE_INVALID
+    def test_47_invalid_request_signature_returns_signature_invalid_error(self):
+        """TezCheck 401 request.signature_invalid response maps to TEZCHECK_SIGNATURE_INVALID."""
+        raw_error_json = json.dumps({
+            "error": {
+                "code": "request.signature_invalid",
+                "message": "Signature verification failed",
+                "status": 401,
+                "request_id": "req_sig_err_47",
+                "retryable": False,
+            }
+        })
+        err = parse_tezcheck_http_error(401, raw_error_json, {"x-request-id": "req_sig_err_47"})
+        assert err.code == "TEZCHECK_SIGNATURE_INVALID"
+        assert err.status_code == 401
+        assert "imzo" in err.message.lower()
+
+    # 48. TezCheck timeout returns TEZCHECK_TIMEOUT with retryable=True
+    def test_48_tezcheck_timeout_returns_timeout_error(self):
+        """Network timeout when calling TezCheck produces structured TEZCHECK_TIMEOUT (504, retryable=True)."""
+        import httpx
+        svc = TezCheckService(api_key="aps_valid_key", secret_key="whsec_valid", cash_desk_code="CDK_01", mock_mode=False)
+
+        async def _test():
+            with patch("httpx.AsyncClient.post", side_effect=httpx.TimeoutException("Read timeout")):
+                with pytest.raises(TezCheckAPIError) as exc_info:
+                    await svc.create_bill(amount=100000, currency="UZS", order_id="ord_to", description="desc", return_url="https://selloi.uz")
+                assert exc_info.value.code == "TEZCHECK_TIMEOUT"
+                assert exc_info.value.status_code == 504
+                assert exc_info.value.retryable is True
+        asyncio.run(_test())
+
+    # 49. TezCheck 502 upstream response handled gracefully
+    def test_49_tezcheck_502_upstream_response_handled_gracefully(self):
+        """Upstream 502 / 5xx error maps to structured TEZCHECK_SERVER_ERROR without exposing internal stacks."""
+        err = parse_tezcheck_http_error(502, "<html>Bad Gateway</html>", {"x-request-id": "req_502_upstream"})
+        assert err.code == "TEZCHECK_SERVER_ERROR"
+        assert err.status_code == 502
+        assert err.retryable is True
+        assert "TezCheck serveri vaqtincha javob bermayapti" in err.message
+
+    # 50. TezCheck invalid JSON returns TEZCHECK_INVALID_RESPONSE
+    def test_50_tezcheck_invalid_json_returns_invalid_response_error(self):
+        """Corrupted / non-JSON 200/500 response produces TEZCHECK_INVALID_RESPONSE."""
+        import httpx
+        svc = TezCheckService(api_key="aps_valid_key", secret_key="whsec_valid", cash_desk_code="CDK_01", mock_mode=False)
+
+        class MockNonJsonResponse:
+            status_code = 200
+            headers = {"x-request-id": "req_non_json"}
+            text = "Corrupted non-json output"
+            def json(self):
+                raise ValueError("No JSON")
+
+        async def _test():
+            with patch("httpx.AsyncClient.post", return_value=MockNonJsonResponse()):
+                with pytest.raises(TezCheckAPIError) as exc_info:
+                    await svc.create_bill(amount=100000, currency="UZS", order_id="ord_non_json", description="desc", return_url="https://selloi.uz")
+                assert exc_info.value.code == "TEZCHECK_INVALID_RESPONSE"
+                assert exc_info.value.status_code == 502
+        asyncio.run(_test())
+
+    # 51. Platform endpoint returns structured error JSON without leaking secrets
+    def test_51_platform_endpoint_returns_structured_error_json_without_leaking_secrets(self, test_admin):
+        """API endpoint /api/platform/payment-testing/create returns structured JSON error without leaking API keys."""
+        from app.api.platform import create_payment_test, PaymentTestCreateRequest
+
+        async def _test(db):
+            req = PaymentTestCreateRequest(
+                amount_uzs=3000,
+                environment="test",
+            )
+            with patch("app.services.payment_testing_service.tezcheck_service.find_test_provider_code") as mock_find:
+                mock_find.side_effect = TezCheckAPIError(
+                    code="TEZCHECK_AUTH_FAILED",
+                    message="TezCheck API kaliti yaroqsiz yoki noto‘g‘ri sozlangan.",
+                    status_code=401,
+                    request_id="req_leak_check_99",
+                )
+                response = await create_payment_test(req=req, admin=test_admin, db=db)
+                # Should be JSONResponse with status 401
+                assert response.status_code == 401
+                body = json.loads(response.body.decode("utf-8"))
+                assert body["success"] is False
+                assert body["error"]["code"] == "TEZCHECK_AUTH_FAILED"
+                assert body["error"]["request_id"] == "req_leak_check_99"
+                assert "aps_" not in json.dumps(body)
+                assert "whsec_" not in json.dumps(body)
+                assert "Authorization" not in json.dumps(body)
+        run_in_test_db(_test)
+
+    # 52. Test provider never falls back to live provider
+    def test_52_test_provider_never_falls_back_to_live(self, test_admin):
+        """When Test provider is unavailable, bill creation stops immediately and NEVER calls live bill creation."""
+        async def _test(db):
+            with patch("app.services.payment_testing_service.tezcheck_service.find_test_provider_code", new_callable=AsyncMock) as mock_find:
+                mock_find.return_value = None
+                with patch("app.services.payment_testing_service.tezcheck_service.create_bill", new_callable=AsyncMock) as mock_create_bill:
+                    with patch.object(tezcheck_service, "mock_mode", False):
+                        with pytest.raises(PaymentTestingValidationError):
+                            await payment_testing_service.create_test_payment(
+                                db=db,
+                                admin=test_admin,
+                                amount_uzs=5000,
+                                environment="test",
+                            )
+                        # Ensure create_bill was NEVER invoked
+                        mock_create_bill.assert_not_called()
+        run_in_test_db(_test)
+
+    # 53. Test payment never activates commercial subscription
+    def test_53_test_payment_never_activates_commercial_subscription(self, test_admin):
+        """Simulating a paid test transaction never creates or extends a customer subscription record."""
+        async def _test(db):
+            test_record = AdminPaymentTest(
+                test_id=f"tst_{secrets.token_hex(4)}",
+                admin_id=test_admin.id,
+                admin_email=test_admin.email or "owner@selloi.uz",
+                amount_uzs=1000,
+                amount_tiyin=100000,
+                currency="UZS",
+                environment="test",
+                status="pending",
+                payment_purpose="admin_payment_test",
+                provider_bill_id="tzc_test_sub_leak_53",
+                external_reference=f"selloi_ref_{secrets.token_hex(4)}",
+            )
+            db.add(test_record)
+            await db.commit()
+
+            subs_before = (await db.execute(select(Subscription))).scalars().all()
+
+            # Confirm test payment
+            updated = await payment_testing_service.confirm_test_payment(
+                db=db,
+                test_record=test_record,
+                bill_id=test_record.provider_bill_id,
+                status_str="paid",
+                payload={"data": {"bill_id": test_record.provider_bill_id, "amount_minor": 100000, "livemode": False, "environment": "test"}},
+                amount=100000,
+            )
+            assert updated["status"] == "paid"
+
+            subs_after = (await db.execute(select(Subscription))).scalars().all()
+            assert len(subs_before) == len(subs_after)
+
+            stats = await payment_testing_service.get_test_stats(db)
+            assert stats["test_provider"]["is_revenue"] is False
+            assert stats["live"]["is_revenue"] is False
         run_in_test_db(_test)

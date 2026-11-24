@@ -149,7 +149,19 @@ async function proxy(request: NextRequest) {
       },
     });
   } catch {
-    return NextResponse.json({ detail: "Backend bilan aloqa yo'q" }, { status: 502 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: {
+          code: "BACKEND_UNAVAILABLE",
+          message: "Backend serveri bilan aloqa yo'q.",
+          request_id: `proxy_${Date.now()}`,
+          retryable: true,
+        },
+        detail: "Backend bilan aloqa yo'q",
+      },
+      { status: 502 }
+    );
   }
 }
 

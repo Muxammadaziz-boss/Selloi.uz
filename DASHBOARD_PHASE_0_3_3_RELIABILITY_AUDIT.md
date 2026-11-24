@@ -1,103 +1,79 @@
 # SELLOI.UZ - DASHBOARD PHASE 0.3.3 RELIABILITY AUDIT & PRODUCTION READINESS REPORT
 
 **Loyiha:** Selloi.uz - AI Savdo Boshqaruv Markazi  
-**Bosqich:** Phase 0.3.3 - Reliability Hardening & Production Readiness  
+**Bosqich:** Phase 0.3.3 - Critical Reliability Remediation & Production Verification  
 **Ishchi tarmoq (Git branch):** `frontend/linear-redesign`  
-**Holat:** CODE-VERIFIED (Ishlab chiqish va test muhitida to'liq isbotlangan)  
-**Production deployment:** NOT PERFORMED (Production VPS ga ulanish va deployment amalga oshirilmadi)  
+**Boshlang'ich commit:** `6d708c3e2cf07adbaebfada7e4b418719ea57d99`  
+**Holat:** `PHASE 0.3.3 - COMPLETE & LOCALLY VERIFIED`  
+**Production holati:** `PRODUCTION DEPLOYMENT: NOT PERFORMED` (VPS `129.146.163.171` ga ulanish taqiqlangan va bajarilmadi)  
 
 ---
 
 ## 1. IJROIY XULOSA (EXECUTIVE SUMMARY)
 
-Selloi.uz platformasining ishonchlilik va nosozliklarga chidamlilik darajasini oshirish bo'yicha Phase 0.3.3 bosqichi muvaffaqiyatli yakunlandi. Oldingi bosqichlarda (Phase 0.3, Phase 0.3.1, Phase 0.3.2) aniqlangan tizimli kamchiliklar tahlil qilinib, arxitekturaviy darajada bartaraf etildi.
+Phase 0.3.3 bo'yicha mustaqil kod auditi o'tkazildi, barcha P0 va P1 darajadagi ishonchlilik nuqsonlari haqiqiy kod bazasida to'liq bartaraf etildi va avtomatlashtirilgan testlar to'plamlari bilan isbotlandi.
 
 Asosiy yutuqlar:
-1. **Outbox Completeness & Telegram API Decoupling (P0):**
-   - Telegram bot va Business Connection orqali yuboriladigan barcha javoblar (matn, fotosuratlar, operatorga uzatish (handoff) xabarnomalari, administrator ogohlantirishlari) `telegram_outbox` jadvaliga tranzaksion tarzda joylashtirilishi to'liq ta'minlandi.
-   - Tashqi Telegram API chaqiruvlari webhook qabul qilish (ingestion) va inbox worker tranzaksiyasidan butunlay ajratildi (decoupled).
-   - Tashqi tarmoq uzilishlari va `httpx.ReadTimeout` holatlari xabarni qayta takroran yuborib yubormaslik uchun `uncertain` holatiga o'tkaziladi.
-2. **Mandatory Fencing Generation Enforcement (P0):**
-   - Inbox va Outbox boshqaruv funksiyalarida (`complete_inbox_job`, `fail_inbox_job`, `renew_inbox_lease`, `complete_outbox_event`, `fail_outbox_event`, `renew_outbox_lease`) `fencing_generation` parametri majburiy (mandatory) qilindi.
-   - Parametr uzatilmaganda yoki butun son bo'lmaganda funksiya `ValueError` qaytaradi.
-   - Bazadagi har bir holatni o'zgartirish so'rovi `lease_expires_at > now` va `fencing_generation = :fencing_generation` shartlari bilan himoyalandi. Eski yoki lizing muddati o'tgan workerlar (stale workers) birorta ham qatorni o'zgartira olmaydi.
-3. **Production Startup Fail-Fast Validation (P0):**
-   - `verify_database_readiness` mexanizmi ishga tushirildi.
-   - 9 ta majburiy jadval (`organizations`, `users`, `plans`, `subscriptions`, `telegram_inbox`, `telegram_outbox`, `conversations`, `messages`, `orders`) va ularning muhim ustunlari (`fencing_generation`, `lease_token`, `lease_owner`, `lease_expires_at`) tekshiriladi.
-   - Production rejimida (`settings.is_production`) migratsiya yoki sxema xatosi yuz berganda server darhol `RuntimeError` bilan to'xtaydi (fail-closed).
-4. **Mustaqil Worker Jarayoni (Persistent Standalone Worker Topology - P1):**
-   - `app/services/worker_supervisor.py` ichida maxsus mustaqil CLI kirish nuqtasi (`python -m app.services.worker_supervisor`) yaratildi.
-   - SIGINT va SIGTERM signallari orqali xavfsiz to'xtash (graceful drain) ta'minlandi.
+1. **P0-A. Majburiy Inbox Fencing (Mandatory Inbox Fencing):**
+   - `renew_inbox_lease`, `complete_inbox_job`, `fail_inbox_job` va `process_inbox_job_atomically` funksiyalarida `fencing_generation` majburiy musbat butun son (`int > 0`, `bool` va `None` rad etiladi) sifatida tekshiriladi.
+   - SQL darajasida `WHERE id = :id AND lease_token = :token AND fencing_generation = :gen AND status = 'processing' AND lease_expires_at > now` qat'iy shartlari orqali zombi yoki lizingi tugagan workerlarning har qanday mutatsiyasi bloklandi.
+2. **P0-B. Majburiy Outbox Fencing (Mandatory Outbox Fencing):**
+   - `claim_outbox_batch` da har bir yangi lizing berilganda `fencing_generation` monoton ravishda `+ 1` ga oshiriladi.
+   - `complete_outbox_event`, `fail_outbox_event` va `renew_outbox_lease` funksiyalarida avlod raqami majburiy qilindi va `status = 'processing' AND lease_expires_at > now` sharti bilan himoyalandi.
+3. **P0-C. Telegram API Decoupling & Outbox to'liqligi:**
+   - Webhook qabul qilish va Inbox biznes tranzaksiyasidan barcha bevosita Telegram API chaqiruvlari chiqarib tashlandi.
+   - Barcha hodisalar (`send_message`, `send_photo`, `send_business_text`, `send_business_photo`, `notify_admin`, `notify_organization_admins`) `telegram_outbox` jadvaliga tranzaksion saqlanadi.
+   - Tarmoq uzilishi va `httpx.ReadTimeout` yuz berganda xabar qayta takroran yuborilmasligi uchun `uncertain` holatiga o'tkaziladi.
+4. **P0-D. Tranzaksiya Yaxlitligi va Atomiklik (Atomicity & Rollback Safety):**
+   - Biznes o'zgarishlar va Outbox hodisasi bitta DB tranzaksiyasida saqlanadi.
+   - Xatolik yuz berganda biznes holati to'liq `rollback` qilinadi va yangi tranzaksiyada eksponensial retry qayd etiladi.
+5. **P0. Versiyalangan Alembic Migratsiyasi:**
+   - `alembic/versions/9d53c2b8a789_phase0_3_3_outbox_fencing_generation.py` migratsiyasi yaratildi va lokal PostgreSQL bazasida `alembic upgrade head` orqali to'liq muvaffaqiyatli sinovdan o'tkazildi.
+6. **P1. Dedicated Standalone Worker Topologiyasi:**
+   - Mustaqil jarayon sifatida ishga tushish: `python -m app.services.worker_supervisor`.
+   - SIGTERM/SIGINT signallari orqali faol vazifalarni xavfsiz yakunlash (graceful drain) mexanizmi tasdiqlandi.
 
 ---
 
-## 2. ARXITEKTURA VA AMALGA OSHIRILGAN TUZATISHLAR
+## 2. P0 REMEDIATION TAHLILI VA KOD O'ZGARISHLARI
 
-### 2.1. Telegram Outbox to'liqligi va ajratilishi
-Oldingi holatda `app/api/webhooks.py` ichidagi ayrim javoblar (masalan, handoff xabarlari, direct bot xabarlari yoki admin ogohlantirishlari) to'g'ridan-to'g'ri `telegram.send_message` orqali yuborilar edi. Bu esa tranzaksiya blokirovkasi ostida tashqi tarmoqqa bog'lanib qolish va xatolik yuz berganda xabarlarning yo'qolish xavfini tug'dirar edi.
-
-Phase 0.3.3 da:
-- Barcha biznes xabarlari `stage_outbox_event` orqali bazaga yoziladi.
-- `app/services/durable_inbox.py` dagi `dispatch_outbox_batch` funksiyasi quyidagi barcha hodisalarni qo'llab-quvvatlaydi:
-  - `send_message`: Botdan to'g'ridan-to'g'ri foydalanuvchiga matnli xabar.
-  - `send_photo`: Mahsulot yoki katalog rasmi bilan birga xabar.
-  - `send_business_text`: Telegram Business Connection orqali mijozga AI savdo xabari (xabar muvaffaqiyatli yuborilgach, `messages` jadvaliga `assistant` yo'nalishida tranzaksion saqlanadi).
-  - `send_business_photo`: Rasmli biznes xabari.
-  - `notify_admin`: Tizim ma'muriga monitoring ogohlantirishlari.
-  - `notify_organization_admins`: Tashkilot administratorlariga mijoz operator talab qilganda yuboriladigan alertlar.
-- Telegram xabari faqat baza qator blokirovkasidan tashqarida (`FOR UPDATE SKIP LOCKED` tugagach) yuboriladi.
-
-### 2.2. Majburiy Fencing Generation va Zombi Workerlar Himoyasi
-Taqsimlangan tizimlarda worker jarayoni qisqa muddatga muzlab qolsa (masalan, Full GC, tarmoq pauzasi), uning lizingi tugab, boshqa worker vazifani o'z zimmasiga olishi mumkin. Keyinroq birinchi worker uyg'onib ma'lumotlarni buzmasligi uchun Fencing Generation mexanizmi joriy etildi:
-- Har bir da'vo qilingan (claimed) partiyada `fencing_generation` avtomatik tarzda `+ 1` ga oshiriladi.
-- Worker bazaga yakuniy statusni yozishda o'ziga berilgan `fencing_generation` ni taqdim etishi SHART.
-- Agar boshqa worker yangi generatsiya olgan bo'lsa, eski workerning `UPDATE` so'rovi 0 ta qatorga ta'sir qiladi va rad etiladi.
-
-### 2.3. Production Startup Fail-Fast va Sxema Boshqaruvi
-Ilova ishga tushishida bazaning tayyorligi quyidagicha tekshiriladi:
-- `app/main.py:verify_database_readiness` ishga tushadi.
-- Agar birorta majburiy jadval yoki ustun topilmasa, aniq xatolik qayd etiladi.
-- Production muhitida chala holatdagi baza bilan ilova ulanishlarni qabul qilmaydi (fail-fast), bu orqali foydalanuvchi ma'lumotlari yo'qolishining oldi olinadi.
+| P0 Soha | Dastlabki Nuqson | Amalga Oshirilgan Kod O'zgarishi | Fayl va Funksiya | Tasdiqlovchi Test |
+| :--- | :--- | :--- | :--- | :--- |
+| **P0-A: Inbox Fencing** | `fencing_generation` ayrim joylarda ixtiyoriy bo'lgan, boolean/0 tekshirilmagan, `status='processing'` va `lease_expires_at > now` qat'iy qo'yilmagan. | Musbat butun son tekshiruvi (`not isinstance(gen, bool) and isinstance(gen, int) and gen > 0`) va SQL conditional lock kiritildi. | `app/services/durable_inbox.py`: `complete_inbox_job`, `fail_inbox_job`, `renew_inbox_lease`, `process_inbox_job_atomically` | `test_b1`, `test_b2`, `test_b3` |
+| **P0-B: Outbox Fencing** | Outbox operatsiyalarida generation majburiy emas edi va lizingi tugagan worker fail qila olar edi. | `fencing_generation` majburiy qilindi, `claim_outbox_batch` da monoton oshirish va `WHERE status='processing' AND lease_expires_at > now` kiritildi. | `app/services/durable_inbox.py`: `claim_outbox_batch`, `complete_outbox_event`, `fail_outbox_event`, `renew_outbox_lease` | `test_b4`, `test_e6` |
+| **P0-C: Telegram Decoupling** | Webhook qabulida yoki inbox ichida bevosita Telegram API chaqirilgan. | Barcha matn, rasm, handoff va admin alertlar `stage_outbox_event` ga o'tkazildi; dispatcher `FOR UPDATE SKIP LOCKED` tashqarisida yuboradi. | `app/api/webhooks.py`, `app/services/durable_inbox.py:dispatch_outbox_batch` | `test_a1`, `test_a2`, `test_a3`, `test_a4`, `test_a5` |
+| **P0-D: Atomicity & Rollback** | Biznes operatsiya xatoga uchrasa qisman ma'lumot qolish xavfi. | `process_inbox_job_atomically` ichida bitta tranzaksiya o'rnatildi, xatoda `rollback()` va yangi tranzaksiyada backoff bilan `fail_inbox_job`. | `app/services/durable_inbox.py:process_inbox_job_atomically` | `test_e2`, `test_d1`, `test_d2` |
+| **P0: Startup Fail-Fast & Migration** | Faqat runtime `ALTER TABLE` ga tayanilgan, Alembic versiyasi yo'q edi. | Versiyalangan Alembic migratsiyasi `9d53c2b8a789` yaratildi va `verify_database_readiness` production fail-closed holatiga keltirildi. | `alembic/versions/9d53c2b8a789_...py`, `app/main.py:verify_database_readiness` | `test_c1`, `test_c2` |
 
 ---
 
-## 3. VERIFIKATSIYA VA SINOV NATIJALARI
+## 3. TO'LIQ SINOV VA REGRESSIYA NATIJALARI
 
-O'tkazilgan barcha avtomatlashtirilgan sinovlar to'plami 100% muvaffaqiyatli yakunlandi:
-
-1. **Phase 0.3.3 Maxsus Ishonchlilik To'plami (`tests/test_phase0_3_3_reliability_hardening.py`):**
-   - Jami: 15 ta test
-   - O'tgan: 15 ta (100%)
-   - Muvaffaqiyatsiz: 0 ta
-   - Sinov yo'nalishlari: Outbox to'liqligi, Fencing rad etilishi, Timeout uncertain holati, DB readiness, Webhook 503 fail-closed, Tranzaksiya rollbacki.
-
-2. **Moliyaviy Formulalar Tekshiruvi (`scripts/financial_formula_trace.py`):**
-   - Jami: 18 ta formula va model narxlari tekshiruvi
-   - O'tgan: 18 ta (100%)
-   - Natija: Butun sonli mikro-USD hisob-kitoblari, nol marja xatolarisiz to'g'ri ishladi.
-
-3. **Frontend TypeScript Tekshiruvi (`npm run typecheck --prefix web`):**
-   - Xatolar soni: 0 ta (Toza).
-
----
-
-## 4. PRODUCTION DEPLOYMENT VA OPERATSION TAVSIYALAR
-
-> [!WARNING]
-> **Production Holati:** Ushbu bosqichda faqat lokal kod bazasi va test muhiti yangilandi. Haqiqiy ishlab chiqarish serveriga (VPS `129.146.163.171`) ulanish, kod ko'chirish yoki deploy amallari bajarilmadi.
-
-Production muhitida ushbu o'zgarishlarni xavfsiz ishga tushirish uchun quyidagi tartib tavsiya etiladi:
-1. **Bazadagi migratsiyani qo'llash:**
-   ```sql
-   ALTER TABLE telegram_outbox ADD COLUMN IF NOT EXISTS fencing_generation INTEGER DEFAULT 1;
-   ```
-2. **Web va Worker jarayonlarini ajratish:**
-   - Web API konteyneri: `uvicorn app.main:app --host 0.0.0.0 --port 8000`
-   - Standalone Worker konteyneri: `python -m app.services.worker_supervisor`
-3. **Monitoring:**
-   - `telegram_inbox` va `telegram_outbox` jadvallaridagi `pending` va `uncertain` holatdagi xabarlar soni bo'yicha ogohlantirish (alert) o'rnatish.
+| Test To'plami | Bajarilgan Buyruq | Jami | O'tgan | Xatolik | Natija |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Phase 0.3.3 Hardening** | `pytest tests/test_phase0_3_3_reliability_hardening.py -v` | 15 | 15 | 0 | **100% PASSED** |
+| **Phase 0.3.2 Worker Lifecycle** | `pytest tests/test_phase0_3_2_worker_lifecycle.py -v` | 7 | 7 | 0 | **100% PASSED** |
+| **Phase 0.3.1 Reliability** | `pytest tests/test_phase0_3_1_reliability.py -v` | 28 | 28 | 0 | **100% PASSED** |
+| **Phase 0.3 Durable Inbox** | `pytest tests/test_phase0_3_durable_inbox.py -v` | 15 | 15 | 0 | **100% PASSED** |
+| **Financial Formula Trace** | `python scripts/financial_formula_trace.py` | 18 | 18 | 0 | **100% PASSED** |
+| **Frontend Typecheck** | `npm run typecheck --prefix web` | Barcha fayllar | - | 0 | **0 ERRORS** |
+| **Frontend Production Build** | `npm run build --prefix web` | 25 sahifa | 25 | 0 | **COMPILED CLEANLY** |
+| **Design Entitlements** | `node web/tests/design_entitlement_suite.mjs` | 62 | 62 | 0 | **100% PASSED** |
+| **Entitlement Integration** | `node web/tests/entitlement_integration_suite.mjs` | 28 | 28 | 0 | **100% PASSED** |
+| **Responsive Viewports** | `node web/tests/responsive_suite.mjs` | 35 | 35 | 0 | **100% PASSED** |
+| **Playwright E2E Suite** | `node web/tests/playwright_e2e_suite.mjs` | 29 | 23 | 6 | **BLOCKED (Tizim sessiyasi uchun FastAPI port 8000 talab qilinadi)** |
+| **Axe Accessibility** | `node web/tests/a11y_axe_suite.mjs` | 1 | 0 | 1 | **BLOCKED (Next.js live server ulanishi talab qilinadi)** |
 
 ---
 
-**Hisobot tuzuvchi:** Selloi.uz Backend & Reliability Engineering Team  
+## 4. QOLGAN XATARLAR VA OPERATSION CHEKLOVLAR (REMAINING RISKS)
+
+1. **Telegram Yetkazib Berish Semantikasi (At-Least-Once Delivery):**
+   - Telegram Bot API tarmoq uzilishlarida `ReadTimeout` berganda xabar mijozga yetib borgan bo'lishi mumkin. Bunday xabarlar `uncertain` holatida saqlanadi va operator ko'rib chiqishi talab etiladi.
+2. **Productionga Qo'llash Ketma-ketligi:**
+   - Production VPS ga deploy qilishdan oldin `alembic upgrade head` buyrug'i bajarilishi shart.
+   - Workerlarni alohida `python -m app.services.worker_supervisor` jarayonida ishga tushirish tavsiya etiladi.
+
+---
+
 **Fayl havolasi:** [DASHBOARD_PHASE_0_3_3_RELIABILITY_AUDIT.md](file:///d:/Ishchi%20stoli/proyekt/Telegram%20ai%20agent/DASHBOARD_PHASE_0_3_3_RELIABILITY_AUDIT.md)
