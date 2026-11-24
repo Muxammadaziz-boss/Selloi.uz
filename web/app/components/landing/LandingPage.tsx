@@ -166,10 +166,7 @@ function LandingPageContent({ isAuthenticated = false }: LandingPageProps) {
 
         {/* 4. Suhbatdan namuna (Telegram Live Demo) */}
         <ConversationDemoSection
-          onOpenOnboarding={() => setIsOnboardingOpen(true)}
-          isAuthenticated={isAuthenticated}
           language={language}
-          t={t.suhbatNamunasi}
         />
 
         {/* 5. Tariflar (Doim ochiq, berkitishsiz) */}
