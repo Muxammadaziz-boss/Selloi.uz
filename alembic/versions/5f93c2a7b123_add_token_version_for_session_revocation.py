@@ -17,8 +17,19 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.add_column('users', sa.Column('token_version', sa.Integer(), nullable=False, server_default='1'))
-    op.add_column('admins', sa.Column('token_version', sa.Integer(), nullable=False, server_default='1'))
+    bind = op.get_bind()
+    insp = sa.inspect(bind)
+    table_names = insp.get_table_names()
+
+    if 'users' in table_names:
+        user_cols = [c['name'] for c in insp.get_columns('users')]
+        if 'token_version' not in user_cols:
+            op.add_column('users', sa.Column('token_version', sa.Integer(), nullable=False, server_default='1'))
+
+    if 'admins' in table_names:
+        admin_cols = [c['name'] for c in insp.get_columns('admins')]
+        if 'token_version' not in admin_cols:
+            op.add_column('admins', sa.Column('token_version', sa.Integer(), nullable=False, server_default='1'))
 
 
 def downgrade() -> None:

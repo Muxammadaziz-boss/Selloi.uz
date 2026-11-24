@@ -17,31 +17,45 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    bind = op.get_bind()
+    insp = sa.inspect(bind)
+    table_names = insp.get_table_names()
+
     # 1. Add fencing_generation to telegram_inbox
-    op.add_column(
-        'telegram_inbox',
-        sa.Column('fencing_generation', sa.Integer(), server_default='1', nullable=False),
-    )
+    if 'telegram_inbox' in table_names:
+        inbox_cols = [c['name'] for c in insp.get_columns('telegram_inbox')]
+        if 'fencing_generation' not in inbox_cols:
+            op.add_column(
+                'telegram_inbox',
+                sa.Column('fencing_generation', sa.Integer(), server_default='1', nullable=False),
+            )
 
     # 2. Add lease columns to telegram_outbox
-    op.add_column(
-        'telegram_outbox',
-        sa.Column('lease_owner', sa.String(length=64), nullable=True),
-    )
-    op.add_column(
-        'telegram_outbox',
-        sa.Column('lease_token', sa.String(length=64), nullable=True),
-    )
-    op.add_column(
-        'telegram_outbox',
-        sa.Column('lease_expires_at', sa.DateTime(timezone=True), nullable=True),
-    )
-    op.create_index(
-        'ix_telegram_outbox_lease_expires_at',
-        'telegram_outbox',
-        ['lease_expires_at'],
-        unique=False,
-    )
+    if 'telegram_outbox' in table_names:
+        outbox_cols = [c['name'] for c in insp.get_columns('telegram_outbox')]
+        if 'lease_owner' not in outbox_cols:
+            op.add_column(
+                'telegram_outbox',
+                sa.Column('lease_owner', sa.String(length=64), nullable=True),
+            )
+        if 'lease_token' not in outbox_cols:
+            op.add_column(
+                'telegram_outbox',
+                sa.Column('lease_token', sa.String(length=64), nullable=True),
+            )
+        if 'lease_expires_at' not in outbox_cols:
+            op.add_column(
+                'telegram_outbox',
+                sa.Column('lease_expires_at', sa.DateTime(timezone=True), nullable=True),
+            )
+        outbox_indexes = [i['name'] for i in insp.get_indexes('telegram_outbox')]
+        if 'ix_telegram_outbox_lease_expires_at' not in outbox_indexes:
+            op.create_index(
+                'ix_telegram_outbox_lease_expires_at',
+                'telegram_outbox',
+                ['lease_expires_at'],
+                unique=False,
+            )
 
 
 def downgrade() -> None:
