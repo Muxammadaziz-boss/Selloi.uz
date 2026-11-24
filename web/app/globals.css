@@ -1,6 +1,14 @@
-@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300..700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&display=swap');
 @import "./styles/theme.css";
+@import "./components/landing/selloi-figma.css";
+@import "./design-systems/classic/tokens.css";
+@import "./design-systems/classic/theme.css";
+@import "./design-systems/classic/components.css";
+@import "./design-systems/ios/tokens.css";
+@import "./design-systems/ios/theme.css";
+@import "./design-systems/ios/components.css";
+@import "./design-systems/premium/tokens.css";
+@import "./design-systems/premium/theme.css";
+@import "./design-systems/premium/components.css";
 
 /* ==========================================================================
    QUICKSAND MASTER TYPOGRAPHY FOUNDATION
@@ -52,15 +60,6 @@ pre,
    - iOS: Apple Human Interface frosted glass & capsule aesthetics
    - Premium: Dark minimalist SaaS reference layout with near-black tones
    ========================================================================== */
-@import "./design-systems/classic/tokens.css";
-@import "./design-systems/classic/theme.css";
-@import "./design-systems/classic/components.css";
-@import "./design-systems/ios/tokens.css";
-@import "./design-systems/ios/theme.css";
-@import "./design-systems/ios/components.css";
-@import "./design-systems/premium/tokens.css";
-@import "./design-systems/premium/theme.css";
-@import "./design-systems/premium/components.css";
 
 /* Design System Semantic Text Overrides to guarantee WCAG 2.1 AA contrast */
 :root {
