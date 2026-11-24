@@ -45,7 +45,7 @@
   font-family: 'Quicksand', sans-serif;
   min-height: 100vh;
   width: 100%;
-  overflow: visible;
+  overflow-x: hidden;
   position: relative;
   -webkit-font-smoothing: antialiased;
 }
@@ -83,6 +83,8 @@
   white-space: nowrap;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
+  box-sizing: border-box;
+  max-width: 100%;
   position: relative;
   overflow: hidden;
   box-shadow: 
@@ -447,9 +449,10 @@
 }
 
 .selloi-hero-btn {
-  min-width: 450px;
-  width: auto;
+  width: 450px;
   max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   padding: 0 32px;
   height: 48px;
   font-size: 20px;
@@ -2422,8 +2425,14 @@
 
   .selloi-hero-btn {
     width: 100%;
-    max-width: 100%;
-    font-size: 17px;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+    padding: 0 16px;
+    font-size: 16px;
+    height: 48px;
+    text-align: center;
+    white-space: nowrap;
   }
 
   .selloi-imkoniyatlar-title {
@@ -2469,6 +2478,11 @@
 
   .selloi-demo-btn {
     width: 100%;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+    padding: 0 16px;
+    font-size: 16px;
     margin-bottom: 16px;
   }
 
@@ -2495,6 +2509,11 @@
 
   .selloi-tarif-btn {
     width: 100%;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+    padding: 0 16px;
+    font-size: 16px;
   }
 
   .selloi-faq-title {
@@ -2524,6 +2543,11 @@
 
   .selloi-cta-btn {
     width: 100%;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+    padding: 0 16px;
+    font-size: 16px;
   }
 
   .selloi-footer-brand {
@@ -2538,6 +2562,16 @@
     flex-direction: column;
     gap: 10px;
     align-items: flex-start;
+  }
+}
+
+@media (max-width: 360px) {
+  .selloi-hero-btn,
+  .selloi-demo-btn,
+  .selloi-tarif-btn,
+  .selloi-cta-btn {
+    font-size: 14.5px !important;
+    padding: 0 10px !important;
   }
 }
 
