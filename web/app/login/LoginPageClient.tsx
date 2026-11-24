@@ -271,6 +271,10 @@ export default function LoginPageClient({
           setTimeout(() => {
             window.location.href = initialRedirect || "/dashboard";
           }, 800);
+        } else if (isSubscribed && res.status === 404) {
+          setError(data.detail || "Sessiya muddati tugadi. Iltimos, qaytadan urinib ko'ring.");
+          setTelegramModalOpen(false);
+          clearInterval(interval);
         }
       } catch {
         // Continue polling

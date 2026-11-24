@@ -114,32 +114,39 @@ async def handle_private_command(message: dict, db: AsyncSession) -> bool:
     cmd = parts[0].split("@")[0].lower()
 
     if cmd == "/start":
-        if len(parts) > 1 and parts[1].startswith("auth_"):
-            from app.services.telegram_auth import verify_auth_session
-            auth_code = parts[1][5:].strip()
-            first_name = sender.get("first_name", "")
-            last_name = sender.get("last_name", "")
-            full_name = f"{first_name} {last_name}".strip() or "Foydalanuvchi"
-            username = sender.get("username")
-            verified = verify_auth_session(auth_code, user_id, username, full_name)
-            if verified:
-                await telegram.call("sendMessage", {
-                    "chat_id": chat_id,
-                    "text": (
-                        f"✅ *Selloi tizimiga kirish tasdiqlandi!*\n\n"
-                        f"Assalomu alaykum, *{full_name}*!\n"
-                        f"Siz veb-brauzeringizdagi sahifaga muvaffaqiyatli kirdingiz.\n\n"
-                        f"Endi brauzeringizga qaytib, boshqaruv panelidan foydalanishingiz mumkin."
-                    ),
-                    "parse_mode": "Markdown",
-                })
-                return True
-            else:
-                await telegram.call("sendMessage", {
-                    "chat_id": chat_id,
-                    "text": "⚠️ Kirish sessiyasi topilmadi yoki muddati tugagan. Iltimos, veb-sayt orqali qayta urinib ko'ring.",
-                })
-                return True
+        if len(parts) > 1:
+            raw_param = parts[1].strip()
+            lower_param = raw_param.lower()
+            if lower_param.startswith("auth_") or lower_param.startswith("auth-"):
+                from app.services.telegram_auth import verify_auth_session
+                auth_code = raw_param[5:].strip()
+                first_name = sender.get("first_name", "")
+                last_name = sender.get("last_name", "")
+                full_name = f"{first_name} {last_name}".strip() or "Foydalanuvchi"
+                username = sender.get("username")
+                verified = verify_auth_session(auth_code, user_id, username, full_name)
+                if verified:
+                    clean_name = (
+                        full_name.replace("*", "").replace("_", "").replace("`", "").strip()
+                        or "Foydalanuvchi"
+                    )
+                    await telegram.call("sendMessage", {
+                        "chat_id": chat_id,
+                        "text": (
+                            f"✅ *Selloi tizimiga kirish tasdiqlandi!*\n\n"
+                            f"Assalomu alaykum, *{clean_name}*!\n"
+                            f"Siz veb-brauzeringizdagi sahifaga muvaffaqiyatli kirdingiz.\n\n"
+                            f"Endi brauzeringizga qaytib, boshqaruv panelidan foydalanishingiz mumkin."
+                        ),
+                        "parse_mode": "Markdown",
+                    })
+                    return True
+                else:
+                    await telegram.call("sendMessage", {
+                        "chat_id": chat_id,
+                        "text": "⚠️ Kirish sessiyasi topilmadi yoki muddati tugagan. Iltimos, veb-sayt orqali qayta urinib ko'ring.",
+                    })
+                    return True
         return await _cmd_start(user_id, chat_id, sender, db)
     if cmd in ("/help", "/yordam"):
         return await _cmd_help(user_id, chat_id, db)
