@@ -7,6 +7,7 @@ import {
   IconArrowRight,
   IconBuildingSkyscraper,
   IconCheck,
+  IconClock,
   IconCoin,
   IconCrown,
   IconEdit,
@@ -40,10 +41,13 @@ export interface OwnerPlan {
   price_yearly: number;
   price_monthly_uzs: number;
   price_yearly_uzs: number;
+  price_promo_uzs?: number;
+  price_version?: number;
   price_monthly_formatted: string;
   price_yearly_formatted: string;
   price_monthly_uzs_formatted: string;
   price_yearly_uzs_formatted: string;
+  price_promo_uzs_formatted?: string;
   currency: string;
   is_active: boolean;
   is_public: boolean;
@@ -124,11 +128,33 @@ export function OwnerPricingStudio({
   const [editPriceYUsd, setEditPriceYUsd] = useState<number>(0);
   const [editPriceMUzs, setEditPriceMUzs] = useState<number>(0);
   const [editPriceYUzs, setEditPriceYUzs] = useState<number>(0);
+  const [editPricePromoUzs, setEditPricePromoUzs] = useState<number>(1300000);
   const [editDisplayOrder, setEditDisplayOrder] = useState<number>(1);
   const [editIsPublic, setEditIsPublic] = useState(true);
   const [editIsActive, setEditIsActive] = useState(true);
   const [editIsFeatured, setEditIsFeatured] = useState(false);
   const [editChangeReason, setEditChangeReason] = useState("");
+
+  // Central Bank of Uzbekistan (CBU) Reference Rate state
+  const [cbuReference, setCbuReference] = useState<{
+    currency: string;
+    rate: number;
+    rate_uzs_formatted: string;
+    rate_date: string;
+    source: string;
+    is_stale: boolean;
+    policy_notice: string;
+  } | null>(null);
+  const [loadingCbu, setLoadingCbu] = useState(false);
+
+  // Schedule Price Change state
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [schedulePlanCode, setSchedulePlanCode] = useState("start");
+  const [schedulePeriod, setSchedulePeriod] = useState<"MEGA_DISCOUNT_7D" | "MONTHLY" | "YEARLY">("MONTHLY");
+  const [scheduleNewPriceUzs, setScheduleNewPriceUzs] = useState<number>(244000);
+  const [scheduleEffectiveAt, setScheduleEffectiveAt] = useState<string>("");
+  const [scheduleReason, setScheduleReason] = useState("");
+  const [schedulingPrice, setSchedulingPrice] = useState(false);
 
   // Create Plan Form state
   const [showCreatePlanModal, setShowCreatePlanModal] = useState(false);
@@ -254,9 +280,36 @@ export function OwnerPricingStudio({
     }
   }, []);
 
+  // Load CBU Reference Rate
+  const loadCbuReference = useCallback(async () => {
+    setLoadingCbu(true);
+    try {
+      const data = await fetchApi<{
+        success: boolean;
+        cbu_reference: {
+          currency: string;
+          rate: number;
+          rate_uzs_formatted: string;
+          rate_date: string;
+          source: string;
+          is_stale: boolean;
+          policy_notice: string;
+        };
+      }>("/api/platform/pricing/cbu-reference");
+      if (data && data.cbu_reference) {
+        setCbuReference(data.cbu_reference);
+      }
+    } catch {
+      // Quiet failover
+    } finally {
+      setLoadingCbu(false);
+    }
+  }, []);
+
   useEffect(() => {
     loadPlans();
-  }, [loadPlans]);
+    loadCbuReference();
+  }, [loadPlans, loadCbuReference]);
 
   useEffect(() => {
     if (activeSection === "offers" && selectedCustomerOrgId) {
@@ -275,6 +328,10 @@ export function OwnerPricingStudio({
     setEditPriceYUsd(plan.price_yearly);
     setEditPriceMUzs(plan.price_monthly_uzs);
     setEditPriceYUzs(plan.price_yearly_uzs);
+    setEditPricePromoUzs(
+      plan.price_promo_uzs ||
+        (plan.code === "pro" ? 2600000 : plan.code === "ultra" ? 3900000 : 1300000)
+    );
     setEditDisplayOrder(plan.display_order);
     setEditIsPublic(plan.is_public);
     setEditIsActive(plan.is_active);
@@ -296,6 +353,7 @@ export function OwnerPricingStudio({
           price_yearly: Number(editPriceYUsd),
           price_monthly_uzs: Number(editPriceMUzs),
           price_yearly_uzs: Number(editPriceYUzs),
+          price_promo_uzs: Number(editPricePromoUzs),
           display_order: Number(editDisplayOrder),
           is_public: editIsPublic,
           is_featured: editIsFeatured,
@@ -362,6 +420,33 @@ export function OwnerPricingStudio({
       showFeedback("error", err.message || "Yangi tarif yaratishda xatolik");
     } finally {
       setCreatingPlan(false);
+    }
+  };
+
+  // Submit Scheduled Price Change
+  const handleSchedulePriceChange = async () => {
+    if (!schedulePlanCode || !scheduleNewPriceUzs) return;
+    setSchedulingPrice(true);
+    try {
+      await fetchApi("/api/platform/pricing/schedule", {
+        method: "POST",
+        body: JSON.stringify({
+          plan_code: schedulePlanCode,
+          billing_period: schedulePeriod,
+          new_price_uzs: Number(scheduleNewPriceUzs),
+          effective_at: scheduleEffectiveAt ? new Date(scheduleEffectiveAt).toISOString() : null,
+          change_reason: scheduleReason.trim() || "Owner scheduled pricing adjustment",
+        }),
+      });
+      showFeedback("success", `${schedulePlanCode.toUpperCase()} uchun yangi narx rejalashtirildi!`);
+      setShowScheduleModal(false);
+      setScheduleReason("");
+      await loadPlans();
+      if (activeSection === "history") await loadHistoryAndAudit();
+    } catch (err: any) {
+      showFeedback("error", err.message || "Narxni rejalashtirishda xatolik");
+    } finally {
+      setSchedulingPrice(false);
     }
   };
 
@@ -533,14 +618,24 @@ export function OwnerPricingStudio({
 
         <div className="d-flex align-items-center gap-2">
           {activeSection === "plans" && (
-            <Button
-              variant="primary"
-              size="sm"
-              icon={<IconPlus size={15} />}
-              onClick={() => setShowCreatePlanModal(true)}
-            >
-              Yangi Tarif Yaratish
-            </Button>
+            <>
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={<IconClock size={15} />}
+                onClick={() => setShowScheduleModal(true)}
+              >
+                Narxni Rejalashtirish
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                icon={<IconPlus size={15} />}
+                onClick={() => setShowCreatePlanModal(true)}
+              >
+                Yangi Tarif Yaratish
+              </Button>
+            </>
           )}
           <Button
             variant="secondary"
@@ -570,6 +665,41 @@ export function OwnerPricingStudio({
               </p>
             </div>
             <Badge variant="accent">{plans.length} ta tarif</Badge>
+          </div>
+
+          {/* Central Bank of Uzbekistan (CBU) Reference Rate Card */}
+          <div className="p-3.5 rounded-3 border border-secondary border-opacity-25 bg-body-tertiary">
+            <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
+              <div className="d-flex align-items-center gap-3">
+                <div className="p-2.5 rounded-2 bg-primary bg-opacity-10 text-primary">
+                  <IconCoin size={24} />
+                </div>
+                <div>
+                  <div className="d-flex align-items-center gap-2">
+                    <span className="fw-bold fs-4 text-primary">
+                      1 USD = {cbuReference?.rate ? cbuReference.rate.toLocaleString("uz-UZ") : "12 900"} UZS
+                    </span>
+                    <Badge variant={cbuReference?.is_stale ? "warning" : "success"}>
+                      {cbuReference?.is_stale ? "Kesh / Fallback" : "CBU Rasmiy Kursi"}
+                    </Badge>
+                    <span className="text-secondary small">({cbuReference?.rate_date || "Bugun"})</span>
+                  </div>
+                  <p className="text-secondary small mb-0 mt-0.5" style={{ maxWidth: "780px" }}>
+                    {cbuReference?.policy_notice ||
+                      "Faqat ichki moliyaviy tahlil uchun. Mijoz narxlariga va TezCheck to'lovlariga ta'sir qilmaydi (O'zbekiston ichki narxlari so'mda qat'iy belgilangan)."}
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={<IconRefresh size={14} />}
+                loading={loadingCbu}
+                onClick={loadCbuReference}
+              >
+                Kursni Yangilash
+              </Button>
+            </div>
           </div>
 
           {plansError && (
@@ -616,6 +746,9 @@ export function OwnerPricingStudio({
                             <Badge variant={p.code === "ultra" ? "accent" : p.code === "pro" ? "success" : "info"}>
                               {p.code.toUpperCase()}
                             </Badge>
+                            <Badge variant="default" className="font-monospace" style={{ fontSize: "0.7rem" }}>
+                              v{p.price_version || 1}
+                            </Badge>
                           </div>
                           <div className="d-flex align-items-center gap-1.5">
                             {p.is_public ? (
@@ -638,16 +771,34 @@ export function OwnerPricingStudio({
                         {/* Dual Currency Price Display */}
                         <div className="p-2.5 rounded-2 mb-3" style={{ backgroundColor: "var(--bg-canvas)" }}>
                           <div className="d-flex align-items-center justify-content-between small mb-1">
-                            <span className="text-secondary">USD:</span>
-                            <span className="fw-bold text-primary font-monospace">
-                              ${p.price_monthly}/oy • ${p.price_yearly}/yil
+                            <span className="text-secondary">7 Kunlik Sinov:</span>
+                            <span className="fw-bold text-success font-monospace">
+                              {(p.price_promo_uzs
+                                ? p.price_promo_uzs / 100
+                                : p.code === "pro"
+                                ? 26000
+                                : p.code === "ultra"
+                                ? 39000
+                                : 13000
+                              ).toLocaleString("uz-UZ")}{" "}
+                              so'm
                             </span>
                           </div>
-                          <div className="d-flex align-items-center justify-content-between small">
-                            <span className="text-secondary">UZS:</span>
+                          <div className="d-flex align-items-center justify-content-between small mb-1">
+                            <span className="text-secondary">Oylik:</span>
                             <span className="fw-bold text-primary font-monospace">
                               {monthlyUzsFormatted} so'm/oy
                             </span>
+                          </div>
+                          <div className="d-flex align-items-center justify-content-between small mb-1">
+                            <span className="text-secondary">Yillik:</span>
+                            <span className="fw-bold text-primary font-monospace">
+                              {yearlyUzsFormatted} so'm/yil
+                            </span>
+                          </div>
+                          <div className="d-flex align-items-center justify-content-between small text-secondary" style={{ fontSize: "0.72rem" }}>
+                            <span>USD ekvivalenti:</span>
+                            <span>${p.price_monthly}/oy • ${p.price_yearly}/yil</span>
                           </div>
                         </div>
 
@@ -755,6 +906,22 @@ export function OwnerPricingStudio({
                     </div>
                   </div>
 
+                  {/* 7 Kunlik Mega Chegirma Narxi (stored as tiyin) */}
+                  <div className="mb-2">
+                    <label className="form-label small text-secondary">
+                      7 Kunlik Mega Chegirma Narxi (UZS so'm)
+                    </label>
+                    <input
+                      type="number"
+                      className="linear-input w-100 font-monospace"
+                      value={Math.round((editPricePromoUzs || 1300000) / 100)}
+                      onChange={(e) => setEditPricePromoUzs(Number(e.target.value) * 100)}
+                    />
+                    <span className="small text-secondary" style={{ fontSize: "0.72rem" }}>
+                      Bazada tiyinda: {editPricePromoUzs} tiyin (START: 13 000, PRO: 26 000, ULTRA: 39 000 so'm)
+                    </span>
+                  </div>
+
                   {/* UZS Prices (stored as tiyin: 1 UZS = 100 tiyin) */}
                   <div className="row g-2">
                     <div className="col-6">
@@ -831,14 +998,29 @@ export function OwnerPricingStudio({
 
                   {/* Live Preview Card */}
                   <div className="p-3 rounded-2 border border-secondary border-opacity-20 bg-dark bg-opacity-40">
-                    <div className="text-secondary small fw-bold text-uppercase mb-1" style={{ fontSize: "0.7rem" }}>
-                      Ko'rinishining Jonli Prevyusi (Live Preview)
+                    <div className="d-flex align-items-center justify-content-between text-secondary small fw-bold text-uppercase mb-1" style={{ fontSize: "0.7rem" }}>
+                      <span>Ko'rinishining Jonli Prevyusi (Live Preview)</span>
+                      <span className="badge bg-secondary font-monospace">Versiya: v{(editingPlan.price_version || 1) + 1}</span>
                     </div>
-                    <div className="d-flex align-items-baseline gap-2">
-                      <span className="fs-2 fw-bold text-primary font-monospace">${editPriceMUsd}/oy</span>
-                      <span className="text-secondary small font-monospace">
-                        ({(editPriceMUzs / 100).toLocaleString("uz-UZ")} so'm/oy)
-                      </span>
+                    <div className="d-flex flex-wrap align-items-baseline gap-3">
+                      <div>
+                        <span className="text-secondary small">7 kunlik: </span>
+                        <span className="fw-bold text-success font-monospace">
+                          {(editPricePromoUzs / 100).toLocaleString("uz-UZ")} so'm
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-secondary small">Oylik: </span>
+                        <span className="fw-bold text-primary font-monospace">
+                          {(editPriceMUzs / 100).toLocaleString("uz-UZ")} so'm
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-secondary small">Yillik: </span>
+                        <span className="fw-bold text-primary font-monospace">
+                          {(editPriceYUzs / 100).toLocaleString("uz-UZ")} so'm
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -993,6 +1175,116 @@ export function OwnerPricingStudio({
                     onClick={handleCreateNewPlan}
                   >
                     Tarifni Yaratish
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Schedule Price Change Modal */}
+          {showScheduleModal && (
+            <div
+              className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
+              style={{
+                backgroundColor: "rgba(0,0,0,0.7)",
+                zIndex: 1050,
+                backdropFilter: "blur(4px)",
+              }}
+            >
+              <div
+                className="linear-card p-4 rounded-3 w-100 shadow-lg"
+                style={{ maxWidth: "540px", maxHeight: "90vh", overflowY: "auto" }}
+              >
+                <div className="d-flex align-items-center justify-content-between pb-3 border-bottom mb-3">
+                  <div className="d-flex align-items-center gap-2">
+                    <IconClock size={18} className="text-primary" />
+                    <h4 className="fw-bold text-primary mb-0">Kelajakdagi Narx O'zgarishini Rejalashtirish</h4>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-link text-secondary p-0"
+                    onClick={() => setShowScheduleModal(false)}
+                  >
+                    <IconX size={18} />
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="form-label small text-secondary">Tarif</label>
+                    <select
+                      className="linear-input w-100"
+                      value={schedulePlanCode}
+                      onChange={(e) => setSchedulePlanCode(e.target.value)}
+                    >
+                      <option value="start">START</option>
+                      <option value="pro">PRO</option>
+                      <option value="ultra">ULTRA</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="form-label small text-secondary">To'lov Davri</label>
+                    <select
+                      className="linear-input w-100"
+                      value={schedulePeriod}
+                      onChange={(e) => setSchedulePeriod(e.target.value as any)}
+                    >
+                      <option value="MEGA_DISCOUNT_7D">7 Kunlik Mega Chegirma (Promotional)</option>
+                      <option value="MONTHLY">Oylik To'lov (Monthly)</option>
+                      <option value="YEARLY">Yillik To'lov (Yearly)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="form-label small text-secondary">Yangi Narx (UZS so'mda)</label>
+                    <input
+                      type="number"
+                      className="linear-input w-100 font-monospace"
+                      value={scheduleNewPriceUzs}
+                      onChange={(e) => setScheduleNewPriceUzs(Number(e.target.value))}
+                    />
+                    <span className="small text-secondary" style={{ fontSize: "0.72rem" }}>
+                      TezCheck to'lov tizimiga tiyinda yuboriladi: {scheduleNewPriceUzs * 100} tiyin
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="form-label small text-secondary">Kuchga Kirish Sanasi (Ixtiyoriy kelajak sana)</label>
+                    <input
+                      type="datetime-local"
+                      className="linear-input w-100"
+                      value={scheduleEffectiveAt}
+                      onChange={(e) => setScheduleEffectiveAt(e.target.value)}
+                    />
+                    <span className="small text-secondary" style={{ fontSize: "0.72rem" }}>
+                      Bo'sh qoldirilsa, darhol kuchga kiradi va audit tarixiga yoziladi.
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="form-label small text-secondary">O'zgartirish Sababi (Majburiy Audit Qaydi)</label>
+                    <input
+                      type="text"
+                      className="linear-input w-100"
+                      placeholder="Masalan: 2026 Q4 rejalashtirilgan inflyatsiya indeksi"
+                      value={scheduleReason}
+                      onChange={(e) => setScheduleReason(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="d-flex align-items-center justify-content-end gap-2 pt-3 border-top mt-4">
+                  <Button variant="secondary" size="sm" onClick={() => setShowScheduleModal(false)}>
+                    Bekor Qilish
+                  </Button>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    loading={schedulingPrice}
+                    onClick={handleSchedulePriceChange}
+                  >
+                    Rejalashtirish va Auditga Saqlash
                   </Button>
                 </div>
               </div>

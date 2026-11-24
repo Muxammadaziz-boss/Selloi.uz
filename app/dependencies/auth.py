@@ -1,6 +1,7 @@
 """JWT-based and Master Token authentication dependencies for FastAPI."""
 
 import hmac
+import uuid
 from datetime import datetime, timedelta, timezone
 from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -12,6 +13,7 @@ import jwt
 from app.core.config import settings
 from app.core.db import get_db
 from app.core.permissions import ROLE_DEFAULTS
+from app.core.security import is_token_revoked, is_user_session_revoked
 from app.models import Admin, OrganizationMember, User
 from app.services import admin_service
 
@@ -19,19 +21,24 @@ security = HTTPBearer()
 security_optional = HTTPBearer(auto_error=False)
 
 
-def create_access_token(user_id: int, email: str) -> str:
-    """Create a signed JWT token for the given user."""
-    expire = datetime.now(timezone.utc) + timedelta(minutes=settings.jwt_expire_minutes)
+def create_access_token(user_id: int, email: str, jti: str | None = None, token_version: int = 1) -> str:
+    """Create a signed JWT token with unique jti, iat, and token_version for the given user."""
+    now = datetime.now(timezone.utc)
+    expire = now + timedelta(minutes=settings.jwt_expire_minutes)
+    token_id = jti or uuid.uuid4().hex
     payload = {
         "sub": str(user_id),
         "email": email,
+        "jti": token_id,
+        "iat": int(now.timestamp()),
         "exp": expire,
+        "tv": int(token_version),
     }
     return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
 
 
 def decode_access_token(token: str) -> dict:
-    """Decode and validate a JWT token. Raises HTTPException on failure."""
+    """Decode and validate a JWT token, ensuring it is active and not revoked."""
     if not settings.jwt_secret:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -39,11 +46,32 @@ def decode_access_token(token: str) -> dict:
         )
     try:
         payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
-        return payload
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token muddati tugagan")
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Noto'g'ri token")
+
+    # Check token revocation (individual token blacklist)
+    jti = payload.get("jti")
+    token_sig = token[-32:] if len(token) >= 32 else token
+    if (jti and is_token_revoked(jti)) or is_token_revoked(token_sig):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token bekor qilingan (revoked)")
+
+    # Check user-level session revocation (e.g. after password change)
+    user_id_raw = payload.get("sub")
+    if user_id_raw:
+        try:
+            user_id = int(user_id_raw)
+            iat = payload.get("iat")
+            if is_user_session_revoked(user_id, iat):
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Foydalanuvchi sessiyasi bekor qilingan (session revoked)",
+                )
+        except ValueError:
+            pass
+
+    return payload
 
 
 async def get_current_user(
@@ -56,6 +84,22 @@ async def get_current_user(
     user = await db.get(User, user_id)
     if user is None or not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Foydalanuvchi topilmadi yoki faol emas")
+
+    # Precise and durable cross-process session invalidation via token_version
+    user_tv = getattr(user, "token_version", 1) or 1
+    token_tv = payload.get("tv")
+    if token_tv is not None:
+        if int(token_tv) < int(user_tv):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Foydalanuvchi sessiyasi bekor qilingan (session invalidated)",
+            )
+    elif int(user_tv) > 1:
+        # Legacy token without tv: if user has incremented token_version, reject
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Foydalanuvchi sessiyasi bekor qilingan (session invalidated)",
+        )
     return user
 
 
@@ -89,6 +133,21 @@ async def get_current_admin(
                 detail="Foydalanuvchi topilmadi yoki faol emas",
             )
 
+        # Precise and durable cross-process session invalidation via token_version
+        user_tv = getattr(user, "token_version", 1) or 1
+        token_tv = payload.get("tv")
+        if token_tv is not None:
+            if int(token_tv) < int(user_tv):
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Foydalanuvchi sessiyasi bekor qilingan (session invalidated)",
+                )
+        elif int(user_tv) > 1:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Foydalanuvchi sessiyasi bekor qilingan (session invalidated)",
+            )
+
         # Check if user matches an existing Admin row by Telegram User ID
         admin = None
         if user.telegram_user_id:
@@ -103,6 +162,11 @@ async def get_current_admin(
                 await db.commit()
 
         if admin is not None:
+            if not admin.is_active:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Admin hisobi faol emas",
+                )
             admin._user = user
             admin._is_platform_owner = user.is_platform_owner
             return admin

@@ -51,12 +51,59 @@ async function proxy(request: NextRequest) {
     return NextResponse.json({ detail: "Proxy path ruxsat etilmagan" }, { status: 400 });
   }
 
+  // Prevent directory traversal, protocol injection, and open proxy abuse
+  if (path.includes("..") || path.includes("://") || path.startsWith("//")) {
+    return NextResponse.json({ detail: "Noto'g'ri proxy formati" }, { status: 400 });
+  }
+
+  // Request body payload size guard (max 10MB)
+  const contentLength = Number(request.headers.get("content-length") || "0");
+  if (contentLength > 10 * 1024 * 1024) {
+    return NextResponse.json(
+      { detail: "Yuklanayotgan ma'lumot hajmi juda katta (maksimal 10MB)" },
+      { status: 413 }
+    );
+  }
+
+  // CSRF defense for cookie-authenticated state-changing requests
+  const isMutation = ["POST", "PUT", "PATCH", "DELETE"].includes(request.method);
+  if (isMutation && sessionData) {
+    const origin = request.headers.get("origin");
+    const referer = request.headers.get("referer");
+    const host = request.headers.get("host") || "";
+    if (origin) {
+      try {
+        const originHost = new URL(origin).host;
+        if (originHost !== host && !host.startsWith("localhost") && !originHost.startsWith("localhost") && !host.includes("127.0.0.1")) {
+          return NextResponse.json({ detail: "CSRF tekshiruvidan o'tmadi: Origin mos kelmadi" }, { status: 403 });
+        }
+      } catch {
+        return NextResponse.json({ detail: "Noto'g'ri Origin formati" }, { status: 400 });
+      }
+    } else if (referer) {
+      try {
+        const refererHost = new URL(referer).host;
+        if (refererHost !== host && !host.startsWith("localhost") && !refererHost.startsWith("localhost") && !host.includes("127.0.0.1")) {
+          return NextResponse.json({ detail: "CSRF tekshiruvidan o'tmadi: Referer mos kelmadi" }, { status: 403 });
+        }
+      } catch {
+        return NextResponse.json({ detail: "Noto'g'ri Referer formati" }, { status: 400 });
+      }
+    }
+  }
+
   const target = `${backend.replace(/\/$/, "")}${path}`;
   const requestedOrgId =
     request.headers.get("x-organization-id") || request.nextUrl.searchParams.get("organization_id");
 
+  // Extract trustworthy client IP from connection headers
+  const forwardedFor = request.headers.get("x-forwarded-for");
+  const realIp = request.headers.get("x-real-ip") || (forwardedFor ? forwardedFor.split(",")[0].trim() : "127.0.0.1");
+
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
+    "X-Real-IP": realIp,
+    "X-Forwarded-For": realIp,
   };
 
   // Attach identity: Forward cryptographically signed JWT

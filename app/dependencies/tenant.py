@@ -52,15 +52,16 @@ async def get_admin_tenant_id(
 
     # 2. Case: Specific target_org_id requested
     if target_org_id is not None:
+        org = await db.get(Organization, target_org_id)
+        if org is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tashkilot topilmadi")
+
         # Platform owner can target any existing organization
         if is_platform_owner:
-            org = await db.get(Organization, target_org_id)
-            if org is None:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tashkilot topilmadi")
             return target_org_id
 
-        # Verify admin row itself is assigned to this organization
-        if current_admin.organization_id == target_org_id:
+        # Verify admin row itself is assigned to this organization and active
+        if current_admin.organization_id == target_org_id and current_admin.is_active:
             return target_org_id
 
         # Or verify user has an active membership in the requested organization

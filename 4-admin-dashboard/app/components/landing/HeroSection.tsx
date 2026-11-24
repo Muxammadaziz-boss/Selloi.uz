@@ -60,7 +60,7 @@ export default function HeroSection({ onOpenOnboarding }: HeroSectionProps) {
                 className="selloi-btn-primary"
                 style={{ fontSize: "1.02rem", padding: "13px 28px" }}
               >
-                <span>7 kun bepul boshlash</span>
+                <span>7 kun sinab ko‘rish →</span>
                 <ArrowRight size={16} />
               </button>
 

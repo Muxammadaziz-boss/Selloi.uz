@@ -62,8 +62,13 @@
 
 /* Glass Buttons from Figma Interaction States - Enhanced with 2-Streak Glass Glare */
 .selloi-btn-glass {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.16) 0%,
+    rgba(255, 255, 255, 0.07) 50%,
+    rgba(255, 255, 255, 0.03) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.22);
   border-radius: 45px;
   color: #FFFFFF;
   font-family: 'Quicksand', sans-serif;
@@ -81,9 +86,9 @@
   position: relative;
   overflow: hidden;
   box-shadow: 
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.3),
-    inset 0 -1px 1px 0 rgba(0, 0, 0, 0.25),
-    0 4px 16px rgba(0, 0, 0, 0.35);
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -1px 1px 0 rgba(0, 0, 0, 0.3),
+    0 6px 20px rgba(0, 0, 0, 0.4);
 }
 
 /* Glass top reflection sheen */
@@ -93,25 +98,25 @@
   top: 1px;
   left: 2px;
   right: 2px;
-  height: 46%;
+  height: 48%;
   background: linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.25) 0%,
-    rgba(255, 255, 255, 0.02) 100%
+    rgba(255, 255, 255, 0.32) 0%,
+    rgba(255, 255, 255, 0.03) 100%
   );
   border-radius: 45px 45px 20px 20px;
   pointer-events: none;
   z-index: 1;
   transition: opacity 0.25s ease;
-  opacity: 0.65;
+  opacity: 0.75;
 }
 
 .selloi-btn-glass:hover::before {
   opacity: 1;
   background: linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.38) 0%,
-    rgba(255, 255, 255, 0.04) 100%
+    rgba(255, 255, 255, 0.48) 0%,
+    rgba(255, 255, 255, 0.06) 100%
   );
 }
 
@@ -121,33 +126,33 @@
   z-index: 2;
 }
 
-/* 2 whitish glass reflection shimmer streaks passing across from left to right */
+/* 2 whitish glass reflection shimmer streaks passing across from left to right on hover */
 .selloi-btn-glass::after {
   content: '';
   position: absolute;
   top: -60%;
-  left: -180px;
-  width: 140px;
+  left: -160px;
+  width: 150px;
   height: 220%;
   background: linear-gradient(
     90deg,
     transparent 0px,
-    transparent 18px,
-    /* 1-chiziq: birinchi ingichka tiniq nur */
-    rgba(255, 255, 255, 0.4) 24px,
-    #FFFFFF 28px,
-    rgba(255, 255, 255, 0.4) 32px,
+    transparent 15px,
+    /* 1-chiziq: birinchi ingichka tiniq oyna nuri */
+    rgba(255, 255, 255, 0.5) 20px,
+    #FFFFFF 25px,
+    rgba(255, 255, 255, 0.5) 30px,
     /* 2 chiziq orasidagi oyna masofasi */
-    transparent 40px,
-    transparent 52px,
+    transparent 38px,
+    transparent 50px,
     /* 2-chiziq: ikkinchi qalinroq va kuchli oq oyna nuri */
-    rgba(255, 255, 255, 0.4) 60px,
-    rgba(255, 255, 255, 0.92) 68px,
+    rgba(255, 255, 255, 0.5) 58px,
+    rgba(255, 255, 255, 0.95) 66px,
     #FFFFFF 74px,
-    rgba(255, 255, 255, 0.92) 80px,
-    rgba(255, 255, 255, 0.4) 88px,
-    transparent 102px,
-    transparent 140px
+    rgba(255, 255, 255, 0.95) 82px,
+    rgba(255, 255, 255, 0.5) 90px,
+    transparent 105px,
+    transparent 150px
   );
   transform: skewX(-25deg);
   pointer-events: none;
@@ -157,13 +162,18 @@
 
 .selloi-btn-glass:hover,
 .selloi-btn-glass:focus-visible {
-  background: rgba(255, 255, 255, 0.16);
-  border-color: rgba(255, 255, 255, 0.55);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.28) 0%,
+    rgba(255, 255, 255, 0.14) 50%,
+    rgba(255, 255, 255, 0.06) 100%
+  );
+  border-color: rgba(255, 255, 255, 0.65);
   box-shadow: 
-    inset 0 1px 2px 0 rgba(255, 255, 255, 0.6),
+    inset 0 1px 2px 0 rgba(255, 255, 255, 0.8),
     inset 0 -1px 1px 0 rgba(0, 0, 0, 0.2),
-    0 8px 30px rgba(0, 0, 0, 0.45),
-    0 0 20px rgba(255, 255, 255, 0.2);
+    0 10px 32px rgba(0, 0, 0, 0.5),
+    0 0 25px rgba(255, 255, 255, 0.3);
   color: #FFFFFF;
   outline: none;
   text-decoration: none !important;
@@ -171,22 +181,22 @@
 }
 
 .selloi-btn-glass:hover::after {
-  animation: selloi-glass-glare 2.4s ease-in-out infinite;
+  animation: selloi-glass-glare 1.6s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
 }
 
 @keyframes selloi-glass-glare {
   0% {
-    left: -180px;
+    left: -160px;
     opacity: 0;
   }
-  10% {
+  8% {
     opacity: 1;
   }
-  72% {
+  65% {
     left: calc(100% + 40px);
     opacity: 1;
   }
-  78% {
+  75% {
     left: calc(100% + 40px);
     opacity: 0;
   }

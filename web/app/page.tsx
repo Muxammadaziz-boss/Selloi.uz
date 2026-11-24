@@ -4,29 +4,35 @@ import LandingPage from "./components/landing/LandingPage";
 
 export const metadata = {
   title: {
-    absolute: "Selloi: Telegram do'koningiz uchun Sun'iy Intellekt sotuvchisi",
+    absolute: "Selloi.uz — Telegram uchun 24/7 AI sotuvchi",
   },
   description:
-    "Mijozlaringiz bilan o'zbek tilida erkin muloqot qiladi, rasmdagi mahsulotlarni taniydi, buyurtmalarni qabul qiladi va biznesingizni avtomatlashtirishga yordam beradi.",
+    "Selloi.uz — Telegram do‘koningiz uchun sun’iy intellekt sotuvchi. Mijozlarga avtomatik javob beradi, mahsulotlarni rasmdan taniydi va buyurtmalarni qabul qiladi.",
   keywords: [
     "Selloi",
     "Selloi.uz",
     "Selloi AI",
-    "Selloi Telegram AI",
-    "Selloi AI sotuvchi",
-    "Telegram do'kon",
+    "AI sotuvchi",
+    "Telegram AI sotuvchi",
+    "Telegram uchun AI sotuvchi",
+    "Telegram do‘kon avtomatlashtirish",
+    "Sun’iy intellekt sotuvchi",
+    "O‘zbekistonda AI sotuvchi",
     "Telegram bot sotuvchi",
-    "Telegram AI",
-    "O'zbekiston AI",
+    "Telegram do'kon",
     "Telegram CRM",
   ],
   alternates: {
     canonical: "https://selloi.uz/",
+    languages: {
+      "uz": "https://selloi.uz/",
+      "x-default": "https://selloi.uz/",
+    },
   },
   openGraph: {
-    title: "Selloi: Telegram do'koningiz uchun Sun'iy Intellekt sotuvchisi",
+    title: "Selloi.uz — Telegram uchun 24/7 AI sotuvchi",
     description:
-      "24/7 ishlovchi AI sotuvchi. Rasmlarni taniydi, tabiiy tilda javob beradi va buyurtmalarni qabul qiladi.",
+      "Selloi.uz — Telegram do‘koningiz uchun sun’iy intellekt sotuvchi. Mijozlarga avtomatik javob beradi, mahsulotlarni rasmdan taniydi va buyurtmalarni qabul qiladi.",
     url: "https://selloi.uz/",
     siteName: "Selloi.uz",
     locale: "uz_UZ",
@@ -36,15 +42,15 @@ export const metadata = {
         url: "https://selloi.uz/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Selloi: Telegram do'konlari uchun AI sotuvchi",
+        alt: "Selloi.uz — Telegram uchun 24/7 AI sotuvchi",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Selloi: Telegram do'koningiz uchun Sun'iy Intellekt sotuvchisi",
+    title: "Selloi.uz — Telegram uchun 24/7 AI sotuvchi",
     description:
-      "24/7 ishlovchi AI sotuvchi. Rasmlarni taniydi, tabiiy tilda javob beradi va buyurtmalarni qabul qiladi.",
+      "Selloi.uz — Telegram do‘koningiz uchun sun’iy intellekt sotuvchi. Mijozlarga avtomatik javob beradi, mahsulotlarni rasmdan taniydi va buyurtmalarni qabul qiladi.",
     images: ["https://selloi.uz/og-image.png"],
   },
 };

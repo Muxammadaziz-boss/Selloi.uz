@@ -38,7 +38,7 @@ export default function Footer({ t, onLanguageClick }: FooterProps) {
             >
               <img
                 src="/figma/selloi-logo.png"
-                alt="Selloi"
+                alt="Selloi.uz — Telegram AI sotuvchi platformasi logotipi"
                 width={38}
                 height={32}
                 loading="lazy"

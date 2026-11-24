@@ -6,19 +6,9 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: [
-          "/dashboard",
-          "/dashboard/",
-          "/platform",
-          "/platform/",
-          "/api",
-          "/api/",
-          "/t",
-          "/t/",
-        ],
+        disallow: ["/api/"],
       },
     ],
     sitemap: "https://selloi.uz/sitemap.xml",
-    host: "https://selloi.uz",
   };
 }

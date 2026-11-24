@@ -2,24 +2,24 @@ import type { Metadata } from "next";
 import TermsClient from "./TermsClient";
 
 export const metadata: Metadata = {
-  title: "Foydalanish shartlari (Terms of Service)",
+  title: "Foydalanish shartlari (Terms of Service) | Selloi.uz",
   description:
     "Selloi.uz platformasidan foydalanish bo'yicha rasmiy shartlar va qoidalar. Telegram AI sotuvchi xizmatlarining huquqiy asosi.",
   alternates: {
     canonical: "https://selloi.uz/terms",
   },
   openGraph: {
-    title: "Foydalanish shartlari (Terms of Service) | Selloi",
+    title: "Foydalanish shartlari (Terms of Service) | Selloi.uz",
     description:
       "Selloi.uz platformasidan foydalanish bo'yicha rasmiy shartlar va qoidalar. Telegram AI sotuvchi xizmatlarining huquqiy asosi.",
     url: "https://selloi.uz/terms",
-    siteName: "Selloi",
+    siteName: "Selloi.uz",
     locale: "uz_UZ",
     type: "article",
   },
   twitter: {
     card: "summary",
-    title: "Foydalanish shartlari (Terms of Service) | Selloi",
+    title: "Foydalanish shartlari (Terms of Service) | Selloi.uz",
     description:
       "Selloi.uz platformasidan foydalanish bo'yicha rasmiy shartlar va qoidalar.",
   },

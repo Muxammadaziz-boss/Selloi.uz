@@ -283,11 +283,28 @@ class TenantBotManager:
                     "text": reply_text,
                 })
 
-            # Check if order was created or handoff needed -> notify admin
+            # Check if order was created or handoff needed -> notify admin via durable outbox
             if decision.get("order_created") and decision.get("order_data"):
+                from app.services.durable_inbox import (
+                    generate_order_idempotency_key,
+                    generate_outbox_idempotency_key,
+                    get_or_create_idempotent_order,
+                    stage_outbox_event,
+                )
                 order_info = decision["order_data"]
+                direct_msg_id = message.get("message_id", 0)
+                bot_identifier = bot_row.id if bot_row else "manager"
+                order_idempotency_key = generate_order_idempotency_key(
+                    source="botmgr",
+                    organization_id=org_id,
+                    bot_id=str(bot_identifier),
+                    chat_id=chat_id,
+                    message_id=direct_msg_id,
+                )
                 async with SessionLocal() as db:
-                    new_order = Order(
+                    new_order, created = await get_or_create_idempotent_order(
+                        db,
+                        idempotency_key=order_idempotency_key,
                         organization_id=org_id,
                         customer_name=order_info.get("customer_name") or customer_name,
                         phone=order_info.get("phone") or "",
@@ -296,28 +313,33 @@ class TenantBotManager:
                         status="new",
                         notes=f"Telegram bot chatidan (@{sender.get('username') or ''}, ID: {chat_id})",
                     )
-                    db.add(new_order)
-                    await db.commit()
-                    await db.refresh(new_order)
-
-                    # Notify store owner at admin_chat_id if configured
-                    if org and org.admin_chat_id:
-                        try:
-                            alert_text = (
-                                f"🛒 **Yangi Buyurtma! (#{new_order.id})**\n\n"
-                                f"👤 **Mijoz:** {new_order.customer_name}\n"
-                                f"📞 **Telefon:** {new_order.phone or 'Kiritilmagan'}\n"
-                                f"📦 **Mahsulot:** {new_order.product_summary}\n"
-                                f"📍 **Manzil:** {new_order.delivery_address or 'Kiritilmagan'}\n"
-                                f"💬 **Telegram:** @{sender.get('username') or 'Mavjud emas'}"
-                            )
-                            await tg_svc.call("sendMessage", {
+                    if created and org and org.admin_chat_id:
+                        alert_text = (
+                            f"🛒 **Yangi Buyurtma! (#{new_order.id})**\n\n"
+                            f"👤 **Mijoz:** {new_order.customer_name}\n"
+                            f"📞 **Telefon:** {new_order.phone or 'Kiritilmagan'}\n"
+                            f"📦 **Mahsulot:** {new_order.product_summary}\n"
+                            f"📍 **Manzil:** {new_order.delivery_address or 'Kiritilmagan'}\n"
+                            f"💬 **Telegram:** @{sender.get('username') or 'Mavjud emas'}"
+                        )
+                        outbox_key = generate_outbox_idempotency_key(
+                            event_type="send_message",
+                            organization_id=org_id,
+                            entity_id=new_order.id or order_idempotency_key,
+                            action="admin_alert",
+                        )
+                        await stage_outbox_event(
+                            db,
+                            idempotency_key=outbox_key,
+                            event_type="send_message",
+                            payload={
                                 "chat_id": org.admin_chat_id,
                                 "text": alert_text,
                                 "parse_mode": "Markdown",
-                            })
-                        except Exception as alert_err:
-                            logger.warning("Admin alert xabari yuborilmadi: %s", alert_err)
+                            },
+                            organization_id=org_id,
+                        )
+                    await db.commit()
 
 
 # Global singleton instance

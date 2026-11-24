@@ -192,10 +192,10 @@ export default function TermsClient() {
             <section className="selloi-legal-section">
               <h2>5. Obuna va to'lovlar (Subscription & Billing)</h2>
               <p>
-                Selloi xizmatlari bepul sinov (Trial) va pullik tarif rejalari asosida taqdim etiladi:
+                Selloi xizmatlari 7 kunlik imtiyozli sinov davri (Trial) va doimiy oylik/yillik tarif rejalari asosida taqdim etiladi:
               </p>
               <ul>
-                <li>Yangi foydalanuvchilarga bepul sinov davri taqdim etiladi;</li>
+                <li>Yangi foydalanuvchilarga 7 kunlik imtiyozli sinov davri taqdim etiladi;</li>
                 <li>Pullik tariflar oylik yoki yillik obuna asosida faollashtiriladi;</li>
                 <li>To'lovlar Payme, Click yoki rasmiy bank kartalari orqali xavfsiz qabul qilinadi;</li>
                 <li>Obunani istalgan vaqtda shaxsiy kabinet orqali bekor qilish mumkin.</li>

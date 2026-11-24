@@ -37,7 +37,7 @@ export default function PricingSection({ onOpenOnboarding }: PricingSectionProps
             className="text-secondary mx-auto mb-4"
             style={{ maxWidth: "620px", fontSize: "1.08rem", color: "#CBD5E1" }}
           >
-            Har qanday hajmda savdo qiluvchi Telegram do‘konlar uchun moslashuvchan narxlar. Barcha tariflarda 7 kun bepul sinov!
+            Har qanday hajmda savdo qiluvchi Telegram do‘konlar uchun moslashuvchan narxlar. Barcha tariflarda 7 kunlik sinov!
           </p>
 
           {/* Billing Switcher (Monthly vs Annual) */}
@@ -71,7 +71,7 @@ export default function PricingSection({ onOpenOnboarding }: PricingSectionProps
             >
               <span>Yillik to‘lov</span>
               <span className="badge bg-success text-white" style={{ fontSize: "0.65rem" }}>
-                2 oy bepul [TO‘LDIRING]
+                2 oy sovg‘a (-17%) [TO‘LDIRING]
               </span>
             </button>
           </div>

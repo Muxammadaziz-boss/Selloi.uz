@@ -5,6 +5,8 @@ from datetime import datetime, timezone
 from typing import Optional
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,9 +19,11 @@ from app.core.security import (
     mask_secret,
     record_attempt,
     reset_rate_limit,
+    revoke_token,
+    revoke_user_sessions,
     verify_password,
 )
-from app.dependencies.auth import create_access_token, get_current_user
+from app.dependencies.auth import create_access_token, decode_access_token, get_current_user, security
 from app.models import Organization, OrganizationMember, User
 from app.schemas import (
     GoogleAuthRequest,
@@ -82,7 +86,7 @@ async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db))
     await db.commit()
     await db.refresh(user)
 
-    token = create_access_token(user.id, user.email)
+    token = create_access_token(user.id, user.email, token_version=getattr(user, "token_version", 1) or 1)
     return TokenResponse(
         access_token=token,
         user_id=user.id,
@@ -114,7 +118,7 @@ async def login(payload: TokenRequest, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=403, detail="Foydalanuvchi faol emas")
 
     reset_rate_limit(rate_key)
-    token = create_access_token(user.id, user.email)
+    token = create_access_token(user.id, user.email, token_version=getattr(user, "token_version", 1) or 1)
     return TokenResponse(
         access_token=token,
         user_id=user.id,
@@ -160,7 +164,7 @@ async def google_auth(payload: GoogleAuthRequest, db: AsyncSession = Depends(get
             await db.commit()
             await db.refresh(user)
 
-    token = create_access_token(user.id, user.email)
+    token = create_access_token(user.id, user.email, token_version=getattr(user, "token_version", 1) or 1)
     return TokenResponse(
         access_token=token,
         user_id=user.id,
@@ -230,7 +234,7 @@ async def telegram_auth_poll(payload: dict, db: AsyncSession = Depends(get_db)):
         await db.commit()
         await db.refresh(user)
 
-    token = create_access_token(user.id, user.email)
+    token = create_access_token(user.id, user.email, token_version=getattr(user, "token_version", 1) or 1)
     return {
         "status": "verified",
         "access_token": token,
@@ -261,6 +265,86 @@ async def get_current_user_profile(current_user: User = Depends(get_current_user
         "telegram_user_id": current_user.telegram_user_id,
         "is_platform_owner": current_user.is_platform_owner,
     }
+
+
+class UpdateProfileRequest(BaseModel):
+    full_name: str | None = None
+    telegram_user_id: int | None = None
+
+
+@router.patch("/auth/profile")
+async def update_profile(
+    payload: UpdateProfileRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Update user profile. Unrelated profile changes must not invalidate active sessions."""
+    if payload.full_name is not None:
+        current_user.full_name = payload.full_name.strip()
+    if payload.telegram_user_id is not None:
+        current_user.telegram_user_id = payload.telegram_user_id
+    await db.commit()
+    await db.refresh(current_user)
+    return {
+        "ok": True,
+        "id": current_user.id,
+        "email": current_user.email,
+        "full_name": current_user.full_name,
+        "telegram_user_id": current_user.telegram_user_id,
+    }
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str = Field(min_length=6)
+
+
+@router.post("/auth/logout")
+async def logout(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Revoke current JWT access token and invalidate user session durably."""
+    raw_token = credentials.credentials
+    try:
+        payload = decode_access_token(raw_token)
+        jti = payload.get("jti")
+        if jti:
+            revoke_token(jti)
+    except Exception:
+        pass
+    revoke_token(raw_token[-32:])
+
+    # Durable database-backed invalidation across all processes and restarts via token_version
+    current_user.token_version = (getattr(current_user, "token_version", 1) or 1) + 1
+    current_user.updated_at = datetime.now(timezone.utc)
+    await db.commit()
+    revoke_user_sessions(current_user.id)
+    return {"ok": True, "detail": "Sessiya muvaffaqiyatli yakunlandi"}
+
+
+@router.post("/auth/change-password")
+async def change_password(
+    payload: ChangePasswordRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Change user password, automatically revoking all previous active sessions."""
+    if not verify_password(payload.current_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Hozirgi parol noto'g'ri",
+        )
+
+    current_user.hashed_password = hash_password(payload.new_password)
+    current_user.token_version = (getattr(current_user, "token_version", 1) or 1) + 1
+    current_user.updated_at = datetime.now(timezone.utc)
+    await db.commit()
+
+    # Invalidate all active tokens issued before this moment
+    revoke_user_sessions(current_user.id)
+    return {"ok": True, "detail": "Parol muvaffaqiyatli o'zgartirildi va barcha eski sessiyalar bekor qilindi"}
 
 
 # ---------------------------------------------------------------------------

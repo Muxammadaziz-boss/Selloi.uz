@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.db import get_db
 from app.core.permissions import ALL_PERMISSIONS, ROLE_DEFAULTS
+from app.core.rate_limit import require_rate_limit
 from app.dependencies.auth import decode_access_token, get_current_admin
 from app.dependencies.tenant import get_admin_tenant_id
 from app.models import (
@@ -494,7 +495,13 @@ async def sync_channels(
     return {"ok": True, "synced": results, "total_synced": total}
 
 
-@router.post("/knowledge/sync", dependencies=[Depends(require_permission("can_manage_knowledge"))])
+@router.post(
+    "/knowledge/sync",
+    dependencies=[
+        Depends(require_permission("can_manage_knowledge")),
+        Depends(require_rate_limit("admin_knowledge_sync", max_requests=20, window_seconds=60)),
+    ],
+)
 async def sync_knowledge_posts(
     payload: ChannelSyncRequest | None = None,
     db: AsyncSession = Depends(get_db),

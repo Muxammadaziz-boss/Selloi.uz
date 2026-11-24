@@ -238,7 +238,7 @@ export function OnboardingModal({ isOpen, onClose, onComplete }: OnboardingModal
                   Yangi Do&apos;kon Ochish (SaaS Onboarding)
                 </h4>
                 <div className="text-secondary small" style={{ fontSize: "0.75rem" }}>
-                  Bosqich {step} / {totalSteps} • 7 kunlik bepul sinov
+                  Bosqich {step} / {totalSteps} • 7 kunlik sinov davri
                 </div>
               </div>
             </div>
@@ -726,7 +726,7 @@ export function OnboardingModal({ isOpen, onClose, onComplete }: OnboardingModal
                 <div className="text-center py-2 mb-3">
                   <h3 className="fw-bold text-white mb-1">9. Boshlang&apos;ich Tarifni Tanlang</h3>
                   <p className="text-secondary small">
-                    Har bir yangi biznes uchun <strong className="text-white">7 kunlik bepul sinov muddati</strong> taqdim etiladi!
+                    Har bir yangi biznes uchun <strong className="text-white">7 kunlik imtiyozli sinov muddati</strong> taqdim etiladi!
                   </p>
                 </div>
                 <div className="row g-3">
@@ -972,7 +972,7 @@ export function OnboardingModal({ isOpen, onClose, onComplete }: OnboardingModal
                         fontSize: "0.78rem",
                       }}
                     >
-                      7 kun bepul
+                      7 kunlik sinov
                     </span>
                   </div>
                 </div>

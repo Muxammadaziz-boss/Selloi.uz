@@ -44,6 +44,7 @@ class User(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+    token_version: Mapped[int] = mapped_column(Integer, default=1, server_default="1", nullable=False)
 
 
     memberships: Mapped[list["OrganizationMember"]] = relationship(back_populates="user", cascade="all, delete-orphan")
@@ -140,9 +141,11 @@ class Plan(Base):
     description: Mapped[str] = mapped_column(String(255), default="")
     price_monthly: Mapped[int] = mapped_column(Integer, default=19)  # USD
     price_yearly: Mapped[int] = mapped_column(Integer, default=190)  # USD (~17% discount)
-    price_monthly_uzs: Mapped[int] = mapped_column(BigInteger, default=24500000, nullable=False)  # in tiyin (245,000 UZS)
-    price_yearly_uzs: Mapped[int] = mapped_column(BigInteger, default=245000000, nullable=False)  # in tiyin (2,450,000 UZS)
-    currency: Mapped[str] = mapped_column(String(8), default="USD")
+    price_monthly_uzs: Mapped[int] = mapped_column(BigInteger, default=24400000, nullable=False)  # in tiyin (244,000 UZS)
+    price_yearly_uzs: Mapped[int] = mapped_column(BigInteger, default=244000000, nullable=False)  # in tiyin (2,440,000 UZS)
+    price_promo_uzs: Mapped[int] = mapped_column(BigInteger, default=1300000, nullable=False)  # in tiyin (13,000 UZS for 7d mega discount)
+    price_version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    currency: Mapped[str] = mapped_column(String(8), default="UZS")
     features: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
     limits: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
@@ -194,11 +197,18 @@ class PlanPriceHistory(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     plan_id: Mapped[int] = mapped_column(ForeignKey("plans.id", ondelete="CASCADE"), index=True, nullable=False)
-    price_monthly: Mapped[int] = mapped_column(Integer, nullable=False)  # USD cents
-    price_yearly: Mapped[int] = mapped_column(Integer, nullable=False)  # USD cents
-    price_monthly_uzs: Mapped[int] = mapped_column(BigInteger, nullable=False)  # UZS tiyin
-    price_yearly_uzs: Mapped[int] = mapped_column(BigInteger, nullable=False)  # UZS tiyin
-    currency: Mapped[str] = mapped_column(String(8), default="USD", nullable=False)
+    plan_code: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    billing_period: Mapped[str] = mapped_column(String(32), default="ALL", nullable=False)
+    price_monthly: Mapped[int] = mapped_column(Integer, default=1900, nullable=False)  # USD cents
+    price_yearly: Mapped[int] = mapped_column(Integer, default=19000, nullable=False)  # USD cents
+    price_monthly_uzs: Mapped[int] = mapped_column(BigInteger, default=24400000, nullable=False)  # UZS tiyin
+    price_yearly_uzs: Mapped[int] = mapped_column(BigInteger, default=244000000, nullable=False)  # UZS tiyin
+    previous_price_uzs: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    new_price_uzs: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    price_version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    admin_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    approval_status: Mapped[str] = mapped_column(String(32), default="approved", nullable=False)
+    currency: Mapped[str] = mapped_column(String(8), default="UZS", nullable=False)
     change_reason: Mapped[str] = mapped_column(String(255), default="")
     created_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     effective_from: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True, nullable=False)
@@ -281,10 +291,18 @@ class PaymentBill(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     bill_id: Mapped[str] = mapped_column(String(128), unique=True, index=True, nullable=False)
+    order_id: Mapped[str | None] = mapped_column(String(128), unique=True, index=True, nullable=True)
     organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True, nullable=False)
     user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), index=True, nullable=True)
-    plan_code: Mapped[str] = mapped_column(String(32), nullable=False)  # start, pro, ultra
-    billing_cycle: Mapped[str] = mapped_column(String(32), nullable=False)  # mega_discount, monthly, yearly
+    plan_id: Mapped[int | None] = mapped_column(ForeignKey("plans.id", ondelete="SET NULL"), index=True, nullable=True)
+    plan_code: Mapped[str] = mapped_column(String(32), default="start", nullable=False)  # start, pro, ultra
+    billing_cycle: Mapped[str] = mapped_column(String(32), default="monthly", nullable=False)  # mega_discount, monthly, yearly
+    billing_period: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    price_uzs: Mapped[int | None] = mapped_column(BigInteger, default=0, nullable=True)
+    price_version: Mapped[int | None] = mapped_column(Integer, default=1, nullable=True)
+    discount_amount_uzs: Mapped[int] = mapped_column(BigInteger, default=0, nullable=False)
+    final_amount_uzs: Mapped[int | None] = mapped_column(BigInteger, default=0, nullable=True)
+    amount_minor: Mapped[int | None] = mapped_column(BigInteger, default=0, nullable=True)
     amount: Mapped[int] = mapped_column(BigInteger, nullable=False)  # in minor units (tiyin)
     currency: Mapped[str] = mapped_column(String(8), default="UZS", nullable=False)
     status: Mapped[str] = mapped_column(String(32), default="pending", index=True, nullable=False)  # pending, paid, expired, failed, cancelled
@@ -299,6 +317,10 @@ class PaymentBill(Base):
 
     organization: Mapped["Organization"] = relationship()
     user: Mapped["User"] = relationship()
+
+    @property
+    def payment_status(self) -> str:
+        return self.status
 
 
 class UsageRecord(Base):
@@ -329,6 +351,68 @@ class WebhookEvent(Base):
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class TelegramInbox(Base):
+    """PostgreSQL-backed durable inbox for incoming Telegram webhook updates.
+
+    Guarantees ACID persistence before HTTP 200 acknowledgment, preventing update loss
+    during worker crashes or restarts. Supports multi-worker atomic job claiming via
+    SELECT ... FOR UPDATE SKIP LOCKED.
+    """
+    __tablename__ = "telegram_inbox"
+    __table_args__ = (
+        UniqueConstraint("bot_id", "update_id", name="uq_telegram_inbox_bot_update"),
+        Index("ix_telegram_inbox_status_attempt", "status", "next_attempt_at", "lease_expires_at"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    bot_id: Mapped[str] = mapped_column(String(64), default="default", index=True, nullable=False)
+    organization_id: Mapped[int | None] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True, nullable=True)
+    update_id: Mapped[int] = mapped_column(BigInteger, index=True, nullable=False)
+    payload: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    status: Mapped[str] = mapped_column(String(32), default="pending", index=True, nullable=False)  # pending, processing, completed, retry, dead_letter
+    attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    max_attempts: Mapped[int] = mapped_column(Integer, default=5, nullable=False)
+    next_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    lease_owner: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    lease_token: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    lease_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    fencing_generation: Mapped[int] = mapped_column(Integer, default=1, server_default="1", nullable=False)
+    received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
+
+
+class TelegramOutbox(Base):
+    """PostgreSQL-backed transactional outbox for outgoing Telegram API actions and side effects.
+
+    Allows staging external side effects (send message, notify admin) inside the same ACID
+    transaction as business domain changes, dispatched reliably with at-least-once semantics.
+    """
+    __tablename__ = "telegram_outbox"
+    __table_args__ = (
+        Index("ix_telegram_outbox_status_retry", "status", "next_retry_at"),
+        Index("ix_telegram_outbox_lease_expires_at", "lease_expires_at"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    organization_id: Mapped[int | None] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True, nullable=True)
+    idempotency_key: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
+    event_type: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
+    payload: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    status: Mapped[str] = mapped_column(String(32), default="pending", index=True, nullable=False)  # pending, processing, sent, retry, dead_letter, uncertain
+    attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    max_attempts: Mapped[int] = mapped_column(Integer, default=5, nullable=False)
+    next_retry_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    lease_owner: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    lease_token: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    lease_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class AuditLog(Base):
@@ -444,6 +528,7 @@ class Order(Base):
     amount: Mapped[str] = mapped_column(String(64), default="$0")
     status: Mapped[str] = mapped_column(String(32), default="new", index=True)
     notes: Mapped[str] = mapped_column(Text, default="")
+    idempotency_key: Mapped[str | None] = mapped_column(String(255), unique=True, index=True, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
 
 
@@ -525,4 +610,5 @@ class Admin(Base):
     added_by: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+    token_version: Mapped[int] = mapped_column(Integer, default=1, server_default="1", nullable=False)
 

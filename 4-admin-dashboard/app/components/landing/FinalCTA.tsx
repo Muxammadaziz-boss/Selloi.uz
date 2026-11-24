@@ -61,7 +61,7 @@ export default function FinalCTA({ onOpenOnboarding }: FinalCTAProps) {
               </p>
               <div className="d-flex flex-wrap align-items-center gap-3 text-secondary small" style={{ fontSize: "0.82rem" }}>
                 <span className="d-flex align-items-center gap-1.5 text-light">
-                  <ShieldCheck size={14} color="#10B981" /> 7 kun bepul sinov
+                  <ShieldCheck size={14} color="#10B981" /> 7 kunlik sinov
                 </span>
                 <span>•</span>
                 <span className="d-flex align-items-center gap-1.5 text-light">
@@ -79,7 +79,7 @@ export default function FinalCTA({ onOpenOnboarding }: FinalCTAProps) {
                 className="selloi-btn-primary px-4 py-3 w-100"
                 style={{ fontSize: "1rem" }}
               >
-                <span>7 kun bepul boshlash</span>
+                <span>7 kun sinab ko‘rish →</span>
                 <ArrowRight size={16} />
               </button>
             </div>

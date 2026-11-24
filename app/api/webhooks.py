@@ -1,7 +1,9 @@
 import asyncio
 from collections import OrderedDict
 import hmac
+import threading
 import time
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
@@ -33,22 +35,191 @@ def _date(value: str | None) -> datetime | None:
 
 
 _PROCESSED_UPDATES: OrderedDict[int, float] = OrderedDict()
+_PENDING_TOKENS: dict[int, tuple[float, str]] = {}
 _MAX_PROCESSED_UPDATES = 10000
+_UPDATE_LOCK = threading.Lock()
+
+# Atomic Lua script for update finalization with ownership verification
+TG_FINALIZE_LUA = """
+local val = redis.call('GET', KEYS[1])
+if not val then
+    return 0
+end
+if val == ARGV[1] or val == "pending:" .. ARGV[1] then
+    if ARGV[2] == "completed" then
+        redis.call('SET', KEYS[1], "completed", "EX", tonumber(ARGV[3]))
+        return 1
+    else
+        redis.call('DEL', KEYS[1])
+        return 1
+    end
+else
+    return 0
+end
+"""
+
+# Atomic Lua script for lease renewal
+TG_RENEW_LEASE_LUA = """
+local val = redis.call('GET', KEYS[1])
+if val == ARGV[1] or val == "pending:" .. ARGV[1] then
+    redis.call('EXPIRE', KEYS[1], tonumber(ARGV[2]))
+    return 1
+else
+    return 0
+end
+"""
+
+
+def reserve_update(update_id: int | None, lease_seconds: int = 60) -> tuple[bool, str | None]:
+    """Atomically reserve update_id with an ownership token and bounded lease.
+
+    Returns:
+        (is_duplicate: bool, owner_token: str | None)
+        - If is_duplicate is True, the update is already processed or actively being processed.
+        - If is_duplicate is False, caller holds the lease identified by owner_token.
+    """
+    if update_id is None:
+        return False, None
+
+    owner_token = uuid.uuid4().hex
+    key = f"tg_update:{update_id}"
+
+    # 1. Check distributed Redis lock / status across all Uvicorn processes
+    try:
+        from app.core.rate_limit import limiter
+        r = limiter._get_redis()
+        if r is not None:
+            current = r.get(key)
+            if current == "completed":
+                return True, None
+            if current and current.startswith("pending:"):
+                # Active reservation held by another worker
+                return True, None
+
+            # Acquire atomic reservation with bounded lease (default 60s, NOT indefinite or 15m)
+            # If worker crashes, lease expires in 60s allowing safe recovery without losing updates
+            acquired = r.set(key, f"pending:{owner_token}", nx=True, ex=lease_seconds)
+            if not acquired:
+                return True, None
+            return False, owner_token
+    except Exception:
+        pass
+
+    # 2. Thread-safe in-memory fallback with ownership tracking
+    with _UPDATE_LOCK:
+        now = time.time()
+        # Clean expired in-memory items based on their individual stored expiration
+        expired_pending = [uid for uid, (exp, _) in _PENDING_TOKENS.items() if now >= exp]
+        for uid in expired_pending:
+            _PENDING_TOKENS.pop(uid, None)
+
+        while _PROCESSED_UPDATES and now - next(iter(_PROCESSED_UPDATES.values())) > 900:
+            _PROCESSED_UPDATES.popitem(last=False)
+
+        if update_id in _PROCESSED_UPDATES:
+            return True, None
+        if update_id in _PENDING_TOKENS:
+            return True, None
+
+        _PENDING_TOKENS[update_id] = (now + lease_seconds, owner_token)
+        return False, owner_token
 
 
 def is_duplicate_update(update_id: int | None) -> bool:
-    """Return True if update_id has already been processed recently (TTL 15 mins)."""
+    """Backward-compatible wrapper around reserve_update."""
+    is_dup, _ = reserve_update(update_id)
+    return is_dup
+
+
+def finalize_update(
+    update_id: int | None,
+    owner_token: str | None = None,
+    success: bool = True,
+) -> bool:
+    """Mark update as completed, or release lock on failure, strictly verifying ownership.
+
+    Safety Rules:
+    1. A worker must not release another worker's reservation.
+    2. A worker must not finalize an update it does not own.
+    3. Failed processing must remain retryable.
+    """
     if update_id is None:
         return False
-    now = time.time()
-    # Prune updates older than 15 minutes (900 seconds)
-    while _PROCESSED_UPDATES and now - next(iter(_PROCESSED_UPDATES.values())) > 900:
-        _PROCESSED_UPDATES.popitem(last=False)
-    if update_id in _PROCESSED_UPDATES:
-        return True
-    _PROCESSED_UPDATES[update_id] = now
-    if len(_PROCESSED_UPDATES) > _MAX_PROCESSED_UPDATES:
-        _PROCESSED_UPDATES.popitem(last=False)
+
+    key = f"tg_update:{update_id}"
+    finalized = False
+
+    try:
+        from app.core.rate_limit import limiter
+        r = limiter._get_redis()
+        if r is not None:
+            if owner_token is not None:
+                res = r.eval(
+                    TG_FINALIZE_LUA,
+                    1,
+                    key,
+                    owner_token,
+                    "completed" if success else "release",
+                    900,
+                )
+                finalized = bool(res == 1)
+            else:
+                if success:
+                    r.set(key, "completed", ex=900)
+                    finalized = True
+                else:
+                    val = r.get(key)
+                    if val and not val.startswith("pending:"):
+                        r.delete(key)
+                        finalized = True
+    except Exception:
+        pass
+
+    with _UPDATE_LOCK:
+        now = time.time()
+        pending_info = _PENDING_TOKENS.get(update_id)
+        if pending_info is not None:
+            _, existing_owner = pending_info
+            if owner_token is None or existing_owner == owner_token:
+                _PENDING_TOKENS.pop(update_id, None)
+                if success:
+                    _PROCESSED_UPDATES[update_id] = now
+                    if len(_PROCESSED_UPDATES) > _MAX_PROCESSED_UPDATES:
+                        _PROCESSED_UPDATES.popitem(last=False)
+                finalized = True
+        else:
+            if success:
+                _PROCESSED_UPDATES[update_id] = now
+                finalized = True
+
+    return finalized
+
+
+def renew_update_lease(
+    update_id: int | None,
+    owner_token: str | None,
+    extend_seconds: int = 60,
+) -> bool:
+    """Extend the reservation lease for long-running processing while ownership holds."""
+    if update_id is None or not owner_token:
+        return False
+
+    key = f"tg_update:{update_id}"
+    try:
+        from app.core.rate_limit import limiter
+        r = limiter._get_redis()
+        if r is not None:
+            res = r.eval(TG_RENEW_LEASE_LUA, 1, key, owner_token, extend_seconds)
+            return bool(res == 1)
+    except Exception:
+        pass
+
+    with _UPDATE_LOCK:
+        if update_id in _PENDING_TOKENS:
+            _, existing_owner = _PENDING_TOKENS[update_id]
+            if existing_owner == owner_token:
+                _PENDING_TOKENS[update_id] = (time.time() + extend_seconds, owner_token)
+                return True
     return False
 
 
@@ -124,7 +295,8 @@ async def _typing_loop(chat_id: int, connection_id: str | None, stop_event: asyn
             break
 
 
-async def _handle_business_message(message: dict) -> None:
+async def _handle_business_message(message: dict, db: AsyncSession | None = None) -> None:
+    from contextlib import nullcontext
     connection_id = message.get("business_connection_id")
     chat = message.get("chat", {})
     sender = message.get("from") or {}
@@ -138,8 +310,9 @@ async def _handle_business_message(message: dict) -> None:
     if message.get("sender_business_bot") or sender.get("is_bot"):
         return
 
-    async with SessionLocal() as db:
-        connection = await db.get(BusinessConnection, connection_id)
+    session_ctx = nullcontext(db) if db is not None else SessionLocal()
+    async with session_ctx as session:
+        connection = await session.get(BusinessConnection, connection_id)
         if connection is None or not connection.is_enabled:
             return
 
@@ -148,7 +321,7 @@ async def _handle_business_message(message: dict) -> None:
             return
 
         org_id = connection.organization_id
-        org = await db.get(Organization, org_id) if org_id else None
+        org = await session.get(Organization, org_id) if org_id else None
         org_token = org.decrypted_bot_token if org else None
         try:
             tg_svc = get_telegram_service(org_token)
@@ -163,7 +336,7 @@ async def _handle_business_message(message: dict) -> None:
 
         # A real account-owner reply means the human has taken over this chat.
         if sender.get("id") and connection.owner_user_id == int(sender["id"]):
-            result = await db.execute(select(Conversation).where(
+            result = await session.execute(select(Conversation).where(
                 Conversation.business_connection_id == connection_id,
                 Conversation.chat_id == chat_id_int,
             ))
@@ -173,13 +346,16 @@ async def _handle_business_message(message: dict) -> None:
                 conversation.handoff_reason = "Admin Telegram chatida javob berdi"
                 conversation.last_message_at = datetime.now(timezone.utc)
                 await save_message(
-                    db,
+                    session,
                     conversation_id=conversation.id,
                     telegram_message_id=msg_id_int,
                     direction="admin",
                     text=message.get("text") or message.get("caption") or "[Admin xabari]",
                 )
-                await db.commit()
+                if db is None:
+                    await session.commit()
+                else:
+                    await session.flush()
             return
 
         first_name = sender.get("first_name", "")
@@ -188,7 +364,7 @@ async def _handle_business_message(message: dict) -> None:
         incoming_text = message.get("text") or message.get("caption") or ""
         if not (connection.rights or {}).get("can_reply", False):
             conversation = await get_or_create_conversation(
-                db,
+                session,
                 business_connection_id=connection_id,
                 chat_id=chat_id_int,
                 customer_name=customer_name,
@@ -196,7 +372,7 @@ async def _handle_business_message(message: dict) -> None:
                 organization_id=org_id,
             )
             await save_message(
-                db,
+                session,
                 conversation_id=conversation.id,
                 telegram_message_id=msg_id_int,
                 direction="customer",
@@ -205,7 +381,10 @@ async def _handle_business_message(message: dict) -> None:
             )
             conversation.status = "human_takeover"
             conversation.handoff_reason = "Telegram Business ulanishida can_reply huquqi yo'q"
-            await db.commit()
+            if db is None:
+                await session.commit()
+            else:
+                await session.flush()
             try:
                 if tg_svc:
                     await tg_svc.notify_admin(
@@ -215,7 +394,7 @@ async def _handle_business_message(message: dict) -> None:
                 logger.exception("Admin bildirishnoma yuborishda xatolik (can_reply)")
             return
         conversation = await get_or_create_conversation(
-            db,
+            session,
             business_connection_id=connection_id,
             chat_id=chat_id_int,
             customer_name=customer_name,
@@ -326,10 +505,25 @@ async def _handle_business_message(message: dict) -> None:
             return
 
 
-        # If AI successfully completed an order, save it and alert admin
+        # If AI successfully completed an order, save it and alert admin via transactional outbox
         if decision.get("order_created") and decision.get("order_data"):
+            from app.services.durable_inbox import (
+                generate_order_idempotency_key,
+                generate_outbox_idempotency_key,
+                get_or_create_idempotent_order,
+                stage_outbox_event,
+            )
             order_info = decision["order_data"]
-            new_order = Order(
+            order_idempotency_key = generate_order_idempotency_key(
+                source="biz",
+                organization_id=org_id,
+                connection_id=connection_id,
+                chat_id=chat_id_int,
+                message_id=msg_id_int,
+            )
+            new_order, created = await get_or_create_idempotent_order(
+                db,
+                idempotency_key=order_idempotency_key,
                 organization_id=org_id,
                 conversation_id=conversation.id,
                 customer_name=order_info.get("customer_name") or customer_name,
@@ -339,32 +533,34 @@ async def _handle_business_message(message: dict) -> None:
                 status="new",
                 notes=order_info.get("notes") or "",
             )
-            db.add(new_order)
-            await db.flush()
-
-            user_handle = f"@{conversation.username}" if conversation.username else f"ID: {chat.get('id')}"
-            address_str = new_order.delivery_address or "Ko'rsatilmadi"
-            order_notification = (
-                "🔥 *YANGI BUYURTMA QABUL QILINDI!*\n\n"
-                f"👤 *Mijoz:* {new_order.customer_name} ({user_handle})\n"
-                f"📞 *Telefon:* `{new_order.phone}`\n"
-                f"📍 *Manzil:* {address_str}\n"
-                f"📦 *Mahsulot:* {new_order.product_summary or 'Muloqotdan qarang'}\n"
-            )
-            if new_order.notes:
-                order_notification += f"💬 *Izoh:* {new_order.notes}\n"
-            order_notification += (
-                f"💬 *Suhbat ID:* #{conversation.id}\n\n"
-                "⚡️ *Iltimos admin, mijoz bilan bog'laning!*"
-            )
-            try:
-                if tg_svc:
-                    if hasattr(tg_svc, "notify_organization_admins"):
-                        await tg_svc.notify_organization_admins(db, org_id, order_notification)
-                    else:
-                        await tg_svc.notify_admin(order_notification)
-            except Exception:
-                logger.exception("Admin'ga buyurtma xabarnomasini yuborishda xatolik")
+            if created:
+                user_handle = f"@{conversation.username}" if conversation.username else f"ID: {chat.get('id')}"
+                address_str = new_order.delivery_address or "Ko'rsatilmadi"
+                order_notification = (
+                    "🔥 *YANGI BUYURTMA QABUL QILINDI!*\n\n"
+                    f"👤 *Mijoz:* {new_order.customer_name} ({user_handle})\n"
+                    f"📞 *Telefon:* `{new_order.phone}`\n"
+                    f"📍 *Manzil:* {address_str}\n"
+                    f"📦 *Mahsulot:* {new_order.product_summary or 'Muloqotdan qarang'}\n"
+                )
+                if new_order.notes:
+                    order_notification += f"💬 *Izoh:* {new_order.notes}\n"
+                order_notification += (
+                    f"💬 *Suhbat ID:* #{conversation.id}\n\n"
+                    "⚡️ *Iltimos admin, mijoz bilan bog'laning!*"
+                )
+                outbox_key = generate_outbox_idempotency_key(
+                    event_type="notify_organization_admins",
+                    organization_id=org_id,
+                    entity_id=new_order.id or order_idempotency_key,
+                )
+                await stage_outbox_event(
+                    db,
+                    idempotency_key=outbox_key,
+                    event_type="notify_organization_admins",
+                    payload={"text": order_notification},
+                    organization_id=org_id,
+                )
 
         sent = None
         if decision.get("attach_photo") and decision.get("source_post_id") is not None:
@@ -399,7 +595,7 @@ async def _handle_business_message(message: dict) -> None:
             await db.commit()
 
 
-async def _handle_direct_bot_message(message: dict, db: AsyncSession) -> None:
+async def _handle_direct_bot_message(message: dict, db: AsyncSession, organization_id: int | None = None) -> None:
     chat = message.get("chat", {})
     chat_id = chat.get("id")
     sender = message.get("from") or {}
@@ -449,10 +645,27 @@ async def _handle_direct_bot_message(message: dict, db: AsyncSession) -> None:
     if sent is None and tg_svc:
         await tg_svc.send_message(chat_id, decision["reply"])
 
-    # If order was created in direct bot chat, notify admin
+    # If order was created in direct bot chat, notify admin via transactional outbox
     if decision.get("order_created") and decision.get("order_data"):
+        from app.services.durable_inbox import (
+            generate_order_idempotency_key,
+            generate_outbox_idempotency_key,
+            get_or_create_idempotent_order,
+            stage_outbox_event,
+        )
         order_info = decision["order_data"]
-        new_order = Order(
+        direct_msg_id = message.get("message_id", 0)
+        order_idempotency_key = generate_order_idempotency_key(
+            source="direct",
+            organization_id=organization_id,
+            bot_id="direct",
+            chat_id=chat_id,
+            message_id=direct_msg_id,
+        )
+        new_order, created = await get_or_create_idempotent_order(
+            db,
+            idempotency_key=order_idempotency_key,
+            organization_id=organization_id,
             customer_name=order_info.get("customer_name") or customer_name,
             phone=order_info.get("phone") or "",
             product_summary=order_info.get("product_summary") or "",
@@ -460,22 +673,28 @@ async def _handle_direct_bot_message(message: dict, db: AsyncSession) -> None:
             status="new",
             notes=f"Telegram bot chatidan (@{sender.get('username') or ''}, ID: {chat_id})",
         )
-        db.add(new_order)
-        await db.commit()
-        order_notification = (
-            "🎉 YANGI BUYURTMA (Bot chatidan)!\n\n"
-            f"👤 Mijoz: {new_order.customer_name}\n"
-            f"📞 Telefon: {new_order.phone or 'Kiritilmadi'}\n"
-            f"📍 Manzil: {new_order.delivery_address or 'Kiritilmadi'}\n"
-            f"💻 Mahsulot: {new_order.product_summary or 'Aniqlashtirilmoqda'}\n"
-            f"💬 Chat: @{sender.get('username') or ''} (ID: {chat_id})\n\n"
-            "Iltimos, admin mijoz bilan bog'laning!"
-        )
-        try:
-            if tg_svc:
-                await tg_svc.notify_admin(order_notification)
-        except Exception:
-            pass
+        if created:
+            order_notification = (
+                "🎉 YANGI BUYURTMA (Bot chatidan)!\n\n"
+                f"👤 Mijoz: {new_order.customer_name}\n"
+                f"📞 Telefon: {new_order.phone or 'Kiritilmadi'}\n"
+                f"📍 Manzil: {new_order.delivery_address or 'Kiritilmadi'}\n"
+                f"💻 Mahsulot: {new_order.product_summary or 'Aniqlashtirilmoqda'}\n"
+                f"💬 Chat: @{sender.get('username') or ''} (ID: {chat_id})\n\n"
+                "Iltimos, admin mijoz bilan bog'laning!"
+            )
+            outbox_key = generate_outbox_idempotency_key(
+                event_type="notify_admin",
+                organization_id=organization_id,
+                entity_id=new_order.id or order_idempotency_key,
+            )
+            await stage_outbox_event(
+                db,
+                idempotency_key=outbox_key,
+                event_type="notify_admin",
+                payload={"text": order_notification},
+                organization_id=organization_id,
+            )
 
 
 @router.post("/telegram/webhook")
@@ -518,35 +737,91 @@ async def telegram_webhook(
                 detail="Invalid Telegram webhook secret token",
             )
 
-    update = await request.json()
+    try:
+        update = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON payload")
+
+    if not isinstance(update, dict):
+        raise HTTPException(status_code=400, detail="Malformed payload: expected JSON object")
+
     update_id = update.get("update_id")
-    if is_duplicate_update(update_id):
-        logger.info("Takroriy update_id chetlab o'tildi: %s", update_id)
+
+    # 1. Fast-path Redis/in-memory lease reservation
+    is_duplicate, owner_token = reserve_update(update_id, lease_seconds=60)
+    if is_duplicate:
+        logger.info("Takroriy update_id chetlab o'tildi (fast-path): %s", update_id)
         return {"ok": True, "duplicate": True}
+
+    # 2. PostgreSQL durable inbox persistence
+    org_id = None
+    if org_slug:
+        async with SessionLocal() as db:
+            org_row = (await db.execute(select(Organization).where(Organization.slug == org_slug))).scalar_one_or_none()
+            if org_row:
+                org_id = org_row.id
+
+    bot_id = f"org_{org_id}" if org_id else "default"
+    inbox_item = None
+    if update_id is not None:
+        async with SessionLocal() as db:
+            from app.services.durable_inbox import record_inbox_update
+            inbox_item, db_is_duplicate = await record_inbox_update(
+                db,
+                bot_id=bot_id,
+                update_id=int(update_id),
+                payload=update,
+                organization_id=org_id,
+            )
+            if db_is_duplicate:
+                finalize_update(update_id, owner_token=owner_token, success=True)
+                logger.info("Takroriy update_id chetlab o'tildi (db inbox): %s", update_id)
+                return {"ok": True, "duplicate": True}
+
+    # 3. Asynchronous execution & acknowledgment
+    try:
+        if not settings.is_testing:
+            if inbox_item:
+                from app.services.durable_inbox import process_single_inbox_job
+                asyncio.create_task(process_single_inbox_job(inbox_item.id))
+            else:
+                asyncio.create_task(execute_update_payload(update, organization_id=org_id))
+
+        finalize_update(update_id, owner_token=owner_token, success=True)
+        return {"ok": True}
+    except Exception as e:
+        finalize_update(update_id, owner_token=owner_token, success=False)
+        logger.exception("Xatolik yuz berdi update_id=%s: %s", update_id, e)
+        raise
+
+
+async def execute_update_payload(
+    update: dict,
+    db: AsyncSession | None = None,
+    organization_id: int | None = None,
+) -> None:
+    """Execute update business logic across channels, messages, commands, and callback queries."""
     if update.get("business_connection"):
         data = update["business_connection"]
-        async with SessionLocal() as db:
-            org_id = None
-            if org_slug:
-                org_row = (await db.execute(select(Organization).where(Organization.slug == org_slug))).scalar_one_or_none()
-                if org_row:
-                    org_id = org_row.id
-            row = await db.get(BusinessConnection, data["id"])
-            if row is None:
-                row = BusinessConnection(id=data["id"])
-                db.add(row)
-            if org_id:
-                row.organization_id = org_id
-            row.owner_user_id = (data.get("user") or {}).get("id")
-            row.is_enabled = bool(data.get("is_enabled", False))
-            row.rights = data.get("rights") or {}
-            await db.commit()
+        conn_id = data.get("id")
+        if conn_id:
+            async with SessionLocal() as session:
+                row = await session.get(BusinessConnection, conn_id)
+                if row is None:
+                    row = BusinessConnection(id=conn_id)
+                    session.add(row)
+                if organization_id:
+                    row.organization_id = organization_id
+                row.owner_user_id = (data.get("user") or {}).get("id")
+                row.is_enabled = bool(data.get("is_enabled", False))
+                row.rights = data.get("rights") or {}
+                await session.commit()
     elif update.get("channel_post"):
-        asyncio.create_task(_store_channel_post(update["channel_post"]))
+        await _store_channel_post(update["channel_post"])
     elif update.get("edited_channel_post"):
-        asyncio.create_task(_store_channel_post(update["edited_channel_post"]))
+        await _store_channel_post(update["edited_channel_post"])
     elif update.get("business_message"):
-        asyncio.create_task(_handle_business_message(update["business_message"]))
+        await _handle_business_message(update["business_message"], db=db)
     elif update.get("edited_business_message"):
         # Edited customer messages are saved as context in a future iteration; do not auto-reply twice.
         pass
@@ -554,20 +829,27 @@ async def telegram_webhook(
         msg = update["message"]
         chat = msg.get("chat", {})
         if chat.get("type") == "private":
-            asyncio.create_task(_process_private_message(msg))
+            await _process_private_message(msg, db=db, organization_id=organization_id)
     elif update.get("callback_query"):
         cb = update["callback_query"]
-        async with SessionLocal() as db:
-            await handle_callback_query(cb, db)
-    return {"ok": True}
+        async with SessionLocal() as session:
+            await handle_callback_query(cb, session)
 
 
-async def _process_private_message(msg: dict) -> None:
+async def _process_private_message(
+    msg: dict,
+    db: AsyncSession | None = None,
+    organization_id: int | None = None,
+) -> None:
     try:
-        async with SessionLocal() as db:
-            handled = await handle_private_command(msg, db)
+        from contextlib import nullcontext
+        ctx = nullcontext(db) if db is not None else SessionLocal()
+        async with ctx as session:
+            handled = await handle_private_command(msg, session)
             if not handled:
-                await _handle_direct_bot_message(msg, db)
+                await _handle_direct_bot_message(msg, session, organization_id=organization_id)
+                if db is None:
+                    await session.commit()
     except Exception:
         logger.exception("Xususiy xabarni qayta ishlashda xatolik")
 

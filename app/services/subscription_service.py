@@ -45,6 +45,13 @@ from app.models import (
     WebhookEvent
 )
 from app.services.tezcheck_service import tezcheck_service, TezCheckError
+from app.services.centralized_pricing_service import (
+    centralized_pricing_service,
+    PERIOD_MEGA_DISCOUNT_7D,
+    PERIOD_MONTHLY,
+    PERIOD_YEARLY,
+    normalize_tariff_code
+)
 
 logger = get_logger(__name__)
 
@@ -244,23 +251,28 @@ class SubscriptionService:
         plan_code: str,
         return_url: str
     ) -> Dict[str, Any]:
-        """Generate a single-use TezCheck payment bill for 7-day introductory mega discount."""
-        plan_code_lower = plan_code.lower().strip()
-        if plan_code_lower not in MEGA_DISCOUNT_RATES:
-            raise SubscriptionError(f"Noto'g'ri tarif kodi: {plan_code}. Ruxsat etilgan: start, standart, pro, ultra.")
+        """Generate a single-use TezCheck payment bill for 7-day introductory mega discount with immutable price snapshot."""
+        plan_code_lower = normalize_tariff_code(plan_code)
 
         is_eligible, reason = await self.check_mega_discount_eligibility(db, organization_id)
         if not is_eligible:
             raise IneligibleForMegaDiscountError(reason)
 
-        rate_info = MEGA_DISCOUNT_RATES[plan_code_lower]
-        amount_tiyin = rate_info["amount_tiyin"]
-        amount_uzs = rate_info["amount_uzs"]
+        # Resolve authoritative approved promotional UZS price from Centralized Pricing Engine
+        tariff_info = await centralized_pricing_service.get_tariff_price(
+            db=db,
+            plan_code=plan_code_lower,
+            billing_period=PERIOD_MEGA_DISCOUNT_7D
+        )
+        amount_tiyin = tariff_info["amount_tiyin"]
+        amount_uzs = tariff_info["amount_uzs"]
+        price_version = tariff_info["price_version"]
+        plan_id = tariff_info["plan_id"]
 
         order_id = f"selloi_promo_{organization_id}_{plan_code_lower}_{int(datetime.now(timezone.utc).timestamp())}"
-        description = f"Selloi.uz - {plan_code_lower.upper()} Mega Chegirma (7 kunlik sinov)"
+        description = f"Selloi.uz - {tariff_info['plan_name']} Mega Chegirma (7 kunlik sinov)"
 
-        # 1. Create bill in TezCheck
+        # 1. Create bill in TezCheck with integer tiyin (amount_uzs * 100)
         tezcheck_res = await tezcheck_service.create_bill(
             amount=amount_tiyin,
             currency="UZS",
@@ -271,22 +283,31 @@ class SubscriptionService:
                 "organization_id": organization_id,
                 "user_id": user_id,
                 "plan_code": plan_code_lower,
-                "billing_cycle": "mega_discount"
+                "billing_cycle": "mega_discount",
+                "price_version": price_version,
             }
         )
 
         bill_id = tezcheck_res["bill_id"]
         checkout_url = tezcheck_res["pay_url"]
 
-        # 2. Record PaymentBill in DB
+        # 2. Record PaymentBill with frozen immutable price snapshot
         now = datetime.now(timezone.utc)
         bill = PaymentBill(
             bill_id=bill_id,
+            order_id=order_id,
             organization_id=organization_id,
             user_id=user_id,
+            plan_id=plan_id,
             plan_code=plan_code_lower,
             billing_cycle="mega_discount",
+            billing_period=PERIOD_MEGA_DISCOUNT_7D,
             amount=amount_tiyin,
+            amount_minor=amount_tiyin,
+            price_uzs=amount_uzs,
+            price_version=price_version,
+            discount_amount_uzs=0,
+            final_amount_uzs=amount_uzs,
             currency="UZS",
             status="pending",
             checkout_url=checkout_url,
@@ -308,6 +329,7 @@ class SubscriptionService:
             "order_id": order_id,
             "plan_code": plan_code_lower,
             "billing_cycle": "mega_discount",
+            "price_version": price_version,
             "amount_uzs": amount_uzs,
             "amount_tiyin": amount_tiyin,
             "duration_days": 7,
@@ -323,26 +345,31 @@ class SubscriptionService:
         billing_cycle: str,
         return_url: str
     ) -> Dict[str, Any]:
-        """Generate a single-use TezCheck invoice for regular monthly or yearly subscription."""
-        plan_code_lower = plan_code.lower().strip()
+        """Generate a single-use TezCheck invoice for regular monthly or yearly subscription with immutable price snapshot."""
+        plan_code_lower = normalize_tariff_code(plan_code)
         cycle_lower = billing_cycle.lower().strip()
 
         if cycle_lower not in ("monthly", "yearly"):
             raise SubscriptionError("Faqat 'monthly' yoki 'yearly' obuna davri mavjud. Haftalik obuna mavjud emas.")
 
-        # Read actual pricing from database
-        plan_res = await db.execute(select(Plan).where(Plan.code == plan_code_lower))
-        plan = plan_res.scalar_one_or_none()
-        if not plan:
-            raise SubscriptionError(f"Tarif topilmadi: {plan_code}")
+        # Resolve authoritative approved UZS price from Centralized Pricing Engine
+        period_enum = PERIOD_YEARLY if cycle_lower == "yearly" else PERIOD_MONTHLY
+        tariff_info = await centralized_pricing_service.get_tariff_price(
+            db=db,
+            plan_code=plan_code_lower,
+            billing_period=period_enum
+        )
 
-        amount_tiyin = plan.price_yearly_uzs if cycle_lower == "yearly" else plan.price_monthly_uzs
-        amount_uzs = amount_tiyin // 100
+        amount_tiyin = tariff_info["amount_tiyin"]
+        amount_uzs = tariff_info["amount_uzs"]
+        price_version = tariff_info["price_version"]
+        plan_id = tariff_info["plan_id"]
         cycle_label = "1 yillik" if cycle_lower == "yearly" else "1 oylik"
 
         order_id = f"selloi_sub_{organization_id}_{plan_code_lower}_{cycle_lower}_{int(datetime.now(timezone.utc).timestamp())}"
-        description = f"Selloi.uz - {plan.name} {cycle_label} obunasi"
+        description = f"Selloi.uz - {tariff_info['plan_name']} {cycle_label} obunasi"
 
+        # 1. Create bill in TezCheck with integer tiyin (amount_uzs * 100)
         tezcheck_res = await tezcheck_service.create_bill(
             amount=amount_tiyin,
             currency="UZS",
@@ -353,21 +380,31 @@ class SubscriptionService:
                 "organization_id": organization_id,
                 "user_id": user_id,
                 "plan_code": plan_code_lower,
-                "billing_cycle": cycle_lower
+                "billing_cycle": cycle_lower,
+                "price_version": price_version,
             }
         )
 
         bill_id = tezcheck_res["bill_id"]
         checkout_url = tezcheck_res["pay_url"]
 
+        # 2. Record PaymentBill with frozen immutable price snapshot
         now = datetime.now(timezone.utc)
         bill = PaymentBill(
             bill_id=bill_id,
+            order_id=order_id,
             organization_id=organization_id,
             user_id=user_id,
+            plan_id=plan_id,
             plan_code=plan_code_lower,
             billing_cycle=cycle_lower,
+            billing_period=period_enum,
             amount=amount_tiyin,
+            amount_minor=amount_tiyin,
+            price_uzs=amount_uzs,
+            price_version=price_version,
+            discount_amount_uzs=0,
+            final_amount_uzs=amount_uzs,
             currency="UZS",
             status="pending",
             checkout_url=checkout_url,
@@ -392,6 +429,7 @@ class SubscriptionService:
             "order_id": order_id,
             "plan_code": plan_code_lower,
             "billing_cycle": cycle_lower,
+            "price_version": price_version,
             "amount_uzs": amount_uzs,
             "amount_tiyin": amount_tiyin,
             "checkout_url": checkout_url
@@ -470,9 +508,11 @@ class SubscriptionService:
             resource_id=str(sub.id),
             metadata_json={
                 "bill_id": bill_id,
+                "order_id": getattr(bill, "order_id", bill_id),
                 "plan_code": bill.plan_code,
                 "billing_cycle": bill.billing_cycle,
                 "paid_amount": paid_amount,
+                "price_version": getattr(bill, "price_version", 1),
                 "currency": currency,
                 "current_period_end": sub.current_period_end.isoformat()
             }

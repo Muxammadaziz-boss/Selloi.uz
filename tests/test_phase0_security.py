@@ -1,4 +1,6 @@
 from datetime import datetime, timezone
+import time
+import uuid
 import pytest
 import httpx
 from sqlalchemy import select, delete
@@ -58,11 +60,12 @@ async def test_webhook_secret_incorrect_rejected():
 async def test_webhook_secret_valid_accepted():
     """3. Valid Telegram webhook secret token must return 200 OK."""
     transport = httpx.ASGITransport(app=app)
+    fresh_update_id = int(time.time() * 1000) % 100000000
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
         resp = await client.post(
             "/telegram/webhook",
             headers={"X-Telegram-Bot-Api-Secret-Token": settings.telegram_webhook_secret},
-            json={"update_id": 99993},
+            json={"update_id": fresh_update_id},
         )
         assert resp.status_code == 200
         assert resp.json() == {"ok": True}

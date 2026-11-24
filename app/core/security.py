@@ -1,6 +1,7 @@
 """Security, hashing, cryptography and rate limiting utilities."""
 
 import hashlib
+import threading
 import time
 from collections import defaultdict
 from cryptography.fernet import Fernet, InvalidToken
@@ -107,4 +108,91 @@ def reset_rate_limit(key: str) -> None:
     """Reset the rate limit tracker for a key upon successful authentication."""
     if key in _rate_limits:
         del _rate_limits[key]
+
+
+# ---------------------------------------------------------------------------
+# Token & Session Revocation Registry (In-memory + Redis)
+# ---------------------------------------------------------------------------
+
+_revoked_tokens: dict[str, float] = {}
+_revoked_users: dict[int, float] = {}
+_revocation_lock = threading.Lock()
+
+
+def revoke_token(jti_or_token: str, ttl_seconds: int = 86400) -> None:
+    """Revoke a JWT token by jti or token signature."""
+    now = time.time()
+    expires_at = now + ttl_seconds
+    with _revocation_lock:
+        # Prune expired tokens
+        expired = [k for k, exp in _revoked_tokens.items() if exp < now]
+        for k in expired:
+            _revoked_tokens.pop(k, None)
+        _revoked_tokens[jti_or_token] = expires_at
+
+    try:
+        from app.core.rate_limit import limiter
+        r = limiter._get_redis()
+        if r is not None:
+            r.setex(f"revoked_token:{jti_or_token}", ttl_seconds, "1")
+    except Exception:
+        pass
+
+
+def is_token_revoked(jti_or_token: str) -> bool:
+    """Return True if the token or jti is in the revocation blacklist."""
+    now = time.time()
+    try:
+        from app.core.rate_limit import limiter
+        r = limiter._get_redis()
+        if r is not None:
+            if r.exists(f"revoked_token:{jti_or_token}"):
+                return True
+    except Exception:
+        pass
+
+    with _revocation_lock:
+        exp = _revoked_tokens.get(jti_or_token)
+        if exp is not None:
+            if exp > now:
+                return True
+            _revoked_tokens.pop(jti_or_token, None)
+    return False
+
+
+def revoke_user_sessions(user_id: int) -> None:
+    """Revoke all active sessions for a specific user (e.g. on password change)."""
+    now = time.time()
+    with _revocation_lock:
+        _revoked_users[user_id] = now
+
+    try:
+        from app.core.rate_limit import limiter
+        r = limiter._get_redis()
+        if r is not None:
+            r.setex(f"user_revoked:{user_id}", 86400 * 7, str(now))
+    except Exception:
+        pass
+
+
+def is_user_session_revoked(user_id: int, issued_at: int | None) -> bool:
+    """Return True if the user's sessions were revoked after this token was issued."""
+    if issued_at is None:
+        return False
+
+    try:
+        from app.core.rate_limit import limiter
+        r = limiter._get_redis()
+        if r is not None:
+            rev_time_str = r.get(f"user_revoked:{user_id}")
+            if rev_time_str and float(rev_time_str) > issued_at:
+                return True
+    except Exception:
+        pass
+
+    with _revocation_lock:
+        rev_time = _revoked_users.get(user_id)
+        if rev_time is not None and rev_time > issued_at:
+            return True
+    return False
 

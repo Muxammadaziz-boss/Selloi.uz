@@ -267,7 +267,7 @@ export function OnboardingModal({ isOpen, onClose, onComplete, initialPlanCode }
                   Yangi Do&apos;kon Ochish (SaaS Onboarding)
                 </h4>
                 <div className="text-secondary small" style={{ fontSize: "0.75rem" }}>
-                  Bosqich {step} / {totalSteps} • 7 kunlik bepul sinov
+                  Bosqich {step} / {totalSteps} • 7 kunlik sinov davri
                 </div>
               </div>
             </div>
@@ -755,7 +755,7 @@ export function OnboardingModal({ isOpen, onClose, onComplete, initialPlanCode }
                 <div className="text-center py-2 mb-2">
                   <h3 className="fw-bold text-white mb-1">9. Boshlang&apos;ich Tarifni Tanlang</h3>
                   <p className="text-secondary small mb-2">
-                    Har bir yangi biznes uchun <strong className="text-white">7 kunlik bepul sinov muddati</strong> taqdim etiladi!
+                    Har bir yangi biznes uchun <strong className="text-white">7 kunlik imtiyozli sinov muddati</strong> taqdim etiladi!
                   </p>
                   {/* Currency Switcher */}
                   <div
@@ -858,7 +858,7 @@ export function OnboardingModal({ isOpen, onClose, onComplete, initialPlanCode }
                   Barchasi Tayyor!
                 </h2>
                 <p className="text-secondary small mx-auto mb-4" style={{ maxWidth: "440px", lineHeight: 1.55 }}>
-                  <strong className="text-white">{businessName || "Yangi Biznes"}</strong> do&apos;koni uchun 7 kunlik to&apos;liq bepul sinov muddati faollashtirilmoqda. Bank kartasi talab etilmaydi.
+                  <strong className="text-white">{businessName || "Yangi Biznes"}</strong> do&apos;koni uchun 7 kunlik imtiyozli sinov muddati faollashtirilmoqda. TezCheck orqali xavfsiz to‘lov.
                 </p>
 
                 {/* Structured Summary Card */}
@@ -1041,7 +1041,7 @@ export function OnboardingModal({ isOpen, onClose, onComplete, initialPlanCode }
                         fontSize: "0.78rem",
                       }}
                     >
-                      7 kun bepul
+                      7 kunlik sinov
                     </span>
                   </div>
                 </div>

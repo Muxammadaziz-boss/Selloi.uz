@@ -307,7 +307,7 @@ export default function Header({
               className="selloi-btn-primary text-center py-2.5"
             >
               <Sparkles size={16} />
-              <span>7 kun bepul boshlash</span>
+              <span>7 kun sinab ko‘rish →</span>
             </button>
           </div>
         </div>

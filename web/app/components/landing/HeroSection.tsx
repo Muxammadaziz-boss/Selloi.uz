@@ -85,7 +85,7 @@ export default function HeroSection({
               <div className="selloi-browser-body" data-node-id="111:36">
                 <img
                   src="/figma/dashboard-hero.png"
-                  alt="Selloi.uz Dashboard"
+                  alt="Selloi.uz — Telegram do‘konlari uchun AI sotuvchi boshqaruv paneli"
                   width={1024}
                   height={533}
                   fetchPriority="high"

@@ -5,7 +5,12 @@ export interface ApiOptions extends RequestInit {
 export async function fetchApi<T = any>(path: string, options?: ApiOptions): Promise<T> {
   const currentOrgId =
     options?.orgId ||
-    (typeof window !== "undefined" ? localStorage.getItem("active_org_id") || "1" : "1");
+    (typeof window !== "undefined"
+      ? (new URLSearchParams(window.location.search).get("org") ||
+         sessionStorage.getItem("active_org_id") ||
+         localStorage.getItem("active_org_id") ||
+         "1")
+      : "1");
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",

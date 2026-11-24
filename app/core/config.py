@@ -61,6 +61,7 @@ class Settings(BaseSettings):
 
     storage_dir: str = "./storage"
     allowed_origins: str = "http://localhost:3000"  # Comma-separated for multiple
+    trusted_proxies: str = "127.0.0.1,::1"  # Comma-separated IP addresses or CIDR blocks
 
     jwt_secret: str = ""
     jwt_algorithm: str = "HS256"
@@ -71,6 +72,10 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.app_env.strip().lower() in ("production", "prod")
+
+    @property
+    def is_testing(self) -> bool:
+        return self.app_env.strip().lower() in ("test", "testing")
 
     @model_validator(mode="after")
     def validate_security_settings(self) -> "Settings":

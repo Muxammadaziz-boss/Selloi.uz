@@ -8,17 +8,26 @@ import httpx
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.db import get_db
 from app.core.logging import get_logger
 from app.core.security import encrypt_secret
-from app.models import Admin, CustomerPricing, Organization, OrganizationMember, PaymentBill, Plan, Subscription, SubscriptionConsent, User
+from app.models import Admin, CustomerPricing, Organization, OrganizationMember, PaymentBill, Plan, Subscription, SubscriptionConsent, User, WebhookEvent
 from app.services.billing_service import billing_service
 from app.services.bot_manager import bot_manager
 from app.services.entitlement_service import entitlement_service
 from app.services.pricing_service import format_currency_amount, pricing_cache, pricing_service
+from app.services.centralized_pricing_service import (
+    centralized_pricing_service,
+    PERIOD_MEGA_DISCOUNT_7D,
+    PERIOD_MONTHLY,
+    PERIOD_YEARLY,
+    SUPPORTED_TARIFF_CODES,
+    normalize_tariff_code
+)
 from app.services.subscription_service import (
     subscription_service,
     MEGA_DISCOUNT_RATES,
@@ -158,16 +167,16 @@ def require_saas_permission(perm: str):
 
 @router.get("/plans")
 async def list_plans(
-    currency: str = "USD",
+    currency: str = "UZS",
     billing_cycle: str = "monthly",
     response: Response = None,
     db: AsyncSession = Depends(get_db),
 ):
-    """Public catalog of subscription plans with dual-currency and caching."""
+    """Authoritative public catalog of subscription plans denominated in UZS with caching."""
     clean_currency = currency.upper().strip()
     clean_cycle = billing_cycle.lower().strip()
     if clean_currency not in ("USD", "UZS"):
-        clean_currency = "USD"
+        clean_currency = "UZS"
     if clean_cycle not in ("monthly", "yearly"):
         clean_cycle = "monthly"
 
@@ -178,43 +187,56 @@ async def list_plans(
             response.headers["X-Cache"] = "HIT"
         return cached
 
-    res = await db.execute(
-        select(Plan)
-        .where(Plan.is_active.is_(True), Plan.is_public.is_(True))
-        .order_by(Plan.display_order.asc(), Plan.price_monthly.asc())
-    )
-    plans = res.scalars().all()
+    active_tariffs = await centralized_pricing_service.get_active_tariffs(db)
+
+    # Dynamic mega discount rates derived from database approved tariffs
+    dynamic_mega_rates = {}
+    plans_payload = []
+    for t in active_tariffs:
+        code = t["code"]
+        promo_info = t["pricing"][PERIOD_MEGA_DISCOUNT_7D]
+        monthly_info = t["pricing"][PERIOD_MONTHLY]
+        yearly_info = t["pricing"][PERIOD_YEARLY]
+
+        dynamic_mega_rates[code] = {
+            "usd_equivalent": 1 if code == "start" else (2 if code == "pro" else 3),
+            "amount_uzs": promo_info["amount_uzs"],
+            "amount_tiyin": promo_info["amount_tiyin"],
+            "duration_days": 7,
+            "label": promo_info["label"]
+        }
+
+        plans_payload.append({
+            "id": t["id"],
+            "code": code,
+            "name": t["name"],
+            "description": t["description"],
+            "display_order": t["display_order"],
+            "price_version": t["price_version"],
+            "price_promo_uzs": promo_info["amount_tiyin"],
+            "price_monthly_uzs": monthly_info["amount_tiyin"],
+            "price_yearly_uzs": yearly_info["amount_tiyin"],
+            "price_promo_formatted": promo_info["formatted"],
+            "price_monthly_formatted": monthly_info["formatted"],
+            "price_yearly_formatted": yearly_info["formatted"],
+            "price_monthly_uzs_formatted": monthly_info["formatted"],
+            "price_yearly_uzs_formatted": yearly_info["formatted"],
+            "currency": "UZS",
+            "is_featured": t["is_featured"],
+            "is_public": True,
+            "pricing": t["pricing"],
+            "features": t["features"],
+            "limits": t["limits"],
+        })
 
     payload = {
         "success": True,
         "currency": clean_currency,
         "billing_cycle": clean_cycle,
-        "mega_discount_rates": MEGA_DISCOUNT_RATES,
+        "mega_discount_rates": dynamic_mega_rates,
         "supported_billing_cycles": ["monthly", "yearly"],
         "weekly_subscription_supported": False,
-        "plans": [
-            {
-                "id": p.id,
-                "code": p.code,
-                "name": p.name,
-                "description": p.description,
-                "display_order": p.display_order,
-                "price_monthly": p.price_monthly,
-                "price_yearly": p.price_yearly,
-                "price_monthly_uzs": p.price_monthly_uzs or (p.price_monthly * 13000 * 100),
-                "price_yearly_uzs": p.price_yearly_uzs or (p.price_yearly * 13000 * 100),
-                "price_monthly_formatted": format_currency_amount((p.price_monthly or 0) * 100, "USD"),
-                "price_yearly_formatted": format_currency_amount((p.price_yearly or 0) * 100, "USD"),
-                "price_monthly_uzs_formatted": format_currency_amount(p.price_monthly_uzs or (p.price_monthly * 13000 * 100), "UZS"),
-                "price_yearly_uzs_formatted": format_currency_amount(p.price_yearly_uzs or (p.price_yearly * 13000 * 100), "UZS"),
-                "currency": p.currency,
-                "is_featured": p.is_featured,
-                "is_public": p.is_public,
-                "features": p.features,
-                "limits": p.limits,
-            }
-            for p in plans
-        ],
+        "plans": plans_payload,
     }
 
     pricing_cache.set_public_plans(clean_currency, clean_cycle, payload, ttl_seconds=60)
@@ -886,7 +908,7 @@ async def tezcheck_webhook(
     x_tezcheck_signature: str | None = Header(default=None),
     db: AsyncSession = Depends(get_db),
 ):
-    """TezCheck signed payment confirmation webhook endpoint."""
+    """TezCheck signed payment confirmation webhook endpoint with atomic idempotency."""
     body = await request.body()
     if not body or body.strip() == b"":
         return {"ok": True, "status": "ping_received"}
@@ -902,18 +924,6 @@ async def tezcheck_webhook(
     ts = request.headers.get("x-checkout-timestamp") or request.headers.get("x-tezcheck-timestamp")
     delivery_id = request.headers.get("x-checkout-delivery") or request.headers.get("x-delivery-id")
 
-    if sig:
-        try:
-            tezcheck_service.verify_webhook_signature(
-                raw_body=body,
-                signature_header=sig,
-                timestamp=ts,
-                delivery_id=delivery_id
-            )
-        except TezCheckSignatureVerificationError as e:
-            logger.warning("TezCheck webhook signature verification failed: %s", e)
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid webhook signature")
-
     import json
     try:
         payload = json.loads(body.decode("utf-8"))
@@ -922,6 +932,24 @@ async def tezcheck_webhook(
 
     if payload.get("event") in ("ping", "test", "verification") or payload.get("type") in ("ping", "test"):
         return {"ok": True, "status": "test_received"}
+
+    # Strict signature verification for payment events
+    if not sig and not tezcheck_service.mock_mode:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Missing required signature header",
+        )
+
+    try:
+        tezcheck_service.verify_webhook_signature(
+            raw_body=body,
+            signature_header=sig,
+            timestamp=ts,
+            delivery_id=delivery_id,
+        )
+    except TezCheckSignatureVerificationError as e:
+        logger.warning("TezCheck webhook signature verification failed: %s", e)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid webhook signature")
 
     # Official TezCheck payload embeds order details inside data block
     inner_data = payload.get("data") if isinstance(payload.get("data"), dict) else {}
@@ -957,6 +985,40 @@ async def tezcheck_webhook(
     if not bill_id or status_str not in ("paid", "completed", "success"):
         return {"status": "ignored", "reason": f"Status '{status_str}' not actionable"}
 
+    # Atomic deduplication via WebhookEvent
+    unique_event_id = str(delivery_id or inner_data.get("id") or f"tezcheck_{bill_id}_{status_str}")
+
+    existing_event = (
+        await db.execute(
+            select(WebhookEvent).where(
+                WebhookEvent.provider == "tezcheck",
+                WebhookEvent.event_id == unique_event_id,
+            )
+        )
+    ).scalar_one_or_none()
+
+    if existing_event and existing_event.status in ("processed", "paid", "completed"):
+        logger.info("TezCheck webhook event %s already processed (idempotent duplicate skipped)", unique_event_id)
+        return {"ok": True, "status": "already_processed", "idempotent": True}
+
+    if not existing_event:
+        event_record = WebhookEvent(
+            provider="tezcheck",
+            event_id=unique_event_id,
+            event_type=status_str,
+            payload=payload,
+            status="pending",
+        )
+        db.add(event_record)
+        try:
+            await db.flush()
+        except IntegrityError:
+            await db.rollback()
+            logger.info("Concurrent duplicate TezCheck event %s caught by unique constraint", unique_event_id)
+            return {"ok": True, "status": "already_processed", "idempotent": True}
+    else:
+        event_record = existing_event
+
     try:
         result = await subscription_service.confirm_payment_and_activate(
             db=db,
@@ -964,9 +1026,15 @@ async def tezcheck_webhook(
             paid_amount=amount,
             currency=currency,
         )
+        event_record.status = "processed"
+        event_record.processed_at = datetime.now(timezone.utc)
+        await db.commit()
         return {"ok": True, "result": result}
     except SubscriptionError as e:
         logger.exception("Failed to confirm TezCheck bill %s: %s", bill_id, e)
+        event_record.status = "failed"
+        event_record.error_message = str(e)
+        await db.commit()
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 

@@ -407,7 +407,7 @@ export const PRICING_PLANS_BY_LANG: Record<Language, AdvancedPricingPlan[]> = {
       monthlyPrice: "$19",
       annualPrice: "$190",
       priceNote: "so‘m / oyiga",
-      trialBadge: "7 kun bepul sinov",
+      trialBadge: "7 kunlik sinov",
       features: [
         { name: "AI Chat (asosiy model, o‘zbek va rus tillari)", included: true },
         { name: "Telegram Bot integratsiyasi", included: true },
@@ -418,7 +418,7 @@ export const PRICING_PLANS_BY_LANG: Record<Language, AdvancedPricingPlan[]> = {
         { name: "Click va Payme to‘lov integratsiyasi", included: false },
         { name: "Jamoa a'zolari (bir nechta admin)", included: false },
       ],
-      ctaLabel: "7 kun bepul boshlash",
+      ctaLabel: "7 kunlik sinovni boshlash",
     },
     {
       id: "pro",
@@ -428,7 +428,7 @@ export const PRICING_PLANS_BY_LANG: Record<Language, AdvancedPricingPlan[]> = {
       annualPrice: "$190",
       priceNote: "so‘m / oyiga",
       isPopular: true,
-      trialBadge: "7 kun bepul sinov",
+      trialBadge: "7 kunlik sinov",
       features: [
         { name: "AI Chat (eng aqlli model, o‘zbek, rus, ingliz)", included: true },
         { name: "Telegram Bot + Web App integratsiyasi", included: true },
@@ -439,7 +439,7 @@ export const PRICING_PLANS_BY_LANG: Record<Language, AdvancedPricingPlan[]> = {
         { name: "Ustuvor texnik qo‘llab-quvvatlash 24/7", included: true },
         { name: "Maxsus do‘kon so‘zlashuv ohangi (tone of voice)", included: true },
       ],
-      ctaLabel: "7 kun bepul boshlash",
+      ctaLabel: "7 kunlik sinovni boshlash",
     },
     {
       id: "ultra",
@@ -470,7 +470,7 @@ export const PRICING_PLANS_BY_LANG: Record<Language, AdvancedPricingPlan[]> = {
       monthlyPrice: "$19",
       annualPrice: "$190",
       priceNote: "сум / месяц",
-      trialBadge: "7 дней бесплатно",
+      trialBadge: "Попробовать 7 дней",
       features: [
         { name: "AI Чат (базовая модель, узбекский и русский)", included: true },
         { name: "Интеграция с Telegram-ботом", included: true },
@@ -481,7 +481,7 @@ export const PRICING_PLANS_BY_LANG: Record<Language, AdvancedPricingPlan[]> = {
         { name: "Оплата через Click и Payme", included: false },
         { name: "Мульти-админы команды", included: false },
       ],
-      ctaLabel: "7 дней бесплатно",
+      ctaLabel: "Попробовать 7 дней",
     },
     {
       id: "pro",
@@ -491,7 +491,7 @@ export const PRICING_PLANS_BY_LANG: Record<Language, AdvancedPricingPlan[]> = {
       annualPrice: "$190",
       priceNote: "сум / месяц",
       isPopular: true,
-      trialBadge: "7 дней бесплатно",
+      trialBadge: "Попробовать 7 дней",
       features: [
         { name: "AI Чат (продвинутая модель: UZ, RU, EN)", included: true },
         { name: "Интеграция Telegram Bot + Web App", included: true },
@@ -502,7 +502,7 @@ export const PRICING_PLANS_BY_LANG: Record<Language, AdvancedPricingPlan[]> = {
         { name: "Приоритетная техподдержка 24/7", included: true },
         { name: "Настройка тональности бренда (tone of voice)", included: true },
       ],
-      ctaLabel: "7 дней бесплатно",
+      ctaLabel: "Попробовать 7 дней",
     },
     {
       id: "ultra",
@@ -533,7 +533,7 @@ export const PRICING_PLANS_BY_LANG: Record<Language, AdvancedPricingPlan[]> = {
       monthlyPrice: "$19",
       annualPrice: "$190",
       priceNote: "UZS / mo",
-      trialBadge: "7-day free trial",
+      trialBadge: "7-day trial",
       features: [
         { name: "AI Chat (Core model, Uzbek & Russian)", included: true },
         { name: "Telegram Bot integration", included: true },
@@ -554,7 +554,7 @@ export const PRICING_PLANS_BY_LANG: Record<Language, AdvancedPricingPlan[]> = {
       annualPrice: "$190",
       priceNote: "UZS / mo",
       isPopular: true,
-      trialBadge: "7-day free trial",
+      trialBadge: "7-day trial",
       features: [
         { name: "AI Chat (Premium model: UZ, RU, EN)", included: true },
         { name: "Telegram Bot + Web App integration", included: true },
@@ -636,7 +636,7 @@ export const COMPARISON_BY_LANG: Record<Language, ComparisonRow[]> = {
     {
       category: "Qo‘llab-quvvatlash va Xizmat",
       items: [
-        { name: "Sinov muddati", start: "7 kun bepul", pro: "7 kun bepul", ultra: "Individual" },
+        { name: "Sinov muddati", start: "7 kunlik sinov", pro: "7 kunlik sinov", ultra: "Individual" },
         { name: "Texnik yordam", start: "Standart", pro: "Ustuvor 24/7", ultra: "Shaxsiy menejer" },
         { name: "SLA kafolati (99.9%)", start: false, pro: true, ultra: true },
       ],
@@ -712,7 +712,7 @@ export const COMPARISON_BY_LANG: Record<Language, ComparisonRow[]> = {
     {
       category: "Support & Governance",
       items: [
-        { name: "Evaluation trial", start: "7 days free", pro: "7 days free", ultra: "Custom" },
+        { name: "Evaluation trial", start: "7-day trial", pro: "7-day trial", ultra: "Custom" },
         { name: "Technical support", start: "Standard", pro: "24/7 Priority", ultra: "Dedicated account lead" },
         { name: "Guaranteed SLA (99.9%)", start: false, pro: true, ultra: true },
       ],
@@ -744,9 +744,9 @@ export const FAQ_ITEMS_BY_LANG: Record<Language, FAQItem[]> = {
     },
     {
       id: "faq-3",
-      question: "7 kunlik sinov muddati haqiqatan ham bepulmi?",
+      question: "7 kunlik sinov davri qanday ishlaydi?",
       answer:
-        "Ha, ro‘yxatdan o‘tgandan so‘ng barcha imkoniyatlar (AI Chat, Vision, Telegram Sync) 7 kun davomida to‘liq bepul ishlaydi. Bank kartangizni kiritish talab etilmaydi. Sinov muddati tugagach, o‘zingizga mos tarifni tanlab davom ettirishingiz mumkin.",
+        "Ro‘yxatdan o‘tgach, 7 kunlik imtiyozli sinov davri (START: 13 000 so‘m, PRO: 26 000 so‘m, ULTRA: 39 000 so‘m) doirasida barcha imkoniyatlar (AI Chat, Vision, Telegram Sync) to‘liq faollashadi. Sinov muddati yakunlangach, oylik yoki yillik obunaga o‘tishingiz mumkin.",
     },
     {
       id: "faq-4",
@@ -788,9 +788,9 @@ export const FAQ_ITEMS_BY_LANG: Record<Language, FAQItem[]> = {
     },
     {
       id: "faq-3",
-      question: "7-дневный пробный период действительно бесплатен?",
+      question: "Как работает 7-дневный пробный период?",
       answer:
-        "Да, после регистрации весь функционал (AI Chat, Vision, Telegram Sync) доступен бесплатно в течение 7 дней. Банковская карта не требуется.",
+        "После регистрации вы можете протестировать все возможности платформы (AI Chat, Vision, Telegram Sync) в течение 7 дней по специальному промо-тарифу (START: 13 000 сум, PRO: 26 000 сум, ULTRA: 39 000 сум). После пробного периода доступно продление на месяц или год.",
     },
     {
       id: "faq-4",
@@ -832,9 +832,9 @@ export const FAQ_ITEMS_BY_LANG: Record<Language, FAQItem[]> = {
     },
     {
       id: "faq-3",
-      question: "Is the 7-day trial period truly free?",
+      question: "How does the 7-day trial period work?",
       answer:
-        "Yes, upon signing up, all capabilities (AI Chat, Vision, Telegram Sync) are 100% free for 7 days. No credit card is required to begin.",
+        "Upon onboarding, you can evaluate all features (AI Chat, Vision, Telegram Sync) during the introductory 7-day trial (START: 13,000 UZS, PRO: 26,000 UZS, ULTRA: 39,000 UZS). Afterwards, you can seamlessly transition to monthly or yearly subscriptions.",
     },
     {
       id: "faq-4",

@@ -278,11 +278,18 @@ const PERMISSION_CATEGORIES_EN = [
 const INITIAL_PRODUCTS: ProductItem[] = [];
 const INITIAL_ORDERS: OrderItem[] = [];
 
-async function api<T>(path: string, options?: RequestInit): Promise<T> {
-  const currentOrgId = typeof window !== "undefined" ? localStorage.getItem("active_org_id") || "1" : "1";
+async function api<T>(path: string, options?: RequestInit & { orgId?: number | string }): Promise<T> {
+  const currentOrgId =
+    options?.orgId ||
+    (typeof window !== "undefined"
+      ? (new URLSearchParams(window.location.search).get("org") ||
+         sessionStorage.getItem("active_org_id") ||
+         localStorage.getItem("active_org_id") ||
+         "1")
+      : "1");
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    "X-Organization-Id": currentOrgId,
+    "X-Organization-Id": String(currentOrgId),
     ...(options?.headers as Record<string, string> || {}),
   };
   const response = await fetch(`/api/proxy?path=${encodeURIComponent(path)}`, {
@@ -682,10 +689,14 @@ function DashboardContent({
   const [userOrganizations, setUserOrganizations] = useState<any[]>([]);
   const [activeOrgId, setActiveOrgId] = useState<number>(() => {
     if (typeof window !== "undefined") {
+      const qOrg = new URLSearchParams(window.location.search).get("org");
+      if (qOrg && !isNaN(parseInt(qOrg, 10))) return parseInt(qOrg, 10);
+      const sessionSaved = sessionStorage.getItem("active_org_id");
+      if (sessionSaved && !isNaN(parseInt(sessionSaved, 10))) return parseInt(sessionSaved, 10);
       const saved = localStorage.getItem("active_org_id");
-      return saved ? parseInt(saved, 10) : 1;
+      return saved ? parseInt(saved, 10) : (initialUser?.organizationId || 1);
     }
-    return 1;
+    return initialUser?.organizationId || 1;
   });
   const [showOrgDropdown, setShowOrgDropdown] = useState(false);
   const [showOnboardingModal, setShowOnboardingModal] = useState(false);
@@ -1385,6 +1396,7 @@ function DashboardContent({
         if (org.slug) {
           const meta = { id: org.id, name: org.name, slug: org.slug };
           if (typeof window !== "undefined") {
+            sessionStorage.setItem("active_org_id", String(org.id));
             localStorage.setItem("active_org_id", String(org.id));
             localStorage.setItem("owner_impersonating_store", JSON.stringify(meta));
             window.history.pushState(null, "", `/t/${org.slug}`);
@@ -1505,7 +1517,11 @@ function DashboardContent({
     setIsSubscriptionLoading(true);
     setSubscriptionError(null);
     if (typeof window !== "undefined") {
+      sessionStorage.setItem("active_org_id", String(orgId));
       localStorage.setItem("active_org_id", String(orgId));
+      const url = new URL(window.location.href);
+      url.searchParams.set("org", String(orgId));
+      window.history.replaceState(null, "", url.toString());
     }
     setSuccess(`Faol tashkilot almashtirildi: #${orgId}`);
     load();
@@ -1538,6 +1554,7 @@ function DashboardContent({
       await api(`/api/platform/organizations/${store.slug}/impersonate`, { method: "POST" });
       const meta = { id: store.id, name: store.name, slug: store.slug };
       if (typeof window !== "undefined") {
+        sessionStorage.setItem("active_org_id", String(store.id));
         localStorage.setItem("active_org_id", String(store.id));
         localStorage.setItem("owner_impersonating_store", JSON.stringify(meta));
         window.history.pushState(null, "", `/t/${store.slug}`);
@@ -1628,6 +1645,7 @@ function DashboardContent({
         const meta = { id: matched.id, name: matched.name, slug: matched.slug };
         setActiveStoreMeta(meta);
         if (typeof window !== "undefined") {
+          sessionStorage.setItem("active_org_id", String(matched.id));
           localStorage.setItem("active_org_id", String(matched.id));
           localStorage.setItem("owner_impersonating_store", JSON.stringify(meta));
         }

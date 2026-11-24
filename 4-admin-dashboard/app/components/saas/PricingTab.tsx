@@ -145,7 +145,7 @@ export function PricingTab({
                     </div>
                     {billingCycle === "yearly" && (
                       <div className="text-secondary small mt-0.5">
-                        Yiliga ${price} hisoblanadi (2 oy bepul)
+                        Yiliga ${price} hisoblanadi (2 oy sovg‘a (-17%))
                       </div>
                     )}
                   </div>

@@ -231,7 +231,7 @@ export default function ConversationDemoSection({
                   <div className="selloi-demo-user-photo-wrapper">
                     <img
                       src="/figma/sample-sneaker.jpg"
-                      alt="Nike Air Force"
+                      alt="Nike Air Force (tovar rasmini AI orqali tanish namunasi)"
                       width={600}
                       height={400}
                       loading="lazy"

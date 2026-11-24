@@ -28,6 +28,14 @@ from app.models import (
 )
 from app.services.cost_service import cost_service
 from app.services.pricing_service import format_currency_amount, pricing_cache, pricing_service
+from app.services.centralized_pricing_service import (
+    centralized_pricing_service,
+    PERIOD_MEGA_DISCOUNT_7D,
+    PERIOD_MONTHLY,
+    PERIOD_YEARLY,
+    normalize_tariff_code,
+)
+from app.services.cbu_currency_service import cbu_currency_service
 
 logger = get_logger(__name__)
 
@@ -93,11 +101,30 @@ class PlanUpdateRequest(BaseModel):
     yearly_price_usd: int | None = None  # Frontend alias
     price_monthly_uzs: int | None = None
     price_yearly_uzs: int | None = None
+    price_promo_uzs: int | None = None
+    effective_from: datetime | None = None
+    approval_status: str | None = "approved"
     features: dict | None = None
     limits: dict | None = None
     is_featured: bool | None = None
     is_public: bool | None = None
+    is_active: bool | None = None
     display_order: int | None = None
+    change_reason: str | None = None
+
+
+class PricingPreviewRequest(BaseModel):
+    plan_code: str
+    price_promo_uzs: int | None = None
+    price_monthly_uzs: int | None = None
+    price_yearly_uzs: int | None = None
+
+
+class PricingScheduleRequest(BaseModel):
+    plan_code: str
+    billing_period: str  # MEGA_DISCOUNT_7D, MONTHLY, YEARLY
+    new_price_uzs: int
+    effective_from: datetime
     change_reason: str | None = None
 
 
@@ -556,6 +583,9 @@ async def update_plan_configuration(
     if req.price_yearly_uzs is not None and req.price_yearly_uzs != plan.price_yearly_uzs:
         plan.price_yearly_uzs = req.price_yearly_uzs
         price_changed = True
+    if req.price_promo_uzs is not None and req.price_promo_uzs != getattr(plan, "price_promo_uzs", None):
+        plan.price_promo_uzs = req.price_promo_uzs
+        price_changed = True
 
     if req.name is not None:
         plan.name = req.name.strip()
@@ -574,16 +604,23 @@ async def update_plan_configuration(
 
     # Record historical snapshot if price changed
     if price_changed:
+        plan.price_version = (getattr(plan, "price_version", 1) or 1) + 1
         history = PlanPriceHistory(
             plan_id=plan.id,
+            plan_code=plan.code,
             price_monthly=plan.price_monthly * 100,
             price_yearly=plan.price_yearly * 100,
             price_monthly_uzs=plan.price_monthly_uzs,
             price_yearly_uzs=plan.price_yearly_uzs,
-            currency=plan.currency,
+            previous_price_uzs=old_monthly_uzs,
+            new_price_uzs=plan.price_monthly_uzs,
+            price_version=plan.price_version,
+            admin_id=getattr(admin, "id", None),
+            approval_status=req.approval_status or "approved",
+            currency=getattr(plan, "currency", "UZS") or "UZS",
             change_reason=req.change_reason or "Platform Owner price update",
-            created_by_id=None,
-            effective_from=datetime.now(timezone.utc),
+            created_by_id=getattr(admin, "id", None),
+            effective_from=req.effective_from or datetime.now(timezone.utc),
         )
         db.add(history)
 
@@ -938,6 +975,82 @@ async def preview_pricing_resolution(
         raise HTTPException(status_code=400, detail=str(e))
 
 
+@router.post("/pricing/preview")
+async def preview_tariff_price_changes(
+    req: PricingPreviewRequest,
+    admin: Admin = Depends(require_platform_owner),
+    db: AsyncSession = Depends(get_db),
+):
+    """Preview tariff price changes with diffs and percentage comparisons."""
+    try:
+        preview = await centralized_pricing_service.preview_price_changes(
+            db=db,
+            plan_code=req.plan_code,
+            price_promo_uzs=req.price_promo_uzs,
+            price_monthly_uzs=req.price_monthly_uzs,
+            price_yearly_uzs=req.price_yearly_uzs,
+        )
+        return {"success": True, "preview": preview}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/pricing/schedule")
+async def schedule_tariff_price_change(
+    req: PricingScheduleRequest,
+    admin: Admin = Depends(require_platform_owner),
+    db: AsyncSession = Depends(get_db),
+):
+    """Schedule a future price change for a tariff with an immutable audit record."""
+    try:
+        kwargs = {
+            "db": db,
+            "plan_code": req.plan_code,
+            "admin_id": getattr(admin, "id", None),
+            "change_reason": req.change_reason or "Scheduled future price change",
+            "effective_from": req.effective_from,
+            "approval_status": "scheduled",
+        }
+        period = req.billing_period.upper()
+        if period in ("MEGA_DISCOUNT_7D", "PROMO", "TRIAL"):
+            kwargs["price_promo_uzs"] = req.new_price_uzs
+        elif period in ("MONTHLY", "MONTH"):
+            kwargs["price_monthly_uzs"] = req.new_price_uzs
+        elif period in ("YEARLY", "ANNUAL"):
+            kwargs["price_yearly_uzs"] = req.new_price_uzs
+        else:
+            raise HTTPException(status_code=400, detail=f"Noma'lum to'lov davri: {req.billing_period}")
+
+        result = await centralized_pricing_service.update_tariff_pricing(**kwargs)
+        return {"success": True, "scheduled_change": result}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/pricing/cbu-reference")
+async def get_cbu_currency_reference(
+    admin: Admin = Depends(require_platform_owner),
+):
+    """Fetch official Central Bank of Uzbekistan (CBU) USD currency reference rate.
+    STRICT NOTICE: Internal analytics, budgeting & financial reporting only.
+    Never used to automatically peg customer-facing domestic UZS pricing.
+    """
+    try:
+        data = await cbu_currency_service.get_usd_reference_rate()
+        return {"success": True, "cbu_reference": data}
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "fallback": {
+                "currency": "USD",
+                "rate": 12000.0,
+                "is_stale": True,
+                "note": "CBU API vaqtincha javob bermadi",
+            },
+        }
+
+
 @router.get("/pricing/history")
 async def get_pricing_history(
     plan_code: str | None = None,
@@ -945,35 +1058,9 @@ async def get_pricing_history(
     admin: Admin = Depends(require_platform_owner),
     db: AsyncSession = Depends(get_db),
 ):
-    """Retrieve historical global plan price changes."""
-    query = select(PlanPriceHistory).order_by(PlanPriceHistory.effective_from.desc()).limit(min(limit, 100))
-    if plan_code:
-        plan = await db.scalar(select(Plan).where(Plan.code == plan_code.lower()))
-        if plan:
-            query = query.where(PlanPriceHistory.plan_id == plan.id)
-
-    res = await db.execute(query)
-    entries = res.scalars().all()
-
-    return {
-        "success": True,
-        "history": [
-            {
-                "id": e.id,
-                "plan_id": e.plan_id,
-                "plan_code": e.plan.code if e.plan else None,
-                "price_monthly_cents": e.price_monthly,
-                "price_yearly_cents": e.price_yearly,
-                "price_monthly_uzs": e.price_monthly_uzs,
-                "price_yearly_uzs": e.price_yearly_uzs,
-                "currency": e.currency,
-                "change_reason": e.change_reason,
-                "effective_from": e.effective_from.isoformat() if e.effective_from else None,
-                "created_at": e.created_at.isoformat() if e.created_at else None,
-            }
-            for e in entries
-        ],
-    }
+    """Retrieve historical global plan price changes with immutable audit trail."""
+    entries = await centralized_pricing_service.get_price_history(db=db, plan_code=plan_code, limit=limit)
+    return {"success": True, "history": entries}
 
 
 @router.get("/pricing/audit-logs")

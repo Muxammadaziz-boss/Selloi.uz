@@ -29,7 +29,7 @@ export default function StickyMobileCTA({ onOpenOnboarding }: StickyMobileCTAPro
           Selloi AI
         </span>
         <span className="text-secondary small" style={{ fontSize: "0.7rem", color: "#94A3B8" }}>
-          7 kun bepul sinov
+          7 kunlik sinov
         </span>
       </div>
 

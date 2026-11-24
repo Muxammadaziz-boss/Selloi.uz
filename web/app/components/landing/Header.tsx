@@ -180,7 +180,7 @@ export default function Header({
         >
           <img
             src="/figma/selloi-logo.png"
-            alt="Selloi"
+            alt="Selloi.uz — Telegram AI sotuvchi logotipi"
             width={38}
             height={32}
             fetchPriority="high"

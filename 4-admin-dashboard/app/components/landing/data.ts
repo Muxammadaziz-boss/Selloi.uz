@@ -250,7 +250,7 @@ export const ADVANCED_PRICING_PLANS: AdvancedPricingPlan[] = [
     monthlyPrice: "[NARX]",
     annualPrice: "[NARX]",
     priceNote: "so‘m / oyiga",
-    trialBadge: "7 kun bepul sinov",
+    trialBadge: "7 kunlik sinov",
     features: [
       { name: "AI Chat (asosiy model, o‘zbek va rus tillari)", included: true },
       { name: "Telegram Bot integratsiyasi", included: true },
@@ -261,7 +261,7 @@ export const ADVANCED_PRICING_PLANS: AdvancedPricingPlan[] = [
       { name: "Click va Payme to‘lov integratsiyasi", included: false },
       { name: "Jamoa a'zolari (bir nechta admin)", included: false },
     ],
-    ctaLabel: "7 kun bepul boshlash",
+    ctaLabel: "7 kun sinab ko‘rish →",
   },
   {
     id: "pro",
@@ -271,7 +271,7 @@ export const ADVANCED_PRICING_PLANS: AdvancedPricingPlan[] = [
     annualPrice: "[NARX]",
     priceNote: "so‘m / oyiga",
     isPopular: true,
-    trialBadge: "7 kun bepul sinov",
+    trialBadge: "7 kunlik sinov",
     features: [
       { name: "AI Chat (eng aqlli model, o‘zbek, rus, ingliz)", included: true },
       { name: "Telegram Bot + Web App integratsiyasi", included: true },
@@ -282,7 +282,7 @@ export const ADVANCED_PRICING_PLANS: AdvancedPricingPlan[] = [
       { name: "Ustuvor texnik qo‘llab-quvvatlash 24/7", included: true },
       { name: "Maxsus do‘kon so‘zlashuv ohangi (tone of voice)", included: true },
     ],
-    ctaLabel: "7 kun bepul boshlash",
+    ctaLabel: "7 kun sinab ko‘rish →",
   },
   {
     id: "ultra",
@@ -348,7 +348,7 @@ export const COMPARISON_FEATURES: ComparisonRow[] = [
   {
     category: "Qo‘llab-quvvatlash va Xizmat",
     items: [
-      { name: "Sinov muddati", start: "7 kun bepul", pro: "7 kun bepul", ultra: "Individual" },
+      { name: "Sinov muddati", start: "7 kunlik sinov", pro: "7 kunlik sinov", ultra: "Individual" },
       { name: "Texnik yordam", start: "Standart (ish vaqti)", pro: "Ustuvor 24/7", ultra: "Shaxsiy menejer" },
       { name: "SLA kafolati (99.9%)", start: false, pro: true, ultra: true },
     ],
@@ -376,9 +376,9 @@ export const FAQ_ITEMS: FAQItem[] = [
   },
   {
     id: "faq-3",
-    question: "7 kunlik sinov muddati haqiqatan ham bepulmi?",
+    question: "7 kunlik sinov muddati qanday ishlaydi?",
     answer:
-      "Ha, ro‘yxatdan o‘tgandan so‘ng barcha imkoniyatlar (AI Chat, Vision, Telegram Sync) 7 kun davomida to‘liq bepul ishlaydi. Bank kartangizni kiritish talab etilmaydi. Sinov muddati tugagach, o‘zingizga mos tarifni tanlab davom ettirishingiz mumkin.",
+      "Ha, ro‘yxatdan o‘tgandan so‘ng barcha imkoniyatlar (AI Chat, Vision, Telegram Sync) 7 kun davomida imtiyozli sinov asosida ishlaydi. Bank kartangizni kiritish talab etilmaydi. Sinov muddati tugagach, o‘zingizga mos tarifni tanlab davom ettirishingiz mumkin.",
   },
   {
     id: "faq-4",

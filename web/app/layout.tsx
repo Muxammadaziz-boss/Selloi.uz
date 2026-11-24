@@ -13,61 +13,72 @@ const quicksand = Quicksand({
 export const metadata: Metadata = {
   metadataBase: new URL("https://selloi.uz"),
   title: {
-    default: "Selloi: Telegram do'konlari uchun AI sotuvchi",
-    template: "%s | Selloi",
+    default: "Selloi.uz — Telegram uchun 24/7 AI sotuvchi",
+    template: "%s | Selloi.uz",
   },
   description:
-    "Selloi: O'zbekiston Telegram do'konlari uchun 24/7 ishlaydigan sun'iy intellekt sotuvchisi. Mijozlarga o'zbek tilida javob beradi, mahsulotlarni taniydi va buyurtmalarni qabul qiladi.",
-  applicationName: "Selloi",
+    "Selloi.uz — Telegram do‘koningiz uchun sun’iy intellekt sotuvchi. Mijozlarga avtomatik javob beradi, mahsulotlarni rasmdan taniydi va buyurtmalarni qabul qiladi.",
+  applicationName: "Selloi.uz",
   keywords: [
     "Selloi",
     "Selloi.uz",
     "Selloi AI",
-    "Selloi Telegram AI",
-    "Selloi AI sotuvchi",
-    "Telegram do'kon",
+    "AI sotuvchi",
+    "Telegram AI sotuvchi",
+    "Telegram uchun AI sotuvchi",
+    "Telegram do‘kon avtomatlashtirish",
+    "Sun’iy intellekt sotuvchi",
+    "O‘zbekistonda AI sotuvchi",
     "Telegram bot sotuvchi",
-    "Telegram avtomatlashtirish",
-    "O'zbekiston AI sotuvchi",
+    "Telegram do'kon",
+    "Telegram CRM",
   ],
-  authors: [{ name: "Selloi" }],
-  creator: "Selloi",
-  publisher: "Selloi",
+  authors: [{ name: "Selloi.uz", url: "https://selloi.uz" }],
+  creator: "Selloi.uz",
+  publisher: "Selloi.uz",
   alternates: {
-    canonical: "/",
+    canonical: "https://selloi.uz/",
+    languages: {
+      "uz": "https://selloi.uz/",
+      "x-default": "https://selloi.uz/",
+    },
   },
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
       { url: "/icon-192.png", type: "image/png", sizes: "192x192" },
-      { url: "/logo.svg", type: "image/svg+xml" },
+      { url: "/icon-512.png", type: "image/png", sizes: "512x512" },
     ],
     apple: [
-      { url: "/apple-touch-icon.png", sizes: "180x180" },
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
     ],
     shortcut: "/favicon.ico",
   },
   openGraph: {
-    title: "Selloi: Telegram do'konlari uchun AI sotuvchi",
-    description: "Telegram do'koningizda mijozlarga 24/7 xizmat ko'rsatadigan AI sotuvchi.",
+    title: "Selloi.uz — Telegram uchun 24/7 AI sotuvchi",
+    description:
+      "Selloi.uz — Telegram do‘koningiz uchun sun’iy intellekt sotuvchi. Mijozlarga avtomatik javob beradi, mahsulotlarni rasmdan taniydi va buyurtmalarni qabul qiladi.",
     url: "https://selloi.uz/",
-    siteName: "Selloi",
+    siteName: "Selloi.uz",
     locale: "uz_UZ",
     type: "website",
     images: [
       {
-        url: "/og-image.png",
+        url: "https://selloi.uz/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Selloi: Telegram do'konlari uchun AI sotuvchi",
+        alt: "Selloi.uz — Telegram uchun 24/7 AI sotuvchi",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Selloi: Telegram do'konlari uchun AI sotuvchi",
-    description: "Telegram do'koningizda mijozlarga 24/7 xizmat ko'rsatadigan AI sotuvchi.",
-    images: ["/og-image.png"],
+    title: "Selloi.uz — Telegram uchun 24/7 AI sotuvchi",
+    description:
+      "Selloi.uz — Telegram do‘koningiz uchun sun’iy intellekt sotuvchi. Mijozlarga avtomatik javob beradi, mahsulotlarni rasmdan taniydi va buyurtmalarni qabul qiladi.",
+    images: ["https://selloi.uz/og-image.png"],
   },
   robots: {
     index: true,
@@ -88,24 +99,25 @@ const jsonLd = {
     {
       "@type": "Organization",
       "@id": "https://selloi.uz/#organization",
-      "name": "Selloi",
+      "name": "Selloi.uz",
       "alternateName": [
+        "Selloi",
         "Selloi AI",
-        "Selloi.uz",
-        "Selloi Telegram AI"
+        "Selloi Telegram AI",
+        "Selloi AI sotuvchi"
       ],
-      "url": "https://selloi.uz",
+      "url": "https://selloi.uz/",
       "logo": {
         "@type": "ImageObject",
         "@id": "https://selloi.uz/#logo",
         "url": "https://selloi.uz/logo.png",
-        "caption": "Selloi",
+        "caption": "Selloi.uz",
         "width": 512,
         "height": 512
       },
       "image": "https://selloi.uz/logo.png",
       "description":
-        "O'zbekiston Telegram do'konlari uchun 24/7 ishlaydigan sun'iy intellekt sotuvchisi va savdoni avtomatlashtirish platformasi.",
+        "AI-powered Telegram sales automation platform for businesses in Uzbekistan.",
       "foundingLocation": {
         "@type": "Place",
         "name": "Uzbekistan"
@@ -115,7 +127,6 @@ const jsonLd = {
         "name": "Uzbekistan"
       },
       "sameAs": [
-        "https://github.com/Muxammadaziz-boss/Selloi.uz",
         "https://t.me/Selloi_ai_bot",
         "https://t.me/selloi_bot"
       ],
@@ -132,20 +143,49 @@ const jsonLd = {
     {
       "@type": "WebSite",
       "@id": "https://selloi.uz/#website",
-      "url": "https://selloi.uz",
-      "name": "Selloi",
-      "alternateName": ["Selloi.uz", "Selloi AI"],
+      "url": "https://selloi.uz/",
+      "name": "Selloi.uz",
+      "alternateName": ["Selloi", "Selloi AI"],
       "publisher": { "@id": "https://selloi.uz/#organization" },
       "inLanguage": ["uz", "ru", "en"]
     },
     {
       "@type": "SoftwareApplication",
       "@id": "https://selloi.uz/#software",
-      "name": "Selloi",
+      "name": "Selloi.uz",
       "applicationCategory": "BusinessApplication",
       "operatingSystem": "Cloud, Web, Telegram",
       "description":
-        "Telegram do'konlari uchun AI sotuvchi. Mijozlarga o'zbek tilida 24/7 xizmat ko'rsatish, mahsulot fotosuratlarini tanish va buyurtmalarni avtomatlashtirish.",
+        "Selloi.uz — Telegram do‘koningiz uchun sun’iy intellekt sotuvchi platformasi. 24/7 mijozlar savollariga javob berish, mahsulot fotosuratlarini tanish va buyurtmalarni avtomatlashtirish.",
+      "offers": [
+        {
+          "@type": "Offer",
+          "name": "START Plan (7 kunlik sinov)",
+          "price": "13000",
+          "priceCurrency": "UZS",
+          "description": "START: 7 kunlik sinov davri uchun 13 000 UZS ($1 ekvivalenti). Sinovdan so'ng oylik (244 000 UZS) va yillik obuna.",
+          "availability": "https://schema.org/InStock",
+          "url": "https://selloi.uz/#tariflar"
+        },
+        {
+          "@type": "Offer",
+          "name": "PRO Plan (7 kunlik sinov)",
+          "price": "26000",
+          "priceCurrency": "UZS",
+          "description": "PRO: 7 kunlik sinov davri uchun 26 000 UZS ($2 ekvivalenti). AI Vision va to'liq avtomatlashtirish. Sinovdan so'ng oylik (499 000 UZS) va yillik obuna.",
+          "availability": "https://schema.org/InStock",
+          "url": "https://selloi.uz/#tariflar"
+        },
+        {
+          "@type": "Offer",
+          "name": "ULTRA Plan (7 kunlik sinov)",
+          "price": "39000",
+          "priceCurrency": "UZS",
+          "description": "ULTRA: 7 kunlik sinov davri uchun 39 000 UZS ($3 ekvivalenti). Korporativ jamoalar va alohida infratuzilma uchun. Sinovdan so'ng oylik (999 000 UZS) va yillik obuna.",
+          "availability": "https://schema.org/InStock",
+          "url": "https://selloi.uz/#tariflar"
+        }
+      ],
       "publisher": { "@id": "https://selloi.uz/#organization" }
     }
   ],
