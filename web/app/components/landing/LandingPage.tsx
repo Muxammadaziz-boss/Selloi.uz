@@ -6,7 +6,6 @@ import HeroSection from "./HeroSection";
 import FeaturesSection from "./FeaturesSection";
 import HowItWorksSection from "./HowItWorksSection";
 import ConversationDemoSection from "./ConversationDemoSection";
-import TrialSection from "./TrialSection";
 import PricingSection from "./PricingSection";
 import FAQSection from "./FAQSection";
 import FinalCTA from "./FinalCTA";
@@ -165,24 +164,14 @@ function LandingPageContent({ isAuthenticated = false }: LandingPageProps) {
         {/* 3. Qanday ishlaydi? */}
         <HowItWorksSection t={t.qandayIshlaydi} />
 
-        {/* 4. Suhbat namunasi */}
+        {/* 4. Suhbatdan namuna (Jonli Demo) */}
         <ConversationDemoSection
           onOpenOnboarding={() => setIsOnboardingOpen(true)}
           isAuthenticated={isAuthenticated}
           t={t.suhbatNamunasi}
         />
 
-        {/* 5. Sinab ko'rish (Alohida section) */}
-        <TrialSection
-          onOpenOnboarding={(planCode) => {
-            setSelectedPlan(planCode || "start");
-            setIsOnboardingOpen(true);
-          }}
-          isAuthenticated={isAuthenticated}
-          t={t.sinabKorish}
-        />
-
-        {/* 6. Tariflar (Doim ochiq, berkitishsiz) */}
+        {/* 5. Tariflar (Doim ochiq, berkitishsiz) */}
         <PricingSection
           onOpenOnboarding={(planCode) => {
             setSelectedPlan(planCode || "start");

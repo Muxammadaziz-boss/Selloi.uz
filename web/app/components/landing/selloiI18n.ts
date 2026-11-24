@@ -31,23 +31,11 @@ export interface SelloiTariflarTranslations {
   plans: SelloiPlanItem[];
 }
 
-export interface SelloiSinabKorishTranslations {
-  tag: string;
-  badge: string;
-  title: string;
-  desc: string;
-  cta: string;
-  note: string;
-  startLabel: string;
-  startPrice: number;
-  proLabel: string;
-  proPrice: number;
-  ultraLabel: string;
-  ultraPrice: number;
-  currency: string;
-  feature1: string;
-  feature2: string;
-  feature3: string;
+export interface SelloiDemoQuickPrompt {
+  id: "stock" | "delivery" | "photo" | "order";
+  label: string;
+  userText: string;
+  botReply: string;
 }
 
 export interface SelloiTranslations {
@@ -134,8 +122,15 @@ export interface SelloiTranslations {
     orderStatus: string;
     typingIndicator: string;
     analyzingIndicator: string;
+    photoLabel: string;
+    uploadingPhotoText: string;
+    orderChipLabel: string;
+    orderProductLabel: string;
+    orderPriceLabel: string;
+    sendAriaLabel: string;
+    fallbackReply: string;
+    quickPrompts: SelloiDemoQuickPrompt[];
   };
-  sinabKorish: SelloiSinabKorishTranslations;
   tariflar: SelloiTariflarTranslations;
   faq: {
     tag: string;
@@ -246,7 +241,7 @@ export const SELLOI_I18N: Record<Language, SelloiTranslations> = {
       step3DescLine2: "o‘zingiz esa biznesga e’tibor qarating.",
     },
     suhbatNamunasi: {
-      tag: "O‘ZINGIZ TASAVVUR QILING",
+      tag: "SUHBATDAN NAMUNA",
       titleLine1: "Oddiy savoldan",
       titleLine2: "tayyor buyurtmagacha.",
       descLine1: "Mijozingiz bilan tabiiy muloqot. Mahsulot haqida",
@@ -254,12 +249,12 @@ export const SELLOI_I18N: Record<Language, SelloiTranslations> = {
       descLine3: "barchasi bir suhbatda.",
       cta: "7 kun sinab ko‘rish →",
       cardTitle: "Selloi",
-      cardSub: "Suhbat namunasi",
+      cardSub: "Suhbatdan namuna",
       userMsg: "Assalomu alaykum! Yetkazib berish bormi?",
       botMsgLine1: "Va alaykum assalom! Qaysi manzilga",
       botMsgLine2: "buyurtma bermoqchisiz?",
-      disclaimer: "Namunaviy suhbat. Javoblar do‘kon ma’lumotlariga bog‘liq.",
-      placeholder: "Xabaringizni yozing…",
+      disclaimer: "Suhbatdan namuna. O‘zingiz savol yozib yoki tugmalardan tanlab jonli sinab ko‘ring.",
+      placeholder: "Xabaringizni yozing va Enter bosing…",
       liveBadge: "Jonli demo",
       step1UserText: "Assalomu alaykum! Shu krossovkadan 42-razmeri bormi?",
       step2BotText: "Va alaykum assalom! Ha, qora va oq ranglarda 42-razmer mavjud. Qaysi rang ma’qul?",
@@ -271,24 +266,39 @@ export const SELLOI_I18N: Record<Language, SelloiTranslations> = {
       orderStatus: "Holati: Qabul qilindi • Yetkazib berishga yuborildi ⚡",
       typingIndicator: "Selloi javob yozmoqda...",
       analyzingIndicator: "Selloi fotosuratni tahlil qilmoqda...",
-    },
-    sinabKorish: {
-      tag: "7 KUNLIK SINOV",
-      badge: "MEGA CHEGIRMA",
-      title: "Avval 7 kunlik Mega Chegirma bilan sinab ko'ring.",
-      desc: "Do'koningiz uchun sun'iy intellekt sotuvchini 7 kun davomida to'liq imkoniyatlar bilan atigi 13 000 so'm ($1) dan boshlab sinab ko'ring. Hech qanday majburiyat yo'q!",
-      cta: "7 kun sinab ko'rish →",
-      note: "Do'koningiz uchun. O'sishingiz uchun.",
-      startLabel: "START sinovi",
-      startPrice: 13000,
-      proLabel: "PRO sinovi",
-      proPrice: 26000,
-      ultraLabel: "ULTRA sinovi",
-      ultraPrice: 39000,
-      currency: "so'm",
-      feature1: "Barcha AI savdo imkoniyatlari to'liq ochiq",
-      feature2: "Telegram Bot va WebApp bilan oson ulanish",
-      feature3: "24/7 avtomatik javoblar va buyurtma qabul qilish",
+      photoLabel: "📷 Fotosurat",
+      uploadingPhotoText: "📷 Rasm yuklanmoqda...",
+      orderChipLabel: "Avtomatik",
+      orderProductLabel: "Tovarlar:",
+      orderPriceLabel: "Narxi:",
+      sendAriaLabel: "Xabar yuborish",
+      fallbackReply: "Tushundim! Omborimizda 38–44 razmerdagi Nike Air Force (380 000 so‘m) mavjud. Razmer yoki manzilingizni aytsangiz, darhol rasmiylashtiramiz.",
+      quickPrompts: [
+        {
+          id: "stock",
+          label: "👟 42-razmer?",
+          userText: "Nike Air Force 42-razmer qolganmi va narxi qancha?",
+          botReply: "Ha, Nike Air Force 42-razmeri oq va qora ranglarda omborda bor ✅ Narxi: 380 000 so‘m.",
+        },
+        {
+          id: "delivery",
+          label: "🚚 Yetkazish",
+          userText: "Toshkent bo‘ylab yetkazib berish necha pul?",
+          botReply: "Toshkent shahri bo‘ylab yetkazib berish 25 000 so‘m (2 soat ichida). Viloyatlarga BTS pochta orqali yuboramiz ⚡",
+        },
+        {
+          id: "photo",
+          label: "📷 Rasm orqali",
+          userText: "Mana shu rasmdagi krossovkani qarab bering.",
+          botReply: "Fotosurat tahlil qilindi: Nike Air Force (Oq, 42-razmer) omborda bor ✅ Narxi: 380 000 so‘m.",
+        },
+        {
+          id: "order",
+          label: "🛒 Buyurtma",
+          userText: "Oq ranglisidan 42-razmer 1 juft buyurtma qilaman!",
+          botReply: "Ajoyib tanlov! Buyurtmangiz darhol avtomatik rasmiylashtirildi 👇",
+        },
+      ],
     },
     tariflar: {
       tag: "TARIFLAR",
@@ -499,7 +509,7 @@ export const SELLOI_I18N: Record<Language, SelloiTranslations> = {
       step3DescLine2: "а сами сфокусируйтесь на бизнесе.",
     },
     suhbatNamunasi: {
-      tag: "ПРЕДСТАВЬТЕ САМИ",
+      tag: "ПРИМЕР ДИАЛОГА",
       titleLine1: "От простого вопроса",
       titleLine2: "до готового заказа.",
       descLine1: "Естественный диалог с клиентом. Ответы о товарах,",
@@ -511,8 +521,8 @@ export const SELLOI_I18N: Record<Language, SelloiTranslations> = {
       userMsg: "Здравствуйте! Есть ли доставка?",
       botMsgLine1: "Здравствуйте! По какому адресу",
       botMsgLine2: "хотите оформить доставку?",
-      disclaimer: "Пример диалога. Ответы формируются на основе данных вашего магазина.",
-      placeholder: "Напишите сообщение…",
+      disclaimer: "Пример диалога. Задайте вопрос или выберите кнопку ниже, чтобы протестировать.",
+      placeholder: "Напишите сообщение и нажмите Enter…",
       liveBadge: "Онлайн демо",
       step1UserText: "Здравствуйте! Есть ли эта модель в 42 размере?",
       step2BotText: "Здравствуйте! Да, 42 размер в наличии в черном и белом цветах. Какой цвет вам ближе?",
@@ -524,24 +534,39 @@ export const SELLOI_I18N: Record<Language, SelloiTranslations> = {
       orderStatus: "Статус: Принят • Отправлен на доставку ⚡",
       typingIndicator: "Selloi печатает...",
       analyzingIndicator: "Selloi анализирует фото...",
-    },
-    sinabKorish: {
-      tag: "7 ДНЕЙ ТЕСТА",
-      badge: "МЕГА СКИДКА",
-      title: "Сначала попробуйте 7 дней с мега-скидкой.",
-      desc: "Протестируйте AI-продавца Selloi на полную мощность в вашем магазине всего от 13 000 сум ($1). Без лишних рисков и обязательств!",
-      cta: "Попробовать 7 дней →",
-      note: "Для вашего магазина. Для вашего роста.",
-      startLabel: "Тест START",
-      startPrice: 13000,
-      proLabel: "Тест PRO",
-      proPrice: 26000,
-      ultraLabel: "Тест ULTRA",
-      ultraPrice: 39000,
-      currency: "сум",
-      feature1: "Все возможности AI доступны без ограничений",
-      feature2: "Быстрая интеграция с Telegram Bot и WebApp",
-      feature3: "Круглосуточный автоматический прием заказов",
+      photoLabel: "📷 Фотография",
+      uploadingPhotoText: "📷 Загрузка фото...",
+      orderChipLabel: "Автомат",
+      orderProductLabel: "Товар:",
+      orderPriceLabel: "Цена:",
+      sendAriaLabel: "Отправить сообщение",
+      fallbackReply: "Понял вас! В наличии кроссовки Nike Air Force (38–44 размер, 380 000 сум). Укажите размер или адрес доставки для оформления.",
+      quickPrompts: [
+        {
+          id: "stock",
+          label: "👟 42 размер?",
+          userText: "Есть ли Nike Air Force 42 размера и какая цена?",
+          botReply: "Да, Nike Air Force 42 размера есть в белом и черном цветах ✅ Цена: 380 000 сум.",
+        },
+        {
+          id: "delivery",
+          label: "🚚 Доставка",
+          userText: "Сколько стоит доставка по Ташкенту?",
+          botReply: "Доставка по Ташкенту — 25 000 сум за 2 часа. В регионы отправляем службой BTS ⚡",
+        },
+        {
+          id: "photo",
+          label: "📷 По фото",
+          userText: "Проверьте наличие модели с этого фото.",
+          botReply: "Фото распознано: Nike Air Force (Белые, 42 размер) в наличии ✅ Цена: 380 000 сум.",
+        },
+        {
+          id: "order",
+          label: "🛒 Заказать",
+          userText: "Хочу заказать белую пару 42 размера!",
+          botReply: "Отличный выбор! Заказ автоматически сформирован 👇",
+        },
+      ],
     },
     tariflar: {
       tag: "ТАРИФЫ",
@@ -752,7 +777,7 @@ export const SELLOI_I18N: Record<Language, SelloiTranslations> = {
       step3DescLine2: "and focus your time on growing the business.",
     },
     suhbatNamunasi: {
-      tag: "PICTURE THIS",
+      tag: "SAMPLE CONVERSATION",
       titleLine1: "From a simple question",
       titleLine2: "to a completed order.",
       descLine1: "Natural conversation with your customer. Product guidance,",
@@ -764,8 +789,8 @@ export const SELLOI_I18N: Record<Language, SelloiTranslations> = {
       userMsg: "Hello! Do you have delivery available?",
       botMsgLine1: "Hello! What destination address",
       botMsgLine2: "should we deliver to?",
-      disclaimer: "Sample dialogue. Actual responses depend on your store configuration.",
-      placeholder: "Type your message…",
+      disclaimer: "Sample conversation. Type a question or click a quick prompt below to test live.",
+      placeholder: "Type your message and press Enter…",
       liveBadge: "Live Demo",
       step1UserText: "Hello! Do you have size 42 in stock for this sneaker?",
       step2BotText: "Hello! Yes, size 42 is currently in stock in both black and white. Which one do you prefer?",
@@ -777,24 +802,39 @@ export const SELLOI_I18N: Record<Language, SelloiTranslations> = {
       orderStatus: "Status: Processed • Dispatched for delivery ⚡",
       typingIndicator: "Selloi is typing...",
       analyzingIndicator: "Selloi is analyzing photo...",
-    },
-    sinabKorish: {
-      tag: "7-DAY TRIAL",
-      badge: "MEGA DISCOUNT",
-      title: "Try for 7 days with a Mega Discount first.",
-      desc: "Test Selloi AI sales assistant with full power in your store starting from only 13,000 UZS ($1). Zero risk, cancel anytime!",
-      cta: "Try 7 days →",
-      note: "For your store. For your growth.",
-      startLabel: "START trial",
-      startPrice: 13000,
-      proLabel: "PRO trial",
-      proPrice: 26000,
-      ultraLabel: "ULTRA trial",
-      ultraPrice: 39000,
-      currency: "UZS",
-      feature1: "All AI sales features unlocked during trial",
-      feature2: "Seamless Telegram Bot & WebApp integration",
-      feature3: "24/7 autonomous order taking & response",
+      photoLabel: "📷 Photo",
+      uploadingPhotoText: "📷 Uploading photo...",
+      orderChipLabel: "Automatic",
+      orderProductLabel: "Items:",
+      orderPriceLabel: "Price:",
+      sendAriaLabel: "Send message",
+      fallbackReply: "Got it! We have Nike Air Force (sizes 38–44, 380,000 UZS) ready in stock. Tell me your size or address and I'll place your order right away.",
+      quickPrompts: [
+        {
+          id: "stock",
+          label: "👟 Size 42?",
+          userText: "Do you have Nike Air Force in size 42 and how much is it?",
+          botReply: "Yes! Nike Air Force size 42 is in stock in black and white ✅ Price: 380,000 UZS.",
+        },
+        {
+          id: "delivery",
+          label: "🚚 Delivery",
+          userText: "How fast is delivery across Tashkent?",
+          botReply: "Tashkent city delivery is 25,000 UZS within 2 hours. Nationwide shipping via BTS express ⚡",
+        },
+        {
+          id: "photo",
+          label: "📷 By photo",
+          userText: "Can you check this sneaker from the photo?",
+          botReply: "Photo analyzed: Nike Air Force (White, size 42) in stock ✅ Price: 380,000 UZS.",
+        },
+        {
+          id: "order",
+          label: "🛒 Order now",
+          userText: "Order 1 pair of the white size 42 please!",
+          botReply: "Awesome choice! Your order has been created automatically 👇",
+        },
+      ],
     },
     tariflar: {
       tag: "PRICING PLANS",

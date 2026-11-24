@@ -94,12 +94,12 @@ export default function Footer({ t, onLanguageClick }: FooterProps) {
             </h4>
             <div className="selloi-footer-links">
               <a
-                href="#boshlash"
+                href="#suhbat-namunasi"
                 className="selloi-footer-link"
                 data-node-id="182:460"
                 onClick={(e) => {
                   e.preventDefault();
-                  scrollTo("boshlash");
+                  scrollTo("suhbat-namunasi");
                 }}
               >
                 {t.col2Link1}
