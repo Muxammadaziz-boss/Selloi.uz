@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
 from app.core.db import get_db
 from app.core.security import (
     decrypt_secret,
@@ -214,12 +215,16 @@ async def telegram_auth_poll(payload: dict, db: AsyncSession = Depends(get_db)):
         stmt_email = select(User).where(User.email == email)
         user = (await db.execute(stmt_email)).scalar_one_or_none()
 
+    settings = get_settings()
+    is_owner_tg = bool(settings.admin_telegram_id and int(clean_id) == int(settings.admin_telegram_id))
+
     if user is None:
         user = User(
             email=email,
             full_name=full_name or (f"@{clean_username}" if clean_username else f"User {clean_id}"),
             telegram_user_id=clean_id,
             hashed_password="",
+            is_platform_owner=is_owner_tg,
             is_active=True,
         )
         db.add(user)
@@ -229,6 +234,8 @@ async def telegram_auth_poll(payload: dict, db: AsyncSession = Depends(get_db)):
         if not user.is_active:
             raise HTTPException(status_code=403, detail="Foydalanuvchi hisobi faol emas")
         user.telegram_user_id = clean_id
+        if is_owner_tg and not user.is_platform_owner:
+            user.is_platform_owner = True
         if full_name:
             user.full_name = full_name
         await db.commit()

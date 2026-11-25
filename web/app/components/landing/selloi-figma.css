@@ -4275,6 +4275,10 @@
 /* ============================================================
    SMOOTH SECTION ANCHORING & NAVIGATION ARRIVAL TRANSITION
    ============================================================ */
+html:has(.selloi-page) {
+  scroll-behavior: auto !important;
+}
+
 #top,
 #imkoniyatlar,
 #suhbat-namunasi,
@@ -4297,24 +4301,21 @@
 
 @keyframes selloiNavArrive {
   0% {
-    opacity: 0.72;
-    transform: translateY(14px) scale(0.992);
-    filter: brightness(0.95);
+    opacity: 0.86;
+    filter: brightness(0.96);
   }
   55% {
     opacity: 1;
-    transform: translateY(0) scale(1.003);
     filter: brightness(1.06);
   }
   100% {
     opacity: 1;
-    transform: translateY(0) scale(1);
     filter: brightness(1);
   }
 }
 
 .selloi-nav-arriving {
-  animation: selloiNavArrive 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: selloiNavArrive 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @media (prefers-reduced-motion: reduce) {

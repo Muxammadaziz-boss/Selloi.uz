@@ -2,28 +2,38 @@
 
 let activeRafId: number | null = null;
 let cleanupInterruptListeners: (() => void) | null = null;
+let restoreScrollBehavior: (() => void) | null = null;
 
 function easeInOutCubic(t: number): number {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }
 
-function triggerArrivalAnimation(el: HTMLElement) {
-  if (el.classList.contains("selloi-reveal-item") && !el.classList.contains("selloi-in-view")) {
-    el.classList.add("selloi-in-view");
+function revealSectionsUpTo(targetEl: HTMLElement | null) {
+  const revealItems = Array.from(document.querySelectorAll<HTMLElement>(".selloi-reveal-item"));
+  if (!targetEl) return;
+  const targetTopApprox = targetEl.getBoundingClientRect().top + window.scrollY;
+  for (const item of revealItems) {
+    const itemTop = item.getBoundingClientRect().top + window.scrollY;
+    if (item === targetEl || itemTop <= targetTopApprox + 50) {
+      item.classList.add("selloi-in-view");
+    }
   }
+}
+
+function triggerArrivalAnimation(el: HTMLElement) {
+  el.classList.add("selloi-in-view");
   el.classList.remove("selloi-nav-arriving");
-  // Force reflow so rapid consecutive clicks replay cleanly
   void el.offsetWidth;
   el.classList.add("selloi-nav-arriving");
   window.setTimeout(() => {
     el.classList.remove("selloi-nav-arriving");
-  }, 850);
+  }, 680);
 }
 
 /**
  * Smoothly scrolls to a landing section by ID with eased cubic animation,
- * navbar height compensation, manual-scroll interruption support, and
- * a gentle arrival animation on the target section.
+ * bypassing Tabler/Bootstrap CSS scroll-behavior conflicts via behavior:'instant'
+ * per frame, compensating for fixed navbar height, and eliminating reveal-shift jumps.
  */
 export function smoothScrollToSection(
   targetId: string,
@@ -34,7 +44,6 @@ export function smoothScrollToSection(
 ): void {
   if (typeof window === "undefined") return;
 
-  // Cancel any existing programmatic scroll
   if (activeRafId !== null) {
     window.cancelAnimationFrame(activeRafId);
     activeRafId = null;
@@ -43,11 +52,20 @@ export function smoothScrollToSection(
     cleanupInterruptListeners();
     cleanupInterruptListeners = null;
   }
+  if (restoreScrollBehavior) {
+    restoreScrollBehavior();
+    restoreScrollBehavior = null;
+  }
 
   const targetEl = targetId === "top" ? document.getElementById("top") : document.getElementById(targetId);
   if (targetId !== "top" && !targetEl) {
     options?.onComplete?.();
     return;
+  }
+
+  // Reveal all sections up to the target before measuring coordinates so translateY(28px) doesn't offset targetY
+  if (targetEl) {
+    revealSectionsUpTo(targetEl);
   }
 
   const navOffset = targetId === "top" ? 0 : window.innerWidth <= 768 ? 72 : 84;
@@ -61,21 +79,29 @@ export function smoothScrollToSection(
 
   const prefersReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
   if (prefersReducedMotion || Math.abs(targetY - startY) < 4) {
-    window.scrollTo({ top: targetY, behavior: "auto" });
+    window.scrollTo({ top: targetY, behavior: "instant" as ScrollBehavior });
     if (targetEl) triggerArrivalAnimation(targetEl);
     options?.onComplete?.();
     return;
   }
 
+  // Override Tabler's `:root { scroll-behavior: smooth }` so every RAF frame renders cleanly without CSS interpolation fighting
+  const htmlEl = document.documentElement;
+  const prevBehavior = htmlEl.style.scrollBehavior;
+  htmlEl.style.scrollBehavior = "auto";
+  restoreScrollBehavior = () => {
+    htmlEl.style.scrollBehavior = prevBehavior;
+    restoreScrollBehavior = null;
+  };
+
   options?.onStart?.();
 
-  // Trigger subtle arrival visual just before/as scrolling lands
   let arrivalTriggered = false;
   const distance = Math.abs(targetY - startY);
-  const duration = Math.min(920, Math.max(540, 480 + distance * 0.14));
+  const duration = Math.min(950, Math.max(580, 500 + distance * 0.14));
   const startTime = performance.now();
 
-  const cancel = () => {
+  const finish = (completed: boolean) => {
     if (activeRafId !== null) {
       window.cancelAnimationFrame(activeRafId);
       activeRafId = null;
@@ -84,10 +110,16 @@ export function smoothScrollToSection(
       cleanupInterruptListeners();
       cleanupInterruptListeners = null;
     }
+    if (restoreScrollBehavior) {
+      restoreScrollBehavior();
+    }
+    if (completed && !arrivalTriggered && targetEl) {
+      triggerArrivalAnimation(targetEl);
+    }
     options?.onComplete?.();
   };
 
-  const onManualInput = () => cancel();
+  const onManualInput = () => finish(false);
   window.addEventListener("wheel", onManualInput, { passive: true, once: true });
   window.addEventListener("touchstart", onManualInput, { passive: true, once: true });
   cleanupInterruptListeners = () => {
@@ -101,9 +133,9 @@ export function smoothScrollToSection(
     const eased = easeInOutCubic(progress);
     const currentY = startY + (targetY - startY) * eased;
 
-    window.scrollTo({ top: currentY, behavior: "auto" });
+    window.scrollTo({ top: currentY, behavior: "instant" as ScrollBehavior });
 
-    if (!arrivalTriggered && progress >= 0.72 && targetEl) {
+    if (!arrivalTriggered && progress >= 0.78 && targetEl) {
       arrivalTriggered = true;
       triggerArrivalAnimation(targetEl);
     }
@@ -111,15 +143,8 @@ export function smoothScrollToSection(
     if (progress < 1) {
       activeRafId = window.requestAnimationFrame(step);
     } else {
-      activeRafId = null;
-      if (cleanupInterruptListeners) {
-        cleanupInterruptListeners();
-        cleanupInterruptListeners = null;
-      }
-      if (!arrivalTriggered && targetEl) {
-        triggerArrivalAnimation(targetEl);
-      }
-      options?.onComplete?.();
+      window.scrollTo({ top: targetY, behavior: "instant" as ScrollBehavior });
+      finish(true);
     }
   };
 

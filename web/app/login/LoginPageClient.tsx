@@ -10,7 +10,6 @@ import {
   Eye,
   EyeOff,
   Globe,
-  KeyRound,
   Loader2,
   Lock,
   Mail,
@@ -27,14 +26,13 @@ interface LoginPageClientProps {
   initialError?: string;
 }
 
-type AuthMode = "login" | "register" | "master";
+type AuthMode = "login" | "register";
 type Language = "uz" | "ru" | "en";
 
 interface TranslationText {
   brandSubtitle: string;
   tabLogin: string;
   tabRegister: string;
-  tabMaster: string;
   orContinueWith: string;
   orWithEmail: string;
   telegramBtn: string;
@@ -47,14 +45,10 @@ interface TranslationText {
   passwordPlaceholder: string;
   confirmPasswordLabel: string;
   confirmPasswordPlaceholder: string;
-  masterPasswordLabel: string;
-  masterPasswordPlaceholder: string;
-  masterPasswordHint: string;
   rememberMe: string;
   forgotPassword: string;
   submitLogin: string;
   submitRegister: string;
-  submitMaster: string;
   loading: string;
   noAccountPrompt: string;
   registerLink: string;
@@ -79,7 +73,6 @@ const TRANSLATIONS: Record<Language, TranslationText> = {
     brandSubtitle: "Sun'iy intellekt asosidagi savdo ekotizimi",
     tabLogin: "Kirish",
     tabRegister: "Ro'yxatdan o'tish",
-    tabMaster: "Boshqaruv paroli",
     orContinueWith: "yoki quyidagi tizimlar orqali",
     orWithEmail: "yoki email manzil orqali",
     telegramBtn: "Telegram orqali kirish",
@@ -92,14 +85,10 @@ const TRANSLATIONS: Record<Language, TranslationText> = {
     passwordPlaceholder: "Kamida 6 ta belgi",
     confirmPasswordLabel: "Parolni tasdiqlang",
     confirmPasswordPlaceholder: "Parolni qayta kiriting",
-    masterPasswordLabel: "Administrator boshqaruv paroli",
-    masterPasswordPlaceholder: "DASHBOARD_PASSWORD",
-    masterPasswordHint: "Do'kon egasi yoki platforma moderatori uchun maxsus kirish",
     rememberMe: "Eslab qolish",
     forgotPassword: "Parolni unutdingizmi?",
     submitLogin: "Tizimga kirish",
     submitRegister: "Hisob yaratish",
-    submitMaster: "Boshqaruv paneliga o'tish",
     loading: "Tekshirilmoqda...",
     noAccountPrompt: "Hali akkauntingiz yo'qmi?",
     registerLink: "Ro'yxatdan o'tish",
@@ -122,7 +111,6 @@ const TRANSLATIONS: Record<Language, TranslationText> = {
     brandSubtitle: "Экосистема продаж на базе искусственного интеллекта",
     tabLogin: "Войти",
     tabRegister: "Регистрация",
-    tabMaster: "Мастер-пароль",
     orContinueWith: "или через сервисы",
     orWithEmail: "или с помощью email",
     telegramBtn: "Войти через Telegram",
@@ -135,14 +123,10 @@ const TRANSLATIONS: Record<Language, TranslationText> = {
     passwordPlaceholder: "Не менее 6 символов",
     confirmPasswordLabel: "Подтвердите пароль",
     confirmPasswordPlaceholder: "Повторите пароль",
-    masterPasswordLabel: "Пароль администратора",
-    masterPasswordPlaceholder: "DASHBOARD_PASSWORD",
-    masterPasswordHint: "Вход для владельца магазина или администратора платформы",
     rememberMe: "Запомнить меня",
     forgotPassword: "Забыли пароль?",
     submitLogin: "Войти в систему",
     submitRegister: "Создать аккаунт",
-    submitMaster: "Перейти в панель",
     loading: "Проверка...",
     noAccountPrompt: "Еще нет аккаунта?",
     registerLink: "Зарегистрироваться",
@@ -165,7 +149,6 @@ const TRANSLATIONS: Record<Language, TranslationText> = {
     brandSubtitle: "AI-Powered Sales Automation Ecosystem",
     tabLogin: "Sign In",
     tabRegister: "Create Account",
-    tabMaster: "Master Password",
     orContinueWith: "or continue with",
     orWithEmail: "or with email address",
     telegramBtn: "Sign in with Telegram",
@@ -178,14 +161,10 @@ const TRANSLATIONS: Record<Language, TranslationText> = {
     passwordPlaceholder: "At least 6 characters",
     confirmPasswordLabel: "Confirm Password",
     confirmPasswordPlaceholder: "Repeat password",
-    masterPasswordLabel: "Administrator Master Password",
-    masterPasswordPlaceholder: "DASHBOARD_PASSWORD",
-    masterPasswordHint: "Direct access for store owners and platform managers",
     rememberMe: "Remember me",
     forgotPassword: "Forgot password?",
     submitLogin: "Sign In",
     submitRegister: "Get Started",
-    submitMaster: "Access Dashboard",
     loading: "Verifying...",
     noAccountPrompt: "Don't have an account?",
     registerLink: "Sign up",
@@ -213,7 +192,7 @@ export default function LoginPageClient({
 }: LoginPageClientProps) {
   const [lang, setLang] = useState<Language>("uz");
   const [mode, setMode] = useState<AuthMode>(
-    initialTab === "register" ? "register" : initialTab === "master" ? "master" : "login"
+    initialTab === "register" ? "register" : "login"
   );
 
   const getInitialErrorText = (code?: string): string | null => {
@@ -235,7 +214,6 @@ export default function LoginPageClient({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [masterPassword, setMasterPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
 
@@ -350,33 +328,6 @@ export default function LoginPageClient({
       const data = await res.json();
       if (!res.ok) {
         setError(data.detail || "Ro'yxatdan o'tishda xatolik yuz berdi");
-        setLoading(false);
-        return;
-      }
-
-      window.location.href = initialRedirect || "/dashboard";
-    } catch (err: any) {
-      setError("Tarmoq xatosi: " + err.message);
-      setLoading(false);
-    }
-  };
-
-  const handleMasterSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setInfoNotice(null);
-    setLoading(true);
-
-    try {
-      const res = await fetch("/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password: masterPassword }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.detail || "Boshqaruv paroli noto'g'ri");
         setLoading(false);
         return;
       }
@@ -504,18 +455,6 @@ export default function LoginPageClient({
           >
             {t.tabRegister}
           </button>
-          <button
-            type="button"
-            className={`selloi-tab-btn ${mode === "master" ? "active" : ""}`}
-            onClick={() => {
-              setMode("master");
-              setError(null);
-            }}
-            title={t.masterPasswordHint}
-          >
-            <KeyRound size={13} style={{ marginRight: "4px" }} />
-            {t.tabMaster}
-          </button>
         </div>
 
         {/* Error and Info Notices */}
@@ -534,8 +473,7 @@ export default function LoginPageClient({
         )}
 
         {/* Third-Party Fast Auth Options (Shown on Login & Register) */}
-        {mode !== "master" && (
-          <div className="selloi-social-auth-section">
+        <div className="selloi-social-auth-section">
             <button
               type="button"
               className="selloi-social-btn selloi-tg-btn"
@@ -591,7 +529,6 @@ export default function LoginPageClient({
               <span>{t.orWithEmail}</span>
             </div>
           </div>
-        )}
 
         {/* Form Mode 1: Login */}
         {mode === "login" && (
@@ -777,58 +714,6 @@ export default function LoginPageClient({
                 }}
               >
                 {t.loginLink}
-              </button>
-            </div>
-          </form>
-        )}
-
-        {/* Form Mode 3: Master Password */}
-        {mode === "master" && (
-          <form onSubmit={handleMasterSubmit} className="selloi-auth-form">
-            <div className="selloi-master-info-box">
-              <ShieldCheck size={20} className="text-danger flex-shrink-0" />
-              <div>
-                <strong>{t.masterPasswordLabel}</strong>
-                <p className="small mb-0 text-secondary">{t.masterPasswordHint}</p>
-              </div>
-            </div>
-
-            <div className="selloi-form-group">
-              <label className="selloi-form-label">{t.masterPasswordLabel}</label>
-              <div className="selloi-input-wrapper">
-                <KeyRound size={16} className="selloi-input-icon" />
-                <input
-                  type="password"
-                  className="selloi-input"
-                  placeholder={t.masterPasswordPlaceholder}
-                  value={masterPassword}
-                  onChange={(e) => setMasterPassword(e.target.value)}
-                  required
-                  autoFocus
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="selloi-btn-primary"
-              style={{ background: "#E02424" }}
-            >
-              <span>{loading ? t.loading : t.submitMaster}</span>
-              <ArrowRight size={16} />
-            </button>
-
-            <div className="selloi-auth-footer-prompt">
-              <button
-                type="button"
-                className="selloi-switch-mode-btn"
-                onClick={() => {
-                  setMode("login");
-                  setError(null);
-                }}
-              >
-                {t.backToHome}
               </button>
             </div>
           </form>

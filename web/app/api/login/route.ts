@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { timingSafeEqual } from "node:crypto";
 import { createSessionToken, SessionPayload, sessionCookieName, sessionTtlSeconds } from "@/lib/session";
 
 // In-memory rate limiting tracker: ip/identifier -> timestamp[]
@@ -25,7 +24,6 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const expectedDashboardPassword = process.env.DASHBOARD_PASSWORD || "";
   const secret = process.env.SESSION_SECRET || "";
   const backendUrl = process.env.BACKEND_URL || "http://127.0.0.1:8000";
 
@@ -128,22 +126,9 @@ export async function POST(request: NextRequest) {
     isTruePlatformOwner = false;
   }
 
-  // 2. Fallback to master DASHBOARD_PASSWORD if backend login did not match
+  // Master dashboard password login removed; require valid backend user credentials
   if (!backendToken) {
-    if (!expectedDashboardPassword) {
-      return NextResponse.json({ detail: "Email yoki parol noto'g'ri" }, { status: 401 });
-    }
-
-    const a = Buffer.from(expectedDashboardPassword);
-    const b = Buffer.from(supplied);
-    if (a.length !== b.length || !timingSafeEqual(a, b)) {
-      return NextResponse.json({ detail: "Parol noto'g'ri" }, { status: 401 });
-    }
-
-    authenticatedUserId = 1;
-    authenticatedFullName = "Bosh Administrator";
-    authenticatedRole = "owner";
-    isTruePlatformOwner = true;
+    return NextResponse.json({ detail: "Email yoki parol noto'g'ri" }, { status: 401 });
   }
 
   const sessionPayload: SessionPayload = {
