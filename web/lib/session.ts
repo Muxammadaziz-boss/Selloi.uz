@@ -11,6 +11,7 @@ export interface SessionPayload {
   username?: string;
   role?: string;
   isPlatformOwner?: boolean;
+  isPlatformAdmin?: boolean;
   organizationId?: number;
   backendToken?: string;
   issuedAt: number;

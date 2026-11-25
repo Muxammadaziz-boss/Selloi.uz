@@ -41,6 +41,7 @@ class User(Base):
     full_name: Mapped[str] = mapped_column(String(255), default="")
     telegram_user_id: Mapped[int | None] = mapped_column(BigInteger, unique=True, index=True, nullable=True)
     is_platform_owner: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    is_platform_admin: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false", nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)

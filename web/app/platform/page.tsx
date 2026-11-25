@@ -1,16 +1,6 @@
-import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { sessionCookieName, verifySession } from "@/lib/session";
-import Dashboard from "../Dashboard";
-
-export const metadata: Metadata = {
-  title: "Platforma boshqaruvi",
-  robots: {
-    index: false,
-    follow: false,
-  },
-};
 
 export default async function PlatformPage() {
   const cookieStore = await cookies();
@@ -18,23 +8,12 @@ export default async function PlatformPage() {
   const session = verifySession(token, process.env.SESSION_SECRET || "");
 
   if (!session) {
-    redirect("/login?redirect=/platform");
+    redirect("/login?redirect=/admin");
   }
 
-  return (
-    <Dashboard
-      initialAuthenticated={true}
-      initialUser={{
-        userId: session.userId,
-        telegramUserId: session.telegramUserId,
-        email: session.email,
-        fullName: session.fullName,
-        username: session.username,
-        role: session.role,
-        organizationId: session.organizationId,
-        isPlatformOwner: Boolean(session.isPlatformOwner),
-      }}
-      initialZone="platform"
-    />
-  );
+  if (!session.isPlatformOwner && !session.isPlatformAdmin) {
+    redirect("/dashboard");
+  }
+
+  redirect("/admin");
 }

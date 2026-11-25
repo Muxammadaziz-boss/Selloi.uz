@@ -56,6 +56,17 @@ async function proxy(request: NextRequest) {
     return NextResponse.json({ detail: "Noto'g'ri proxy formati" }, { status: 400 });
   }
 
+  // Strict 2-part separation at BFF layer: regular store owners cannot call /api/platform/*
+  if (path.startsWith("/api/platform")) {
+    const hasPlatformAccess = Boolean(sessionData?.isPlatformOwner || sessionData?.isPlatformAdmin);
+    if (!hasPlatformAccess) {
+      return NextResponse.json(
+        { detail: "Faqat Sayt egasi (Owner) yoki tayinlangan Sayt Admini kirishi mumkin" },
+        { status: 403 }
+      );
+    }
+  }
+
   // Request body payload size guard (max 10MB)
   const contentLength = Number(request.headers.get("content-length") || "0");
   if (contentLength > 10 * 1024 * 1024) {

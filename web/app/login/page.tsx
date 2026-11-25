@@ -33,20 +33,26 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get(sessionCookieName);
   const secret = process.env.SESSION_SECRET || "";
+  const resolvedParams = searchParams ? await searchParams : {};
 
   if (sessionCookie && secret) {
     const session = verifySession(sessionCookie.value, secret);
     if (session) {
-      const resolvedParams = searchParams ? await searchParams : {};
-      const targetUrl = resolvedParams.redirect || "/dashboard";
-      redirect(targetUrl);
+      const hasAdminAccess = Boolean(session.isPlatformOwner || session.isPlatformAdmin);
+      const requested = resolvedParams.redirect || "";
+      if (requested && requested.startsWith("/") && !requested.startsWith("//")) {
+        if ((requested.startsWith("/admin") || requested.startsWith("/platform")) && !hasAdminAccess) {
+          redirect("/dashboard");
+        }
+        redirect(requested);
+      }
+      redirect(hasAdminAccess ? "/admin" : "/dashboard");
     }
   }
 
-  const resolvedParams = searchParams ? await searchParams : {};
   return (
     <LoginPageClient
-      initialRedirect={resolvedParams.redirect || "/dashboard"}
+      initialRedirect={resolvedParams.redirect || ""}
       initialTab={resolvedParams.tab || "login"}
       initialError={resolvedParams.error}
     />

@@ -265,12 +265,16 @@ async def telegram_auth(payload: TelegramAuthRequest, db: AsyncSession = Depends
 @router.get("/auth/me")
 async def get_current_user_profile(current_user: User = Depends(get_current_user)):
     """Get profile of current logged-in user."""
+    is_owner = bool(current_user.is_platform_owner)
+    is_site_admin = bool(getattr(current_user, "is_platform_admin", False))
     return {
         "id": current_user.id,
         "email": current_user.email,
         "full_name": current_user.full_name,
         "telegram_user_id": current_user.telegram_user_id,
-        "is_platform_owner": current_user.is_platform_owner,
+        "is_platform_owner": is_owner,
+        "is_platform_admin": is_site_admin,
+        "has_platform_access": is_owner or is_site_admin,
     }
 
 

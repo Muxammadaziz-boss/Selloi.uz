@@ -18,9 +18,10 @@ import "./selloi-figma.css";
 
 interface LandingPageProps {
   isAuthenticated?: boolean;
+  isAdminSession?: boolean;
 }
 
-function LandingPageContent({ isAuthenticated = false }: LandingPageProps) {
+function LandingPageContent({ isAuthenticated = false, isAdminSession = false }: LandingPageProps) {
   const { language, setLanguage } = useLanguage();
   const t = SELLOI_I18N[language] || SELLOI_I18N.uz;
 
@@ -114,6 +115,7 @@ function LandingPageContent({ isAuthenticated = false }: LandingPageProps) {
           window.location.href = "/login";
         }}
         isAuthenticated={isAuthenticated}
+        isAdminSession={isAdminSession}
         language={language}
         onLanguageChange={setLanguage}
         t={t.nav}
@@ -173,10 +175,10 @@ function LandingPageContent({ isAuthenticated = false }: LandingPageProps) {
   );
 }
 
-export default function LandingPage({ isAuthenticated = false }: LandingPageProps) {
+export default function LandingPage({ isAuthenticated = false, isAdminSession = false }: LandingPageProps) {
   return (
     <LanguageProvider initialLanguage="uz">
-      <LandingPageContent isAuthenticated={isAuthenticated} />
+      <LandingPageContent isAuthenticated={isAuthenticated} isAdminSession={isAdminSession} />
     </LanguageProvider>
   );
 }

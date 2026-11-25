@@ -153,13 +153,25 @@ async def get_current_admin(
         if user.telegram_user_id:
             admin = await admin_service.get_admin_by_telegram_id(db, user.telegram_user_id)
 
-        # Platform owner fallback to owner admin
-        if admin is None and user.is_platform_owner:
-            if settings.admin_telegram_id:
+        # Platform owner or appointed site admin access
+        is_plat_owner = bool(user.is_platform_owner)
+        is_plat_admin = bool(getattr(user, "is_platform_admin", False))
+        if admin is None and (is_plat_owner or is_plat_admin):
+            if is_plat_owner and settings.admin_telegram_id:
                 admin = await admin_service.get_admin_by_telegram_id(db, settings.admin_telegram_id)
-            if admin is None:
+            if admin is None and is_plat_owner:
                 admin = await admin_service.ensure_owner(db)
                 await db.commit()
+            elif admin is None and is_plat_admin:
+                admin = Admin(
+                    id=user.id,
+                    organization_id=1,
+                    telegram_user_id=user.telegram_user_id or 0,
+                    name=user.full_name or user.email,
+                    role="admin",
+                    permissions=ROLE_DEFAULTS.get("admin", {}),
+                    is_active=True,
+                )
 
         if admin is not None:
             if not admin.is_active:
@@ -168,7 +180,8 @@ async def get_current_admin(
                     detail="Admin hisobi faol emas",
                 )
             admin._user = user
-            admin._is_platform_owner = user.is_platform_owner
+            admin._is_platform_owner = is_plat_owner
+            admin._is_platform_admin = is_plat_admin
             return admin
 
         # If user is an active organization member with admin privileges
@@ -191,7 +204,8 @@ async def get_current_admin(
                 is_active=True,
             )
             admin_obj._user = user
-            admin_obj._is_platform_owner = user.is_platform_owner
+            admin_obj._is_platform_owner = is_plat_owner
+            admin_obj._is_platform_admin = is_plat_admin
             return admin_obj
 
         raise HTTPException(
@@ -209,6 +223,7 @@ async def get_current_admin(
                 await db.commit()
         if owner is not None:
             owner._is_platform_owner = True
+            owner._is_platform_admin = True
             return owner
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

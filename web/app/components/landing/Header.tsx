@@ -9,6 +9,7 @@ interface HeaderProps {
   onOpenOnboarding: () => void;
   onOpenLogin: () => void;
   isAuthenticated?: boolean;
+  isAdminSession?: boolean;
   language: Language;
   onLanguageChange: (lang: Language) => void;
   t: SelloiTranslations["nav"];
@@ -38,6 +39,7 @@ export default function Header({
   onOpenOnboarding,
   onOpenLogin,
   isAuthenticated = false,
+  isAdminSession = false,
   language,
   onLanguageChange,
   t,
@@ -299,7 +301,7 @@ export default function Header({
             data-node-id="173:131"
             onClick={() => {
               if (isAuthenticated) {
-                window.location.href = "/dashboard";
+                window.location.href = isAdminSession ? "/admin" : "/dashboard";
               } else {
                 window.location.href = "/login";
               }

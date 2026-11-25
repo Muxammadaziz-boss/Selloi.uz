@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
       role: session.role,
       organizationId: session.organizationId,
       isPlatformOwner: Boolean(session.isPlatformOwner),
+      isPlatformAdmin: Boolean(session.isPlatformAdmin),
     },
   });
 }

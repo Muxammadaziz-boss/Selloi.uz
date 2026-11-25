@@ -33,6 +33,7 @@ export default async function DashboardPage() {
         role: session.role,
         organizationId: session.organizationId,
         isPlatformOwner: Boolean(session.isPlatformOwner),
+        isPlatformAdmin: Boolean(session.isPlatformAdmin),
       }}
       initialZone="tenant"
     />

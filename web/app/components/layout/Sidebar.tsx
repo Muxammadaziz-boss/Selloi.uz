@@ -65,6 +65,7 @@ export interface SidebarProps {
   collapsed: boolean;
   onToggleCollapse: () => void;
   isPlatformOwner?: boolean;
+  isStrictPlatformOwner?: boolean;
   zone: "store" | "platform";
   onSwitchZone: (zone: "store" | "platform") => void;
   platformSubTab?: PlatformSubTabId;
@@ -86,6 +87,7 @@ export function Sidebar({
   collapsed,
   onToggleCollapse,
   isPlatformOwner = false,
+  isStrictPlatformOwner = false,
   zone,
   onSwitchZone,
   platformSubTab = "overview",
@@ -267,13 +269,13 @@ export function Sidebar({
                   className="fw-bold text-primary text-truncate lh-1"
                   style={{ fontSize: "0.88rem", letterSpacing: "-0.01em" }}
                 >
-                  {zone === "platform" ? "Platform Owner" : storeName}
+                  {zone === "platform" ? (isStrictPlatformOwner ? "Sayt egasi (Owner)" : "Sayt Admini") : storeName}
                 </span>
                 <span
                   className="text-secondary small mt-1"
                   style={{ fontSize: "0.68rem", letterSpacing: "0.02em" }}
                 >
-                  {zone === "platform" ? "Super Admin Mode" : "Telegram AI Agent"}
+                  {zone === "platform" ? "Selloi Admin Panel" : "Do'kon Dashboardi"}
                 </span>
               </div>
             )}
@@ -490,7 +492,7 @@ export function Sidebar({
                 border: "1px solid var(--border-subtle)",
               }}
             >
-              {zone === "platform" ? "Platform Rejimi" : "Do'kon Rejimi"}
+              {zone === "platform" ? "Admin Panel" : "Do'kon Paneli"}
             </span>
             <IconSparkles size={13} style={{ color: "var(--accent)" }} />
           </div>
@@ -505,7 +507,7 @@ export function Sidebar({
               border: "1px solid var(--border-default)",
             }}
           >
-            {zone === "platform" ? "Do'konga qaytish" : "Platform boshqaruvi"}
+            {zone === "platform" ? "Do'kon Dashboardiga o'tish" : "Admin Panelga o'tish"}
           </button>
         </div>
       )}

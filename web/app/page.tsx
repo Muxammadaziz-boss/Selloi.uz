@@ -59,6 +59,7 @@ export default async function Home() {
   const cookieStore = await cookies();
   const token = cookieStore.get(sessionCookieName)?.value;
   const session = verifySession(token, process.env.SESSION_SECRET || "");
+  const isAdminSession = Boolean(session?.isPlatformOwner || session?.isPlatformAdmin);
 
-  return <LandingPage isAuthenticated={!!session} />;
+  return <LandingPage isAuthenticated={!!session} isAdminSession={isAdminSession} />;
 }

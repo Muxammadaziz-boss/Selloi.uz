@@ -601,6 +601,7 @@ export interface DashboardUser {
   role?: string;
   organizationId?: number;
   isPlatformOwner?: boolean;
+  isPlatformAdmin?: boolean;
 }
 
 export interface DashboardProps {
@@ -625,14 +626,20 @@ function DashboardContent({
   const permissionCategories = language === "uz" ? PERMISSION_CATEGORIES_UZ : PERMISSION_CATEGORIES_EN;
   const [currentUser, setCurrentUser] = useState<DashboardUser | null>(initialUser);
   const isPlatformOwner = Boolean(currentUser?.isPlatformOwner);
+  const isPlatformAdmin = Boolean(currentUser?.isPlatformAdmin);
+  const hasPlatformAccess = isPlatformOwner || isPlatformAdmin;
 
   const [zone, setZone] = useState<"platform" | "tenant">(() => {
-    if (initialZone) return initialZone;
+    if (initialZone) {
+      return initialZone === "platform" && !hasPlatformAccess ? "tenant" : initialZone;
+    }
     if (typeof window !== "undefined") {
-      if (window.location.pathname.startsWith("/platform")) return "platform";
+      if ((window.location.pathname.startsWith("/admin") || window.location.pathname.startsWith("/platform")) && hasPlatformAccess) {
+        return "platform";
+      }
       if (window.location.pathname.startsWith("/t/")) return "tenant";
     }
-    return isPlatformOwner ? "platform" : "tenant";
+    return hasPlatformAccess ? "platform" : "tenant";
   });
 
   const [platformSubTab, setPlatformSubTab] = useState<
@@ -892,7 +899,7 @@ function DashboardContent({
             setAuthenticated(true);
             if (data.user) {
               setCurrentUser(data.user);
-              if (data.user.isPlatformOwner && !initialZone) {
+              if ((data.user.isPlatformOwner || data.user.isPlatformAdmin) && !initialZone) {
                 setZone("platform");
               }
             }
@@ -926,18 +933,26 @@ function DashboardContent({
 
     const syncFromUrl = () => {
       if (typeof window === "undefined") return;
-      if (window.location.pathname.startsWith("/platform")) {
+      if ((window.location.pathname.startsWith("/admin") || window.location.pathname.startsWith("/platform")) && hasPlatformAccess) {
         setZone("platform");
-      } else if (window.location.pathname.startsWith("/t/")) {
+      } else if (window.location.pathname.startsWith("/t/") || window.location.pathname.startsWith("/dashboard")) {
         setZone("tenant");
       }
       const h = window.location.hash.replace("#", "") as (typeof validTabs)[number];
       if (h && validTabs.includes(h)) {
-        setTab(h);
         if (h === "platform") {
-          setZone("platform");
-        } else if (h !== "profile") {
-          setZone("tenant");
+          if (hasPlatformAccess) {
+            setTab("platform");
+            setZone("platform");
+          } else {
+            setTab("overview");
+            setZone("tenant");
+          }
+        } else {
+          setTab(h);
+          if (h !== "profile") {
+            setZone("tenant");
+          }
         }
       }
     };
@@ -1170,7 +1185,7 @@ function DashboardContent({
       setAuthenticated(true);
       if (data.user) {
         setCurrentUser(data.user);
-        if (data.user.isPlatformOwner && !initialZone) {
+        if ((data.user.isPlatformOwner || data.user.isPlatformAdmin) && !initialZone) {
           setZone("platform");
         }
       }
@@ -1577,14 +1592,48 @@ function DashboardContent({
   const handleExitStore = () => {
     if (typeof window !== "undefined") {
       localStorage.removeItem("owner_impersonating_store");
-      window.history.pushState(null, "", "/platform");
+      window.history.pushState(null, "", "/admin");
     }
     setIsOwnerImpersonating(false);
     setActiveStoreMeta(null);
     setZone("platform");
     setPlatformSubTab("stores");
-    setSuccess("Platforma boshqaruviga qaytildi.");
+    setSuccess("Admin panelga qaytildi.");
     loadPlatformData();
+  };
+
+  const handleAppointSiteAdmin = async (email: string, fullName?: string) => {
+    setBusy(true);
+    try {
+      await api("/api/platform/site-admins", {
+        method: "POST",
+        body: JSON.stringify({ email, full_name: fullName || "" }),
+      });
+      setSuccess(`${email} Sayt Admini sifatida tayinlandi!`);
+      await loadPlatformData();
+    } catch (err: any) {
+      setError(err.message || "Sayt adminini tayinlashda xatolik");
+      throw err;
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleToggleSiteAdmin = async (userId: number, makeAdmin: boolean) => {
+    setBusy(true);
+    try {
+      await api(`/api/platform/users/${userId}/platform-admin`, {
+        method: "PATCH",
+        body: JSON.stringify({ is_platform_admin: makeAdmin }),
+      });
+      setSuccess(makeAdmin ? "Sayt Admini huquqi berildi!" : "Sayt Admini huquqi olib tashlandi.");
+      await loadPlatformData();
+    } catch (err: any) {
+      setError(err.message || "Foydalanuvchi rolini yangilashda xatolik");
+      throw err;
+    } finally {
+      setBusy(false);
+    }
   };
 
   const handleCreateStore = async (payload: any) => {
@@ -2191,6 +2240,9 @@ function DashboardContent({
       <AppShell
         activeTab={tab}
         onSelectTab={(newTab) => {
+          if (newTab === "platform" && !hasPlatformAccess) {
+            return;
+          }
           setTab(newTab);
           if (newTab === "platform") {
             setZone("platform");
@@ -2215,13 +2267,23 @@ function DashboardContent({
         onToggleTheme={toggleTheme}
         loading={loading}
         onRefresh={load}
-        isPlatformOwner={isPlatformOwner}
-        zone={zone === "platform" ? "platform" : "store"}
+        isPlatformOwner={hasPlatformAccess}
+        isStrictPlatformOwner={isPlatformOwner}
+        zone={zone === "platform" && hasPlatformAccess ? "platform" : "store"}
         onSwitchZone={(z) => {
           if (z === "platform") {
+            if (!hasPlatformAccess) return;
+            if (typeof window !== "undefined" && !window.location.pathname.startsWith("/admin")) {
+              window.location.href = "/admin";
+              return;
+            }
             setZone("platform");
             setTab("platform");
           } else {
+            if (typeof window !== "undefined" && (window.location.pathname.startsWith("/admin") || window.location.pathname.startsWith("/platform"))) {
+              window.location.href = "/dashboard";
+              return;
+            }
             setZone("tenant");
             setTab("overview");
           }
@@ -2240,8 +2302,8 @@ function DashboardContent({
         breadcrumb={breadcrumb}
         tabTitle={tabTitle}
       >
-        {/* Sticky Impersonation Banner if Platform Owner is exploring a store */}
-        {zone === "tenant" && (isOwnerImpersonating || isPlatformOwner) && (
+        {/* Sticky Impersonation Banner if Owner/Admin is exploring a store */}
+        {zone === "tenant" && (isOwnerImpersonating || hasPlatformAccess) && (
           <div
             className="p-2.5 px-3 mb-3 rounded-2 d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2.5 border"
             style={{
@@ -2316,7 +2378,7 @@ function DashboardContent({
         )}
 
         {/* Tab Modules */}
-        {(zone === "platform" || tab === "platform") && tab !== "profile" ? (
+        {(zone === "platform" || tab === "platform") && hasPlatformAccess && tab !== "profile" ? (
           <PlatformOwnerTab
             subTab={platformSubTab}
             metrics={platformMetrics}
@@ -2325,6 +2387,7 @@ function DashboardContent({
             systemHealth={systemHealth}
             auditLogs={auditLogs}
             loading={loading}
+            isCurrentUserOwner={isPlatformOwner}
             onRefresh={loadPlatformData}
             onUpdatePlan={handleUpdatePlanConfig}
             onEnterStore={handleEnterStore}
@@ -2332,6 +2395,8 @@ function DashboardContent({
             onCreateStore={handleCreateStore}
             onUpdateStoreStatus={handleUpdateStoreStatus}
             onDeleteStore={handleDeleteStore}
+            onAppointSiteAdmin={handleAppointSiteAdmin}
+            onToggleSiteAdmin={handleToggleSiteAdmin}
           />
         ) : (
           <>

@@ -18,6 +18,7 @@ export interface AppShellProps {
   loading: boolean;
   onRefresh: () => void;
   isPlatformOwner?: boolean;
+  isStrictPlatformOwner?: boolean;
   zone: "store" | "platform";
   onSwitchZone: (zone: "store" | "platform") => void;
   platformSubTab?: PlatformSubTabId;
@@ -51,6 +52,7 @@ export function AppShell({
   loading,
   onRefresh,
   isPlatformOwner = false,
+  isStrictPlatformOwner = false,
   zone,
   onSwitchZone,
   platformSubTab,
@@ -98,6 +100,7 @@ export function AppShell({
         collapsed={collapsed}
         onToggleCollapse={() => setCollapsed(!collapsed)}
         isPlatformOwner={isPlatformOwner}
+        isStrictPlatformOwner={isStrictPlatformOwner}
         zone={zone}
         onSwitchZone={(z) => {
           onSwitchZone(z);

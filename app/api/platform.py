@@ -44,37 +44,61 @@ logger = get_logger(__name__)
 router = APIRouter(prefix="/api/platform", tags=["platform"])
 
 
+async def _resolve_request_user(admin: Admin, db: AsyncSession) -> User | None:
+    user = getattr(admin, "_user", None)
+    if user is not None:
+        return user
+    user = await db.get(User, admin.id)
+    if user is not None:
+        return user
+    if admin.telegram_user_id:
+        u_res = await db.execute(select(User).where(User.telegram_user_id == admin.telegram_user_id))
+        return u_res.scalar_one_or_none()
+    return None
+
+
 async def require_platform_owner(
     admin: Admin = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db),
 ) -> Admin:
-    """Ensure user is true platform owner or master admin.
+    """Ensure user is Platform Owner or an Owner-appointed Site Admin.
 
-    Checks:
-    1. Runtime _is_platform_owner flag attached by auth dependency.
-    2. Admin telegram user ID matching settings.admin_telegram_id.
-    3. User.is_platform_owner == True in database.
-    Rejects tenant owners whose role is merely 'owner' in their local organization.
+    Rejects regular store/tenant owners whose role is merely 'owner' inside their own shop.
     """
+    if getattr(admin, "_is_platform_owner", False) or getattr(admin, "_is_platform_admin", False):
+        return admin
+
+    if settings.admin_telegram_id and admin.telegram_user_id == settings.admin_telegram_id:
+        return admin
+
+    user = await _resolve_request_user(admin, db)
+    if user and (user.is_platform_owner or getattr(user, "is_platform_admin", False)):
+        return admin
+
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Faqat Sayt egasi (Owner) yoki tayinlangan Sayt Admini kirishi mumkin",
+    )
+
+
+async def require_strict_owner(
+    admin: Admin = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+) -> Admin:
+    """Ensure caller is strictly the Platform Owner (not an appointed Site Admin)."""
     if getattr(admin, "_is_platform_owner", False):
         return admin
 
     if settings.admin_telegram_id and admin.telegram_user_id == settings.admin_telegram_id:
         return admin
 
-    user = await db.get(User, admin.id)
+    user = await _resolve_request_user(admin, db)
     if user and user.is_platform_owner:
         return admin
 
-    if admin.telegram_user_id:
-        u_res = await db.execute(select(User).where(User.telegram_user_id == admin.telegram_user_id))
-        u = u_res.scalar_one_or_none()
-        if u and u.is_platform_owner:
-            return admin
-
     raise HTTPException(
         status_code=status.HTTP_403_FORBIDDEN,
-        detail="Faqat Platforma egasi (Platform Owner) kirishi mumkin",
+        detail="Bu amalni faqat Sayt egasi (Platform Owner) bajarishi mumkin",
     )
 
 
@@ -1186,11 +1210,123 @@ async def get_all_users(
                 "full_name": u.full_name,
                 "telegram_user_id": u.telegram_user_id,
                 "is_platform_owner": u.is_platform_owner,
+                "is_platform_admin": bool(getattr(u, "is_platform_admin", False)),
                 "is_active": u.is_active,
                 "created_at": u.created_at.isoformat() if u.created_at else None,
             }
             for u in users
         ]
+    }
+
+
+class SiteAdminAppointRequest(BaseModel):
+    email: str
+    full_name: str = ""
+
+
+class SiteAdminToggleRequest(BaseModel):
+    is_platform_admin: bool
+
+
+@router.post("/site-admins")
+async def appoint_site_admin_by_email(
+    payload: SiteAdminAppointRequest,
+    owner: Admin = Depends(require_strict_owner),
+    db: AsyncSession = Depends(get_db),
+):
+    """Owner-only: Appoint an existing or new email as an authorized Sayt Admini."""
+    clean_email = payload.email.strip().lower()
+    if not clean_email or "@" not in clean_email or "." not in clean_email.split("@")[-1]:
+        raise HTTPException(status_code=400, detail="Noto'g'ri email manzil")
+    res = await db.execute(select(User).where(User.email == clean_email))
+    target = res.scalar_one_or_none()
+    if target is None:
+        target = User(
+            email=clean_email,
+            full_name=payload.full_name.strip() or clean_email.split("@")[0],
+            hashed_password="",
+            is_platform_owner=False,
+            is_platform_admin=True,
+            is_active=True,
+        )
+        db.add(target)
+        await db.flush()
+    else:
+        if target.is_platform_owner:
+            raise HTTPException(status_code=400, detail="Bu foydalanuvchi allaqachon Sayt egasi (Owner)")
+        target.is_platform_admin = True
+        target.is_active = True
+        if payload.full_name.strip() and not target.full_name:
+            target.full_name = payload.full_name.strip()
+        target.token_version = (getattr(target, "token_version", 1) or 1) + 1
+
+    db.add(
+        AuditLog(
+            organization_id=None,
+            user_id=getattr(getattr(owner, "_user", None), "id", None),
+            action="APPOINT_SITE_ADMIN",
+            resource="user",
+            resource_id=str(target.id),
+            metadata_json={"email": target.email},
+        )
+    )
+    await db.commit()
+    await db.refresh(target)
+    return {
+        "ok": True,
+        "user": {
+            "id": target.id,
+            "email": target.email,
+            "full_name": target.full_name,
+            "telegram_user_id": target.telegram_user_id,
+            "is_platform_owner": target.is_platform_owner,
+            "is_platform_admin": target.is_platform_admin,
+            "is_active": target.is_active,
+            "created_at": target.created_at.isoformat() if target.created_at else None,
+        },
+    }
+
+
+@router.patch("/users/{user_id}/platform-admin")
+async def toggle_site_admin_access(
+    user_id: int,
+    payload: SiteAdminToggleRequest,
+    owner: Admin = Depends(require_strict_owner),
+    db: AsyncSession = Depends(get_db),
+):
+    """Owner-only: Grant or revoke Sayt Admini access for a registered user."""
+    target = await db.get(User, user_id)
+    if target is None:
+        raise HTTPException(status_code=404, detail="Foydalanuvchi topilmadi")
+    if target.is_platform_owner:
+        raise HTTPException(status_code=400, detail="Platforma egasining rolini o'zgartirib bo'lmaydi")
+
+    target.is_platform_admin = bool(payload.is_platform_admin)
+    target.token_version = (getattr(target, "token_version", 1) or 1) + 1
+    db.add(
+        AuditLog(
+            organization_id=None,
+            user_id=getattr(getattr(owner, "_user", None), "id", None),
+            action="APPOINT_SITE_ADMIN" if target.is_platform_admin else "REVOKE_SITE_ADMIN",
+            resource="user",
+            resource_id=str(target.id),
+            metadata_json={"email": target.email, "is_platform_admin": target.is_platform_admin},
+        )
+    )
+    await db.commit()
+    await db.refresh(target)
+    return {
+        "ok": True,
+        "user": {
+            "id": target.id,
+            "email": target.email,
+            "full_name": target.full_name,
+            "telegram_user_id": target.telegram_user_id,
+            "is_platform_owner": target.is_platform_owner,
+            "is_platform_admin": target.is_platform_admin,
+            "is_active": target.is_active,
+            "created_at": target.created_at.isoformat() if target.created_at else None,
+        },
     }
 
 

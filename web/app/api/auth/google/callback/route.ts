@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createSessionToken, SessionPayload, sessionCookieName, sessionTtlSeconds } from "@/lib/session";
+import { buildVerifiedSessionPayload, attachSessionCookie } from "@/lib/authSession";
 
 function getBaseUrl(request: NextRequest): string {
   const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || "selloi.uz";
@@ -84,28 +84,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL("/login?error=google_register_failed", baseUrl));
     }
 
-    const sessionPayload: SessionPayload = {
+    const { payload, defaultRedirect } = await buildVerifiedSessionPayload({
+      backendUrl,
+      backendToken: data.access_token,
       userId: data.user_id,
       telegramUserId: data.telegram_user_id,
       email: data.email,
-      fullName: data.full_name || name,
-      role: "owner",
-      isPlatformOwner: false,
-      backendToken: data.access_token,
-      issuedAt: Math.floor(Date.now() / 1000),
-    };
-
-    const redirectTarget = new URL("/dashboard", baseUrl);
-    const response = NextResponse.redirect(redirectTarget);
-
-    response.cookies.set(sessionCookieName, createSessionToken(sessionPayload, secret), {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: sessionTtlSeconds,
+      fullName: data.full_name || fullName,
     });
 
+    const redirectTarget = new URL(defaultRedirect, baseUrl);
+    const response = NextResponse.redirect(redirectTarget);
+    attachSessionCookie(response, payload, secret);
     return response;
   } catch (err) {
     return NextResponse.redirect(new URL("/login?error=google_error", baseUrl));

@@ -247,7 +247,7 @@ export default function LoginPageClient({
           setTelegramAuthSuccess(true);
           clearInterval(interval);
           setTimeout(() => {
-            window.location.href = initialRedirect || "/dashboard";
+            window.location.href = (initialRedirect && initialRedirect.trim()) || data.redirect || "/dashboard";
           }, 800);
         } else if (isSubscribed && res.status === 404) {
           setError(data.detail || "Sessiya muddati tugadi. Iltimos, qaytadan urinib ko'ring.");
@@ -290,7 +290,7 @@ export default function LoginPageClient({
         return;
       }
 
-      window.location.href = initialRedirect || "/dashboard";
+      window.location.href = (initialRedirect && initialRedirect.trim()) || data.redirect || "/dashboard";
     } catch (err: any) {
       setError("Tarmoq xatosi: " + err.message);
       setLoading(false);
@@ -332,7 +332,7 @@ export default function LoginPageClient({
         return;
       }
 
-      window.location.href = initialRedirect || "/dashboard";
+      window.location.href = (initialRedirect && initialRedirect.trim()) || data.redirect || "/dashboard";
     } catch (err: any) {
       setError("Tarmoq xatosi: " + err.message);
       setLoading(false);

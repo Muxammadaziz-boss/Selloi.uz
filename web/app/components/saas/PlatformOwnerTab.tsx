@@ -65,6 +65,7 @@ export interface PlatformUser {
   full_name?: string;
   telegram_user_id?: number;
   is_platform_owner: boolean;
+  is_platform_admin?: boolean;
   is_active: boolean;
   created_at?: string;
 }
@@ -97,6 +98,7 @@ interface PlatformOwnerTabProps {
   systemHealth?: PlatformSystemHealth | null;
   auditLogs?: PlatformAuditLog[];
   loading: boolean;
+  isCurrentUserOwner?: boolean;
   onRefresh: () => void;
   onUpdatePlan: (planCode: string, payload: any) => Promise<void>;
   onEnterStore?: (store: OrganizationProfitability) => void;
@@ -104,6 +106,8 @@ interface PlatformOwnerTabProps {
   onCreateStore?: (payload: any) => Promise<any>;
   onUpdateStoreStatus?: (storeId: number, status: string) => Promise<void>;
   onDeleteStore?: (storeId: number) => Promise<void>;
+  onAppointSiteAdmin?: (email: string, fullName?: string) => Promise<void>;
+  onToggleSiteAdmin?: (userId: number, makeAdmin: boolean) => Promise<void>;
 }
 
 export function PlatformOwnerTab({
@@ -114,6 +118,7 @@ export function PlatformOwnerTab({
   systemHealth = null,
   auditLogs = [],
   loading,
+  isCurrentUserOwner = false,
   onRefresh,
   onUpdatePlan,
   onEnterStore,
@@ -121,6 +126,8 @@ export function PlatformOwnerTab({
   onCreateStore,
   onUpdateStoreStatus,
   onDeleteStore,
+  onAppointSiteAdmin,
+  onToggleSiteAdmin,
 }: PlatformOwnerTabProps) {
   const [editingPlanCode, setEditingPlanCode] = useState<string | null>(null);
   const [newMonthlyPrice, setNewMonthlyPrice] = useState<number>(59);
@@ -128,6 +135,9 @@ export function PlatformOwnerTab({
   const [saveBusy, setSaveBusy] = useState(false);
   const [storeSearch, setStoreSearch] = useState("");
   const [userSearch, setUserSearch] = useState("");
+  const [newAdminEmail, setNewAdminEmail] = useState("");
+  const [newAdminName, setNewAdminName] = useState("");
+  const [adminActionBusy, setAdminActionBusy] = useState(false);
 
   // Create store modal state
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -745,75 +755,170 @@ export function PlatformOwnerTab({
         </Card>
       )}
 
-      {/* SUBTAB: USERS */}
+      {/* SUBTAB: USERS & SITE ADMINS */}
       {subTab === "users" && (
-        <Card>
-          <CardHeader
-            actions={
-              <div style={{ minWidth: "220px" }}>
-                <input
-                  type="text"
-                  className="linear-input"
-                  placeholder="Email yoki ism bo'yicha qidirish..."
-                  value={userSearch}
-                  onChange={(e) => setUserSearch(e.target.value)}
-                />
-              </div>
-            }
-          >
-            <CardTitle>Platforma Foydalanuvchilari</CardTitle>
-          </CardHeader>
-          <div className="table-responsive">
-            <table className="linear-table">
-              <thead>
-                <tr>
-                  <th>Foydalanuvchi</th>
-                  <th>Telegram ID</th>
-                  <th>Roli</th>
-                  <th>Holati</th>
-                  <th>Ro'yxatdan o'tgan</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredUsers.map((u) => (
-                  <tr key={u.id}>
-                    <td>
-                      <div className="fw-semibold text-primary">{u.full_name || u.email}</div>
-                      <div className="text-secondary small font-monospace" style={{ fontSize: "0.75rem" }}>
-                        {u.email}
-                      </div>
-                    </td>
-                    <td className="font-monospace text-secondary small">
-                      {u.telegram_user_id ? String(u.telegram_user_id) : "-"}
-                    </td>
-                    <td>
-                      {u.is_platform_owner ? (
-                        <Badge variant="warning">Platform Owner</Badge>
-                      ) : (
-                        <Badge variant="default">User</Badge>
-                      )}
-                    </td>
-                    <td>
-                      <Badge variant={u.is_active ? "success" : "danger"}>
-                        {u.is_active ? "Faol" : "Nofaol"}
-                      </Badge>
-                    </td>
-                    <td className="text-secondary small font-monospace">
-                      {u.created_at ? new Date(u.created_at).toLocaleDateString() : "-"}
-                    </td>
-                  </tr>
-                ))}
-                {filteredUsers.length === 0 && (
+        <div className="d-flex flex-column gap-3">
+          {isCurrentUserOwner && onAppointSiteAdmin && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Sayt Adminini Tayinlash (Faqat Owner)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form
+                  className="row g-2 align-items-end"
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    if (!newAdminEmail.trim()) return;
+                    setAdminActionBusy(true);
+                    try {
+                      await onAppointSiteAdmin(newAdminEmail.trim(), newAdminName.trim());
+                      setNewAdminEmail("");
+                      setNewAdminName("");
+                    } catch {
+                      // Error handled by parent toast
+                    } finally {
+                      setAdminActionBusy(false);
+                    }
+                  }}
+                >
+                  <div className="col-12 col-md-5">
+                    <label className="text-secondary small fw-medium mb-1 d-block">
+                      Email manzil (Google yoki oddiy kirish uchun) *
+                    </label>
+                    <input
+                      type="email"
+                      className="linear-input"
+                      placeholder="admin@gmail.com"
+                      value={newAdminEmail}
+                      onChange={(e) => setNewAdminEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="col-12 col-md-4">
+                    <label className="text-secondary small fw-medium mb-1 d-block">
+                      To'liq ismi (ixtiyoriy)
+                    </label>
+                    <input
+                      type="text"
+                      className="linear-input"
+                      placeholder="Masalan: Sardor"
+                      value={newAdminName}
+                      onChange={(e) => setNewAdminName(e.target.value)}
+                    />
+                  </div>
+                  <div className="col-12 col-md-3">
+                    <Button
+                      variant="primary"
+                      type="submit"
+                      disabled={adminActionBusy}
+                      icon={<IconShieldLock size={15} />}
+                      className="w-100"
+                    >
+                      {adminActionBusy ? "Saqlanmoqda..." : "Admin tayinlash"}
+                    </Button>
+                  </div>
+                </form>
+                <div className="text-secondary small mt-2">
+                  Faqat siz (Sayt egasi) tayinlagan odamlar <code>/admin</code> paneliga kira oladi. Oddiy do'kon egalari faqat <code>/dashboard</code> ga kiradi.
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          <Card>
+            <CardHeader
+              actions={
+                <div style={{ minWidth: "220px" }}>
+                  <input
+                    type="text"
+                    className="linear-input"
+                    placeholder="Email yoki ism bo'yicha qidirish..."
+                    value={userSearch}
+                    onChange={(e) => setUserSearch(e.target.value)}
+                  />
+                </div>
+              }
+            >
+              <CardTitle>Sayt Adminlari va Do'kon Egalari</CardTitle>
+            </CardHeader>
+            <div className="table-responsive">
+              <table className="linear-table">
+                <thead>
                   <tr>
-                    <td colSpan={5} className="text-center py-4 text-secondary">
-                      Foydalanuvchilar topilmadi
-                    </td>
+                    <th>Foydalanuvchi</th>
+                    <th>Telegram ID</th>
+                    <th>Roli</th>
+                    <th>Holati</th>
+                    <th>Ro'yxatdan o'tgan</th>
+                    {isCurrentUserOwner && <th className="text-end">Admin huquqi</th>}
                   </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+                </thead>
+                <tbody>
+                  {filteredUsers.map((u) => (
+                    <tr key={u.id}>
+                      <td>
+                        <div className="fw-semibold text-primary">{u.full_name || u.email}</div>
+                        <div className="text-secondary small font-monospace" style={{ fontSize: "0.75rem" }}>
+                          {u.email}
+                        </div>
+                      </td>
+                      <td className="font-monospace text-secondary small">
+                        {u.telegram_user_id ? String(u.telegram_user_id) : "-"}
+                      </td>
+                      <td>
+                        {u.is_platform_owner ? (
+                          <Badge variant="warning">Sayt egasi (Owner)</Badge>
+                        ) : u.is_platform_admin ? (
+                          <Badge variant="info">Sayt Admini</Badge>
+                        ) : (
+                          <Badge variant="default">Do'kon egasi</Badge>
+                        )}
+                      </td>
+                      <td>
+                        <Badge variant={u.is_active ? "success" : "danger"}>
+                          {u.is_active ? "Faol" : "Nofaol"}
+                        </Badge>
+                      </td>
+                      <td className="text-secondary small font-monospace">
+                        {u.created_at ? new Date(u.created_at).toLocaleDateString() : "-"}
+                      </td>
+                      {isCurrentUserOwner && (
+                        <td className="text-end">
+                          {!u.is_platform_owner && onToggleSiteAdmin ? (
+                            <Button
+                              variant={u.is_platform_admin ? "secondary" : "primary"}
+                              size="sm"
+                              disabled={adminActionBusy}
+                              onClick={async () => {
+                                setAdminActionBusy(true);
+                                try {
+                                  await onToggleSiteAdmin(u.id, !u.is_platform_admin);
+                                } finally {
+                                  setAdminActionBusy(false);
+                                }
+                              }}
+                            >
+                              {u.is_platform_admin ? "Adminlikdan olish" : "Sayt admini qilish"}
+                            </Button>
+                          ) : (
+                            <span className="text-secondary small">-</span>
+                          )}
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                  {filteredUsers.length === 0 && (
+                    <tr>
+                      <td colSpan={isCurrentUserOwner ? 6 : 5} className="text-center py-4 text-secondary">
+                        Foydalanuvchilar topilmadi
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </div>
       )}
 
       {/* SUBTAB: PLANS (OWNER PRICING STUDIO) */}
