@@ -76,6 +76,64 @@ async def _extract_voice_transcript(
     return ""
 
 
+def _has_image_attachment(message: dict) -> bool:
+    if isinstance(message.get("photo"), list) and len(message["photo"]) > 0:
+        return True
+    doc = message.get("document")
+    if isinstance(doc, dict) and str(doc.get("mime_type") or "").startswith("image/"):
+        return True
+    return False
+
+
+async def _extract_visual_search_context(
+    message: dict,
+    *,
+    tg_svc: TelegramService | None,
+    org_id: int | None,
+    db: AsyncSession,
+) -> tuple[str, str]:
+    """Download customer photo/image document and generate a visual catalog search query."""
+    if not tg_svc:
+        return "", ""
+
+    file_id: str | None = None
+    mime_type = "image/jpeg"
+    photos = message.get("photo")
+    if isinstance(photos, list) and len(photos) > 0:
+        largest = photos[-1] if isinstance(photos[-1], dict) else {}
+        file_id = largest.get("file_id")
+    else:
+        doc = message.get("document")
+        if isinstance(doc, dict) and str(doc.get("mime_type") or "").startswith("image/"):
+            file_id = doc.get("file_id")
+            mime_type = str(doc.get("mime_type") or "image/jpeg")
+
+    if not file_id:
+        return "", ""
+
+    try:
+        image_bytes, _ = await tg_svc.download_file_bytes(file_id)
+        visual_desc = await knowledge.describe_image(
+            image_bytes,
+            mime_type=mime_type,
+            organization_id=org_id,
+            db=db,
+        )
+        visual_desc = (visual_desc or "").strip()
+        if not visual_desc:
+            return "", ""
+
+        caption = (message.get("caption") or "").strip()
+        search_query = f"{caption} {visual_desc}".strip()[:600]
+        formatted_msg = f"📷 [Rasm: {visual_desc}]"
+        if caption:
+            formatted_msg += f"\n💬 Izoh: {caption}"
+        return formatted_msg, search_query
+    except Exception as exc:
+        logger.warning("Mijoz rasmini katalog qidiruvi uchun tahlil qilishda xatolik: %s", exc)
+        return "", ""
+
+
 _PROCESSED_UPDATES: OrderedDict[int, float] = OrderedDict()
 _PENDING_TOKENS: dict[int, tuple[float, str]] = {}
 _MAX_PROCESSED_UPDATES = 10000
@@ -507,7 +565,10 @@ async def _handle_business_message(message: dict, db: AsyncSession | None = None
             username=sender.get("username"),
             organization_id=org_id,
         )
-        if not incoming_text.strip() and (message.get("voice") or message.get("audio") or message.get("video_note")):
+        visual_search_query = ""
+        if _has_image_attachment(message) or (
+            not incoming_text.strip() and (message.get("voice") or message.get("audio") or message.get("video_note"))
+        ):
             already_msg = (
                 await session.execute(
                     select(Message.id).where(
@@ -517,12 +578,23 @@ async def _handle_business_message(message: dict, db: AsyncSession | None = None
                 )
             ).scalar_one_or_none()
             if already_msg is None:
-                incoming_text = await _extract_voice_transcript(
-                    message,
-                    tg_svc=tg_svc,
-                    org_id=org_id,
-                    db=session,
-                )
+                if _has_image_attachment(message):
+                    vis_text, vis_query = await _extract_visual_search_context(
+                        message,
+                        tg_svc=tg_svc,
+                        org_id=org_id,
+                        db=session,
+                    )
+                    if vis_text:
+                        incoming_text = vis_text
+                        visual_search_query = vis_query
+                elif not incoming_text.strip():
+                    incoming_text = await _extract_voice_transcript(
+                        message,
+                        tg_svc=tg_svc,
+                        org_id=org_id,
+                        db=session,
+                    )
         incoming_saved = await save_message(
             session,
             conversation_id=conversation.id,
@@ -623,12 +695,35 @@ async def _handle_business_message(message: dict, db: AsyncSession | None = None
         stop_typing = asyncio.Event()
         typing_task = asyncio.create_task(_typing_loop(chat_id_int, connection_id, stop_typing, tg_svc=tg_svc))
         try:
-            if sales_ai.is_greeting(incoming_text):
+            query_for_catalog = visual_search_query or incoming_text
+            if not visual_search_query and sales_ai.is_greeting(incoming_text):
                 evidence = []
                 decision = await sales_ai.answer(incoming_text, evidence, history, organization_id=org_id, db=session)
             else:
-                evidence = await knowledge.search(session, incoming_text, limit=6, organization_id=org_id)
-                decision = await sales_ai.answer(incoming_text, evidence, history, organization_id=org_id, db=session)
+                evidence = await knowledge.search(session, query_for_catalog, limit=6, organization_id=org_id)
+                matched_products = await knowledge.search_products(session, query_for_catalog, limit=5, organization_id=org_id)
+                answer_kwargs: dict = {}
+                if matched_products:
+                    answer_kwargs["extra_products"] = [
+                        {
+                            "code": p.code,
+                            "name": p.name,
+                            "category": p.category,
+                            "price": p.price,
+                            "specs": p.specs,
+                            "stock": p.stock,
+                            "warranty": p.warranty,
+                        }
+                        for p in matched_products
+                    ]
+                decision = await sales_ai.answer(
+                    incoming_text,
+                    evidence,
+                    history,
+                    organization_id=org_id,
+                    db=session,
+                    **answer_kwargs,
+                )
         finally:
             stop_typing.set()
             typing_task.cancel()
@@ -861,7 +956,18 @@ async def _handle_direct_bot_message(message: dict, db: AsyncSession, organizati
     except Exception:
         tg_svc = None
 
-    if not text and (message.get("voice") or message.get("audio") or message.get("video_note")):
+    visual_search_query = ""
+    if _has_image_attachment(message):
+        vis_text, vis_query = await _extract_visual_search_context(
+            message,
+            tg_svc=tg_svc,
+            org_id=organization_id,
+            db=db,
+        )
+        if vis_text:
+            text = vis_text
+            visual_search_query = vis_query
+    elif not text and (message.get("voice") or message.get("audio") or message.get("video_note")):
         text = await _extract_voice_transcript(
             message,
             tg_svc=tg_svc,
@@ -874,12 +980,28 @@ async def _handle_direct_bot_message(message: dict, db: AsyncSession, organizati
     stop_typing = asyncio.Event()
     typing_task = asyncio.create_task(_typing_loop(chat_id_int, None, stop_typing, tg_svc=tg_svc))
     try:
-        if sales_ai.is_greeting(text):
+        query_for_catalog = visual_search_query or text
+        if not visual_search_query and sales_ai.is_greeting(text):
             evidence = []
             decision = await sales_ai.answer(text, evidence, [], organization_id=1, db=db)
         else:
-            evidence = await knowledge.search(db, text, limit=6, organization_id=1)
-            decision = await sales_ai.answer(text, evidence, [], organization_id=1, db=db)
+            evidence = await knowledge.search(db, query_for_catalog, limit=6, organization_id=1)
+            matched_products = await knowledge.search_products(db, query_for_catalog, limit=5, organization_id=1)
+            answer_kwargs: dict = {}
+            if matched_products:
+                answer_kwargs["extra_products"] = [
+                    {
+                        "code": p.code,
+                        "name": p.name,
+                        "category": p.category,
+                        "price": p.price,
+                        "specs": p.specs,
+                        "stock": p.stock,
+                        "warranty": p.warranty,
+                    }
+                    for p in matched_products
+                ]
+            decision = await sales_ai.answer(text, evidence, [], organization_id=1, db=db, **answer_kwargs)
     finally:
         stop_typing.set()
         typing_task.cancel()

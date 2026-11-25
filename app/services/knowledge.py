@@ -145,14 +145,44 @@ class KnowledgeService:
 
         return None
 
-    async def describe_image(self, image_bytes: bytes, mime_type: str = "image/jpeg") -> str:
-        # 1. Try Gemini Vision if configured
-        if self.gemini_key and (settings.ai_provider in ("gemini", "auto") or not self.openai_client):
+    async def describe_image(
+        self,
+        image_bytes: bytes,
+        mime_type: str = "image/jpeg",
+        *,
+        organization_id: int | None = None,
+        db: AsyncSession | None = None,
+    ) -> str:
+        org_gemini_key = None
+        org_openai_key = None
+        if db is not None and organization_id is not None:
+            try:
+                from app.models import Organization
+                org = await db.get(Organization, organization_id)
+                if org:
+                    org_gemini_key = org.decrypted_gemini_api_key
+                    org_openai_key = org.decrypted_openai_api_key
+            except Exception:
+                logger.exception("Organization vision key yuklashda xatolik: org_id=%s", organization_id)
+
+        active_gemini = org_gemini_key or (
+            self.gemini_key if (settings.ai_provider in ("gemini", "auto") or (not self.openai_client and not org_openai_key)) else None
+        )
+        active_openai_key = org_openai_key or (settings.openai_api_key if self.openai_client else None)
+
+        vision_instruction = (
+            "Sen mahsulot katalogi uchun rasmni tavsiflovchi yordamchisan. "
+            "Rasmda ko'rinayotgan mahsulot turi, brendi, modeli (agar yozilgan bo'lsa), rangi va asosiy ko'rinishini "
+            "qidiruv uchun qisqa va aniq o'zbek/ingliz kalit so'zlari bilan bayon qil. Narxni taxmin qilma."
+        )
+
+        # 1. Try Gemini Vision
+        if active_gemini:
             encoded = base64.b64encode(image_bytes).decode("ascii")
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.gemini_model}:generateContent?key={self.gemini_key}"
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.gemini_model}:generateContent?key={active_gemini}"
             body = {
                 "systemInstruction": {
-                    "parts": [{"text": "Sen mahsulot katalogi uchun rasmni tavsiflovchi yordamchisan. Faqat ko'rinib turgan faktlarni o'zbek tilida qisqa bayon qil. Narx, brend, model yoki xususiyatni rasmda aniq ko'rinmasa taxmin qilma."}]
+                    "parts": [{"text": vision_instruction}]
                 },
                 "contents": [{
                     "role": "user",
@@ -169,27 +199,27 @@ class KnowledgeService:
                 "generationConfig": {"temperature": 0.2}
             }
             try:
-                async with httpx.AsyncClient(timeout=30.0) as client:
-                    resp = await client.post(url, json=body)
-                    resp.raise_for_status()
-                    data = resp.json()
-                    return (data["candidates"][0]["content"]["parts"][0]["text"] or "").strip()
+                client = self._get_http_client()
+                resp = await client.post(url, json=body, timeout=25.0)
+                resp.raise_for_status()
+                data = resp.json()
+                return (data["candidates"][0]["content"]["parts"][0]["text"] or "").strip()
             except Exception:
                 logger.exception("Gemini rasm tavsifini olishda xatolik")
-                return ""
+                if not active_openai_key:
+                    return ""
 
-        # 2. Fallback to OpenAI
-        if not self.openai_client:
+        # 2. Fallback to OpenAI Vision
+        if not active_openai_key:
+            return ""
+        oai_client = AsyncOpenAI(api_key=org_openai_key, base_url=settings.openai_base_url or None) if org_openai_key else self.openai_client
+        if not oai_client:
             return ""
         encoded = base64.b64encode(image_bytes).decode("ascii")
         try:
-            response = await self.openai_client.responses.create(
+            response = await oai_client.responses.create(
                 model=settings.openai_model,
-                instructions=(
-                    "Sen mahsulot katalogi uchun rasmni tavsiflovchi yordamchisan. "
-                    "Faqat ko'rinib turgan faktlarni o'zbek tilida qisqa bayon qil. "
-                    "Narx, brend, model yoki xususiyatni rasmda aniq ko'rinmasa taxmin qilma."
-                ),
+                instructions=vision_instruction,
                 input=[{
                     "role": "user",
                     "content": [
@@ -300,6 +330,39 @@ class KnowledgeService:
             stmt = stmt.where(ChannelPost.organization_id == organization_id)
         stmt = stmt.order_by(ChannelPost.posted_at.desc().nullslast()).limit(limit)
         return list((await db.execute(stmt)).scalars().all())
+
+    async def search_products(
+        self,
+        db: AsyncSession,
+        query: str,
+        limit: int = 5,
+        organization_id: int | None = None,
+    ) -> list[Product]:
+        """Rank active structured Product catalog items matching query tokens for a tenant."""
+        tokens = [
+            token.strip("?!.,:;()[]{}\"'").lower()
+            for token in (query or "").split()
+            if len(token.strip("?!.,:;()[]{}\"'")) > 2
+        ][:8]
+        if not tokens:
+            return []
+
+        stmt = select(Product).where(Product.is_active == True)  # noqa: E712
+        if organization_id is not None:
+            stmt = stmt.where(Product.organization_id == organization_id)
+        rows = list((await db.execute(stmt.limit(100))).scalars().all())
+        if not rows:
+            return []
+
+        scored: list[tuple[int, Product]] = []
+        for prod in rows:
+            haystack = f"{prod.name} {prod.category} {prod.specs} {prod.code}".lower()
+            hits = sum(1 for tok in tokens if tok in haystack)
+            if hits > 0:
+                scored.append((hits, prod))
+
+        scored.sort(key=lambda item: item[0], reverse=True)
+        return [item[1] for item in scored[:limit]]
 
     async def sync_channel_posts(self, db: AsyncSession, channel_username: str, organization_id: int | None = None) -> int:
         """Sync posts from public Telegram channel web preview without MTProto login."""
