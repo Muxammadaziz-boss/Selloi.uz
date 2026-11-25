@@ -1979,6 +1979,78 @@ function DashboardContent({
     });
   };
 
+  const handleInspectStore = async (storeId: number) => {
+    return api<any>(`/api/platform/organizations/${storeId}/details`);
+  };
+
+  const handleUpdateStoreSubscription = async (
+    storeId: number,
+    payload: { plan_code: string; status: string; billing_cycle: string; extend_days: number }
+  ) => {
+    setBusy(true);
+    try {
+      const res = await api<any>(`/api/platform/organizations/${storeId}/subscription`, {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+      });
+      setSuccess(res.message || "Do'kon obunasi yangilandi");
+      await loadPlatformData();
+      return res;
+    } catch (err: any) {
+      setError(err.message || "Do'kon obunasini yangilashda xatolik");
+      throw err;
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleSendPlatformDailyReport = async () => {
+    setBusy(true);
+    try {
+      const res = await api<any>("/api/platform/daily-report", {
+        method: "POST",
+      });
+      setSuccess(
+        res.sent_count > 0
+          ? `Platforma hisoboti Telegramga (${res.sent_count} ta admin) yuborildi!`
+          : "Platforma hisoboti tayyorlandi."
+      );
+      await loadPlatformData();
+      return res;
+    } catch (err: any) {
+      setError(err.message || "Hisobot yuborishda xatolik");
+      throw err;
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleSendPlatformBroadcast = async (payload: {
+    audience: string;
+    message: string;
+    dry_run?: boolean;
+  }) => {
+    if (!payload.dry_run) setBusy(true);
+    try {
+      const res = await api<any>("/api/platform/broadcast", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      if (!payload.dry_run) {
+        setSuccess(`Xabarnoma ${res.sent_count} ta foydalanuvchiga yuborildi!`);
+        await loadPlatformData();
+      }
+      return res;
+    } catch (err: any) {
+      if (!payload.dry_run) {
+        setError(err.message || "E'lon yuborishda xatolik");
+      }
+      throw err;
+    } finally {
+      if (!payload.dry_run) setBusy(false);
+    }
+  };
+
   useEffect(() => {
     if (initialTenantSlug && platformOrgs.length > 0) {
       const matched = platformOrgs.find((o) => o.slug === initialTenantSlug);
@@ -2835,6 +2907,10 @@ function DashboardContent({
             onAppointSiteAdmin={handleAppointSiteAdmin}
             onToggleSiteAdmin={handleToggleSiteAdmin}
             onToggleUserStatus={handleToggleUserStatus}
+            onInspectStore={handleInspectStore}
+            onUpdateStoreSubscription={handleUpdateStoreSubscription}
+            onSendDailyReport={handleSendPlatformDailyReport}
+            onSendBroadcast={handleSendPlatformBroadcast}
           />
         ) : (
           <>

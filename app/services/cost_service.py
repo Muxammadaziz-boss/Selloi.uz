@@ -5,6 +5,8 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import Conversation, Organization, Plan, Subscription, UsageRecord
 
+ACTIVE_SUBSCRIPTION_STATUSES = ("active", "subscription_active", "mega_discount_active")
+
 
 # Pricing per 1,000,000 tokens in USD (reference float table)
 MODEL_PRICING = {
@@ -54,20 +56,20 @@ async def get_platform_financial_metrics(db: AsyncSession) -> dict:
     # 1. Organizations Counts
     total_orgs = await db.scalar(select(func.count(Organization.id))) or 0
     active_subs_count = await db.scalar(
-        select(func.count(Subscription.id)).where(Subscription.status == "active")
+        select(func.count(Subscription.id)).where(Subscription.status.in_(ACTIVE_SUBSCRIPTION_STATUSES))
     ) or 0
     trial_orgs_count = await db.scalar(
         select(func.count(Subscription.id)).where(Subscription.status == "trialing")
     ) or 0
     cancelled_count = await db.scalar(
-        select(func.count(Subscription.id)).where(Subscription.status == "cancelled")
+        select(func.count(Subscription.id)).where(Subscription.status.in_(["cancelled", "subscription_expired"]))
     ) or 0
 
     # 2. Real MRR calculation from actual active subscriptions
     res = await db.execute(
         select(Subscription, Plan)
         .join(Plan, Subscription.plan_id == Plan.id)
-        .where(Subscription.status == "active")
+        .where(Subscription.status.in_(ACTIVE_SUBSCRIPTION_STATUSES))
     )
     mrr_usd = 0.0
     plan_distribution = {"start": 0, "pro": 0, "ultra": 0}
@@ -201,7 +203,7 @@ async def get_organization_profitability_list(db: AsyncSession, limit: int = 100
         monthly_rev = 0.0
         plan_code = "None"
         sub_status = "inactive"
-        if sub and plan and sub.status == "active":
+        if sub and plan and sub.status in ACTIVE_SUBSCRIPTION_STATUSES:
             plan_code = plan.code.upper()
             sub_status = sub.status
             monthly_rev = (plan.price_yearly / 12.0) if sub.billing_cycle == "yearly" else float(plan.price_monthly)

@@ -7,8 +7,8 @@ import secrets
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
 import httpx
-from pydantic import BaseModel, EmailStr
-from sqlalchemy import select
+from pydantic import BaseModel, EmailStr, Field
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -20,11 +20,15 @@ from app.core.security import encrypt_secret, hash_password
 from app.models import (
     Admin,
     AuditLog,
+    Conversation,
     CustomerPricing,
+    Message,
+    Order,
     Organization,
     OrganizationMember,
     Plan,
     PlanPriceHistory,
+    Product,
     Subscription,
     SystemSetting,
     User,
@@ -1219,9 +1223,20 @@ async def get_all_users(
     admin: Admin = Depends(require_platform_owner),
     db: AsyncSession = Depends(get_db),
 ):
-    """List all registered users across the platform."""
+    """List all registered users across the platform with their linked store badges."""
     res = await db.execute(select(User).order_by(User.created_at.desc()))
     users = res.scalars().all()
+
+    mem_res = await db.execute(
+        select(OrganizationMember.user_id, Organization.name)
+        .join(Organization, OrganizationMember.organization_id == Organization.id)
+        .where(OrganizationMember.is_active.is_(True))
+    )
+    user_orgs: dict[int, list[str]] = {}
+    for uid, org_name in mem_res.all():
+        if uid is not None and org_name:
+            user_orgs.setdefault(uid, []).append(org_name)
+
     return {
         "users": [
             {
@@ -1232,6 +1247,8 @@ async def get_all_users(
                 "is_platform_owner": u.is_platform_owner,
                 "is_platform_admin": bool(getattr(u, "is_platform_admin", False)),
                 "is_active": u.is_active,
+                "organizations_count": len(user_orgs.get(u.id, [])),
+                "organization_names": user_orgs.get(u.id, []),
                 "created_at": u.created_at.isoformat() if u.created_at else None,
             }
             for u in users
@@ -1443,6 +1460,393 @@ async def get_system_health(
         "openai_configured": bool(settings.openai_api_key),
         "telegram_configured": bool(settings.telegram_bot_token),
         "tezcheck_configured": bool(settings.tezcheck_api_key and settings.tezcheck_merchant_id),
+    }
+
+
+class OrgSubscriptionAdminUpdateRequest(BaseModel):
+    plan_code: str = Field(min_length=1, max_length=32)
+    status: str = Field(default="active", max_length=32)
+    billing_cycle: str = Field(default="monthly", max_length=16)
+    extend_days: int = Field(default=0, ge=0, le=365)
+
+
+class PlatformBroadcastRequest(BaseModel):
+    audience: str = Field(default="store_owners", max_length=32)  # store_owners, site_admins, all_linked
+    message: str = Field(min_length=5, max_length=3500)
+    dry_run: bool = False
+
+
+@router.get("/organizations/{org_id}/details")
+async def get_organization_details_for_admin(
+    org_id: int,
+    admin: Admin = Depends(require_platform_owner),
+    db: AsyncSession = Depends(get_db),
+):
+    """Inspect complete operational snapshot, subscription, stats, and members of a tenant store."""
+    org = await db.get(Organization, org_id)
+    if not org:
+        raise HTTPException(status_code=404, detail="Do'kon topilmadi")
+
+    sub_res = await db.execute(
+        select(Subscription, Plan)
+        .outerjoin(Plan, Subscription.plan_id == Plan.id)
+        .where(Subscription.organization_id == org.id)
+        .order_by(Subscription.id.desc())
+        .limit(1)
+    )
+    sub_pair = sub_res.first()
+    sub_obj, plan_obj = sub_pair if sub_pair else (None, None)
+
+    conv_count = await db.scalar(
+        select(func.count(Conversation.id)).where(Conversation.organization_id == org.id)
+    ) or 0
+    msg_count = await db.scalar(
+        select(func.count(Message.id)).where(Message.organization_id == org.id)
+    ) or 0
+    orders_count = await db.scalar(
+        select(func.count(Order.id)).where(Order.organization_id == org.id)
+    ) or 0
+    confirmed_orders_count = await db.scalar(
+        select(func.count(Order.id)).where(
+            Order.organization_id == org.id,
+            Order.status.in_(["confirmed", "paid", "completed", "delivered"]),
+        )
+    ) or 0
+    products_count = await db.scalar(
+        select(func.count(Product.id)).where(Product.organization_id == org.id, Product.is_active.is_(True))
+    ) or 0
+
+    mem_res = await db.execute(
+        select(OrganizationMember, User)
+        .join(User, OrganizationMember.user_id == User.id)
+        .where(OrganizationMember.organization_id == org.id)
+        .order_by(OrganizationMember.id.asc())
+    )
+    members = [
+        {
+            "user_id": u.id,
+            "email": u.email,
+            "full_name": u.full_name,
+            "role": m.role,
+            "telegram_user_id": u.telegram_user_id,
+            "is_active": m.is_active and u.is_active,
+        }
+        for m, u in mem_res.all()
+    ]
+
+    return {
+        "organization": {
+            "id": org.id,
+            "name": org.name,
+            "slug": org.slug,
+            "category": org.category,
+            "status": org.status or "active",
+            "ai_language": org.ai_language,
+            "ai_personality": org.ai_personality,
+            "bot_configured": bool(org.telegram_bot_token),
+            "openai_configured": bool(org.openai_api_key),
+            "gemini_configured": bool(org.gemini_api_key),
+            "created_at": org.created_at.isoformat() if org.created_at else None,
+        },
+        "subscription": {
+            "plan_code": plan_obj.code.upper() if plan_obj else "NONE",
+            "plan_name": plan_obj.name if plan_obj else "Biriktirilmagan",
+            "status": sub_obj.status if sub_obj else "inactive",
+            "billing_cycle": sub_obj.billing_cycle if sub_obj else "monthly",
+            "current_period_start": (
+                sub_obj.current_period_start.isoformat()
+                if sub_obj and sub_obj.current_period_start
+                else None
+            ),
+            "current_period_end": (
+                sub_obj.current_period_end.isoformat()
+                if sub_obj and sub_obj.current_period_end
+                else None
+            ),
+        },
+        "stats": {
+            "conversations_count": conv_count,
+            "messages_count": msg_count,
+            "orders_count": orders_count,
+            "confirmed_orders_count": confirmed_orders_count,
+            "products_count": products_count,
+        },
+        "members": members,
+    }
+
+
+@router.patch("/organizations/{org_id}/subscription")
+async def update_organization_subscription_as_admin(
+    org_id: int,
+    req: OrgSubscriptionAdminUpdateRequest,
+    admin: Admin = Depends(require_platform_owner),
+    db: AsyncSession = Depends(get_db),
+):
+    """Allow Platform Owner / Site Admin to change store plan, status, or extend billing period."""
+    org = await db.get(Organization, org_id)
+    if not org:
+        raise HTTPException(status_code=404, detail="Do'kon topilmadi")
+
+    allowed_statuses = {"active", "trialing", "subscription_active", "mega_discount_active", "cancelled", "subscription_expired"}
+    clean_status = req.status.strip().lower()
+    if clean_status not in allowed_statuses:
+        raise HTTPException(status_code=400, detail="Noto'g'ri obuna holati")
+
+    clean_cycle = req.billing_cycle.strip().lower()
+    if clean_cycle not in {"monthly", "yearly"}:
+        raise HTTPException(status_code=400, detail="To'lov davri 'monthly' yoki 'yearly' bo'lishi kerak")
+
+    clean_plan_code = req.plan_code.strip().lower()
+    plan = (await db.execute(select(Plan).where(Plan.code == clean_plan_code))).scalar_one_or_none()
+    if not plan:
+        raise HTTPException(status_code=404, detail=f"'{clean_plan_code}' nomli tarif topilmadi")
+
+    now = datetime.now(timezone.utc)
+    sub = (
+        await db.execute(
+            select(Subscription)
+            .where(Subscription.organization_id == org.id)
+            .order_by(Subscription.id.desc())
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+
+    if sub is None:
+        base_end = now + timedelta(days=30 if req.extend_days == 0 else req.extend_days)
+        sub = Subscription(
+            organization_id=org.id,
+            plan_id=plan.id,
+            status=clean_status,
+            billing_cycle=clean_cycle,
+            current_period_start=now,
+            current_period_end=base_end,
+        )
+        db.add(sub)
+    else:
+        sub.plan_id = plan.id
+        sub.status = clean_status
+        sub.billing_cycle = clean_cycle
+        if not sub.current_period_start:
+            sub.current_period_start = now
+        if req.extend_days > 0:
+            existing_end = sub.current_period_end
+            if existing_end is not None and existing_end.tzinfo is None:
+                existing_end = existing_end.replace(tzinfo=timezone.utc)
+            anchor = existing_end if (existing_end and existing_end > now) else now
+            sub.current_period_end = anchor + timedelta(days=req.extend_days)
+        elif not sub.current_period_end:
+            sub.current_period_end = now + timedelta(days=30)
+
+    real_user_id = getattr(getattr(admin, "_user", None), "id", None)
+    db.add(
+        AuditLog(
+            organization_id=org.id,
+            user_id=real_user_id,
+            action="update_organization_subscription",
+            resource="subscription",
+            resource_id=str(org.id),
+            metadata_json={
+                "admin_name": admin.name,
+                "plan_code": plan.code,
+                "status": sub.status,
+                "billing_cycle": sub.billing_cycle,
+                "extend_days": req.extend_days,
+            },
+        )
+    )
+    await db.commit()
+    await db.refresh(sub)
+
+    return {
+        "ok": True,
+        "message": f"{org.name} obunasi {plan.code.upper()} ({sub.status}) ga yangilandi",
+        "subscription": {
+            "organization_id": org.id,
+            "plan_code": plan.code.upper(),
+            "status": sub.status,
+            "billing_cycle": sub.billing_cycle,
+            "current_period_end": sub.current_period_end.isoformat() if sub.current_period_end else None,
+        },
+    }
+
+
+@router.post("/daily-report")
+async def send_platform_daily_report(
+    admin: Admin = Depends(require_platform_owner),
+    db: AsyncSession = Depends(get_db),
+):
+    """Compile real-time platform KPI summary and push it via Telegram to owners/site admins."""
+    from app.services.telegram import telegram as default_telegram
+
+    metrics = await cost_service.get_platform_financial_metrics(db)
+    cutoff_24h = datetime.now(timezone.utc) - timedelta(hours=24)
+
+    new_orgs_24h = await db.scalar(
+        select(func.count(Organization.id)).where(Organization.created_at >= cutoff_24h)
+    ) or 0
+    new_orders_24h = await db.scalar(
+        select(func.count(Order.id)).where(Order.created_at >= cutoff_24h)
+    ) or 0
+    new_convs_24h = await db.scalar(
+        select(func.count(Conversation.id)).where(Conversation.created_at >= cutoff_24h)
+    ) or 0
+
+    tashkent_tz = timezone(timedelta(hours=5))
+    ts_str = datetime.now(tashkent_tz).strftime("%d.%m.%Y %H:%M")
+
+    report_text = (
+        f"Selloi Platforma Hisoboti ({ts_str}, Toshkent)\n\n"
+        f"Do'konlar: {metrics['total_organizations']} ta (Faol obuna: {metrics['active_subscriptions']}, Sinov: {metrics['trial_organizations']})\n"
+        f"Oylik daromad (MRR): ${metrics['mrr_usd']:.2f} (ARR: ${metrics['arr_usd']:.2f})\n"
+        f"AI xarajati (shu oy): ${metrics['total_ai_cost_usd']:.4f} ({metrics['total_ai_messages_this_month']} xabar)\n"
+        f"Yalpi marja: {metrics['gross_margin_percent']:.1f}%\n\n"
+        f"Oxirgi 24 soat:\n"
+        f"- Yangi do'konlar: {new_orgs_24h} ta\n"
+        f"- Yangi suhbatlar: {new_convs_24h} ta\n"
+        f"- Yangi buyurtmalar: {new_orders_24h} ta"
+    )
+
+    # Collect distinct Telegram recipients (platform owners, site admins, configured admin chat)
+    admin_rows = await db.execute(
+        select(User.telegram_user_id).where(
+            User.is_active.is_(True),
+            User.telegram_user_id.is_not(None),
+            (User.is_platform_owner.is_(True)) | (User.is_platform_admin.is_(True)),
+        )
+    )
+    recipients: list[int | str] = []
+    for (tg_id,) in admin_rows.all():
+        if tg_id and tg_id not in recipients:
+            recipients.append(tg_id)
+    if settings.admin_telegram_id and settings.admin_telegram_id not in recipients:
+        recipients.append(settings.admin_telegram_id)
+    if settings.telegram_admin_chat_id and settings.telegram_admin_chat_id not in recipients:
+        recipients.append(settings.telegram_admin_chat_id)
+
+    sent_count = 0
+    if default_telegram is not None:
+        for chat_target in recipients:
+            try:
+                await default_telegram.send_message(chat_target, report_text)
+                sent_count += 1
+            except Exception as exc:
+                logger.warning("Daily platform report send failed target=%s: %s", chat_target, exc)
+
+    real_user_id = getattr(getattr(admin, "_user", None), "id", None)
+    db.add(
+        AuditLog(
+            organization_id=None,
+            user_id=real_user_id,
+            action="platform_daily_report",
+            resource="platform",
+            resource_id="summary",
+            metadata_json={"sent_count": sent_count, "recipients": len(recipients)},
+        )
+    )
+    await db.commit()
+
+    return {
+        "ok": True,
+        "sent_count": sent_count,
+        "recipient_count": len(recipients),
+        "telegram_configured": bool(default_telegram is not None),
+        "report_text": report_text,
+        "metrics_24h": {
+            "new_organizations": new_orgs_24h,
+            "new_conversations": new_convs_24h,
+            "new_orders": new_orders_24h,
+        },
+    }
+
+
+@router.post("/broadcast")
+async def broadcast_telegram_announcement(
+    req: PlatformBroadcastRequest,
+    owner: Admin = Depends(require_strict_owner),
+    db: AsyncSession = Depends(get_db),
+):
+    """Owner-only: Send a platform announcement via Telegram DM to linked store owners or admins."""
+    from app.services.telegram import telegram as default_telegram
+
+    clean_audience = req.audience.strip().lower()
+    if clean_audience not in {"store_owners", "site_admins", "all_linked"}:
+        raise HTTPException(status_code=400, detail="Auditoriya 'store_owners', 'site_admins' yoki 'all_linked' bo'lishi kerak")
+
+    if clean_audience == "site_admins":
+        stmt = select(User.telegram_user_id).where(
+            User.is_active.is_(True),
+            User.telegram_user_id.is_not(None),
+            (User.is_platform_owner.is_(True)) | (User.is_platform_admin.is_(True)),
+        )
+    elif clean_audience == "store_owners":
+        stmt = (
+            select(User.telegram_user_id)
+            .join(OrganizationMember, OrganizationMember.user_id == User.id)
+            .where(
+                User.is_active.is_(True),
+                OrganizationMember.is_active.is_(True),
+                User.telegram_user_id.is_not(None),
+            )
+        )
+    else:
+        stmt = select(User.telegram_user_id).where(
+            User.is_active.is_(True),
+            User.telegram_user_id.is_not(None),
+        )
+
+    rows = await db.execute(stmt)
+    targets = list({int(row[0]) for row in rows.all() if row[0]})
+
+    if req.dry_run:
+        return {
+            "ok": True,
+            "dry_run": True,
+            "audience": clean_audience,
+            "recipient_count": len(targets),
+            "sent_count": 0,
+            "failed_count": 0,
+        }
+
+    sent_count = 0
+    failed_count = 0
+    clean_msg = f"Selloi Platforma Xabarnomasi\n\n{req.message.strip()}"
+    if default_telegram is not None:
+        for tg_id in targets:
+            try:
+                await default_telegram.send_message(tg_id, clean_msg)
+                sent_count += 1
+            except Exception as exc:
+                failed_count += 1
+                logger.warning("Broadcast send failed tg_id=%s: %s", tg_id, exc)
+    else:
+        failed_count = len(targets)
+
+    real_user_id = getattr(getattr(owner, "_user", None), "id", None)
+    db.add(
+        AuditLog(
+            organization_id=None,
+            user_id=real_user_id,
+            action="platform_broadcast",
+            resource="platform",
+            resource_id=clean_audience,
+            metadata_json={
+                "audience": clean_audience,
+                "recipient_count": len(targets),
+                "sent_count": sent_count,
+                "failed_count": failed_count,
+                "preview": req.message.strip()[:120],
+            },
+        )
+    )
+    await db.commit()
+
+    return {
+        "ok": True,
+        "dry_run": False,
+        "audience": clean_audience,
+        "recipient_count": len(targets),
+        "sent_count": sent_count,
+        "failed_count": failed_count,
     }
 
 
