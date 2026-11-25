@@ -71,6 +71,7 @@ export interface SidebarProps {
   platformSubTab?: PlatformSubTabId;
   onSelectPlatformSubTab?: (subTab: PlatformSubTabId) => void;
   storesCount?: number;
+  usersCount?: number;
   storeName?: string;
   unreadCount?: number;
   productsCount?: number;
@@ -93,6 +94,7 @@ export function Sidebar({
   platformSubTab = "overview",
   onSelectPlatformSubTab,
   storesCount = 0,
+  usersCount = 0,
   storeName = "AI Sales Control",
   unreadCount = 0,
   productsCount = 0,
@@ -146,15 +148,6 @@ export function Sidebar({
     },
   ];
 
-  if (isPlatformOwner) {
-    storeNavGroups.push({
-      title: t("nav.group.platform"),
-      items: [
-        { id: "platform", label: t("nav.item.platform"), icon: IconBuildingStore, badge: "Master" },
-      ],
-    });
-  }
-
   storeNavGroups.push({
     title: t("nav.group.account"),
     items: [
@@ -168,9 +161,9 @@ export function Sidebar({
       items: [
         { id: "platform", label: t("nav.item.overview"), icon: IconLayoutDashboard, subTab: "overview" },
         { id: "platform", label: t("nav.item.stores"), icon: IconBuildingStore, count: storesCount > 0 ? storesCount : undefined, subTab: "stores" },
-        { id: "platform", label: t("nav.item.users"), icon: IconUsers, subTab: "users" },
+        { id: "platform", label: t("nav.item.users"), icon: IconUsers, count: usersCount > 0 ? usersCount : undefined, subTab: "users" },
         { id: "platform", label: t("nav.item.plans"), icon: IconLayersLinked, subTab: "plans" },
-        { id: "platform", label: t("nav.item.usage"), icon: IconCpu, subTab: "usage" },
+        { id: "platform", label: "AI Xarajati", icon: IconCpu, subTab: "usage" },
       ],
     },
     {
@@ -316,48 +309,6 @@ export function Sidebar({
           </button>
         </div>
 
-      {/* Platform Owner Mode Switcher */}
-      {isPlatformOwner && !collapsed && (
-        <div className="px-2.5 pt-2 pb-1 border-bottom" style={{ borderColor: "var(--border-subtle)" }}>
-          <div
-            className="p-1 rounded-2 d-flex gap-1"
-            style={{
-              backgroundColor: "var(--bg-canvas)",
-              border: "1px solid var(--border-subtle)",
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => onSwitchZone("platform")}
-              className="flex-grow-1 py-1 px-2 rounded-1 border-0 small transition-fast text-center"
-              style={{
-                fontSize: "0.72rem",
-                cursor: "pointer",
-                fontWeight: 600,
-                backgroundColor: zone === "platform" ? "var(--accent)" : "transparent",
-                color: zone === "platform" ? "#090909" : "var(--text-secondary)",
-              }}
-            >
-              {t("nav.item.platform")}
-            </button>
-            <button
-              type="button"
-              onClick={() => onSwitchZone("store")}
-              className="flex-grow-1 py-1 px-2 rounded-1 border-0 small transition-fast text-center"
-              style={{
-                fontSize: "0.72rem",
-                cursor: "pointer",
-                fontWeight: 600,
-                backgroundColor: zone === "store" ? "var(--accent)" : "transparent",
-                color: zone === "store" ? "#090909" : "var(--text-secondary)",
-              }}
-            >
-              {t("nav.item.stores")}
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Navigation Group Items */}
       <div className="flex-grow-1 overflow-y-auto px-2 py-3 custom-scrollbar">
         {navGroups.map((group, groupIdx) => (
@@ -446,7 +397,7 @@ export function Sidebar({
                               : "var(--accent-subtle)",
                           color:
                             typeof item.badge === "number"
-                              ? "#090909"
+                              ? "#ffffff"
                               : "var(--accent-text)",
                         }}
                       >
@@ -472,24 +423,24 @@ export function Sidebar({
         ))}
       </div>
 
-      {/* Platform Owner Indicator / Fast Switch */}
+      {/* Single Clean Zone Switcher (Admin Panel <-> Store Dashboard) */}
       {isPlatformOwner && !collapsed && (
         <div
           className="p-2.5 m-2 rounded-2 border"
           style={{
-            backgroundColor: zone === "platform" ? "var(--accent-subtle)" : "var(--bg-surface-elevated)",
-            borderColor: zone === "platform" ? "var(--accent-border)" : "var(--border-subtle)",
+            backgroundColor: "var(--bg-surface-elevated)",
+            borderColor: "var(--border-subtle)",
           }}
         >
-          <div className="d-flex align-items-center justify-content-between mb-1.5">
+          <div className="d-flex align-items-center justify-content-between mb-2">
             <span
-              className="badge rounded-pill fw-bold"
+              className="badge rounded-pill fw-semibold"
               style={{
-                fontSize: "0.65rem",
-                padding: "2px 6px",
-                backgroundColor: zone === "platform" ? "#1e40af" : "var(--bg-surface-elevated)",
-                color: zone === "platform" ? "#ffffff" : "var(--text-primary)",
-                border: "1px solid var(--border-subtle)",
+                fontSize: "0.66rem",
+                padding: "3px 8px",
+                backgroundColor: "var(--accent-subtle)",
+                color: "var(--accent-text)",
+                border: "1px solid var(--accent-border)",
               }}
             >
               {zone === "platform" ? "Admin Panel" : "Do'kon Paneli"}
@@ -499,15 +450,35 @@ export function Sidebar({
           <button
             type="button"
             onClick={() => onSwitchZone(zone === "platform" ? "store" : "platform")}
-            className="btn btn-sm w-100 py-1"
+            className="btn btn-sm w-100 py-1.5 fw-semibold transition-fast"
             style={{
-              fontSize: "0.72rem",
-              background: zone === "platform" ? "var(--accent)" : "transparent",
-              color: zone === "platform" ? "#ffffff" : "var(--text-primary)",
-              border: "1px solid var(--border-default)",
+              fontSize: "0.75rem",
+              backgroundColor: zone === "platform" ? "var(--bg-surface)" : "var(--accent)",
+              color: zone === "platform" ? "var(--text-primary)" : "#ffffff",
+              border: zone === "platform" ? "1px solid var(--border-default)" : "1px solid var(--accent-border)",
+              borderRadius: "var(--radius-sm)",
             }}
           >
             {zone === "platform" ? "Do'kon Dashboardiga o'tish" : "Admin Panelga o'tish"}
+          </button>
+        </div>
+      )}
+      {isPlatformOwner && collapsed && (
+        <div className="p-2 d-flex justify-content-center border-top" style={{ borderColor: "var(--border-subtle)" }}>
+          <button
+            type="button"
+            onClick={() => onSwitchZone(zone === "platform" ? "store" : "platform")}
+            className="btn btn-sm p-1.5 rounded-2 border"
+            style={{
+              backgroundColor: "var(--bg-surface-elevated)",
+              borderColor: "var(--border-default)",
+              color: "var(--accent)",
+              width: "34px",
+              height: "34px",
+            }}
+            title={zone === "platform" ? "Do'kon Dashboardiga o'tish" : "Admin Panelga o'tish"}
+          >
+            <IconBuildingStore size={16} />
           </button>
         </div>
       )}

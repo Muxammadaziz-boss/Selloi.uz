@@ -2179,7 +2179,16 @@ function DashboardContent({
   }
 
   const breadcrumb = tab === "profile" ? t("breadcrumb.profile") : (
-    zone === "platform" ? t("breadcrumb.platform") : (
+    zone === "platform" ? (
+      platformSubTab === "overview" ? "ADMIN PANEL / UMUMIY KO'RINISH" :
+      platformSubTab === "stores" ? "ADMIN PANEL / DO'KONLAR" :
+      platformSubTab === "users" ? "ADMIN PANEL / FOYDALANUVCHILAR" :
+      platformSubTab === "plans" ? "ADMIN PANEL / TARIFLAR & NARXLAR" :
+      platformSubTab === "payment-testing" ? "ADMIN PANEL / PAYMENT TESTING" :
+      platformSubTab === "usage" ? "ADMIN PANEL / AI XARAJATI" :
+      platformSubTab === "system" ? "ADMIN PANEL / TIZIM HOLATI" :
+      "ADMIN PANEL / AUDIT JURNALI"
+    ) : (
       tab === "overview" ? t("breadcrumb.overview") :
       tab === "inbox" ? t("breadcrumb.inbox") :
       tab === "knowledge" ? t("breadcrumb.knowledge") :
@@ -2201,12 +2210,12 @@ function DashboardContent({
 
   const tabTitle = tab === "profile" ? t("profile.title") : (
     zone === "platform" ? (
-      platformSubTab === "overview" ? t("platform.overview_title", { defaultValue: "Platforma Umumiy Ko'rinishi" }) :
+      platformSubTab === "overview" ? t("platform.overview_title", { defaultValue: "Umumiy Ko'rinish" }) :
       platformSubTab === "stores" ? t("nav.item.stores") :
       platformSubTab === "users" ? t("nav.item.users") :
       platformSubTab === "plans" ? t("nav.item.plans") :
       platformSubTab === "payment-testing" ? "Payment Testing Studio" :
-      platformSubTab === "usage" ? t("nav.item.usage") :
+      platformSubTab === "usage" ? "AI Xarajati" :
       platformSubTab === "system" ? t("nav.item.system_health") :
       t("nav.item.audit_logs")
     ) : (
@@ -2259,6 +2268,7 @@ function DashboardContent({
         platformSubTab={platformSubTab}
         onSelectPlatformSubTab={setPlatformSubTab}
         storesCount={platformOrgs.length}
+        usersCount={platformUsers.length}
         organizations={userOrganizations}
         activeOrgId={activeOrgId}
         onSelectOrg={switchOrganization}
@@ -2266,7 +2276,7 @@ function DashboardContent({
         theme={theme}
         onToggleTheme={toggleTheme}
         loading={loading}
-        onRefresh={load}
+        onRefresh={zone === "platform" ? loadPlatformData : load}
         isPlatformOwner={hasPlatformAccess}
         isStrictPlatformOwner={isPlatformOwner}
         zone={zone === "platform" && hasPlatformAccess ? "platform" : "store"}

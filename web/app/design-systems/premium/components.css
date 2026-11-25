@@ -57,9 +57,9 @@ html[data-design="premium"] .badge {
 
 html[data-design="premium"] .badge-primary,
 html[data-design="premium"] .badge-accent {
-  background: rgba(59, 130, 246, 0.14) !important;
-  border-color: rgba(59, 130, 246, 0.35) !important;
-  color: #60a5fa !important;
+  background: var(--premium-accent-subtle) !important;
+  border-color: var(--premium-accent-border) !important;
+  color: var(--premium-accent-text) !important;
 }
 
 html[data-design="premium"] .badge-success {
@@ -108,14 +108,14 @@ html[data-design="premium"] .btn-icon {
 }
 
 html[data-design="premium"] .btn-primary {
-  background-color: #3b82f6 !important;
-  border-color: #3b82f6 !important;
+  background-color: var(--accent) !important;
+  border-color: var(--accent) !important;
   color: #ffffff !important;
 }
 
 html[data-design="premium"] .btn-primary:hover {
-  background-color: #2563eb !important;
-  border-color: #2563eb !important;
+  background-color: var(--accent-hover, #E03A52) !important;
+  border-color: var(--accent-hover, #E03A52) !important;
 }
 
 html[data-design="premium"] .btn-secondary,

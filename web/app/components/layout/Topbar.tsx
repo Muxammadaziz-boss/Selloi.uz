@@ -13,6 +13,7 @@ import {
   IconLogout,
   IconCheck,
   IconSparkles,
+  IconShieldLock,
   IconUser,
   IconMenu2,
 } from "@tabler/icons-react";
@@ -43,6 +44,8 @@ export interface TopbarProps {
   onLogout: () => void;
   onOpenProfile: () => void;
   isPlatformOwner?: boolean;
+  isStrictPlatformOwner?: boolean;
+  zone?: "store" | "platform";
   onOpenCommandPalette?: () => void;
   onToggleMobileNav?: () => void;
   onSwitchZone?: (zone: "store" | "platform") => void;
@@ -66,9 +69,11 @@ export function Topbar({
   onLogout,
   onOpenProfile,
   isPlatformOwner = false,
+  isStrictPlatformOwner = false,
+  zone = "store",
   onOpenCommandPalette,
   onToggleMobileNav,
-  onSwitchZone,
+  onSwitchZone: _onSwitchZone,
 }: TopbarProps) {
   const { language, setLanguage, t } = useLanguage();
   const [showOrgMenu, setShowOrgMenu] = useState(false);
@@ -113,7 +118,23 @@ export function Topbar({
           <IconMenu2 size={18} />
         </button>
 
-        {/* Tenant Store Dropdown */}
+        {/* Admin Panel Identity Pill OR Tenant Store Dropdown */}
+        {zone === "platform" ? (
+          <div
+            className="d-flex align-items-center gap-2 px-2.5 py-1.5 rounded-2 border"
+            style={{
+              backgroundColor: "var(--accent-subtle)",
+              borderColor: "var(--accent-border)",
+              color: "var(--text-primary)",
+              fontSize: "0.8rem",
+            }}
+          >
+            <IconShieldLock size={15} style={{ color: "var(--accent)" }} className="flex-shrink-0" />
+            <span className="fw-semibold text-nowrap">
+              {isStrictPlatformOwner ? "Sayt Egasi" : "Sayt Admini"}
+            </span>
+          </div>
+        ) : (
         <div className="position-relative">
           <button
             type="button"
@@ -164,29 +185,6 @@ export function Topbar({
                   zIndex: 1030,
                 }}
               >
-                {/* Platform Owner Mode Link */}
-                {isPlatformOwner && onSwitchZone && (
-                  <div className="p-1 border-bottom" style={{ borderColor: "var(--border-subtle)" }}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowOrgMenu(false);
-                        onSwitchZone("platform");
-                      }}
-                      className="d-flex align-items-center gap-2 w-100 px-2.5 py-1.5 rounded text-start border-0 fw-medium transition-fast"
-                      style={{
-                        backgroundColor: "var(--accent-subtle)",
-                        color: "var(--accent-text)",
-                        fontSize: "0.78rem",
-                        cursor: "pointer",
-                      }}
-                    >
-                      <IconBuildingStore size={14} />
-                      <span>Platform Owner (Barcha do'konlar)</span>
-                    </button>
-                  </div>
-                )}
-
                 <div
                   className="px-3 py-1.5 text-uppercase fw-semibold"
                   style={{
@@ -249,6 +247,7 @@ export function Topbar({
             </>
           )}
         </div>
+        )}
 
         {/* Breadcrumb Info */}
         <div className="d-none d-md-flex align-items-center gap-1.5 text-secondary small">
@@ -300,9 +299,10 @@ export function Topbar({
         </span>
       </div>
 
-      {/* Right Controls: AI status, Refresh, Theme Toggle, Language Switcher, Profile */}
+      {/* Right Controls: AI status (store mode), Refresh, Theme Toggle, Language Switcher, Profile */}
       <div className="d-flex align-items-center gap-2">
-        {/* AI Engine Status Indicator */}
+        {/* AI Engine Status Indicator (Store Dashboard only) */}
+        {zone !== "platform" && (
         <div
           className="d-none d-sm-flex align-items-center gap-1.5 px-2 py-1 rounded-pill border"
           style={{
@@ -324,6 +324,7 @@ export function Topbar({
           />
           <span className="fw-medium">{t("topbar.ai_online")}</span>
         </div>
+        )}
 
         {/* Refresh Button */}
         <button

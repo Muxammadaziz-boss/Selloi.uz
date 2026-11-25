@@ -28,9 +28,9 @@ html[data-design="premium"] .topbar-container {
 
 /* Floating Pill Controls on Top Header */
 html[data-design="premium"] .header-pill-badge {
-  background: rgba(245, 158, 11, 0.12) !important;
-  border: 1px solid rgba(245, 158, 11, 0.3) !important;
-  color: #fbbf24 !important;
+  background: var(--premium-accent-subtle) !important;
+  border: 1px solid var(--premium-accent-border) !important;
+  color: var(--premium-accent-text) !important;
   border-radius: 9999px !important;
   font-size: 0.75rem !important;
   font-weight: 600 !important;
@@ -39,7 +39,7 @@ html[data-design="premium"] .header-pill-badge {
 
 /* Sidebar Search Bar with Ctrl+K */
 html[data-design="premium"] .premium-search-box {
-  background: #141414 !important;
+  background: #141416 !important;
   border: 1px solid var(--premium-border) !important;
   border-radius: var(--premium-radius-sm) !important;
   color: var(--premium-text) !important;
@@ -49,7 +49,7 @@ html[data-design="premium"] .premium-search-box {
 }
 
 html[data-design="premium"] .premium-search-box:focus {
-  border-color: #3b82f6 !important;
+  border-color: var(--premium-accent) !important;
   outline: none !important;
 }
 
@@ -84,10 +84,10 @@ html[data-design="premium"] .nav-link-item:hover {
 
 /* Reference Screenshot Active Navigation Item */
 html[data-design="premium"] .nav-link-item.active {
-  background-color: #1e1e1e !important;
-  color: #ffffff !important;
+  background-color: #212125 !important;
+  color: #F6F6F7 !important;
   font-weight: 600 !important;
-  border-left: 3px solid #3b82f6 !important;
+  border-left: 3px solid var(--premium-accent) !important;
 }
 
 /* Reference Sub-tab Pill Navigation */

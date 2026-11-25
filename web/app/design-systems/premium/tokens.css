@@ -7,27 +7,27 @@
 html[data-design="premium"] {
   --design-id: "premium";
 
-  /* Selloi Obsidian & Carbon Reference Palette */
-  --premium-bg: #090909;
-  --premium-sidebar: #111111;
-  --premium-surface: #111111;
-  --premium-surface-elevated: #171717;
-  --premium-surface-hover: #1c1c1c;
-  --premium-surface-active: #202020;
-  --premium-border: #2d2d2d;
-  --premium-border-subtle: #292929;
-  --premium-border-strong: #3A3A3A;
+  /* Selloi Master Obsidian & Surface Reference Palette */
+  --premium-bg: #0D0D0D;
+  --premium-sidebar: #111113;
+  --premium-surface: #151516;
+  --premium-surface-elevated: #1B1B1E;
+  --premium-surface-hover: #212125;
+  --premium-surface-active: #27272B;
+  --premium-border: #2A2A2D;
+  --premium-border-subtle: #252528;
+  --premium-border-strong: #3A3A3F;
 
-  --premium-text: #F4F4F4;
-  --premium-text-secondary: #CBD5E1;
-  --premium-text-muted: #A1A1B2;
-  --premium-text-inverse: #090909;
+  --premium-text: #F6F6F7;
+  --premium-text-secondary: #C8C8D0;
+  --premium-text-muted: #A6A6AF;
+  --premium-text-inverse: #FFFFFF;
 
-  /* Selloi Restrained Warm Bronze Gold Accent */
-  --premium-accent: #E6A15A;
-  --premium-accent-subtle: rgba(230, 161, 90, 0.12);
-  --premium-accent-border: rgba(230, 161, 90, 0.35);
-  --premium-accent-text: #E6A15A;
+  /* Selloi Brand Coral-Crimson Accent */
+  --premium-accent: #FF4C63;
+  --premium-accent-subtle: rgba(255, 76, 99, 0.14);
+  --premium-accent-border: rgba(255, 76, 99, 0.35);
+  --premium-accent-text: #FF7A8C;
 
   --premium-success: #A0CA92;
   --premium-success-subtle: rgba(160, 202, 146, 0.14);
@@ -108,10 +108,10 @@ html[data-design="premium"][data-bs-theme="light"] {
   --premium-text-muted: #475569;
   --premium-text-inverse: #ffffff;
 
-  --premium-accent: #1d4ed8;
-  --premium-accent-subtle: rgba(29, 78, 216, 0.12);
-  --premium-accent-border: rgba(29, 78, 216, 0.4);
-  --premium-accent-text: #1e40af;
+  --premium-accent: #E02E48;
+  --premium-accent-subtle: rgba(224, 46, 72, 0.12);
+  --premium-accent-border: rgba(224, 46, 72, 0.35);
+  --premium-accent-text: #B91C36;
 
   --premium-success: #065f46;
   --premium-danger: #b91c1c;
@@ -132,8 +132,8 @@ html[data-design="premium"][data-bs-theme="light"] {
   --text-tertiary: #475569;
   --text-inverse: #ffffff;
 
-  --accent: #1d4ed8;
-  --accent-text: #1e40af;
+  --accent: #E02E48;
+  --accent-text: #B91C36;
   --success: #065f46;
   --success-text: #065f46;
   --danger: #b91c1c;
@@ -141,7 +141,7 @@ html[data-design="premium"][data-bs-theme="light"] {
   --warning: #78350f;
   --warning-text: #78350f;
 
-  --tblr-primary: #1d4ed8;
+  --tblr-primary: #E02E48;
   --tblr-body-bg: #f8f9fa;
   --tblr-card-bg: #ffffff;
 }

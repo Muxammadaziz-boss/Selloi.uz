@@ -7,21 +7,14 @@ import {
   IconArrowRight,
   IconBuildingSkyscraper,
   IconCheck,
-  IconCpu,
-  IconCreditCard,
   IconCrown,
-  IconHistory,
   IconPencil,
   IconPlus,
-  IconRefresh,
   IconSearch,
   IconShieldLock,
   IconTrash,
-  IconUsers,
   IconPlayerPause,
   IconPlayerPlay,
-  IconLayersLinked,
-  IconLayoutDashboard,
 } from "@tabler/icons-react";
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
 import { Badge } from "../ui/Badge";
@@ -228,21 +221,10 @@ export function PlatformOwnerTab({
       (u.full_name && u.full_name.toLowerCase().includes(userSearch.toLowerCase()))
   );
 
-  const subTabButtons: { id: typeof subTab; label: string; icon: any; count?: number }[] = [
-    { id: "overview", label: "Overview", icon: IconLayoutDashboard },
-    { id: "stores", label: "Do'konlar", icon: IconBuildingSkyscraper, count: organizations.length },
-    { id: "users", label: "Foydalanuvchilar", icon: IconUsers, count: usersList.length },
-    { id: "plans", label: "Tariflar & Narxlar", icon: IconLayersLinked },
-    { id: "payment-testing", label: "Payment Testing", icon: IconCreditCard },
-    { id: "usage", label: "AI Xarajati", icon: IconCpu },
-    { id: "system", label: "Tizim Holati", icon: IconShieldLock },
-    { id: "audit", label: "Audit Tarixi", icon: IconHistory },
-  ];
-
   return (
     <div className="d-flex flex-column gap-4">
-      {/* Platform Owner Header & Navigation Banner */}
-      <div className="linear-card p-3.5 d-flex flex-column gap-3">
+      {/* Platform Admin Header */}
+      <div className="linear-card p-3.5">
         <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
           <div className="d-flex align-items-center gap-3">
             <div
@@ -250,24 +232,26 @@ export function PlatformOwnerTab({
               style={{
                 width: "44px",
                 height: "44px",
-                background: "rgba(245, 158, 11, 0.12)",
-                border: "1px solid var(--warning-border)",
+                background: "var(--accent-subtle)",
+                border: "1px solid var(--accent-border)",
               }}
             >
-              <IconCrown size={22} style={{ color: "var(--warning)" }} />
+              <IconCrown size={22} style={{ color: "var(--accent)" }} />
             </div>
             <div>
               <div className="d-flex align-items-center gap-2 flex-wrap">
                 <h2 className="fw-bold mb-0 text-primary" style={{ fontSize: "1.15rem", letterSpacing: "-0.01em" }}>
-                  Platforma Egasi Boshqaruv Markazi
+                  {isCurrentUserOwner ? "Sayt Egasi Boshqaruv Markazi" : "Sayt Admini Boshqaruv Markazi"}
                 </h2>
-                <Badge variant="warning">Platform Owner</Badge>
                 <Badge variant="accent">
-                  {(metrics?.total_organizations ?? organizations.length) || 0} ta do'kon
+                  {isCurrentUserOwner ? "Owner" : "Sayt Admini"}
+                </Badge>
+                <Badge variant="default">
+                  {(metrics?.total_organizations ?? organizations.length) || 0} ta do&apos;kon
                 </Badge>
               </div>
-              <p className="text-secondary small mb-0 mt-0.5">
-                Barcha mustaqil do'konlar portfeli, umumiy MRR, AI sarflari va har bir tashkilot ichiga kirish (impersonation).
+              <p className="text-secondary small mb-0 mt-1">
+                Barcha do&apos;konlar, foydalanuvchilar, AI xarajatlari va platforma sozlamalarini boshqarish markazi.
               </p>
             </div>
           </div>
@@ -282,63 +266,9 @@ export function PlatformOwnerTab({
                 setShowCreateModal(true);
               }}
             >
-              + Yangi Do'kon Ochish
-            </Button>
-
-            <Button
-              variant="secondary"
-              size="sm"
-              icon={<IconRefresh size={14} className={loading ? "spin" : ""} />}
-              onClick={onRefresh}
-              disabled={loading}
-              title="Ma'lumotlarni yangilash"
-            >
-              Yangilash
+              Yangi Do&apos;kon Ochish
             </Button>
           </div>
-        </div>
-
-        {/* Sub-tab Pill Navigation */}
-        <div
-          className="d-flex align-items-center gap-1 overflow-x-auto pt-2 border-top custom-scrollbar"
-          style={{ borderColor: "var(--border-subtle)" }}
-        >
-          {subTabButtons.map((tab) => {
-            const Icon = tab.icon;
-            const active = subTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => onSwitchSubTab && onSwitchSubTab(tab.id)}
-                className={`d-flex align-items-center gap-1.5 px-3 py-1.5 rounded-1 border-0 small fw-medium transition-fast text-nowrap ${
-                  active ? "text-white" : "text-secondary"
-                }`}
-                style={{
-                  fontSize: "0.8rem",
-                  cursor: "pointer",
-                  backgroundColor: active ? "var(--accent)" : "transparent",
-                  color: active ? "#ffffff" : "var(--text-secondary)",
-                }}
-              >
-                <Icon size={15} style={{ color: active ? "#ffffff" : "inherit" }} />
-                <span>{tab.label}</span>
-                {tab.count !== undefined && (
-                  <span
-                    className="badge rounded-pill"
-                    style={{
-                      fontSize: "0.65rem",
-                      padding: "1px 6px",
-                      backgroundColor: active ? "rgba(255,255,255,0.25)" : "var(--bg-surface-hover)",
-                      color: active ? "#ffffff" : "var(--text-secondary)",
-                    }}
-                  >
-                    {tab.count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
         </div>
       </div>
 
@@ -566,7 +496,7 @@ export function PlatformOwnerTab({
                                 style={{
                                   width: `${Math.max(count > 0 ? 8 : 0, pct)}%`,
                                   height: "100%",
-                                  backgroundColor: plan === "ultra" ? "#a855f7" : plan === "pro" ? "var(--accent)" : "var(--info)",
+                                  backgroundColor: plan === "ultra" ? "var(--accent)" : plan === "pro" ? "var(--info)" : "var(--success)",
                                   borderRadius: "9999px",
                                 }}
                               />
@@ -867,7 +797,7 @@ export function PlatformOwnerTab({
                       </td>
                       <td>
                         {u.is_platform_owner ? (
-                          <Badge variant="warning">Sayt egasi (Owner)</Badge>
+                          <Badge variant="accent">Sayt egasi (Owner)</Badge>
                         ) : u.is_platform_admin ? (
                           <Badge variant="info">Sayt Admini</Badge>
                         ) : (

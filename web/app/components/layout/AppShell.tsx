@@ -24,6 +24,7 @@ export interface AppShellProps {
   platformSubTab?: PlatformSubTabId;
   onSelectPlatformSubTab?: (subTab: PlatformSubTabId) => void;
   storesCount?: number;
+  usersCount?: number;
   storeName?: string;
   adminName?: string;
   adminRole?: string;
@@ -58,6 +59,7 @@ export function AppShell({
   platformSubTab,
   onSelectPlatformSubTab,
   storesCount,
+  usersCount,
   storeName = "AI Sales Control",
   adminName = "Admin",
   adminRole = "admin",
@@ -112,6 +114,7 @@ export function AppShell({
           setMobileNavOpen(false);
         }}
         storesCount={storesCount}
+        usersCount={usersCount}
         storeName={storeName}
         unreadCount={unreadCount}
         productsCount={productsCount}
@@ -142,6 +145,8 @@ export function AppShell({
           onLogout={onLogout}
           onOpenProfile={() => onSelectTab("profile")}
           isPlatformOwner={isPlatformOwner}
+          isStrictPlatformOwner={isStrictPlatformOwner}
+          zone={zone}
           onOpenCommandPalette={() => setCommandPaletteOpen(true)}
           onToggleMobileNav={() => setMobileNavOpen((prev) => !prev)}
           onSwitchZone={onSwitchZone}

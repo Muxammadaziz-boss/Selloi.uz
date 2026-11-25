@@ -63,16 +63,16 @@ pre,
 
 /* Design System Semantic Text Overrides to guarantee WCAG 2.1 AA contrast */
 :root {
-  --tblr-primary: #5e6ad2 !important;
-  --tblr-primary-rgb: 94, 106, 210 !important;
+  --tblr-primary: #FF4C63 !important;
+  --tblr-primary-rgb: 255, 76, 99 !important;
 }
 
 [data-bs-theme="dark"],
 html[data-theme="dark"],
 .theme-dark {
-  --tblr-primary: #818cf8 !important;
-  --tblr-primary-rgb: 129, 140, 248 !important;
-  --tblr-body-color: #f4f5f6 !important;
+  --tblr-primary: #FF4C63 !important;
+  --tblr-primary-rgb: 255, 76, 99 !important;
+  --tblr-body-color: #F6F6F7 !important;
   --tblr-success: #34d399 !important;
   --tblr-warning: #fbbf24 !important;
   --tblr-danger: #f87171 !important;
@@ -82,8 +82,8 @@ html[data-theme="dark"],
 [data-bs-theme="light"],
 html[data-theme="light"],
 .theme-light {
-  --tblr-primary: #4338ca !important;
-  --tblr-primary-rgb: 67, 56, 202 !important;
+  --tblr-primary: #E02E48 !important;
+  --tblr-primary-rgb: 224, 46, 72 !important;
   --tblr-body-color: #121316 !important;
   --tblr-success: #065f46 !important;
   --tblr-warning: #92400e !important;
@@ -104,15 +104,15 @@ html[data-theme="light"] .badge.rounded-pill:not(.immersive-root *),
 }
 html[data-theme="light"] .badge-accent,
 html[data-theme="light"] .linear-badge-accent {
-  color: #1e3a8a !important;
-  background-color: #dbeafe !important;
-  border-color: #93c5fd !important;
+  color: #B91C36 !important;
+  background-color: rgba(224, 46, 72, 0.12) !important;
+  border-color: rgba(224, 46, 72, 0.35) !important;
 }
 html[data-theme="dark"] .badge-accent,
 html[data-theme="dark"] .linear-badge-accent {
-  color: #93c5fd !important;
-  background-color: rgba(59, 130, 246, 0.22) !important;
-  border-color: rgba(59, 130, 246, 0.45) !important;
+  color: #FF7A8C !important;
+  background-color: rgba(255, 76, 99, 0.16) !important;
+  border-color: rgba(255, 76, 99, 0.38) !important;
 }
 
 html body .text-primary,
@@ -195,13 +195,13 @@ html[data-theme="light"] .bg-danger-lt {
 
 [data-bs-theme="light"] .bg-primary-lt,
 html[data-theme="light"] .bg-primary-lt {
-  color: #1e3a8a !important;
-  background-color: #dbeafe !important;
+  color: #B91C36 !important;
+  background-color: #FFE4E8 !important;
 }
 
 [data-bs-theme="light"] .badge.bg-primary,
 html[data-theme="light"] .badge.bg-primary {
-  background-color: #312e81 !important;
+  background-color: #E02E48 !important;
   color: #ffffff !important;
 }
 
@@ -565,9 +565,9 @@ body {
 }
 
 .auth-tg-profile-box:focus-within {
-  background: var(--bg-surface-elevated, #161820);
-  border-color: var(--accent, #5e6ad2);
-  box-shadow: 0 0 0 2px var(--accent-subtle, rgba(94, 106, 210, 0.2));
+  background: var(--bg-surface-elevated, #1B1B1E);
+  border-color: var(--accent, #FF4C63);
+  box-shadow: 0 0 0 2px var(--accent-subtle, rgba(255, 76, 99, 0.2));
 }
 
 .auth-tg-avatar-wrap {
@@ -609,8 +609,8 @@ body {
 }
 
 .auth-input-modern:focus-within {
-  border-color: var(--accent, #5e6ad2);
-  box-shadow: 0 0 0 2px var(--accent-subtle, rgba(94, 106, 210, 0.2));
+  border-color: var(--accent, #FF4C63);
+  box-shadow: 0 0 0 2px var(--accent-subtle, rgba(255, 76, 99, 0.2));
 }
 
 .auth-input-modern input {
@@ -631,7 +631,7 @@ body {
 
 /* Professional Solid Primary Action Button */
 .btn-auth-gradient {
-  background: var(--accent, #5e6ad2);
+  background: var(--accent, #FF4C63);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-md, 8px);
   height: 44px;
@@ -647,13 +647,13 @@ body {
 }
 
 .btn-auth-gradient:hover:not(:disabled) {
-  background: var(--accent-hover, #6d79e2);
+  background: var(--accent-hover, #E03A52);
   color: #ffffff;
 }
 
 .btn-auth-gradient:active:not(:disabled) {
   transform: translateY(1px);
-  background: var(--accent-active, #535ec0);
+  background: var(--accent-active, #C92E45);
 }
 
 .btn-auth-gradient:disabled {
