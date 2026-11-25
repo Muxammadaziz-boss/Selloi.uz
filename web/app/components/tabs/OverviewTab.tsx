@@ -1,7 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useMemo, useState } from "react";
 import { useLanguage } from "../../lib/i18n";
+import { downloadCsvExport } from "../../lib/csvExport";
 import {
   IconMessageDots,
   IconRobot,
@@ -18,12 +19,17 @@ import {
   IconRocket,
   IconPackage,
   IconChevronRight,
+  IconDownload,
+  IconSparkles,
+  IconCreditCard,
+  IconSend,
+  IconBellRinging,
 } from "@tabler/icons-react";
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { EmptyState } from "../ui/EmptyState";
-import { PageHeader } from "../layout/PageHeader";
+import { ActivityBarsChart, DonutChart } from "../ui/Charts";
 
 export interface OverviewTabProps {
   overview: {
@@ -62,6 +68,19 @@ export interface OverviewTabProps {
   productsCount?: number;
   botConfigured?: boolean;
   aiModel?: string;
+  storeName?: string;
+  planCode?: string | null;
+  sseConnected?: boolean;
+  followupEnabled?: boolean;
+  paymentProvider?: string | null;
+  dailyReportEnabled?: boolean;
+  dailyReportHour?: number;
+  usageMessagesItem?: {
+    used: number;
+    limit: number;
+    percentage: number;
+  } | null;
+  onSendDailyReportNow?: () => Promise<any>;
   onSelectConversation: (id: number) => void;
   onNavigateTab: (tabId: any, filter?: string) => void;
   onRefresh: () => void;
@@ -76,20 +95,74 @@ export function OverviewTab({
   productsCount = 0,
   botConfigured = false,
   aiModel = "gemini-3.1-flash-lite",
+  storeName = "Do'kon Boshqaruv Paneli",
+  planCode = null,
+  sseConnected = false,
+  followupEnabled = false,
+  paymentProvider = null,
+  dailyReportEnabled = false,
+  dailyReportHour = 21,
+  usageMessagesItem = null,
+  onSendDailyReportNow,
   onSelectConversation,
   onNavigateTab,
   onRefresh,
   loading,
 }: OverviewTabProps) {
   const { language, t } = useLanguage();
+  const [sendingReport, setSendingReport] = useState(false);
+
   const totalConversations = overview?.conversations ?? conversations.length;
   const aiActiveCount = overview?.ai_active ?? conversations.filter((c) => c.status === "ai_active").length;
   const takeoverCount = overview?.human_takeover ?? conversations.filter((c) => c.status === "human_takeover").length;
-  const totalPosts = overview?.knowledge_posts ?? (channels.reduce((acc, ch) => acc + (ch.posts_count || 0), 0));
+  const totalPosts = overview?.knowledge_posts ?? channels.reduce((acc, ch) => acc + (ch.posts_count || 0), 0);
   const totalOrders = overview?.orders ?? orders.length;
 
+  const confirmedOrdersCount = orders.filter((o) =>
+    ["confirmed", "paid", "completed"].includes((o.status || "").toLowerCase())
+  ).length;
+  const conversionRate = totalConversations > 0 ? ((totalOrders / totalConversations) * 100).toFixed(1) : "0.0";
   const aiPercentage = totalConversations > 0 ? Math.round((aiActiveCount / totalConversations) * 100) : 0;
   const humanPercentage = totalConversations > 0 ? Math.round((takeoverCount / totalConversations) * 100) : 0;
+
+  const waitingTakeovers = useMemo(
+    () => conversations.filter((c) => c.status === "human_takeover").slice(0, 3),
+    [conversations]
+  );
+
+  // Build real 7-day conversation + order series
+  const activity7Days = useMemo(() => {
+    const days: Array<{ key: string; label: string; primary: number; secondary: number }> = [];
+    const now = new Date();
+    const locale = language === "ru" ? "ru-RU" : language === "en" ? "en-US" : "uz-UZ";
+    for (let offset = 6; offset >= 0; offset--) {
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - offset);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const label = d.toLocaleDateString(locale, { month: "short", day: "numeric" });
+      days.push({ key, label, primary: 0, secondary: 0 });
+    }
+    const dayMap = new Map(days.map((d) => [d.key, d]));
+
+    conversations.forEach((c) => {
+      if (!c.last_message_at) return;
+      const parsed = new Date(c.last_message_at);
+      if (isNaN(parsed.getTime())) return;
+      const k = `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, "0")}-${String(parsed.getDate()).padStart(2, "0")}`;
+      const slot = dayMap.get(k);
+      if (slot) slot.primary += 1;
+    });
+
+    orders.forEach((o) => {
+      if (!o.date) return;
+      const parsed = new Date(o.date);
+      if (isNaN(parsed.getTime())) return;
+      const k = `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, "0")}-${String(parsed.getDate()).padStart(2, "0")}`;
+      const slot = dayMap.get(k);
+      if (slot) slot.secondary += 1;
+    });
+
+    return days;
+  }, [conversations, orders, language]);
 
   const setupSteps = [
     {
@@ -138,38 +211,193 @@ export function OverviewTab({
     }
   };
 
-  return (
-    <div>
-      <PageHeader
-        breadcrumbs={t("breadcrumb.overview")}
-        title={t("overview.title")}
-        description={t("overview.subtitle")}
-        badge={{ text: t("overview.badge_sync"), variant: "success" }}
-        actions={
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={onRefresh}
-            loading={loading}
-            icon={<IconRefresh size={14} />}
-          >
-            {t("overview.btn_refresh")}
-          </Button>
-        }
-      />
+  const handleQuickReport = async () => {
+    if (!onSendDailyReportNow) return;
+    setSendingReport(true);
+    try {
+      await onSendDailyReportNow();
+    } finally {
+      setSendingReport(false);
+    }
+  };
 
-      {/* 4 Linear KPI Metrics */}
-      <div className="row g-3 mb-4">
-        {/* Total Conversations */}
-        {/* Total Chats */}
+  return (
+    <div className="d-flex flex-column gap-4">
+      {/* Executive Store Hero Banner */}
+      <div
+        className="linear-card-elevated p-3.5"
+        style={{
+          background:
+            "linear-gradient(135deg, rgba(255, 76, 99, 0.08) 0%, rgba(160, 202, 146, 0.05) 55%, var(--bg-surface) 100%)",
+          borderColor: "var(--border-default)",
+        }}
+      >
+        <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
+          <div>
+            <div className="d-flex align-items-center gap-2 flex-wrap">
+              <h1 className="fw-bold mb-0 text-primary" style={{ fontSize: "1.22rem", letterSpacing: "-0.015em" }}>
+                {storeName}
+              </h1>
+              {planCode && (
+                <Badge variant="accent">{String(planCode).toUpperCase()}</Badge>
+              )}
+              <Badge variant={sseConnected ? "success" : "info"} dot>
+                {sseConnected ? "Jonli SSE faol" : t("overview.badge_sync")}
+              </Badge>
+            </div>
+            <p className="text-secondary small mb-0 mt-1">
+              {t("overview.subtitle")}
+            </p>
+          </div>
+
+          <div className="d-flex flex-wrap align-items-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={onRefresh}
+              loading={loading}
+              icon={<IconRefresh size={14} />}
+            >
+              {t("overview.btn_refresh")}
+            </Button>
+            {onSendDailyReportNow && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleQuickReport}
+                disabled={sendingReport}
+                icon={<IconSend size={14} />}
+              >
+                {sendingReport ? "Yuborilmoqda..." : "Telegram Hisobot"}
+              </Button>
+            )}
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={orders.length === 0}
+              icon={<IconDownload size={14} />}
+              onClick={() =>
+                downloadCsvExport(
+                  `buyurtmalar-${new Date().toISOString().slice(0, 10)}.csv`,
+                  ["ID", "Mijoz", "Username", "Mahsulot", "Summa", "Holat", "Kanal", "Sana"],
+                  orders.map((o) => [o.id, o.customer, o.username, o.product, o.amount, o.status, o.channel, o.date])
+                )
+              }
+            >
+              Buyurtmalar CSV
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              icon={<IconMessageDots size={14} />}
+              onClick={() => onNavigateTab("inbox", takeoverCount > 0 ? "human" : "all")}
+            >
+              Jonli Chatlar{takeoverCount > 0 ? ` (${takeoverCount})` : ""}
+            </Button>
+          </div>
+        </div>
+
+        {/* Quick Shortcut Pills */}
+        <div
+          className="d-flex flex-wrap align-items-center gap-2 mt-3 pt-2.5 border-top"
+          style={{ borderColor: "var(--border-subtle)" }}
+        >
+          <button
+            type="button"
+            className="linear-btn linear-btn-ghost py-1 px-2.5 small"
+            onClick={() => onNavigateTab("products")}
+          >
+            <IconPackage size={14} />
+            <span>Mahsulotlar ({productsCount})</span>
+          </button>
+          <button
+            type="button"
+            className="linear-btn linear-btn-ghost py-1 px-2.5 small"
+            onClick={() => onNavigateTab("orders")}
+          >
+            <IconShoppingCart size={14} />
+            <span>Buyurtmalar ({totalOrders})</span>
+          </button>
+          <button
+            type="button"
+            className="linear-btn linear-btn-ghost py-1 px-2.5 small"
+            onClick={() => onNavigateTab("analytics")}
+          >
+            <IconActivity size={14} />
+            <span>Tahlil &amp; Konversiya</span>
+          </button>
+          <button
+            type="button"
+            className="linear-btn linear-btn-ghost py-1 px-2.5 small"
+            onClick={() => onNavigateTab("settings")}
+          >
+            <IconSparkles size={14} />
+            <span>AI Playground &amp; Sozlamalar</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Urgent Operator Attention Banner */}
+      {!loading && waitingTakeovers.length > 0 && (
+        <div
+          className="linear-card p-3 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2.5"
+          style={{
+            backgroundColor: "rgba(232, 182, 106, 0.08)",
+            borderColor: "var(--warning-border)",
+          }}
+        >
+          <div className="d-flex align-items-center gap-2.5">
+            <span
+              className="d-inline-flex align-items-center justify-content-center rounded-circle flex-shrink-0"
+              style={{
+                width: 34,
+                height: 34,
+                backgroundColor: "var(--warning-subtle)",
+                color: "var(--warning-text)",
+              }}
+            >
+              <IconBellRinging size={17} />
+            </span>
+            <div>
+              <div className="fw-semibold text-primary small">
+                {takeoverCount} ta mijoz operator javobini kutmoqda
+              </div>
+              <div className="text-secondary" style={{ fontSize: "0.75rem" }}>
+                {waitingTakeovers.map((c) => c.customer_name).join(", ")}
+              </div>
+            </div>
+          </div>
+
+          <div className="d-flex flex-wrap gap-1.5">
+            {waitingTakeovers.map((c) => (
+              <Button
+                key={`attn-${c.id}`}
+                variant="secondary"
+                size="xs"
+                onClick={() => {
+                  onSelectConversation(c.id);
+                  onNavigateTab("inbox");
+                }}
+              >
+                {c.customer_name} &rarr;
+              </Button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 4 Upgraded KPI Cards */}
+      <div className="row g-3">
+        {/* 1. Conversations */}
         <div className="col-12 col-sm-6 col-lg-3">
           <div
             className="linear-card p-3.5 cursor-pointer transition-all h-100 d-flex flex-column justify-content-between"
+            style={{ borderTop: "2px solid var(--accent)" }}
             onClick={() => onNavigateTab("inbox", "all")}
           >
             <div>
               <div className="d-flex align-items-center justify-content-between mb-2">
-                <span className="text-secondary small fw-medium text-uppercase" style={{ fontSize: "0.7rem", letterSpacing: "0.04em" }}>
+                <span className="text-secondary small fw-bold text-uppercase" style={{ fontSize: "0.7rem", letterSpacing: "0.04em" }}>
                   {t("overview.stat_total_chats")}
                 </span>
                 <Badge variant="accent">
@@ -179,65 +407,60 @@ export function OverviewTab({
               {loading ? (
                 <div className="skeleton-shimmer skeleton-title w-50 mb-2 mt-1" style={{ height: "28px" }} />
               ) : (
-                <div className="display-6 fw-bold text-primary mb-1" style={{ fontSize: "1.75rem", letterSpacing: "-0.02em" }}>
+                <div className="fs-2 fw-bold font-monospace text-primary mb-1">
                   {totalConversations}
                 </div>
               )}
             </div>
-            {loading ? (
-              <div className="skeleton-shimmer skeleton-text w-75 mt-1" />
-            ) : (
-              <div className="text-secondary small d-flex align-items-center justify-content-between pt-2 border-top" style={{ borderColor: "var(--border-subtle)", fontSize: "0.78rem" }}>
-                <span>{t("overview.stat_total_chats_desc")}</span>
-                <span className="text-primary fw-medium">100%</span>
-              </div>
-            )}
+            <div className="text-secondary small d-flex align-items-center justify-content-between pt-2 border-top" style={{ borderColor: "var(--border-subtle)", fontSize: "0.78rem" }}>
+              <span>AI boshqaruvida:</span>
+              <strong style={{ color: "var(--success-text)" }}>{aiActiveCount} ({aiPercentage}%)</strong>
+            </div>
           </div>
         </div>
 
-        {/* AI Active */}
+        {/* 2. Orders & Conversion */}
         <div className="col-12 col-sm-6 col-lg-3">
           <div
             className="linear-card p-3.5 cursor-pointer transition-all h-100 d-flex flex-column justify-content-between"
-            onClick={() => onNavigateTab("inbox", "ai")}
+            style={{ borderTop: "2px solid var(--success)" }}
+            onClick={() => onNavigateTab("orders")}
           >
             <div>
               <div className="d-flex align-items-center justify-content-between mb-2">
-                <span className="text-secondary small fw-medium text-uppercase" style={{ fontSize: "0.7rem", letterSpacing: "0.04em" }}>
-                  {t("overview.stat_ai_active")}
+                <span className="text-secondary small fw-bold text-uppercase" style={{ fontSize: "0.7rem", letterSpacing: "0.04em" }}>
+                  Buyurtmalar &amp; Savdo
                 </span>
                 <Badge variant="success">
-                  <IconRobot size={12} />
+                  <IconShoppingCart size={12} />
                 </Badge>
               </div>
               {loading ? (
                 <div className="skeleton-shimmer skeleton-title w-50 mb-2 mt-1" style={{ height: "28px" }} />
               ) : (
-                <div className="display-6 fw-bold text-primary mb-1" style={{ fontSize: "1.75rem", letterSpacing: "-0.02em" }}>
-                  {aiActiveCount}
+                <div className="fs-2 fw-bold font-monospace mb-1" style={{ color: "var(--success-text)" }}>
+                  {totalOrders}{" "}
+                  <span className="text-secondary small fs-6 fw-normal">ta</span>
                 </div>
               )}
             </div>
-            {loading ? (
-              <div className="skeleton-shimmer skeleton-text w-75 mt-1" />
-            ) : (
-              <div className="text-secondary small d-flex align-items-center justify-content-between pt-2 border-top" style={{ borderColor: "var(--border-subtle)", fontSize: "0.78rem" }}>
-                <span>{t("overview.stat_ai_active_desc")}</span>
-                <span className="text-success fw-medium">{aiPercentage}%</span>
-              </div>
-            )}
+            <div className="text-secondary small d-flex align-items-center justify-content-between pt-2 border-top" style={{ borderColor: "var(--border-subtle)", fontSize: "0.78rem" }}>
+              <span>Tasdiqlangan: <strong className="text-primary">{confirmedOrdersCount}</strong></span>
+              <span>Konv: <strong style={{ color: "var(--success-text)" }}>{conversionRate}%</strong></span>
+            </div>
           </div>
         </div>
 
-        {/* Human Takeover */}
+        {/* 3. Human Takeover */}
         <div className="col-12 col-sm-6 col-lg-3">
           <div
             className="linear-card p-3.5 cursor-pointer transition-all h-100 d-flex flex-column justify-content-between"
+            style={{ borderTop: "2px solid var(--warning)" }}
             onClick={() => onNavigateTab("inbox", "human")}
           >
             <div>
               <div className="d-flex align-items-center justify-content-between mb-2">
-                <span className="text-secondary small fw-medium text-uppercase" style={{ fontSize: "0.7rem", letterSpacing: "0.04em" }}>
+                <span className="text-secondary small fw-bold text-uppercase" style={{ fontSize: "0.7rem", letterSpacing: "0.04em" }}>
                   {t("overview.stat_takeover")}
                 </span>
                 <Badge variant="warning">
@@ -247,32 +470,29 @@ export function OverviewTab({
               {loading ? (
                 <div className="skeleton-shimmer skeleton-title w-50 mb-2 mt-1" style={{ height: "28px" }} />
               ) : (
-                <div className="display-6 fw-bold text-primary mb-1" style={{ fontSize: "1.75rem", letterSpacing: "-0.02em" }}>
+                <div className="fs-2 fw-bold font-monospace text-primary mb-1">
                   {takeoverCount}
                 </div>
               )}
             </div>
-            {loading ? (
-              <div className="skeleton-shimmer skeleton-text w-75 mt-1" />
-            ) : (
-              <div className="text-secondary small d-flex align-items-center justify-content-between pt-2 border-top" style={{ borderColor: "var(--border-subtle)", fontSize: "0.78rem" }}>
-                <span>{t("overview.stat_takeover_desc")}</span>
-                <span className="text-warning fw-medium">{humanPercentage}%</span>
-              </div>
-            )}
+            <div className="text-secondary small d-flex align-items-center justify-content-between pt-2 border-top" style={{ borderColor: "var(--border-subtle)", fontSize: "0.78rem" }}>
+              <span>{t("overview.stat_takeover_desc")}</span>
+              <span className="text-warning fw-semibold">{humanPercentage}%</span>
+            </div>
           </div>
         </div>
 
-        {/* Knowledge Base Posts */}
+        {/* 4. Catalog & Knowledge */}
         <div className="col-12 col-sm-6 col-lg-3">
           <div
             className="linear-card p-3.5 cursor-pointer transition-all h-100 d-flex flex-column justify-content-between"
-            onClick={() => onNavigateTab("knowledge")}
+            style={{ borderTop: "2px solid var(--info)" }}
+            onClick={() => onNavigateTab("products")}
           >
             <div>
               <div className="d-flex align-items-center justify-content-between mb-2">
-                <span className="text-secondary small fw-medium text-uppercase" style={{ fontSize: "0.7rem", letterSpacing: "0.04em" }}>
-                  {t("overview.stat_posts")}
+                <span className="text-secondary small fw-bold text-uppercase" style={{ fontSize: "0.7rem", letterSpacing: "0.04em" }}>
+                  Katalog &amp; Bilim Bazasi
                 </span>
                 <Badge variant="info">
                   <IconBooks size={12} />
@@ -281,26 +501,23 @@ export function OverviewTab({
               {loading ? (
                 <div className="skeleton-shimmer skeleton-title w-50 mb-2 mt-1" style={{ height: "28px" }} />
               ) : (
-                <div className="display-6 fw-bold text-primary mb-1" style={{ fontSize: "1.75rem", letterSpacing: "-0.02em" }}>
-                  {totalPosts}
+                <div className="fs-2 fw-bold font-monospace text-primary mb-1">
+                  {productsCount}{" "}
+                  <span className="text-secondary small fs-6 fw-normal">mahsulot</span>
                 </div>
               )}
             </div>
-            {loading ? (
-              <div className="skeleton-shimmer skeleton-text w-75 mt-1" />
-            ) : (
-              <div className="text-secondary small d-flex align-items-center justify-content-between pt-2 border-top" style={{ borderColor: "var(--border-subtle)", fontSize: "0.78rem" }}>
-                <span>{t("overview.stat_posts_desc")}</span>
-                <span className="text-primary fw-medium">{channels.length} {language === "uz" ? "ta" : "channels"}</span>
-              </div>
-            )}
+            <div className="text-secondary small d-flex align-items-center justify-content-between pt-2 border-top" style={{ borderColor: "var(--border-subtle)", fontSize: "0.78rem" }}>
+              <span>Bilim postlari: <strong className="text-primary">{totalPosts}</strong></span>
+              <span>Kanallar: <strong className="text-primary">{channels.length}</strong></span>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Quick Setup Checklist (Shown while merchant setup is in progress) */}
       {!loading && completedSetupCount < setupSteps.length && (
-        <Card className="mb-4">
+        <Card>
           <CardHeader
             actions={
               <Badge variant="accent">
@@ -392,11 +609,59 @@ export function OverviewTab({
         </Card>
       )}
 
-      {/* Main Content Grid: Recent Conversations & Sidebar Details */}
+      {/* Interactive 7-Day Activity & Breakdown Charts */}
+      <div className="row g-3">
+        <div className="col-12 col-lg-7">
+          <Card className="h-100">
+            <CardHeader
+              actions={
+                <Button variant="ghost" size="sm" onClick={() => onNavigateTab("analytics")}>
+                  Batafsil tahlil
+                </Button>
+              }
+            >
+              <CardTitle>7 Kunlik Suhbatlar va Buyurtmalar</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ActivityBarsChart
+                data={activity7Days}
+                primaryLabel="Suhbatlar"
+                secondaryLabel="Buyurtmalar"
+                primaryColor="var(--accent, #FF4C63)"
+                secondaryColor="var(--success, #A0CA92)"
+                height={175}
+              />
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="col-12 col-lg-5">
+          <Card className="h-100">
+            <CardHeader actions={<Badge variant="info">{conversionRate}% konversiya</Badge>}>
+              <CardTitle>Muloqot va Savdo Taqsimoti</CardTitle>
+            </CardHeader>
+            <CardContent className="d-flex align-items-center justify-content-center">
+              <DonutChart
+                segments={[
+                  { label: "AI boshqaruvida", value: aiActiveCount, color: "var(--success, #A0CA92)" },
+                  { label: "Operator kutilmoqda", value: takeoverCount, color: "var(--warning, #E8B66A)" },
+                  { label: "Buyurtmalar", value: totalOrders, color: "var(--accent, #FF4C63)" },
+                ]}
+                centerValue={totalConversations}
+                centerLabel="suhbat"
+                size={145}
+                strokeWidth={15}
+              />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Main Operational Grid: Recent Conversations + Automation & Recent Orders */}
       <div className="row g-4">
         {/* Recent Conversations Stream */}
         <div className="col-12 col-lg-8">
-          <Card>
+          <Card className="h-100">
             <CardHeader
               actions={
                 <Button
@@ -545,81 +810,111 @@ export function OverviewTab({
           </Card>
         </div>
 
-        {/* Right Info: System Status & Recent Orders */}
+        {/* Right Column: Store Automation Hub + Recent Orders */}
         <div className="col-12 col-lg-4 d-flex flex-column gap-3">
-          {/* AI Engine Status Card */}
+          {/* AI Engine & Store Automation Card */}
           <Card>
-            <CardHeader>
+            <CardHeader
+              actions={
+                <Button variant="ghost" size="sm" onClick={() => onNavigateTab("settings")}>
+                  Sozlash
+                </Button>
+              }
+            >
               <CardTitle>{t("overview.card_ai_engine")}</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="d-flex flex-column" style={{ gap: "8px" }}>
-                <div
-                  className="d-flex align-items-center justify-content-between px-3 py-2.5 rounded-2 border"
-                  style={{
-                    backgroundColor: "var(--bg-surface-elevated)",
-                    borderColor: "var(--border-subtle)",
-                    borderRadius: "8px",
-                  }}
-                >
-                  <div className="d-flex align-items-center gap-2">
-                    <div
-                      className="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0"
-                      style={{ width: "26px", height: "26px", backgroundColor: "var(--accent-subtle)", borderRadius: "6px" }}
-                    >
-                      <IconCpu size={15} style={{ color: "var(--accent)" }} />
-                    </div>
-                    <span className="small text-secondary">{t("overview.ai_model")}</span>
-                  </div>
-                  <span className="small fw-semibold text-primary font-monospace">{aiModel}</span>
+            <CardContent className="d-flex flex-column gap-2">
+              <div
+                className="d-flex align-items-center justify-content-between px-3 py-2 rounded-2 border"
+                style={{ backgroundColor: "var(--bg-surface-elevated)", borderColor: "var(--border-subtle)" }}
+              >
+                <div className="d-flex align-items-center gap-2">
+                  <IconCpu size={15} style={{ color: "var(--accent)" }} />
+                  <span className="small text-secondary">{t("overview.ai_model")}</span>
                 </div>
-
-                <div
-                  className="d-flex align-items-center justify-content-between px-3 py-2.5 rounded-2 border"
-                  style={{
-                    backgroundColor: "var(--bg-surface-elevated)",
-                    borderColor: "var(--border-subtle)",
-                    borderRadius: "8px",
-                  }}
-                >
-                  <div className="d-flex align-items-center gap-2">
-                    <div
-                      className="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0"
-                      style={{ width: "26px", height: "26px", backgroundColor: "rgba(34, 158, 217, 0.15)", borderRadius: "6px" }}
-                    >
-                      <IconBrandTelegram size={15} style={{ color: "#229ed9" }} />
-                    </div>
-                    <span className="small text-secondary">{t("overview.telegram_bot")}</span>
-                  </div>
-                  <Badge variant={botConfigured || totalConversations > 0 ? "success" : "warning"} dot>
-                    {botConfigured || totalConversations > 0
-                      ? t("overview.bot_connected")
-                      : language === "uz"
-                      ? "Sozlanmagan"
-                      : "Not configured"}
-                  </Badge>
-                </div>
-
-                <div
-                  className="d-flex align-items-center justify-content-between px-3 py-2.5 rounded-2 border"
-                  style={{
-                    backgroundColor: "var(--bg-surface-elevated)",
-                    borderColor: "var(--border-subtle)",
-                    borderRadius: "8px",
-                  }}
-                >
-                  <div className="d-flex align-items-center gap-2">
-                    <div
-                      className="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0"
-                      style={{ width: "26px", height: "26px", backgroundColor: "var(--success-subtle)", borderRadius: "6px" }}
-                    >
-                      <IconActivity size={15} style={{ color: "var(--success)" }} />
-                    </div>
-                    <span className="small text-secondary">{t("overview.avg_response")}</span>
-                  </div>
-                  <span className="small fw-semibold text-primary">{t("overview.avg_response_val")}</span>
-                </div>
+                <span className="small fw-semibold text-primary font-monospace">{aiModel}</span>
               </div>
+
+              <div
+                className="d-flex align-items-center justify-content-between px-3 py-2 rounded-2 border"
+                style={{ backgroundColor: "var(--bg-surface-elevated)", borderColor: "var(--border-subtle)" }}
+              >
+                <div className="d-flex align-items-center gap-2">
+                  <IconBrandTelegram size={15} style={{ color: "#229ed9" }} />
+                  <span className="small text-secondary">{t("overview.telegram_bot")}</span>
+                </div>
+                <Badge variant={botConfigured || totalConversations > 0 ? "success" : "warning"} dot>
+                  {botConfigured || totalConversations > 0 ? t("overview.bot_connected") : "Sozlanmagan"}
+                </Badge>
+              </div>
+
+              <div
+                className="d-flex align-items-center justify-content-between px-3 py-2 rounded-2 border cursor-pointer"
+                style={{ backgroundColor: "var(--bg-surface-elevated)", borderColor: "var(--border-subtle)" }}
+                onClick={() => onNavigateTab("settings")}
+              >
+                <div className="d-flex align-items-center gap-2">
+                  <IconRobot size={15} style={{ color: "var(--info)" }} />
+                  <span className="small text-secondary">Smart Follow-up</span>
+                </div>
+                <Badge variant={followupEnabled ? "success" : "default"}>
+                  {followupEnabled ? "Yoqilgan" : "O'chirilgan"}
+                </Badge>
+              </div>
+
+              <div
+                className="d-flex align-items-center justify-content-between px-3 py-2 rounded-2 border cursor-pointer"
+                style={{ backgroundColor: "var(--bg-surface-elevated)", borderColor: "var(--border-subtle)" }}
+                onClick={() => onNavigateTab("settings")}
+              >
+                <div className="d-flex align-items-center gap-2">
+                  <IconCreditCard size={15} style={{ color: "var(--success)" }} />
+                  <span className="small text-secondary">Onlayn To&apos;lov</span>
+                </div>
+                <Badge variant={paymentProvider ? "info" : "default"}>
+                  {paymentProvider ? paymentProvider.toUpperCase() : "O'chirilgan"}
+                </Badge>
+              </div>
+
+              <div
+                className="d-flex align-items-center justify-content-between px-3 py-2 rounded-2 border cursor-pointer"
+                style={{ backgroundColor: "var(--bg-surface-elevated)", borderColor: "var(--border-subtle)" }}
+                onClick={() => onNavigateTab("settings")}
+              >
+                <div className="d-flex align-items-center gap-2">
+                  <IconSend size={15} style={{ color: "var(--warning)" }} />
+                  <span className="small text-secondary">Kunlik Hisobot</span>
+                </div>
+                <Badge variant={dailyReportEnabled ? "success" : "default"}>
+                  {dailyReportEnabled ? `${String(dailyReportHour).padStart(2, "0")}:00` : "O'chirilgan"}
+                </Badge>
+              </div>
+
+              {usageMessagesItem && usageMessagesItem.limit > 0 && (
+                <div
+                  className="px-3 py-2.5 rounded-2 border mt-1"
+                  style={{ backgroundColor: "var(--bg-canvas)", borderColor: "var(--border-subtle)" }}
+                >
+                  <div className="d-flex align-items-center justify-content-between small mb-1">
+                    <span className="text-secondary">Oylik AI xabar limiti</span>
+                    <span className="font-monospace fw-semibold text-primary">
+                      {usageMessagesItem.used} / {usageMessagesItem.limit}
+                    </span>
+                  </div>
+                  <div className="rounded-pill overflow-hidden" style={{ height: 5, backgroundColor: "var(--border-subtle)" }}>
+                    <div
+                      style={{
+                        width: `${Math.min(100, Math.round(usageMessagesItem.percentage || 0))}%`,
+                        height: "100%",
+                        backgroundColor:
+                          usageMessagesItem.percentage >= 85
+                            ? "var(--danger, #EF4444)"
+                            : "var(--accent, #FF4C63)",
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -646,10 +941,11 @@ export function OverviewTab({
                 </div>
               ) : (
                 <div className="d-flex flex-column">
-                  {orders.slice(0, 3).map((ord) => (
+                  {orders.slice(0, 4).map((ord) => (
                     <div
                       key={ord.id}
-                      className="d-flex align-items-center justify-content-between p-2.5 border-bottom border-subtle"
+                      className="d-flex align-items-center justify-content-between p-2.5 border-bottom border-subtle cursor-pointer"
+                      onClick={() => onNavigateTab("orders")}
                     >
                       <div className="text-truncate me-2">
                         <div className="fw-medium text-primary small text-truncate">{ord.customer}</div>
@@ -661,7 +957,7 @@ export function OverviewTab({
                         <div className="fw-bold text-success small">{ord.amount}</div>
                         <Badge
                           variant={
-                            ord.status === "Confirmed" || ord.status === "Completed"
+                            ["confirmed", "paid", "completed"].includes((ord.status || "").toLowerCase())
                               ? "success"
                               : ord.status === "Processing"
                               ? "info"

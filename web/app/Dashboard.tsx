@@ -2969,6 +2969,19 @@ function DashboardContent({
                 productsCount={products.length}
                 botConfigured={Boolean(currentOrgDetails?.telegram_bot_token_set)}
                 aiModel={aiModel}
+                storeName={activeStoreMeta?.name || userOrganizations.find((o) => o.id === activeOrgId)?.name || "Do'kon Boshqaruv Paneli"}
+                planCode={subscriptionData?.plan?.code || null}
+                sseConnected={sseConnected}
+                followupEnabled={Boolean(followupBundle?.config?.is_enabled)}
+                paymentProvider={storePaymentConfig?.is_enabled ? storePaymentConfig?.provider : null}
+                dailyReportEnabled={Boolean(reportBundle?.config?.is_enabled)}
+                dailyReportHour={reportBundle?.config?.send_hour ?? 21}
+                usageMessagesItem={
+                  Array.isArray(usageData?.items)
+                    ? usageData.items.find((it: any) => it.metric === "ai_messages") || null
+                    : null
+                }
+                onSendDailyReportNow={handleSendDailyReportNow}
                 onSelectConversation={(id) => setSelected(id)}
                 onNavigateTab={(targetTab, filter) => {
                   setTab(targetTab);
