@@ -26,6 +26,8 @@ import {
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
+import { DonutChart } from "../ui/Charts";
+import { EmptyState } from "../ui/EmptyState";
 import { OwnerPricingStudio } from "./OwnerPricingStudio";
 import { PaymentTestingStudio } from "./PaymentTestingStudio";
 
@@ -489,49 +491,43 @@ export function PlatformOwnerTab({
             </div>
 
             <div className="col-12 col-lg-4">
-              <Card>
+              <Card className="h-100">
                 <CardHeader>
                   <CardTitle>Tariflar Taqsimoti</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="d-flex flex-column gap-3">
-                    {(() => {
-                      const dist = metrics?.plan_distribution || {};
-                      const planKeys = Array.from(new Set(["start", "pro", "ultra", ...Object.keys(dist).map((k) => k.toLowerCase())]));
-                      const countsMap = planKeys.map((plan) => {
-                        const count =
-                          typeof dist[plan] === "number"
-                            ? dist[plan]
-                            : organizations.filter((o) => o.plan.toLowerCase() === plan).length;
-                        return { plan, count };
-                      });
-                      const total = countsMap.reduce((a, b) => a + b.count, 0) || 1;
-                      return countsMap.map(({ plan, count }) => {
-                        const pct = Math.round((count / total) * 100);
-                        return (
-                          <div key={plan}>
-                            <div className="d-flex align-items-center justify-content-between small mb-1">
-                              <span className="fw-semibold text-uppercase font-monospace text-primary">{plan}</span>
-                              <span className="text-secondary font-monospace">{count} ta ({pct}%)</span>
-                            </div>
-                            <div
-                              className="rounded-full overflow-hidden"
-                              style={{ height: "6px", backgroundColor: "var(--border-subtle)" }}
-                            >
-                              <div
-                                style={{
-                                  width: `${Math.max(count > 0 ? 8 : 0, pct)}%`,
-                                  height: "100%",
-                                  backgroundColor: plan === "ultra" ? "var(--accent)" : plan === "pro" ? "var(--info)" : "var(--success)",
-                                  borderRadius: "9999px",
-                                }}
-                              />
-                            </div>
-                          </div>
-                        );
-                      });
-                    })()}
-                  </div>
+                  {(() => {
+                    const dist = metrics?.plan_distribution || {};
+                    const planKeys = Array.from(new Set(["start", "pro", "ultra", ...Object.keys(dist).map((k) => k.toLowerCase())]));
+                    const segments = planKeys.map((plan) => {
+                      const count =
+                        typeof dist[plan] === "number"
+                          ? dist[plan]
+                          : organizations.filter((o) => o.plan.toLowerCase() === plan).length;
+                      return {
+                        label: plan.toUpperCase(),
+                        value: count,
+                        color:
+                          plan === "ultra"
+                            ? "var(--accent, #FF4C63)"
+                            : plan === "pro"
+                            ? "var(--info, #83AEEA)"
+                            : plan === "standard"
+                            ? "var(--warning, #E8B66A)"
+                            : "var(--success, #A0CA92)",
+                      };
+                    });
+                    const total = segments.reduce((a, b) => a + b.value, 0);
+                    return (
+                      <DonutChart
+                        segments={segments}
+                        centerValue={total}
+                        centerLabel="ta do'kon"
+                        size={140}
+                        strokeWidth={15}
+                      />
+                    );
+                  })()}
                 </CardContent>
               </Card>
             </div>
@@ -570,163 +566,239 @@ export function PlatformOwnerTab({
           >
             <CardTitle>Barcha Do'konlar (Tenants Portfolio)</CardTitle>
           </CardHeader>
-          <div className="table-responsive">
-            <table className="linear-table">
-              <thead>
-                <tr>
-                  <th>Do'kon Nomi</th>
-                  <th>Sohasi</th>
-                  <th>Holat</th>
-                  <th>Tarif / Obuna</th>
-                  <th>Suhbatlar</th>
-                  <th>Oylik Daromad</th>
-                  <th>AI Xarajati</th>
-                  <th>Marja</th>
-                  <th className="text-end">Harakatlar</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  [...Array(5)].map((_, idx) => (
-                    <tr key={`skel-store-full-${idx}`}>
-                      <td>
-                        <div className="skeleton-shimmer skeleton-text w-75 mb-1" style={{ height: "14px" }} />
-                        <div className="skeleton-shimmer skeleton-text w-50" style={{ height: "10px" }} />
-                      </td>
-                      <td><div className="skeleton-shimmer skeleton-text w-50" style={{ height: "12px" }} /></td>
-                      <td><div className="skeleton-shimmer skeleton-text w-50" style={{ height: "18px", borderRadius: "10px" }} /></td>
-                      <td><div className="skeleton-shimmer skeleton-text w-50" style={{ height: "18px", borderRadius: "10px" }} /></td>
-                      <td><div className="skeleton-shimmer skeleton-text w-50" style={{ height: "12px" }} /></td>
-                      <td><div className="skeleton-shimmer skeleton-text w-50" style={{ height: "14px" }} /></td>
-                      <td><div className="skeleton-shimmer skeleton-text w-50" style={{ height: "14px" }} /></td>
-                      <td><div className="skeleton-shimmer skeleton-text w-50" style={{ height: "14px" }} /></td>
-                      <td className="text-end">
-                        <div className="skeleton-shimmer skeleton-text ms-auto" style={{ width: "110px", height: "30px", borderRadius: "6px" }} />
-                      </td>
+          {!loading && filteredOrgs.length === 0 ? (
+            <EmptyState
+              icon={<IconBuildingSkyscraper size={32} />}
+              title="Mos keluvchi do'kon topilmadi"
+              description="Qidiruv so'zi yoki holat filtrini o'zgartiring yoxud yangi do'kon oching."
+            />
+          ) : (
+            <>
+              <div className="d-none d-md-block table-responsive">
+                <table className="linear-table">
+                  <thead>
+                    <tr>
+                      <th>Do'kon Nomi</th>
+                      <th>Sohasi</th>
+                      <th>Holat</th>
+                      <th>Tarif / Obuna</th>
+                      <th>Suhbatlar</th>
+                      <th>Oylik Daromad</th>
+                      <th>AI Xarajati</th>
+                      <th>Marja</th>
+                      <th className="text-end">Harakatlar</th>
                     </tr>
-                  ))
-                ) : filteredOrgs.length === 0 ? (
-                  <tr>
-                    <td colSpan={9} className="text-center py-5 text-secondary">
-                      Mos keluvchi do'kon topilmadi
-                    </td>
-                  </tr>
-                ) : (
-                  filteredOrgs.map((org) => {
-                    const orgStatus = (org.status || "active").toLowerCase();
-                    const isOrgActive = orgStatus === "active";
-                    return (
-                    <tr key={org.id}>
-                      <td>
-                        <div className="d-flex align-items-center gap-2">
-                          <div
-                            className="d-flex align-items-center justify-content-center rounded-2 flex-shrink-0"
-                            style={{
-                              width: "28px",
-                              height: "28px",
-                              backgroundColor: "var(--accent-subtle)",
-                              color: "var(--accent-text)",
-                            }}
-                          >
-                            <IconBuildingSkyscraper size={16} />
+                  </thead>
+                  <tbody>
+                    {loading ? (
+                      [...Array(5)].map((_, idx) => (
+                        <tr key={`skel-store-full-${idx}`}>
+                          <td>
+                            <div className="skeleton-shimmer skeleton-text w-75 mb-1" style={{ height: "14px" }} />
+                            <div className="skeleton-shimmer skeleton-text w-50" style={{ height: "10px" }} />
+                          </td>
+                          <td><div className="skeleton-shimmer skeleton-text w-50" style={{ height: "12px" }} /></td>
+                          <td><div className="skeleton-shimmer skeleton-text w-50" style={{ height: "18px", borderRadius: "10px" }} /></td>
+                          <td><div className="skeleton-shimmer skeleton-text w-50" style={{ height: "18px", borderRadius: "10px" }} /></td>
+                          <td><div className="skeleton-shimmer skeleton-text w-50" style={{ height: "12px" }} /></td>
+                          <td><div className="skeleton-shimmer skeleton-text w-50" style={{ height: "14px" }} /></td>
+                          <td><div className="skeleton-shimmer skeleton-text w-50" style={{ height: "14px" }} /></td>
+                          <td><div className="skeleton-shimmer skeleton-text w-50" style={{ height: "14px" }} /></td>
+                          <td className="text-end">
+                            <div className="skeleton-shimmer skeleton-text ms-auto" style={{ width: "110px", height: "30px", borderRadius: "6px" }} />
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      filteredOrgs.map((org) => {
+                        const orgStatus = (org.status || "active").toLowerCase();
+                        const isOrgActive = orgStatus === "active";
+                        return (
+                        <tr key={org.id}>
+                          <td>
+                            <div className="d-flex align-items-center gap-2">
+                              <div
+                                className="d-flex align-items-center justify-content-center rounded-2 flex-shrink-0"
+                                style={{
+                                  width: "28px",
+                                  height: "28px",
+                                  backgroundColor: "var(--accent-subtle)",
+                                  color: "var(--accent-text)",
+                                }}
+                              >
+                                <IconBuildingSkyscraper size={16} />
+                              </div>
+                              <div>
+                                <div className="fw-semibold text-primary">{org.name}</div>
+                                <div className="text-secondary small font-monospace" style={{ fontSize: "0.72rem" }}>
+                                  #{org.id} • {org.slug}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="text-secondary small">{org.category || "Retail"}</td>
+                          <td>
+                            <Badge variant={isOrgActive ? "success" : "warning"} dot>
+                              {isOrgActive ? "Faol" : orgStatus === "suspended" ? "To'xtatilgan" : orgStatus}
+                            </Badge>
+                          </td>
+                          <td>
+                            <div className="d-flex align-items-center gap-1.5 flex-wrap">
+                              <Badge variant="accent">{org.plan.toUpperCase()}</Badge>
+                              <Badge
+                                variant={
+                                  org.subscription_status === "active"
+                                    ? "success"
+                                    : org.subscription_status === "trialing"
+                                    ? "info"
+                                    : "default"
+                                }
+                              >
+                                {org.subscription_status}
+                              </Badge>
+                            </div>
+                          </td>
+                          <td className="font-monospace text-secondary small">
+                            {org.conversations_count ?? 0} ta
+                          </td>
+                          <td className="font-monospace fw-bold" style={{ color: "var(--success-text)" }}>
+                            ${org.monthly_revenue_usd}
+                          </td>
+                          <td className="font-monospace" style={{ color: "var(--warning-text)" }}>
+                            ${org.monthly_ai_cost_usd}
+                          </td>
+                          <td className="font-monospace fw-semibold text-primary small">
+                            {org.gross_margin_percent}%
+                          </td>
+                          <td className="text-end">
+                            <div className="d-flex align-items-center justify-content-end gap-1.5">
+                              {onEnterStore && (
+                                <Button
+                                  variant="primary"
+                                  size="sm"
+                                  icon={<IconArrowRight size={14} />}
+                                  onClick={() => onEnterStore(org)}
+                                  title="Do'kon ichiga kirish"
+                                >
+                                  Do'konga kirish
+                                </Button>
+                              )}
+                              {onUpdateStoreStatus && org.id !== 1 && (
+                                <button
+                                  type="button"
+                                  className="linear-btn linear-btn-secondary py-1 px-2"
+                                  onClick={() =>
+                                    onUpdateStoreStatus(
+                                      org.id,
+                                      isOrgActive ? "suspended" : "active"
+                                    )
+                                  }
+                                  title={
+                                    isOrgActive
+                                      ? "Do'konni vaqtincha to'xtatish"
+                                      : "Do'konni faollashtirish"
+                                  }
+                                >
+                                  {isOrgActive ? (
+                                    <IconPlayerPause size={14} style={{ color: "var(--warning)" }} />
+                                  ) : (
+                                    <IconPlayerPlay size={14} style={{ color: "var(--success)" }} />
+                                  )}
+                                </button>
+                              )}
+                              {onDeleteStore && org.id !== 1 && (
+                                <button
+                                  type="button"
+                                  className="linear-btn linear-btn-danger py-1 px-2"
+                                  onClick={() => onDeleteStore(org.id)}
+                                  title="Do'konni o'chirish"
+                                >
+                                  <IconTrash size={14} />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Store Cards */}
+              <div className="d-md-none d-flex flex-column">
+                {loading
+                  ? [...Array(4)].map((_, idx) => (
+                      <div key={`skel-mob-org-${idx}`} className="p-3 border-bottom border-subtle space-y-2">
+                        <div className="skeleton-shimmer skeleton-text w-50" style={{ height: 14 }} />
+                        <div className="skeleton-shimmer skeleton-text w-75" style={{ height: 12 }} />
+                      </div>
+                    ))
+                  : filteredOrgs.map((org) => {
+                      const orgStatus = (org.status || "active").toLowerCase();
+                      const isOrgActive = orgStatus === "active";
+                      return (
+                        <div key={`mob-org-${org.id}`} className="p-3 border-bottom border-subtle d-flex flex-column gap-2">
+                          <div className="d-flex align-items-start justify-content-between gap-2">
+                            <div className="min-w-0">
+                              <div className="fw-semibold text-primary text-truncate">{org.name}</div>
+                              <div className="text-secondary small font-monospace" style={{ fontSize: "0.72rem" }}>
+                                #{org.id} • {org.slug}
+                              </div>
+                            </div>
+                            <Badge variant={isOrgActive ? "success" : "warning"} dot>
+                              {isOrgActive ? "Faol" : orgStatus === "suspended" ? "To'xtatilgan" : orgStatus}
+                            </Badge>
                           </div>
-                          <div>
-                            <div className="fw-semibold text-primary">{org.name}</div>
-                            <div className="text-secondary small font-monospace" style={{ fontSize: "0.72rem" }}>
-                              #{org.id} • {org.slug}
+                          <div className="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                            <div className="d-flex align-items-center gap-1.5">
+                              <Badge variant="accent">{org.plan.toUpperCase()}</Badge>
+                              <span className="font-monospace small fw-bold" style={{ color: "var(--success-text)" }}>
+                                ${org.monthly_revenue_usd}
+                              </span>
+                              <span className="text-secondary small font-monospace">
+                                / {org.gross_margin_percent}%
+                              </span>
+                            </div>
+                            <div className="d-flex align-items-center gap-1.5">
+                              {onEnterStore && (
+                                <Button variant="primary" size="xs" icon={<IconArrowRight size={13} />} onClick={() => onEnterStore(org)}>
+                                  Kirish
+                                </Button>
+                              )}
+                              {onUpdateStoreStatus && org.id !== 1 && (
+                                <button
+                                  type="button"
+                                  className="linear-btn linear-btn-secondary py-1 px-2"
+                                  onClick={() => onUpdateStoreStatus(org.id, isOrgActive ? "suspended" : "active")}
+                                  aria-label={isOrgActive ? "To'xtatish" : "Faollashtirish"}
+                                >
+                                  {isOrgActive ? (
+                                    <IconPlayerPause size={13} style={{ color: "var(--warning)" }} />
+                                  ) : (
+                                    <IconPlayerPlay size={13} style={{ color: "var(--success)" }} />
+                                  )}
+                                </button>
+                              )}
+                              {onDeleteStore && org.id !== 1 && (
+                                <button
+                                  type="button"
+                                  className="linear-btn linear-btn-danger py-1 px-2"
+                                  onClick={() => onDeleteStore(org.id)}
+                                  aria-label="O'chirish"
+                                >
+                                  <IconTrash size={13} />
+                                </button>
+                              )}
                             </div>
                           </div>
                         </div>
-                      </td>
-                      <td className="text-secondary small">{org.category || "Retail"}</td>
-                      <td>
-                        <Badge variant={isOrgActive ? "success" : "warning"} dot>
-                          {isOrgActive ? "Faol" : orgStatus === "suspended" ? "To'xtatilgan" : orgStatus}
-                        </Badge>
-                      </td>
-                      <td>
-                        <div className="d-flex align-items-center gap-1.5 flex-wrap">
-                          <Badge variant="accent">{org.plan.toUpperCase()}</Badge>
-                          <Badge
-                            variant={
-                              org.subscription_status === "active"
-                                ? "success"
-                                : org.subscription_status === "trialing"
-                                ? "info"
-                                : "default"
-                            }
-                          >
-                            {org.subscription_status}
-                          </Badge>
-                        </div>
-                      </td>
-                      <td className="font-monospace text-secondary small">
-                        {org.conversations_count ?? 0} ta
-                      </td>
-                      <td className="font-monospace fw-bold" style={{ color: "var(--success-text)" }}>
-                        ${org.monthly_revenue_usd}
-                      </td>
-                      <td className="font-monospace" style={{ color: "var(--warning-text)" }}>
-                        ${org.monthly_ai_cost_usd}
-                      </td>
-                      <td className="font-monospace fw-semibold text-primary small">
-                        {org.gross_margin_percent}%
-                      </td>
-                      <td className="text-end">
-                        <div className="d-flex align-items-center justify-content-end gap-1.5">
-                          {onEnterStore && (
-                            <Button
-                              variant="primary"
-                              size="sm"
-                              icon={<IconArrowRight size={14} />}
-                              onClick={() => onEnterStore(org)}
-                              title="Do'kon ichiga kirish"
-                            >
-                              Do'konga kirish
-                            </Button>
-                          )}
-                          {onUpdateStoreStatus && org.id !== 1 && (
-                            <button
-                              type="button"
-                              className="linear-btn linear-btn-secondary py-1 px-2"
-                              onClick={() =>
-                                onUpdateStoreStatus(
-                                  org.id,
-                                  isOrgActive ? "suspended" : "active"
-                                )
-                              }
-                              title={
-                                isOrgActive
-                                  ? "Do'konni vaqtincha to'xtatish"
-                                  : "Do'konni faollashtirish"
-                              }
-                            >
-                              {isOrgActive ? (
-                                <IconPlayerPause size={14} style={{ color: "var(--warning)" }} />
-                              ) : (
-                                <IconPlayerPlay size={14} style={{ color: "var(--success)" }} />
-                              )}
-                            </button>
-                          )}
-                          {onDeleteStore && org.id !== 1 && (
-                            <button
-                              type="button"
-                              className="linear-btn linear-btn-danger py-1 px-2"
-                              onClick={() => onDeleteStore(org.id)}
-                              title="Do'konni o'chirish"
-                            >
-                              <IconTrash size={14} />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+                      );
+                    })}
+              </div>
+            </>
+          )}
         </Card>
       )}
 

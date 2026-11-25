@@ -13,6 +13,8 @@ import {
 } from "@tabler/icons-react";
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
 import { Badge } from "../ui/Badge";
+import { EmptyState } from "../ui/EmptyState";
+import { DonutChart, ActivityBarsChart } from "../ui/Charts";
 import { PageHeader } from "../layout/PageHeader";
 
 export interface AnalyticsConversationItem {
@@ -70,6 +72,42 @@ export function AnalyticsTab({
     .slice(0, 5);
 
   const { language, t } = useLanguage();
+
+  // Build real 7-day activity buckets from conversation timestamps and order dates
+  const activityDays = React.useMemo(() => {
+    const days: Array<{ key: string; label: string; primary: number; secondary: number }> = [];
+    const now = new Date();
+    const locale = language === "ru" ? "ru-RU" : language === "en" ? "en-US" : "uz-UZ";
+    for (let offset = 6; offset >= 0; offset--) {
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - offset);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const label = d.toLocaleDateString(locale, { month: "short", day: "numeric" });
+      days.push({ key, label, primary: 0, secondary: 0 });
+    }
+    const dayMap = new Map(days.map((d) => [d.key, d]));
+
+    conversations.forEach((c) => {
+      if (!c.last_message_at) return;
+      const parsed = new Date(c.last_message_at);
+      if (isNaN(parsed.getTime())) return;
+      const k = `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, "0")}-${String(parsed.getDate()).padStart(2, "0")}`;
+      const slot = dayMap.get(k);
+      if (slot) slot.primary += 1;
+    });
+
+    orders.forEach((o) => {
+      if (!o.date) return;
+      const parsed = new Date(o.date);
+      if (isNaN(parsed.getTime())) return;
+      const k = `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, "0")}-${String(parsed.getDate()).padStart(2, "0")}`;
+      const slot = dayMap.get(k);
+      if (slot) slot.secondary += 1;
+    });
+
+    return days;
+  }, [conversations, orders, language]);
+
+  const has7DayActivity = activityDays.some((d) => d.primary > 0 || d.secondary > 0);
 
   return (
     <div>
@@ -175,42 +213,113 @@ export function AnalyticsTab({
         </div>
       </div>
 
+      {/* 7-Day Activity SVG Chart */}
+      <Card className="mb-4">
+        <CardHeader
+          actions={
+            <Badge variant="default">
+              {language === "uz" ? "Oxirgi 7 kun" : language === "ru" ? "Последние 7 дней" : "Last 7 days"}
+            </Badge>
+          }
+        >
+          <CardTitle>
+            {language === "uz"
+              ? "Kunlik Suhbatlar va Buyurtmalar Dinamikasi"
+              : language === "ru"
+              ? "Динамика диалогов и заказов"
+              : "Daily Conversations & Orders Activity"}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {!has7DayActivity ? (
+            <EmptyState
+              icon={<IconChartBar size={28} />}
+              title={
+                language === "uz"
+                  ? "So'nggi 7 kunda faollik qayd etilmadi"
+                  : language === "ru"
+                  ? "Нет активности за последние 7 дней"
+                  : "No activity recorded in the last 7 days"
+              }
+              description={
+                language === "uz"
+                  ? "Mijozlar botga yozgani va buyurtmalar yaratilgani sari kunlik grafik avtomatik shakllanadi."
+                  : "Daily bars populate automatically as customer chats and orders arrive."
+              }
+            />
+          ) : (
+            <ActivityBarsChart
+              data={activityDays}
+              primaryLabel={language === "uz" ? "Suhbatlar" : language === "ru" ? "Диалоги" : "Chats"}
+              secondaryLabel={language === "uz" ? "Buyurtmalar" : language === "ru" ? "Заказы" : "Orders"}
+              primaryColor="var(--accent, #FF4C63)"
+              secondaryColor="var(--success, #A0CA92)"
+            />
+          )}
+        </CardContent>
+      </Card>
+
       {/* Breakdown Cards */}
       <div className="row g-4">
-        {/* Real Resolution Ratio */}
+        {/* Real Resolution Ratio Donut */}
         <div className="col-12 col-lg-6">
           <Card className="h-100">
             <CardHeader>
-              <CardTitle>Suhbatlar Taqsimoti (AI vs Operator)</CardTitle>
+              <CardTitle>
+                {language === "uz"
+                  ? "Suhbatlar Taqsimoti (AI vs Operator)"
+                  : language === "ru"
+                  ? "Распределение диалогов (ИИ vs Оператор)"
+                  : "Conversation Split (AI vs Operator)"}
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="d-flex flex-column gap-3">
-                <div>
-                  <div className="d-flex align-items-center justify-content-between small mb-1">
-                    <span className="text-secondary">AI To'liq Avtomatik Rejimda:</span>
-                    <span className="fw-semibold text-primary">{aiCount} ta ({aiResolutionRate}%)</span>
-                  </div>
-                  <div style={{ height: "8px", backgroundColor: "var(--border-subtle)", borderRadius: "4px", overflow: "hidden" }}>
-                    <div style={{ width: `${aiResolutionRate}%`, height: "100%", backgroundColor: "var(--success)" }} />
+              {totalConv === 0 ? (
+                <EmptyState
+                  icon={<IconRobot size={28} />}
+                  title={language === "uz" ? "Suhbatlar ma'lumoti yo'q" : "No conversations yet"}
+                  description={
+                    language === "uz"
+                      ? "Birinchi mijoz suhbatidan keyin AI va operator ulushi bu yerda ko'rsatiladi."
+                      : "AI vs human takeover distribution will appear once conversations arrive."
+                  }
+                />
+              ) : (
+                <div className="d-flex flex-column gap-3">
+                  <DonutChart
+                    centerValue={`${aiResolutionRate}%`}
+                    centerLabel={language === "uz" ? "AI ulushi" : "AI share"}
+                    segments={[
+                      {
+                        label: language === "uz" ? "AI Avtonom" : "AI Autonomous",
+                        value: aiCount,
+                        color: "var(--success, #A0CA92)",
+                      },
+                      {
+                        label: language === "uz" ? "Operator Nazoratida" : "Human Takeover",
+                        value: humanCount,
+                        color: "var(--warning, #E8B66A)",
+                      },
+                      ...(totalConv > aiCount + humanCount
+                        ? [
+                            {
+                              label: language === "uz" ? "Boshqa holatlar" : "Other",
+                              value: totalConv - aiCount - humanCount,
+                              color: "var(--info, #83AEEA)",
+                            },
+                          ]
+                        : []),
+                    ]}
+                  />
+                  <div className="p-3 rounded-2 border border-subtle" style={{ backgroundColor: "var(--bg-surface-hover)" }}>
+                    <div className="text-secondary small">
+                      {language === "uz"
+                        ? `Xulosa: Jami ${totalConv} ta suhbatning ${aiResolutionRate}% qismi AI tomonidan boshqarilmoqda.`
+                        : `Summary: ${aiResolutionRate}% of ${totalConv} total conversations are handled autonomously by AI.`}
+                    </div>
                   </div>
                 </div>
-
-                <div>
-                  <div className="d-flex align-items-center justify-content-between small mb-1">
-                    <span className="text-secondary">Operator Nazoratidagi Suhbatlar:</span>
-                    <span className="fw-semibold text-primary">{humanCount} ta ({humanResolutionRate}%)</span>
-                  </div>
-                  <div style={{ height: "8px", backgroundColor: "var(--border-subtle)", borderRadius: "4px", overflow: "hidden" }}>
-                    <div style={{ width: `${humanResolutionRate}%`, height: "100%", backgroundColor: "var(--warning)" }} />
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-2 mt-2" style={{ backgroundColor: "var(--bg-surface-hover)" }}>
-                  <div className="text-secondary small">
-                    💡 <strong>Xulosa:</strong> Mijozlar murojaatlarining {aiResolutionRate}% qismi AI tomonidan inson aralashuvisiz hal etilmoqda. Faqat murakkab yoki kelishuv talab etilgan hollarda suhbat operatorga yo'naltiriladi.
-                  </div>
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -219,13 +328,25 @@ export function AnalyticsTab({
         <div className="col-12 col-lg-6">
           <Card className="h-100">
             <CardHeader>
-              <CardTitle>Eng Ko'p Buyurtma Qilingan Mahsulotlar</CardTitle>
+              <CardTitle>
+                {language === "uz"
+                  ? "Eng Ko'p Buyurtma Qilingan Mahsulotlar"
+                  : language === "ru"
+                  ? "Популярные товары в заказах"
+                  : "Top Ordered Products"}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               {topProducts.length === 0 ? (
-                <div className="text-center text-secondary py-5 small">
-                  Hozircha buyurtma qilingan mahsulotlar ma'lumoti yo'q
-                </div>
+                <EmptyState
+                  icon={<IconShoppingCart size={28} />}
+                  title={language === "uz" ? "Buyurtmalar mavjud emas" : "No order breakdown yet"}
+                  description={
+                    language === "uz"
+                      ? "Hozircha buyurtma qilingan mahsulotlar ma'lumoti yo'q."
+                      : "Ordered products will be ranked here automatically."
+                  }
+                />
               ) : (
                 <div className="d-flex flex-column gap-2.5">
                   {topProducts.map(([productName, count]) => {

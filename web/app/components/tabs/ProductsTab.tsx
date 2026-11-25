@@ -14,6 +14,7 @@ import {
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
+import { EmptyState } from "../ui/EmptyState";
 import { Modal } from "../ui/Modal";
 import { Input, Textarea } from "../ui/Input";
 import { Select } from "../ui/Select";
@@ -156,46 +157,102 @@ export function ProductsTab({
           <CardTitle>{t("products.title")} ({filteredProducts.length})</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="table-responsive">
-            <table className="linear-table">
-              <thead>
-                <tr>
-                  <th style={{ width: "90px" }}>{t("products.th_sku")}</th>
-                  <th>{t("products.th_name")}</th>
-                  <th>{t("products.th_category")}</th>
-                  <th>{t("products.th_specs")}</th>
-                  <th>{t("products.th_price")}</th>
-                  <th>{t("products.th_status")}</th>
-                  <th>{t("products.th_warranty")}</th>
-                  <th style={{ textAlign: "right" }}>{t("products.th_actions")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredProducts.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} className="text-center text-secondary py-5 small">
-                      {t("products.empty_products")}
-                    </td>
-                  </tr>
-                ) : (
-                  filteredProducts.map((prod) => (
-                    <tr key={prod.id}>
-                      <td className="font-monospace text-secondary small">
-                        {prod.id}
-                      </td>
-                      <td className="fw-semibold text-primary">
-                        {prod.name}
-                      </td>
-                      <td>
+          {filteredProducts.length === 0 ? (
+            <EmptyState
+              icon={<IconPackage size={32} />}
+              title={t("products.empty_products")}
+              description={
+                productSearch.trim() || selectedCategory !== "all"
+                  ? "Qidiruv yoki kategoriya filtri bo'yicha mahsulot topilmadi."
+                  : "Katalogingiz bo'sh. Yangi mahsulot qo'shing yoki kanal postlaridan avtomatik aniqlang."
+              }
+              actionLabel={language === "uz" ? "Yangi mahsulot" : "Add Product"}
+              onAction={() => setIsAddingProduct(true)}
+            />
+          ) : (
+            <>
+              <div className="d-none d-md-block table-responsive">
+                <table className="linear-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: "90px" }}>{t("products.th_sku")}</th>
+                      <th>{t("products.th_name")}</th>
+                      <th>{t("products.th_category")}</th>
+                      <th>{t("products.th_specs")}</th>
+                      <th>{t("products.th_price")}</th>
+                      <th>{t("products.th_status")}</th>
+                      <th>{t("products.th_warranty")}</th>
+                      <th style={{ textAlign: "right" }}>{t("products.th_actions")}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredProducts.map((prod) => (
+                      <tr key={prod.id}>
+                        <td className="font-monospace text-secondary small">
+                          {prod.id}
+                        </td>
+                        <td className="fw-semibold text-primary">
+                          {prod.name}
+                        </td>
+                        <td>
+                          <Badge variant="accent">{prod.category}</Badge>
+                        </td>
+                        <td className="text-secondary small text-truncate" style={{ maxWidth: "260px" }}>
+                          {prod.specs}
+                        </td>
+                        <td className="fw-bold text-success font-monospace">
+                          {prod.price}
+                        </td>
+                        <td>
+                          {prod.stock === "In Stock" ? (
+                            <Badge variant="success">{t("products.stock_in")}</Badge>
+                          ) : prod.stock === "Low Stock" ? (
+                            <Badge variant="warning">{t("products.stock_low")}</Badge>
+                          ) : (
+                            <Badge variant="info">{t("products.stock_preorder")}</Badge>
+                          )}
+                        </td>
+                        <td className="text-secondary small">{prod.warranty}</td>
+                        <td style={{ textAlign: "right" }}>
+                          <div className="d-flex align-items-center justify-content-end gap-1.5">
+                            <Button
+                              variant="secondary"
+                              size="xs"
+                              onClick={() => setEditingProduct(prod)}
+                              title={t("products.action_edit")}
+                              aria-label={`${prod.name} ${t("products.action_edit")}`}
+                              icon={<IconPencil size={13} />}
+                            />
+                            <Button
+                              variant="danger"
+                              size="xs"
+                              onClick={() => onDeleteProduct(prod)}
+                              title={t("products.action_delete")}
+                              aria-label={`${prod.name} ${t("products.action_delete")}`}
+                              icon={<IconTrash size={13} />}
+                            />
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="d-md-none d-flex flex-column">
+                {filteredProducts.map((prod) => (
+                  <div key={`mob-prod-${prod.id}`} className="p-3 border-bottom border-subtle d-flex flex-column gap-2">
+                    <div className="d-flex align-items-start justify-content-between gap-2">
+                      <div className="min-w-0">
+                        <div className="fw-semibold text-primary text-truncate">{prod.name}</div>
+                        <div className="text-secondary small text-truncate">{prod.specs}</div>
+                      </div>
+                      <span className="fw-bold text-success font-monospace small flex-shrink-0">{prod.price}</span>
+                    </div>
+                    <div className="d-flex align-items-center justify-content-between gap-2">
+                      <div className="d-flex align-items-center gap-1.5 flex-wrap">
                         <Badge variant="accent">{prod.category}</Badge>
-                      </td>
-                      <td className="text-secondary small text-truncate" style={{ maxWidth: "260px" }}>
-                        {prod.specs}
-                      </td>
-                      <td className="fw-bold text-success font-monospace">
-                        {prod.price}
-                      </td>
-                      <td>
                         {prod.stock === "In Stock" ? (
                           <Badge variant="success">{t("products.stock_in")}</Badge>
                         ) : prod.stock === "Low Stock" ? (
@@ -203,34 +260,17 @@ export function ProductsTab({
                         ) : (
                           <Badge variant="info">{t("products.stock_preorder")}</Badge>
                         )}
-                      </td>
-                      <td className="text-secondary small">{prod.warranty}</td>
-                      <td style={{ textAlign: "right" }}>
-                        <div className="d-flex align-items-center justify-content-end gap-1.5">
-                          <Button
-                            variant="secondary"
-                            size="xs"
-                            onClick={() => setEditingProduct(prod)}
-                            title={t("products.action_edit")}
-                            aria-label={`${prod.name} ${t("products.action_edit")}`}
-                            icon={<IconPencil size={13} />}
-                          />
-                          <Button
-                            variant="danger"
-                            size="xs"
-                            onClick={() => onDeleteProduct(prod)}
-                            title={t("products.action_delete")}
-                            aria-label={`${prod.name} ${t("products.action_delete")}`}
-                            icon={<IconTrash size={13} />}
-                          />
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                      </div>
+                      <div className="d-flex align-items-center gap-1.5">
+                        <Button variant="secondary" size="xs" onClick={() => setEditingProduct(prod)} aria-label={`${prod.name} ${t("products.action_edit")}`} icon={<IconPencil size={13} />} />
+                        <Button variant="danger" size="xs" onClick={() => onDeleteProduct(prod)} aria-label={`${prod.name} ${t("products.action_delete")}`} icon={<IconTrash size={13} />} />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
 

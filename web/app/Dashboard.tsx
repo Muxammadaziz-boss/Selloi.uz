@@ -2444,6 +2444,8 @@ function DashboardContent({
                 conversations={conversations}
                 orders={orders}
                 channels={channels}
+                productsCount={products.length}
+                botConfigured={Boolean(currentOrgDetails?.telegram_bot_token_set)}
                 aiModel={aiModel}
                 onSelectConversation={(id) => setSelected(id)}
                 onNavigateTab={(targetTab, filter) => {

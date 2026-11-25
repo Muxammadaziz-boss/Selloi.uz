@@ -93,110 +93,163 @@ export function CustomersTab({
           <CardTitle>{t("customers.card_title")} ({loading ? "..." : filtered.length})</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="table-responsive">
-            <table className="linear-table">
-              <thead>
-                <tr>
-                  <th>{t("customers.th_name")}</th>
-                  <th>{t("customers.th_username")}</th>
-                  <th className="d-none d-sm-table-cell">{t("customers.th_chat_id")}</th>
-                  <th>{t("customers.th_status")}</th>
-                  <th className="d-none d-md-table-cell">{t("customers.th_last_active")}</th>
-                  <th style={{ textAlign: "right" }}>{t("customers.th_action")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  [...Array(5)].map((_, i) => (
-                    <tr key={`skel-cust-${i}`}>
-                      <td>
-                        <div className="d-flex align-items-center gap-2">
-                          <div className="skeleton-shimmer" style={{ width: 30, height: 30, borderRadius: "50%" }} />
-                          <div className="skeleton-shimmer skeleton-text w-50" style={{ height: 14 }} />
-                        </div>
-                      </td>
-                      <td><div className="skeleton-shimmer skeleton-text w-50" style={{ height: 12 }} /></td>
-                      <td className="d-none d-sm-table-cell"><div className="skeleton-shimmer skeleton-text w-50" style={{ height: 12 }} /></td>
-                      <td><div className="skeleton-shimmer skeleton-text w-50" style={{ height: 18, borderRadius: 10 }} /></td>
-                      <td className="d-none d-md-table-cell"><div className="skeleton-shimmer skeleton-text w-50" style={{ height: 12 }} /></td>
-                      <td style={{ textAlign: "right" }}>
-                        <div className="skeleton-shimmer skeleton-text ms-auto" style={{ width: 80, height: 28, borderRadius: 6 }} />
-                      </td>
+          {!loading && filtered.length === 0 ? (
+            <EmptyState
+              icon={<IconUsers size={32} />}
+              title={search.trim() ? "Mijoz topilmadi" : "Hozircha mijozlar mavjud emas"}
+              description={
+                search.trim()
+                  ? `"${search}" so'rovi bo'yicha hech qanday mijoz topilmadi.`
+                  : "Telegram botingizga mijozlar xabar yozganda yoki buyurtma berganda, ular bu yerda avtomatik paydo bo'ladi."
+              }
+            />
+          ) : (
+            <>
+              <div className="d-none d-md-block table-responsive">
+                <table className="linear-table">
+                  <thead>
+                    <tr>
+                      <th>{t("customers.th_name")}</th>
+                      <th>{t("customers.th_username")}</th>
+                      <th className="d-none d-sm-table-cell">{t("customers.th_chat_id")}</th>
+                      <th>{t("customers.th_status")}</th>
+                      <th className="d-none d-md-table-cell">{t("customers.th_last_active")}</th>
+                      <th style={{ textAlign: "right" }}>{t("customers.th_action")}</th>
                     </tr>
-                  ))
-                ) : filtered.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="p-0 border-0">
-                      <EmptyState
-                        icon={<IconUsers size={32} />}
-                        title={search.trim() ? "Mijoz topilmadi" : "Hozircha mijozlar mavjud emas"}
-                        description={
-                          search.trim()
-                            ? `"${search}" so'rovi bo'yicha hech qanday mijoz topilmadi.`
-                            : "Telegram botingizga mijozlar xabar yozganda yoki buyurtma berganda, ular bu yerda avtomatik paydo bo'ladi."
-                        }
-                      />
-                    </td>
-                  </tr>
-                ) : (
-                  filtered.map((c) => (
-                    <tr key={c.id}>
-                      <td>
-                        <div className="d-flex align-items-center gap-2">
-                          <div
-                            className="rounded-circle d-flex align-items-center justify-content-center text-primary fw-bold flex-shrink-0"
-                            style={{
-                              width: "30px",
-                              height: "30px",
-                              backgroundColor: "var(--accent-subtle)",
-                              fontSize: "0.8rem",
-                            }}
-                          >
-                            {c.customer_name ? c.customer_name.charAt(0).toUpperCase() : "M"}
+                  </thead>
+                  <tbody>
+                    {loading ? (
+                      [...Array(5)].map((_, i) => (
+                        <tr key={`skel-cust-${i}`}>
+                          <td>
+                            <div className="d-flex align-items-center gap-2">
+                              <div className="skeleton-shimmer" style={{ width: 30, height: 30, borderRadius: "50%" }} />
+                              <div className="skeleton-shimmer skeleton-text w-50" style={{ height: 14 }} />
+                            </div>
+                          </td>
+                          <td><div className="skeleton-shimmer skeleton-text w-50" style={{ height: 12 }} /></td>
+                          <td className="d-none d-sm-table-cell"><div className="skeleton-shimmer skeleton-text w-50" style={{ height: 12 }} /></td>
+                          <td><div className="skeleton-shimmer skeleton-text w-50" style={{ height: 18, borderRadius: 10 }} /></td>
+                          <td className="d-none d-md-table-cell"><div className="skeleton-shimmer skeleton-text w-50" style={{ height: 12 }} /></td>
+                          <td style={{ textAlign: "right" }}>
+                            <div className="skeleton-shimmer skeleton-text ms-auto" style={{ width: 80, height: 28, borderRadius: 6 }} />
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      filtered.map((c) => (
+                        <tr key={c.id}>
+                          <td>
+                            <div className="d-flex align-items-center gap-2">
+                              <div
+                                className="rounded-circle d-flex align-items-center justify-content-center text-primary fw-bold flex-shrink-0"
+                                style={{
+                                  width: "30px",
+                                  height: "30px",
+                                  backgroundColor: "var(--accent-subtle)",
+                                  fontSize: "0.8rem",
+                                }}
+                              >
+                                {c.customer_name ? c.customer_name.charAt(0).toUpperCase() : "M"}
+                              </div>
+                              <span className="fw-medium text-primary small text-truncate" style={{ maxWidth: 160 }}>
+                                {c.customer_name}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="text-secondary small">
+                            {c.username ? `@${c.username}` : "-"}
+                          </td>
+                          <td className="font-monospace text-secondary small d-none d-sm-table-cell">
+                            {c.chat_id}
+                          </td>
+                          <td>
+                            {c.status === "ai_active" ? (
+                              <Badge variant="success" dot>{t("customers.status_ai")}</Badge>
+                            ) : (
+                              <Badge variant="warning" dot>{t("customers.status_operator")}</Badge>
+                            )}
+                          </td>
+                          <td className="text-secondary small d-none d-md-table-cell">
+                            <span className="d-flex align-items-center gap-1">
+                              <IconClock size={12} />
+                              {formatTime(c.last_message_at)}
+                            </span>
+                          </td>
+                          <td style={{ textAlign: "right" }}>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => {
+                                onSelectConversation(c.id);
+                                onNavigateInbox();
+                              }}
+                              icon={<IconMessageDots size={14} />}
+                            >
+                              {t("customers.btn_open_chat")}
+                            </Button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="d-md-none d-flex flex-column">
+                {loading
+                  ? [...Array(4)].map((_, i) => (
+                      <div key={`skel-mob-cust-${i}`} className="p-3 border-bottom border-subtle space-y-2">
+                        <div className="skeleton-shimmer skeleton-text w-50" style={{ height: 14 }} />
+                        <div className="skeleton-shimmer skeleton-text w-75" style={{ height: 12 }} />
+                      </div>
+                    ))
+                  : filtered.map((c) => (
+                      <div key={`mob-cust-${c.id}`} className="p-3 border-bottom border-subtle d-flex flex-column gap-2">
+                        <div className="d-flex align-items-center justify-content-between gap-2">
+                          <div className="d-flex align-items-center gap-2 min-w-0">
+                            <div
+                              className="rounded-circle d-flex align-items-center justify-content-center text-primary fw-bold flex-shrink-0"
+                              style={{ width: 32, height: 32, backgroundColor: "var(--accent-subtle)", fontSize: "0.82rem" }}
+                            >
+                              {c.customer_name ? c.customer_name.charAt(0).toUpperCase() : "M"}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="fw-semibold text-primary small text-truncate">{c.customer_name}</div>
+                              <div className="text-secondary" style={{ fontSize: "0.72rem" }}>
+                                {c.username ? `@${c.username}` : `ID: ${c.chat_id}`}
+                              </div>
+                            </div>
                           </div>
-                          <span className="fw-medium text-primary small text-truncate" style={{ maxWidth: 160 }}>
-                            {c.customer_name}
-                          </span>
+                          {c.status === "ai_active" ? (
+                            <Badge variant="success" dot>{t("customers.status_ai")}</Badge>
+                          ) : (
+                            <Badge variant="warning" dot>{t("customers.status_operator")}</Badge>
+                          )}
                         </div>
-                      </td>
-                      <td className="text-secondary small">
-                        {c.username ? `@${c.username}` : "-"}
-                      </td>
-                      <td className="font-monospace text-secondary small d-none d-sm-table-cell">
-                        {c.chat_id}
-                      </td>
-                      <td>
-                        {c.status === "ai_active" ? (
-                          <Badge variant="success" dot>{t("customers.status_ai")}</Badge>
-                        ) : (
-                          <Badge variant="warning" dot>{t("customers.status_operator")}</Badge>
-                        )}
-                      </td>
-                      <td className="text-secondary small d-none d-md-table-cell">
-                        <span className="d-flex align-items-center gap-1">
-                          <IconClock size={12} />
-                          {formatTime(c.last_message_at)}
-                        </span>
-                      </td>
-                      <td style={{ textAlign: "right" }}>
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => {
-                            onSelectConversation(c.id);
-                            onNavigateInbox();
-                          }}
-                          icon={<IconMessageDots size={14} />}
-                        >
-                          {t("customers.btn_open_chat")}
-                        </Button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                        <div className="d-flex align-items-center justify-content-between pt-1">
+                          <span className="text-secondary d-flex align-items-center gap-1" style={{ fontSize: "0.72rem" }}>
+                            <IconClock size={12} />
+                            {formatTime(c.last_message_at)}
+                          </span>
+                          <Button
+                            variant="secondary"
+                            size="xs"
+                            onClick={() => {
+                              onSelectConversation(c.id);
+                              onNavigateInbox();
+                            }}
+                            icon={<IconMessageDots size={13} />}
+                          >
+                            {t("customers.btn_open_chat")}
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
     </div>

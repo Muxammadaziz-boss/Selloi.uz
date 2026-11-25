@@ -1212,6 +1212,7 @@ button.btn-icon,
 
 .max-w-lg { max-width: 32rem !important; }
 .max-w-xl { max-width: 36rem !important; }
+.min-w-0 { min-width: 0 !important; }
 .rounded-full { border-radius: 9999px !important; }
 .border-subtle { border-color: var(--border-subtle) !important; }
 .text-accent { color: var(--accent-text, var(--accent)) !important; }
