@@ -129,17 +129,27 @@ class TelegramService:
         except Exception:
             return False
 
-    async def send_business_text(self, business_connection_id: str, chat_id: int, text: str) -> dict:
+    async def send_business_text(
+        self,
+        business_connection_id: str,
+        chat_id: int,
+        text: str,
+        *,
+        reply_markup: dict | None = None,
+    ) -> dict:
         if not business_connection_id:
             raise TelegramAPIError("Suhbat uchun Telegram Business ulanishi topilmadi")
         clean_text = (text or "").strip()
         if not clean_text:
             raise TelegramAPIError("Xabar matni bo'sh bo'lishi mumkin emas")
-        return await self.call("sendMessage", {
+        payload: dict = {
             "business_connection_id": business_connection_id,
             "chat_id": chat_id,
             "text": clean_text[:4096],
-        })
+        }
+        if reply_markup:
+            payload["reply_markup"] = reply_markup
+        return await self.call("sendMessage", payload)
 
     async def send_business_photo(
         self,

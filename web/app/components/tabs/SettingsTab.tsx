@@ -27,6 +27,7 @@ import { Select } from "../ui/Select";
 import { Tooltip } from "../ui/Tooltip";
 import { PageHeader } from "../layout/PageHeader";
 import { AiPlaygroundPanel, type PlaygroundApiResponse } from "../ai/AiPlaygroundPanel";
+import { StorePaymentSettingsCard, type StorePaymentConfigData } from "../settings/StorePaymentSettingsCard";
 
 export interface SettingsTabProps {
   aiModel: string;
@@ -81,6 +82,19 @@ export interface SettingsTabProps {
     ai_temperature?: number;
     ai_model?: string;
   }) => Promise<PlaygroundApiResponse>;
+  storePaymentConfig?: StorePaymentConfigData | null;
+  onSaveStorePaymentConfig?: (payload: {
+    provider: string;
+    is_enabled: boolean;
+    tezcheck_cash_desk_code?: string;
+    tezcheck_api_key?: string;
+    tezcheck_secret_key?: string;
+    click_service_id?: string;
+    click_merchant_id?: string;
+    payme_merchant_id?: string;
+    card_number?: string;
+    card_holder?: string;
+  }) => Promise<void>;
 }
 
 export function SettingsTab({
@@ -130,6 +144,8 @@ export function SettingsTab({
   onLogoUpload,
   channels,
   onRunPlayground,
+  storePaymentConfig = null,
+  onSaveStorePaymentConfig,
 }: SettingsTabProps) {
   const { language, t } = useLanguage();
   return (
@@ -516,6 +532,11 @@ export function SettingsTab({
               </div>
             </CardContent>
           </Card>
+
+          <StorePaymentSettingsCard
+            config={storePaymentConfig}
+            onSaveConfig={onSaveStorePaymentConfig}
+          />
         </div>
 
         {/* Right Column: Live AI Playground, Logo & System Meta */}

@@ -27,6 +27,8 @@ from app.models import (
     Organization,
     OrganizationMember,
     Product,
+    StoreOrderPayment,
+    StorePaymentConfig,
     SystemSetting,
     User,
 )
@@ -878,9 +880,40 @@ async def get_orders(
 ):
     stmt = select(Order).where(Order.organization_id == org_id).order_by(Order.created_at.desc())
     rows = (await db.execute(stmt)).scalars().all()
+
+    latest_payments: dict[int, StoreOrderPayment] = {}
+    if rows:
+        order_ids = [r.id for r in rows]
+        pay_rows = (
+            await db.execute(
+                select(StoreOrderPayment)
+                .where(
+                    StoreOrderPayment.organization_id == org_id,
+                    StoreOrderPayment.order_id.in_(order_ids),
+                )
+                .order_by(StoreOrderPayment.created_at.desc())
+            )
+        ).scalars().all()
+        for p in pay_rows:
+            if p.order_id not in latest_payments:
+                latest_payments[p.order_id] = p
+
+    def _serialize_payment(p: StoreOrderPayment | None) -> dict | None:
+        if not p:
+            return None
+        return {
+            "bill_id": p.bill_id,
+            "provider": p.provider,
+            "amount_uzs": p.amount_uzs,
+            "payment_url": p.payment_url,
+            "status": p.status,
+            "paid_at": p.paid_at.isoformat() if p.paid_at else None,
+        }
+
     return [{
         "id": f"ORD-{r.id}",
         "db_id": r.id,
+        "conversation_id": r.conversation_id,
         "customer": r.customer_name,
         "phone": r.phone,
         "product": r.product_summary,
@@ -890,6 +923,7 @@ async def get_orders(
         "created_at": r.created_at.isoformat() if r.created_at else None,
         "address": r.delivery_address,
         "notes": r.notes,
+        "latest_payment": _serialize_payment(latest_payments.get(r.id)),
     } for r in rows]
 
 
@@ -1449,3 +1483,243 @@ async def run_ai_playground(
             for post in evidence
         ],
     }
+
+
+# ---------------------------------------------------------------------------
+# Store Customer Payment Gateway & In-Chat Order Payment Links
+# ---------------------------------------------------------------------------
+
+class StorePaymentConfigUpdate(BaseModel):
+    provider: str = "tezcheck"
+    is_enabled: bool = False
+    tezcheck_api_key: str | None = None
+    tezcheck_secret_key: str | None = None
+    tezcheck_cash_desk_code: str | None = None
+    click_service_id: str | None = None
+    click_merchant_id: str | None = None
+    payme_merchant_id: str | None = None
+    card_number: str | None = None
+    card_holder: str | None = None
+
+
+class OrderPaymentSendRequest(BaseModel):
+    amount_uzs: int
+    conversation_id: int | None = None
+    description: str | None = None
+    send_to_telegram: bool = True
+
+
+class ConversationPaymentSendRequest(BaseModel):
+    amount_uzs: int
+    product_summary: str = "Buyurtma to'lovi"
+    order_id: int | None = None
+
+
+@router.get("/payments/config", dependencies=[Depends(require_permission("can_view_orders"))])
+async def get_store_payment_config(
+    db: AsyncSession = Depends(get_db),
+    org_id: int = Depends(get_admin_tenant_id),
+):
+    from app.services.store_payment_service import get_or_create_store_payment_config, serialize_store_payment_config
+    cfg = await get_or_create_store_payment_config(db, org_id)
+    await db.commit()
+    return serialize_store_payment_config(cfg, org_id)
+
+
+@router.put("/payments/config", dependencies=[Depends(require_permission("can_manage_settings"))])
+async def update_store_payment_config(
+    payload: StorePaymentConfigUpdate,
+    db: AsyncSession = Depends(get_db),
+    org_id: int = Depends(get_admin_tenant_id),
+):
+    from app.services.store_payment_service import serialize_store_payment_config, upsert_store_payment_config
+    try:
+        cfg = await upsert_store_payment_config(db, org_id, payload.model_dump())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    db.add(
+        AuditLog(
+            organization_id=org_id,
+            action="store_payment.config_updated",
+            resource="store_payment_config",
+            resource_id=str(org_id),
+            metadata_json={"provider": cfg.provider, "is_enabled": cfg.is_enabled},
+        )
+    )
+    await db.commit()
+    return {"ok": True, "config": serialize_store_payment_config(cfg, org_id)}
+
+
+@router.post("/orders/{order_id}/send-payment", dependencies=[Depends(require_permission("can_manage_orders"))])
+async def send_order_payment_link(
+    order_id: int,
+    payload: OrderPaymentSendRequest,
+    db: AsyncSession = Depends(get_db),
+    org_id: int = Depends(get_admin_tenant_id),
+):
+    from app.services.store_payment_service import create_and_send_order_payment
+
+    order = await db.get(Order, order_id)
+    if not order or order.organization_id != org_id:
+        raise HTTPException(status_code=404, detail="Buyurtma topilmadi")
+
+    conv = None
+    if payload.conversation_id:
+        conv = await db.get(Conversation, payload.conversation_id)
+        if not conv or conv.organization_id != org_id:
+            raise HTTPException(status_code=404, detail="Suhbat topilmadi")
+
+    try:
+        return await create_and_send_order_payment(
+            db,
+            organization_id=org_id,
+            order=order,
+            amount_uzs=payload.amount_uzs,
+            conversation=conv,
+            description=payload.description,
+            send_to_telegram=payload.send_to_telegram,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.post("/conversations/{conversation_id}/send-payment", dependencies=[Depends(require_permission("can_reply_customers"))])
+async def send_conversation_payment_link(
+    conversation_id: int,
+    payload: ConversationPaymentSendRequest,
+    db: AsyncSession = Depends(get_db),
+    org_id: int = Depends(get_admin_tenant_id),
+):
+    from app.services.store_payment_service import create_and_send_order_payment, format_uzs
+
+    conv = await db.get(Conversation, conversation_id)
+    if not conv or conv.organization_id != org_id:
+        raise HTTPException(status_code=404, detail="Suhbat topilmadi")
+
+    order = None
+    if payload.order_id:
+        order = await db.get(Order, payload.order_id)
+        if not order or order.organization_id != org_id:
+            raise HTTPException(status_code=404, detail="Buyurtma topilmadi")
+
+    if order is None:
+        order = Order(
+            organization_id=org_id,
+            conversation_id=conv.id,
+            customer_name=conv.customer_name or "Mijoz",
+            phone="",
+            product_summary=(payload.product_summary or "Buyurtma to'lovi").strip()[:255],
+            amount=format_uzs(payload.amount_uzs),
+            status="Confirmed",
+            notes=f"Inbox chatidan to'lov so'rovi (@{conv.username or conv.chat_id})",
+        )
+        db.add(order)
+        await db.flush()
+
+    try:
+        result = await create_and_send_order_payment(
+            db,
+            organization_id=org_id,
+            order=order,
+            amount_uzs=payload.amount_uzs,
+            conversation=conv,
+            description=payload.product_summary,
+            send_to_telegram=True,
+        )
+        result["order_id"] = order.id
+        return result
+    except ValueError as exc:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.post("/orders/{order_id}/mark-paid", dependencies=[Depends(require_permission("can_manage_orders"))])
+async def mark_order_paid(
+    order_id: int,
+    db: AsyncSession = Depends(get_db),
+    org_id: int = Depends(get_admin_tenant_id),
+):
+    import secrets
+    from app.services.store_payment_service import confirm_store_order_payment, parse_amount_uzs
+
+    order = await db.get(Order, order_id)
+    if not order or order.organization_id != org_id:
+        raise HTTPException(status_code=404, detail="Buyurtma topilmadi")
+
+    payment = (
+        await db.execute(
+            select(StoreOrderPayment)
+            .where(
+                StoreOrderPayment.organization_id == org_id,
+                StoreOrderPayment.order_id == order.id,
+            )
+            .order_by(StoreOrderPayment.created_at.desc())
+        )
+    ).scalars().first()
+
+    if payment is None:
+        ref = f"manual_{org_id}_{order.id}_{secrets.token_hex(4)}"
+        payment = StoreOrderPayment(
+            organization_id=org_id,
+            order_id=order.id,
+            conversation_id=order.conversation_id,
+            provider="manual_card",
+            bill_id=ref,
+            external_reference=ref,
+            amount_uzs=max(1000, parse_amount_uzs(order.amount)),
+            status="pending",
+            description=(order.product_summary or f"Buyurtma #{order.id}")[:250],
+        )
+        db.add(payment)
+        await db.flush()
+
+    return await confirm_store_order_payment(db, payment_record=payment, notify_customer=True)
+
+
+@router.post("/orders/{order_id}/payment-check", dependencies=[Depends(require_permission("can_view_orders"))])
+async def check_order_payment_status(
+    order_id: int,
+    db: AsyncSession = Depends(get_db),
+    org_id: int = Depends(get_admin_tenant_id),
+):
+    from app.services.store_payment_service import (
+        confirm_store_order_payment,
+        get_or_create_store_payment_config,
+        get_store_tezcheck_client,
+    )
+
+    order = await db.get(Order, order_id)
+    if not order or order.organization_id != org_id:
+        raise HTTPException(status_code=404, detail="Buyurtma topilmadi")
+
+    payment = (
+        await db.execute(
+            select(StoreOrderPayment)
+            .where(
+                StoreOrderPayment.organization_id == org_id,
+                StoreOrderPayment.order_id == order.id,
+            )
+            .order_by(StoreOrderPayment.created_at.desc())
+        )
+    ).scalars().first()
+
+    if not payment:
+        return {"ok": True, "paid": (order.status or "").lower() == "paid", "status": order.status}
+
+    if payment.status == "paid":
+        return {"ok": True, "paid": True, "status": "paid"}
+
+    if payment.provider == "tezcheck":
+        cfg = await get_or_create_store_payment_config(db, org_id)
+        if cfg.tezcheck_api_key and cfg.tezcheck_secret_key:
+            try:
+                status_res = await get_store_tezcheck_client(cfg).get_bill_status(payment.bill_id)
+                if status_res.get("paid"):
+                    settled = await confirm_store_order_payment(db, payment_record=payment, notify_customer=True)
+                    return {"ok": True, "paid": True, "status": "paid", "settled": settled}
+                return {"ok": True, "paid": False, "status": status_res.get("status", "pending")}
+            except Exception as exc:
+                raise HTTPException(status_code=400, detail=str(exc))
+
+    return {"ok": True, "paid": False, "status": payment.status}

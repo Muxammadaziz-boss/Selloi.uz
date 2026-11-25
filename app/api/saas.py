@@ -7,7 +7,7 @@ from typing import Optional
 import httpx
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -1061,8 +1061,9 @@ async def tezcheck_webhook(
         event_record = existing_event
 
     # Check if this bill is an Admin Payment Testing Studio diagnostic transaction
-    from app.models import AdminPaymentTest
+    from app.models import AdminPaymentTest, StoreOrderPayment
     from app.services.payment_testing_service import payment_testing_service
+    from app.services.store_payment_service import confirm_store_order_payment
 
     admin_test_stmt = select(AdminPaymentTest).where(
         or_(
@@ -1094,6 +1095,29 @@ async def tezcheck_webhook(
         await db.commit()
         return {"ok": True, "type": "admin_payment_test", "result": test_result}
 
+    store_payment = (
+        await db.execute(
+            select(StoreOrderPayment).where(
+                or_(
+                    StoreOrderPayment.bill_id == bill_id,
+                    StoreOrderPayment.external_reference == bill_id,
+                )
+            )
+        )
+    ).scalar_one_or_none()
+
+    if store_payment or metadata_purpose == "store_order_payment":
+        if not store_payment:
+            event_record.status = "failed"
+            event_record.error_message = f"Store order payment topilmadi: {bill_id}"
+            await db.commit()
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Buyurtma to'lovi topilmadi")
+        settled = await confirm_store_order_payment(db=db, payment_record=store_payment, notify_customer=True)
+        event_record.status = "processed"
+        event_record.processed_at = datetime.now(timezone.utc)
+        await db.commit()
+        return {"ok": True, "type": "store_order_payment", "result": settled}
+
     try:
         result = await subscription_service.confirm_payment_and_activate(
             db=db,
@@ -1111,5 +1135,135 @@ async def tezcheck_webhook(
         event_record.error_message = str(e)
         await db.commit()
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.post("/store-payments/tezcheck/webhook/{organization_id}")
+async def store_tezcheck_webhook(
+    organization_id: int,
+    request: Request,
+    x_tezcheck_signature: str | None = Header(default=None),
+    db: AsyncSession = Depends(get_db),
+):
+    """Tenant-scoped TezCheck webhook handler verifying that store's merchant signature."""
+    import json
+    from app.models import StoreOrderPayment, StorePaymentConfig
+    from app.services.store_payment_service import confirm_store_order_payment, get_store_tezcheck_client
+
+    body = await request.body()
+    if not body or body.strip() == b"":
+        return {"ok": True, "status": "ping_received"}
+
+    try:
+        payload = json.loads(body.decode("utf-8"))
+    except Exception:
+        return {"ok": True, "status": "ping_received"}
+
+    if payload.get("event") in ("ping", "test", "verification") or payload.get("type") in ("ping", "test"):
+        return {"ok": True, "status": "test_received"}
+
+    cfg = (
+        await db.execute(
+            select(StorePaymentConfig).where(StorePaymentConfig.organization_id == organization_id)
+        )
+    ).scalar_one_or_none()
+    if not cfg:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Do'kon to'lov sozlamasi topilmadi")
+
+    client = get_store_tezcheck_client(cfg)
+    sig = (
+        request.headers.get("x-checkout-signature")
+        or x_tezcheck_signature
+        or request.headers.get("x-tezcheck-signature")
+        or request.headers.get("x-signature")
+        or request.headers.get("signature")
+        or request.headers.get("x-webhook-signature")
+    )
+    ts = request.headers.get("x-checkout-timestamp") or request.headers.get("x-tezcheck-timestamp")
+    delivery_id = request.headers.get("x-checkout-delivery") or request.headers.get("x-delivery-id")
+    event_id_header = request.headers.get("x-checkout-event-id") or request.headers.get("x-event-id")
+
+    if not sig and not client.mock_mode:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing required signature header")
+
+    try:
+        client.verify_webhook_signature(
+            raw_body=body,
+            signature_header=sig,
+            timestamp=ts,
+            delivery_id=delivery_id,
+        )
+    except TezCheckSignatureVerificationError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid webhook signature") from exc
+
+    inner_data = payload.get("data") if isinstance(payload.get("data"), dict) else {}
+    bill_id = (
+        inner_data.get("bill_id")
+        or inner_data.get("external_reference")
+        or inner_data.get("id")
+        or payload.get("bill_id")
+        or payload.get("id")
+        or payload.get("order_id")
+    )
+    status_str = (
+        inner_data.get("state")
+        or payload.get("status")
+        or payload.get("type")
+        or ""
+    ).lower()
+    if status_str in ("succeeded", "payment.succeeded"):
+        status_str = "paid"
+
+    if not bill_id or status_str not in ("paid", "completed", "success"):
+        return {"status": "ignored", "reason": f"Status '{status_str}' not actionable"}
+
+    provider_key = f"tezcheck_store_{organization_id}"
+    unique_event_id = str(event_id_header or payload.get("id") or inner_data.get("id") or f"{provider_key}_{bill_id}_{status_str}")
+    existing_event = (
+        await db.execute(
+            select(WebhookEvent).where(
+                WebhookEvent.provider == provider_key,
+                WebhookEvent.event_id == unique_event_id,
+            )
+        )
+    ).scalar_one_or_none()
+    if existing_event and existing_event.status == "processed":
+        return {"ok": True, "status": "already_processed", "idempotent": True}
+
+    if not existing_event:
+        event_record = WebhookEvent(
+            provider=provider_key,
+            event_id=unique_event_id,
+            event_type=status_str,
+            payload=payload,
+            status="pending",
+        )
+        db.add(event_record)
+        await db.flush()
+    else:
+        event_record = existing_event
+
+    from sqlalchemy import or_
+    payment = (
+        await db.execute(
+            select(StoreOrderPayment).where(
+                StoreOrderPayment.organization_id == organization_id,
+                or_(
+                    StoreOrderPayment.bill_id == str(bill_id),
+                    StoreOrderPayment.external_reference == str(bill_id),
+                ),
+            )
+        )
+    ).scalar_one_or_none()
+    if not payment:
+        event_record.status = "failed"
+        event_record.error_message = f"Buyurtma to'lovi topilmadi: {bill_id}"
+        await db.commit()
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Buyurtma to'lovi topilmadi")
+
+    settled = await confirm_store_order_payment(db=db, payment_record=payment, notify_customer=True)
+    event_record.status = "processed"
+    event_record.processed_at = datetime.now(timezone.utc)
+    await db.commit()
+    return {"ok": True, "type": "store_order_payment", "result": settled}
 
 

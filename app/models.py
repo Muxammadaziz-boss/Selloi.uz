@@ -47,7 +47,6 @@ class User(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
     token_version: Mapped[int] = mapped_column(Integer, default=1, server_default="1", nullable=False)
 
-
     memberships: Mapped[list["OrganizationMember"]] = relationship(back_populates="user", cascade="all, delete-orphan")
 
 
@@ -655,4 +654,63 @@ class Admin(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
     token_version: Mapped[int] = mapped_column(Integer, default=1, server_default="1", nullable=False)
+
+
+class StorePaymentConfig(Base):
+    """Per-organization merchant payment gateway settings (encrypted secrets)."""
+    __tablename__ = "store_payment_configs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    organization_id: Mapped[int] = mapped_column(
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        unique=True,
+        index=True,
+        nullable=False,
+    )
+    provider: Mapped[str] = mapped_column(String(32), default="tezcheck", nullable=False)  # tezcheck, click, payme, manual_card
+    is_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    tezcheck_api_key: Mapped[str | None] = mapped_column(Text, nullable=True)  # Fernet encrypted
+    tezcheck_secret_key: Mapped[str | None] = mapped_column(Text, nullable=True)  # Fernet encrypted
+    tezcheck_cash_desk_code: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    click_service_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    click_merchant_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    payme_merchant_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    card_number: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    card_holder: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+    @property
+    def decrypted_tezcheck_api_key(self) -> str | None:
+        if not self.tezcheck_api_key:
+            return None
+        from app.core.security import decrypt_secret
+        return decrypt_secret(self.tezcheck_api_key)
+
+    @property
+    def decrypted_tezcheck_secret_key(self) -> str | None:
+        if not self.tezcheck_secret_key:
+            return None
+        from app.core.security import decrypt_secret
+        return decrypt_secret(self.tezcheck_secret_key)
+
+
+class StoreOrderPayment(Base):
+    """Store-level customer order payment links and settlement records."""
+    __tablename__ = "store_order_payments"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True, nullable=False)
+    order_id: Mapped[int] = mapped_column(ForeignKey("orders.id", ondelete="CASCADE"), index=True, nullable=False)
+    conversation_id: Mapped[int | None] = mapped_column(ForeignKey("conversations.id", ondelete="SET NULL"), index=True, nullable=True)
+    provider: Mapped[str] = mapped_column(String(32), nullable=False)
+    bill_id: Mapped[str] = mapped_column(String(128), unique=True, index=True, nullable=False)
+    external_reference: Mapped[str] = mapped_column(String(128), unique=True, index=True, nullable=False)
+    amount_uzs: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    payment_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    status: Mapped[str] = mapped_column(String(32), default="pending", index=True, nullable=False)  # pending, paid, cancelled, failed
+    description: Mapped[str] = mapped_column(String(255), default="", nullable=False)
+    paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 

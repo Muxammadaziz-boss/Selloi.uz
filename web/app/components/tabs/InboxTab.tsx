@@ -16,6 +16,7 @@ import {
   IconUser,
   IconVolume,
   IconVolumeOff,
+  IconCreditCard,
 } from "@tabler/icons-react";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
@@ -58,6 +59,7 @@ export interface InboxTabProps {
   onSaveCustomerNote: (id: number, note: string) => void;
   onSendCatalogProposal: () => void;
   onSendDiscountProposal: () => void;
+  onSendConversationPayment?: (convId: number, amountUzs: number, productSummary: string) => Promise<void>;
   sseConnected?: boolean;
   soundEnabled?: boolean;
   onToggleSound?: () => void;
@@ -82,6 +84,7 @@ export function InboxTab({
   onSaveCustomerNote,
   onSendCatalogProposal,
   onSendDiscountProposal,
+  onSendConversationPayment,
   sseConnected = true,
   soundEnabled = true,
   onToggleSound,
@@ -89,6 +92,10 @@ export function InboxTab({
   const { language, t } = useLanguage();
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [payOpen, setPayOpen] = React.useState(false);
+  const [payAmount, setPayAmount] = React.useState("150000");
+  const [paySummary, setPaySummary] = React.useState("");
+  const [payBusy, setPayBusy] = React.useState(false);
 
   const activeConversation = conversations.find((c) => c.id === selectedId) || conversations[0] || null;
 
@@ -561,6 +568,74 @@ export function InboxTab({
                       <div className="text-secondary" style={{ fontSize: "0.68rem" }}>{t("inbox.proposal_discount_desc")}</div>
                     </div>
                   </button>
+
+                  {onSendConversationPayment && (
+                    <div
+                      className="p-2 rounded-2 border"
+                      style={{
+                        backgroundColor: "var(--bg-surface-elevated)",
+                        borderColor: payOpen ? "var(--accent)" : "var(--border-default)",
+                      }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setPayOpen((v) => !v)}
+                        className="w-100 text-start border-0 bg-transparent p-0 d-flex align-items-center gap-2 cursor-pointer"
+                      >
+                        <IconCreditCard size={16} style={{ color: "var(--accent)" }} />
+                        <div className="flex-grow-1 overflow-hidden">
+                          <div className="text-primary small fw-medium text-truncate">{t("inbox.send_payment_title")}</div>
+                          <div className="text-secondary" style={{ fontSize: "0.68rem" }}>{t("inbox.send_payment_desc")}</div>
+                        </div>
+                      </button>
+
+                      {payOpen && (
+                        <form
+                          onSubmit={async (e) => {
+                            e.preventDefault();
+                            const amt = parseInt(payAmount.replace(/[^\d]/g, ""), 10);
+                            if (!Number.isFinite(amt) || amt < 1000) return;
+                            setPayBusy(true);
+                            try {
+                              await onSendConversationPayment(
+                                activeConversation.id,
+                                amt,
+                                paySummary.trim() || "Buyurtma to'lovi"
+                              );
+                              setPayOpen(false);
+                              setPaySummary("");
+                            } finally {
+                              setPayBusy(false);
+                            }
+                          }}
+                          className="mt-2 pt-2 border-top border-subtle d-flex flex-column gap-1.5"
+                        >
+                          <input
+                            type="number"
+                            min={1000}
+                            step={1000}
+                            required
+                            value={payAmount}
+                            onChange={(e) => setPayAmount(e.target.value)}
+                            placeholder={t("orders.pay_amount_label")}
+                            className="linear-input py-1 font-monospace"
+                            style={{ fontSize: "0.75rem" }}
+                          />
+                          <input
+                            type="text"
+                            value={paySummary}
+                            onChange={(e) => setPaySummary(e.target.value)}
+                            placeholder={t("orders.pay_desc_label")}
+                            className="linear-input py-1"
+                            style={{ fontSize: "0.75rem" }}
+                          />
+                          <Button type="submit" variant="primary" size="xs" loading={payBusy} icon={<IconCreditCard size={12} />}>
+                            {t("orders.pay_submit")}
+                          </Button>
+                        </form>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

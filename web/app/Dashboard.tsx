@@ -76,6 +76,7 @@ import { InboxTab } from "./components/tabs/InboxTab";
 import { DesignProvider } from "./components/design/DesignContext";
 import { LanguageProvider, useLanguage } from "./lib/i18n";
 import { playNotificationChime, showBrowserNotification } from "../lib/sound";
+import type { StorePaymentConfigData } from "./components/settings/StorePaymentSettingsCard";
 
 function TabPanelSkeleton() {
   return (
@@ -217,13 +218,23 @@ type AdminUser = {
 
 type OrderItem = {
   id: string;
+  db_id?: number;
+  conversation_id?: number | null;
   customer: string;
   username: string;
   product: string;
   amount: string;
-  status: "New" | "Processing" | "Confirmed" | "Completed" | "Cancelled" | string;
+  status: "New" | "Processing" | "Confirmed" | "Completed" | "Paid" | "Cancelled" | string;
   date: string;
   channel: string;
+  latest_payment?: {
+    bill_id: string;
+    provider: string;
+    amount_uzs: number;
+    payment_url?: string | null;
+    status: string;
+    paid_at?: string | null;
+  } | null;
 };
 
 type ProductItem = {
@@ -849,6 +860,7 @@ function DashboardContent({
   const [newChannelInput, setNewChannelInput] = useState("");
   const [channelFilter, setChannelFilter] = useState("all");
   const [orders, setOrders] = useState<OrderItem[]>(INITIAL_ORDERS);
+  const [storePaymentConfig, setStorePaymentConfig] = useState<StorePaymentConfigData | null>(null);
   const [products, setProducts] = useState<ProductItem[]>(INITIAL_PRODUCTS);
   const [editingProduct, setEditingProduct] = useState<ProductItem | null>(null);
   const [isAddingProduct, setIsAddingProduct] = useState(false);
@@ -979,7 +991,7 @@ function DashboardContent({
     setLoading(true);
     setError("");
     try {
-      const [o, c, p, a, s, chList, prodsList, ordersList, tenantLogsRes] = await Promise.all([
+      const [o, c, p, a, s, chList, prodsList, ordersList, tenantLogsRes, storePayCfg] = await Promise.all([
         api<Overview>("/admin/overview"),
         api<Conversation[]>("/admin/conversations"),
         api<KnowledgePost[]>("/admin/knowledge"),
@@ -989,6 +1001,7 @@ function DashboardContent({
         api<ProductItem[]>("/admin/products").catch(() => []),
         api<OrderItem[]>("/admin/orders").catch(() => []),
         api<{ logs?: any[] }>("/admin/logs").catch(() => ({ logs: [] })),
+        api<StorePaymentConfigData>("/admin/payments/config").catch(() => null),
       ]);
       setOverview(o);
       setConversations(c);
@@ -998,6 +1011,7 @@ function DashboardContent({
       setProducts(prodsList || []);
       setOrders(ordersList || []);
       setTenantLogs(tenantLogsRes?.logs || []);
+      setStorePaymentConfig(storePayCfg);
       const serverNotes: Record<number, string> = {};
       (c || []).forEach((conv) => {
         if (conv.note) {
@@ -2192,6 +2206,111 @@ function DashboardContent({
     }
   };
 
+  const handleSaveStorePaymentConfig = async (payload: {
+    provider: string;
+    is_enabled: boolean;
+    tezcheck_cash_desk_code?: string;
+    tezcheck_api_key?: string;
+    tezcheck_secret_key?: string;
+    click_service_id?: string;
+    click_merchant_id?: string;
+    payme_merchant_id?: string;
+    card_number?: string;
+    card_holder?: string;
+  }) => {
+    try {
+      const res = await api<{ ok: boolean; config: StorePaymentConfigData }>("/admin/payments/config", {
+        method: "PUT",
+        body: JSON.stringify(payload),
+      });
+      if (res?.config) setStorePaymentConfig(res.config);
+      setSuccess("Mijozlardan to'lov qabul qilish sozlamalari saqlandi!");
+    } catch (e: any) {
+      setError(e.message || "To'lov sozlamalarini saqlashda xatolik");
+      throw e;
+    }
+  };
+
+  const handleSendOrderPayment = async (orderIdStr: string, amountUzs: number, description?: string) => {
+    const rawId = parseInt(orderIdStr.replace("ORD-", ""), 10);
+    try {
+      const res = await api<any>(`/admin/orders/${rawId}/send-payment`, {
+        method: "POST",
+        body: JSON.stringify({
+          amount_uzs: amountUzs,
+          description: description || undefined,
+          send_to_telegram: true,
+        }),
+      });
+      const updatedOrders = await api<OrderItem[]>("/admin/orders").catch(() => null);
+      if (updatedOrders) setOrders(updatedOrders);
+      if (res?.telegram_sent) {
+        setSuccess(`Buyurtma ${orderIdStr} uchun to'lov havolasi Telegramga yuborildi!`);
+      } else {
+        setSuccess(`Buyurtma ${orderIdStr} uchun to'lov havolasi yaratildi (nusxalab yuborishingiz mumkin).`);
+      }
+      if (selected !== null) {
+        void loadMessages(selected);
+      }
+      return res;
+    } catch (e: any) {
+      setError(e.message || "To'lov havolasi yaratishda xatolik");
+      throw e;
+    }
+  };
+
+  const handleSendConversationPayment = async (conversationId: number, amountUzs: number, productSummary: string) => {
+    try {
+      const res = await api<any>(`/admin/conversations/${conversationId}/send-payment`, {
+        method: "POST",
+        body: JSON.stringify({
+          amount_uzs: amountUzs,
+          product_summary: productSummary,
+        }),
+      });
+      if (res?.telegram_sent) {
+        setSuccess("To'lov havolasi mijozga Telegram chatida yuborildi!");
+      } else {
+        setSuccess("Buyurtma va to'lov havolasi yaratildi.");
+      }
+      await Promise.all([
+        api<OrderItem[]>("/admin/orders").then(setOrders).catch(() => {}),
+        loadMessages(conversationId),
+      ]);
+    } catch (e: any) {
+      setError(e.message || "To'lov havolasini yuborishda xatolik");
+      throw e;
+    }
+  };
+
+  const handleMarkOrderPaid = async (orderIdStr: string) => {
+    const rawId = parseInt(orderIdStr.replace("ORD-", ""), 10);
+    try {
+      await api(`/admin/orders/${rawId}/mark-paid`, { method: "POST" });
+      const updatedOrders = await api<OrderItem[]>("/admin/orders").catch(() => null);
+      if (updatedOrders) setOrders(updatedOrders);
+      setSuccess(`Buyurtma ${orderIdStr} to'langan (Paid) deb belgilandi!`);
+    } catch (e: any) {
+      setError(e.message || "To'lovni tasdiqlashda xatolik");
+    }
+  };
+
+  const handleCheckOrderPayment = async (orderIdStr: string) => {
+    const rawId = parseInt(orderIdStr.replace("ORD-", ""), 10);
+    try {
+      const res = await api<any>(`/admin/orders/${rawId}/payment-check`, { method: "POST" });
+      if (res?.paid) {
+        const updatedOrders = await api<OrderItem[]>("/admin/orders").catch(() => null);
+        if (updatedOrders) setOrders(updatedOrders);
+        setSuccess(`Buyurtma ${orderIdStr} bo'yicha to'lov tasdiqlandi!`);
+      } else {
+        setInfoToast(`Buyurtma ${orderIdStr} to'lovi hali kutilmoqda (${res?.status || "pending"}).`);
+      }
+    } catch (e: any) {
+      setError(e.message || "To'lov holatini tekshirishda xatolik");
+    }
+  };
+
   const handleDeleteOrder = async (orderIdStr: string) => {
     setPendingConfirm({
       title: "Buyurtmani o'chirish",
@@ -2722,6 +2841,7 @@ function DashboardContent({
                 onSaveCustomerNote={handleSaveCustomerNote}
                 onSendCatalogProposal={handleSendCatalogProposal}
                 onSendDiscountProposal={handleSendDiscountProposal}
+                onSendConversationPayment={handleSendConversationPayment}
                 sseConnected={sseConnected}
                 soundEnabled={soundEnabled}
                 onToggleSound={handleToggleSound}
@@ -2774,6 +2894,9 @@ function DashboardContent({
                 setOrderSearch={setOrderSearch}
                 onUpdateOrderStatus={handleUpdateOrderStatus}
                 onDeleteOrder={handleDeleteOrder}
+                onSendOrderPayment={handleSendOrderPayment}
+                onMarkOrderPaid={handleMarkOrderPaid}
+                onCheckOrderPayment={handleCheckOrderPayment}
                 busy={busy}
               />
             )}
@@ -2843,6 +2966,8 @@ function DashboardContent({
                 onLogoUpload={handleLogoUpload}
                 channels={channels}
                 onRunPlayground={handleRunAiPlayground}
+                storePaymentConfig={storePaymentConfig}
+                onSaveStorePaymentConfig={handleSaveStorePaymentConfig}
               />
             )}
 
