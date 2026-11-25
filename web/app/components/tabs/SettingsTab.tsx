@@ -17,6 +17,7 @@ import {
   IconPhone,
   IconMessageDots,
   IconInfoCircle,
+  IconSparkles,
 } from "@tabler/icons-react";
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
 import { Badge } from "../ui/Badge";
@@ -25,6 +26,7 @@ import { Input, Textarea } from "../ui/Input";
 import { Select } from "../ui/Select";
 import { Tooltip } from "../ui/Tooltip";
 import { PageHeader } from "../layout/PageHeader";
+import { AiPlaygroundPanel, type PlaygroundApiResponse } from "../ai/AiPlaygroundPanel";
 
 export interface SettingsTabProps {
   aiModel: string;
@@ -72,6 +74,13 @@ export interface SettingsTabProps {
   onSaveLogoUrl: (url: string) => void;
   onLogoUpload: (file: File) => void;
   channels: Array<{ id: number; channel_username: string }>;
+  onRunPlayground?: (payload: {
+    message: string;
+    history: Array<{ direction: "customer" | "assistant"; text: string }>;
+    custom_system_prompt?: string;
+    ai_temperature?: number;
+    ai_model?: string;
+  }) => Promise<PlaygroundApiResponse>;
 }
 
 export function SettingsTab({
@@ -120,6 +129,7 @@ export function SettingsTab({
   onSaveLogoUrl,
   onLogoUpload,
   channels,
+  onRunPlayground,
 }: SettingsTabProps) {
   const { language, t } = useLanguage();
   return (
@@ -129,11 +139,22 @@ export function SettingsTab({
         title={t("settings.title")}
         description={t("settings.subtitle")}
         badge={{ text: language === "uz" ? "Tizim sozlamalari" : "System Config", variant: "accent" }}
+        actions={
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => document.getElementById("ai-playground")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+            icon={<IconSparkles size={14} style={{ color: "var(--accent)" }} />}
+          >
+            {t("playground.open_btn")}
+          </Button>
+        }
       />
 
       <div className="row g-4">
         {/* Left Column: AI Parameters & Telegram Webhook */}
-        <div className="col-12 col-lg-8 d-flex flex-column gap-4">
+        <div className="col-12 col-lg-7 d-flex flex-column gap-4">
           {/* AI Model & Temperature Card */}
           <Card>
             <CardHeader>
@@ -497,8 +518,16 @@ export function SettingsTab({
           </Card>
         </div>
 
-        {/* Right Column: Logo & System Meta */}
-        <div className="col-12 col-lg-4 d-flex flex-column gap-4">
+        {/* Right Column: Live AI Playground, Logo & System Meta */}
+        <div className="col-12 col-lg-5 d-flex flex-column gap-4">
+          <AiPlaygroundPanel
+            activeOrgId={activeOrgId}
+            aiModel={aiModel}
+            aiTemperature={aiTemperature}
+            customPromptInput={customPromptInput}
+            onRunPlayground={onRunPlayground}
+          />
+
           {/* Logo Card */}
           <Card>
             <CardHeader>

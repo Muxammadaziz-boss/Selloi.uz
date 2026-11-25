@@ -50,6 +50,7 @@ export interface KnowledgeTabProps {
   onDeleteChannel: (username: string) => void;
   onDeletePost: (id: number, messageId: number) => void;
   onExtractProducts: () => void;
+  onOpenPlayground?: () => void;
   busy: boolean;
 }
 
@@ -65,6 +66,7 @@ export function KnowledgeTab({
   onDeleteChannel,
   onDeletePost,
   onExtractProducts,
+  onOpenPlayground,
   busy,
 }: KnowledgeTabProps) {
   const { language, t } = useLanguage();
@@ -125,7 +127,17 @@ export function KnowledgeTab({
           variant: "accent",
         }}
         actions={
-          <div className="d-flex align-items-center gap-2">
+          <div className="d-flex align-items-center flex-wrap gap-2">
+            {onOpenPlayground && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onOpenPlayground}
+                icon={<IconSparkles size={14} style={{ color: "var(--accent)" }} />}
+              >
+                {t("playground.open_btn")}
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"

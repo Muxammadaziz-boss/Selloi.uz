@@ -38,12 +38,22 @@ class SalesAI:
             return "openai"
         return "none"
 
-    async def _generate_gemini(self, instructions: str, payload_str: str, api_key: str | None = None) -> dict:
+    async def _generate_gemini(
+        self,
+        instructions: str,
+        payload_str: str,
+        api_key: str | None = None,
+        *,
+        model_override: str | None = None,
+        temperature: float = 0.3,
+    ) -> dict:
         gemini_key = api_key or self.gemini_key
         if not gemini_key:
             raise ValueError("Gemini API key mavjud emas")
         client = self._get_http_client()
-        candidate_models = [self.gemini_model]
+        primary_model = (model_override or "").strip() or self.gemini_model
+        clamped_temp = max(0.0, min(1.0, float(temperature)))
+        candidate_models = [primary_model]
         for fallback in ("gemini-3.1-flash-lite", "gemini-3.5-flash", "gemini-flash-latest", "gemini-3.5-flash-lite"):
             if fallback not in candidate_models:
                 candidate_models.append(fallback)
@@ -61,7 +71,7 @@ class SalesAI:
                 }],
                 "generationConfig": {
                     "responseMimeType": "application/json",
-                    "temperature": 0.3,
+                    "temperature": clamped_temp,
                 }
             }
             try:
@@ -124,9 +134,14 @@ class SalesAI:
         history: list[dict],
         organization_id: int | None = None,
         db: any = None,
+        *,
+        custom_prompt_override: str | None = None,
+        temperature_override: float | None = None,
+        model_override: str | None = None,
+        track_usage: bool = True,
     ) -> dict:
         # SaaS Entitlement and Usage Checks
-        if db is not None and organization_id is not None:
+        if track_usage and db is not None and organization_id is not None:
             try:
                 from app.services.entitlement_service import entitlement_service
                 from app.services.usage_service import usage_service
@@ -287,6 +302,9 @@ Javobingni FAQAT quyidagi JSON formatida qaytar:
   "source_post_id": null
 }
 """
+        if custom_prompt_override is not None:
+            custom_system_prompt = custom_prompt_override.strip() or None
+
         if custom_system_prompt:
             instructions = f"QO'SHIMCHA TASHKILOT KO'RSATMASI:\n{custom_system_prompt}\n\nMuloqot tili: {ai_language}. Uslubi: {ai_personality}.\n\n" + instructions
         elif ai_personality or ai_language:
@@ -300,7 +318,13 @@ Javobingni FAQAT quyidagi JSON formatida qaytar:
         try:
             payload_str = json.dumps(payload, ensure_ascii=False)
             if active_provider == "gemini":
-                data = await self._generate_gemini(instructions, payload_str, api_key=active_gemini_key)
+                data = await self._generate_gemini(
+                    instructions,
+                    payload_str,
+                    api_key=active_gemini_key,
+                    model_override=model_override,
+                    temperature=temperature_override if temperature_override is not None else 0.3,
+                )
             else:
                 data = await self._generate_openai(instructions, payload_str, api_key=active_openai_key)
             reply = str(data.get("reply", "")).strip()
@@ -312,7 +336,7 @@ Javobingni FAQAT quyidagi JSON formatida qaytar:
             order_data = data.get("order_data") if order_created else None
 
             # SaaS Usage Increment & Cost Tracking
-            if db is not None and organization_id is not None:
+            if track_usage and db is not None and organization_id is not None:
                 try:
                     from app.services.usage_service import usage_service
                     from app.services.cost_service import cost_service

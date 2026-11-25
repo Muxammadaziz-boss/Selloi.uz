@@ -1361,3 +1361,91 @@ async def update_setting(
         return {"ok": True, "key": setting.key, "value": setting.value}
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+
+
+class PlaygroundHistoryTurn(BaseModel):
+    direction: str
+    text: str
+
+
+class AIPlaygroundRequest(BaseModel):
+    message: str
+    history: list[PlaygroundHistoryTurn] = []
+    custom_system_prompt: str | None = None
+    ai_temperature: float | None = None
+    ai_model: str | None = None
+
+
+@router.post(
+    "/ai/playground",
+    dependencies=[
+        Depends(require_permission("can_view_knowledge")),
+        Depends(require_rate_limit("admin_ai_playground", max_requests=25, window_seconds=60)),
+    ],
+)
+async def run_ai_playground(
+    payload: AIPlaygroundRequest,
+    db: AsyncSession = Depends(get_db),
+    org_id: int = Depends(get_admin_tenant_id),
+):
+    """Simulate an AI customer interaction strictly scoped to the tenant without mutating business data."""
+    import time
+    from app.services.ai import sales_ai
+    from app.services.knowledge import knowledge
+
+    cleaned_message = (payload.message or "").strip()
+    if not cleaned_message:
+        raise HTTPException(status_code=400, detail="Sinov xabari bo'sh bo'lishi mumkin emas")
+    cleaned_message = cleaned_message[:1500]
+
+    sanitized_history = [
+        {
+            "direction": "assistant" if turn.direction == "assistant" else "customer",
+            "text": (turn.text or "").strip()[:800],
+        }
+        for turn in (payload.history or [])[-10:]
+        if (turn.text or "").strip()
+    ]
+
+    t0 = time.perf_counter()
+    if sales_ai.is_greeting(cleaned_message):
+        evidence = []
+    else:
+        evidence = await knowledge.search(db, cleaned_message, limit=6, organization_id=org_id)
+
+    decision = await sales_ai.answer(
+        cleaned_message,
+        evidence,
+        sanitized_history,
+        organization_id=org_id,
+        db=db,
+        custom_prompt_override=payload.custom_system_prompt,
+        temperature_override=payload.ai_temperature,
+        model_override=payload.ai_model,
+        track_usage=False,
+    )
+    latency_ms = round((time.perf_counter() - t0) * 1000)
+
+    return {
+        "ok": True,
+        "reply": decision.get("reply") or "",
+        "intent": decision.get("intent") or "other",
+        "handoff": bool(decision.get("handoff")),
+        "reason": decision.get("reason"),
+        "order_created": bool(decision.get("order_created")),
+        "order_data": decision.get("order_data"),
+        "attach_photo": bool(decision.get("attach_photo")),
+        "source_post_id": decision.get("source_post_id"),
+        "latency_ms": latency_ms,
+        "evidence": [
+            {
+                "id": post.id,
+                "telegram_message_id": post.telegram_message_id,
+                "channel_username": post.channel_username,
+                "snippet": (post.text or post.image_description or "").strip()[:180],
+                "has_photo": bool(post.photo_file_id or post.image_path),
+                "source_url": post.source_url,
+            }
+            for post in evidence
+        ],
+    }

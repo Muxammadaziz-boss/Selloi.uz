@@ -1760,6 +1760,31 @@ function DashboardContent({
     }
   };
 
+  const handleRunAiPlayground = useCallback(
+    async (payload: {
+      message: string;
+      history: Array<{ direction: "customer" | "assistant"; text: string }>;
+      custom_system_prompt?: string;
+      ai_temperature?: number;
+      ai_model?: string;
+    }) => {
+      return api<any>("/admin/ai/playground", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+    },
+    []
+  );
+
+  const handleOpenPlayground = useCallback(() => {
+    setTab("settings");
+    if (typeof window !== "undefined") {
+      setTimeout(() => {
+        document.getElementById("ai-playground")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 150);
+    }
+  }, []);
+
   const switchOrganization = (orgId: number) => {
     setActiveOrgId(orgId);
     setSubscriptionData(null);
@@ -2716,6 +2741,7 @@ function DashboardContent({
                 onDeleteChannel={handleDeleteChannel}
                 onDeletePost={handleDeletePost}
                 onExtractProducts={handleExtractProductsFromPosts}
+                onOpenPlayground={handleOpenPlayground}
                 busy={busy}
               />
             )}
@@ -2816,6 +2842,7 @@ function DashboardContent({
                 onSaveLogoUrl={handleSaveLogoUrl}
                 onLogoUpload={handleLogoUpload}
                 channels={channels}
+                onRunPlayground={handleRunAiPlayground}
               />
             )}
 
