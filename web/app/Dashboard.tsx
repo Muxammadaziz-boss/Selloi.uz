@@ -75,6 +75,7 @@ import { OverviewTab } from "./components/tabs/OverviewTab";
 import { InboxTab } from "./components/tabs/InboxTab";
 import { DesignProvider } from "./components/design/DesignContext";
 import { LanguageProvider, useLanguage } from "./lib/i18n";
+import { playNotificationChime, showBrowserNotification } from "../lib/sound";
 
 function TabPanelSkeleton() {
   return (
@@ -870,6 +871,46 @@ function DashboardContent({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [infoToast, setInfoToast] = useState("");
+  const [sseConnected, setSseConnected] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("selloi_sound_alerts") !== "false";
+    }
+    return true;
+  });
+
+  const selectedRef = useRef<number | null>(selected);
+  const tabRef = useRef<string>(tab);
+  const soundEnabledRef = useRef<boolean>(soundEnabled);
+
+  useEffect(() => {
+    selectedRef.current = selected;
+  }, [selected]);
+
+  useEffect(() => {
+    tabRef.current = tab;
+  }, [tab]);
+
+  useEffect(() => {
+    soundEnabledRef.current = soundEnabled;
+    if (typeof window !== "undefined") {
+      localStorage.setItem("selloi_sound_alerts", soundEnabled ? "true" : "false");
+    }
+  }, [soundEnabled]);
+
+  const handleToggleSound = useCallback(() => {
+    setSoundEnabled((prev) => {
+      const next = !prev;
+      if (next) {
+        playNotificationChime("message");
+        if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
+          Notification.requestPermission().catch(() => {});
+        }
+      }
+      return next;
+    });
+  }, []);
 
   // Auto-dismiss notification toasts after 4 seconds
   useEffect(() => {
@@ -885,6 +926,13 @@ function DashboardContent({
       return () => clearTimeout(timer);
     }
   }, [success]);
+
+  useEffect(() => {
+    if (infoToast) {
+      const timer = setTimeout(() => setInfoToast(""), 4500);
+      return () => clearTimeout(timer);
+    }
+  }, [infoToast]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -1072,15 +1120,109 @@ function DashboardContent({
     }
   }, [tab]);
 
-  // Live real-time polling every 6 seconds for tenant overview and conversations
+  // Real-time Server-Sent Events stream scoped to active tenant organization
   useEffect(() => {
-    if (!authenticated || zone === "platform") return;
+    if (!authenticated || zone === "platform" || typeof EventSource === "undefined") {
+      setSseConnected(false);
+      return;
+    }
+
+    const orgIdParam = activeOrgId || currentUser?.organizationId || 1;
+    const streamUrl = `/api/events?organization_id=${encodeURIComponent(String(orgIdParam))}`;
+    const source = new EventSource(streamUrl);
+
+    const refreshInboxSummary = () => {
+      api<Overview>("/admin/overview").then(setOverview).catch(() => {});
+      api<Conversation[]>("/admin/conversations").then(setConversations).catch(() => {});
+    };
+
+    const parsePayload = (ev: MessageEvent): any => {
+      try {
+        return JSON.parse(ev.data || "{}");
+      } catch {
+        return {};
+      }
+    };
+
+    source.onopen = () => {
+      setSseConnected(true);
+    };
+
+    source.addEventListener("connected", () => {
+      setSseConnected(true);
+    });
+
+    source.addEventListener("message.created", (ev) => {
+      const data = parsePayload(ev as MessageEvent);
+      refreshInboxSummary();
+      const targetConvId = Number(data.conversation_id || 0);
+      if (targetConvId > 0 && selectedRef.current === targetConvId) {
+        void loadMessages(targetConvId);
+      }
+      if (data.direction === "customer") {
+        if (soundEnabledRef.current) {
+          playNotificationChime("message");
+        }
+        const customerLabel = String(data.customer_name || "Mijoz");
+        const snippet = String(data.text || "").slice(0, 75);
+        if (tabRef.current !== "inbox" || selectedRef.current !== targetConvId) {
+          setInfoToast(`${customerLabel}: ${snippet}`);
+        }
+        showBrowserNotification(`Yangi xabar: ${customerLabel}`, snippet);
+      }
+    });
+
+    source.addEventListener("conversation.updated", () => {
+      refreshInboxSummary();
+    });
+
+    source.addEventListener("handoff.required", (ev) => {
+      const data = parsePayload(ev as MessageEvent);
+      refreshInboxSummary();
+      if (soundEnabledRef.current) {
+        playNotificationChime("handoff");
+      }
+      const customerLabel = String(data.customer_name || "Mijoz");
+      const reason = data.reason ? ` (${String(data.reason).slice(0, 60)})` : "";
+      setInfoToast(`Operator kerak: ${customerLabel}${reason}`);
+      showBrowserNotification("Operator yordami kerak", `${customerLabel}${reason}`);
+    });
+
+    source.addEventListener("order.created", (ev) => {
+      const data = parsePayload(ev as MessageEvent);
+      refreshInboxSummary();
+      api<OrderItem[]>("/admin/orders").then(setOrders).catch(() => {});
+      if (soundEnabledRef.current) {
+        playNotificationChime("order");
+      }
+      const customerLabel = String(data.customer_name || "Mijoz");
+      const prod = data.product_summary ? ` - ${String(data.product_summary).slice(0, 50)}` : "";
+      setSuccess(`Yangi buyurtma: ${customerLabel}${prod}`);
+      showBrowserNotification("Yangi buyurtma!", `${customerLabel}${prod}`);
+    });
+
+    source.onerror = () => {
+      setSseConnected(false);
+    };
+
+    return () => {
+      setSseConnected(false);
+      source.close();
+    };
+  }, [authenticated, zone, activeOrgId, currentUser?.organizationId, loadMessages]);
+
+  // Fallback polling every 30 seconds only when SSE is disconnected
+  useEffect(() => {
+    if (!authenticated || zone === "platform" || sseConnected) return;
     const interval = setInterval(() => {
       api<Overview>("/admin/overview").then(setOverview).catch(() => {});
       api<Conversation[]>("/admin/conversations").then(setConversations).catch(() => {});
-    }, 6000);
+      if (selectedRef.current !== null) {
+        void loadMessages(selectedRef.current);
+      }
+    }, 30000);
     return () => clearInterval(interval);
-  }, [authenticated, zone]);
+  }, [authenticated, zone, sseConnected, loadMessages]);
 
   useEffect(() => {
     if (authenticated && selected !== null) void loadMessages(selected);
@@ -2484,10 +2626,11 @@ function DashboardContent({
         )}
 
         {/* Global Floating Toast Notifications */}
-        {(error || success) && (
+        {(error || success || infoToast) && (
           <ToastContainer>
             {error && <Toast type="error" message={error} onClose={() => setError("")} />}
             {success && <Toast type="success" message={success} onClose={() => setSuccess("")} />}
+            {infoToast && <Toast type="info" message={infoToast} onClose={() => setInfoToast("")} />}
           </ToastContainer>
         )}
 
@@ -2554,6 +2697,9 @@ function DashboardContent({
                 onSaveCustomerNote={handleSaveCustomerNote}
                 onSendCatalogProposal={handleSendCatalogProposal}
                 onSendDiscountProposal={handleSendDiscountProposal}
+                sseConnected={sseConnected}
+                soundEnabled={soundEnabled}
+                onToggleSound={handleToggleSound}
               />
             )}
 

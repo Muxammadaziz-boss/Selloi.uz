@@ -19,6 +19,7 @@ from app.services import settings_service
 from app.services.ai import sales_ai
 from app.services.conversations import get_or_create_conversation, save_message
 from app.services.knowledge import knowledge
+from app.services.realtime import publish_event
 from app.services.telegram import TelegramService, get_telegram_service, telegram
 
 logger = get_logger(__name__)
@@ -348,6 +349,7 @@ async def _handle_business_message(message: dict, db: AsyncSession | None = None
             ))
             conversation = result.scalar_one_or_none()
             if conversation:
+                admin_msg_text = message.get("text") or message.get("caption") or "[Admin xabari]"
                 conversation.status = "human_takeover"
                 conversation.handoff_reason = "Admin Telegram chatida javob berdi"
                 conversation.last_message_at = datetime.now(timezone.utc)
@@ -356,12 +358,34 @@ async def _handle_business_message(message: dict, db: AsyncSession | None = None
                     conversation_id=conversation.id,
                     telegram_message_id=msg_id_int,
                     direction="admin",
-                    text=message.get("text") or message.get("caption") or "[Admin xabari]",
+                    text=admin_msg_text,
+                    organization_id=org_id,
                 )
                 if db is None:
                     await session.commit()
                 else:
                     await session.flush()
+                await publish_event(
+                    org_id,
+                    "message.created",
+                    {
+                        "conversation_id": conversation.id,
+                        "direction": "admin",
+                        "text": admin_msg_text,
+                        "customer_name": conversation.customer_name,
+                        "status": conversation.status,
+                    },
+                )
+                await publish_event(
+                    org_id,
+                    "conversation.updated",
+                    {
+                        "conversation_id": conversation.id,
+                        "status": conversation.status,
+                        "handoff_reason": conversation.handoff_reason,
+                        "customer_name": conversation.customer_name,
+                    },
+                )
             return
 
         first_name = sender.get("first_name", "")
@@ -413,6 +437,26 @@ async def _handle_business_message(message: dict, db: AsyncSession | None = None
                 await session.commit()
             else:
                 await session.flush()
+            await publish_event(
+                org_id,
+                "message.created",
+                {
+                    "conversation_id": conversation.id,
+                    "direction": "customer",
+                    "text": incoming_text or "[Matn bo'lmagan xabar]",
+                    "customer_name": customer_name,
+                    "status": conversation.status,
+                },
+            )
+            await publish_event(
+                org_id,
+                "handoff.required",
+                {
+                    "conversation_id": conversation.id,
+                    "customer_name": customer_name,
+                    "reason": conversation.handoff_reason,
+                },
+            )
             return
 
         conversation = await get_or_create_conversation(
@@ -442,6 +486,18 @@ async def _handle_business_message(message: dict, db: AsyncSession | None = None
                     await session.commit()
                 else:
                     await session.flush()
+                if incoming_saved is not None:
+                    await publish_event(
+                        org_id,
+                        "message.created",
+                        {
+                            "conversation_id": conversation.id,
+                            "direction": "customer",
+                            "text": incoming_text or "[Matn bo'lmagan xabar]",
+                            "customer_name": customer_name,
+                            "status": conversation.status,
+                        },
+                    )
                 return
             else:
                 conversation.status = "ai_active"
@@ -481,6 +537,26 @@ async def _handle_business_message(message: dict, db: AsyncSession | None = None
                 await session.commit()
             else:
                 await session.flush()
+            await publish_event(
+                org_id,
+                "message.created",
+                {
+                    "conversation_id": conversation.id,
+                    "direction": "customer",
+                    "text": incoming_text or "[Matn bo'lmagan xabar]",
+                    "customer_name": customer_name,
+                    "status": conversation.status,
+                },
+            )
+            await publish_event(
+                org_id,
+                "handoff.required",
+                {
+                    "conversation_id": conversation.id,
+                    "customer_name": customer_name,
+                    "reason": conversation.handoff_reason,
+                },
+            )
             return
 
         history_rows = (await session.execute(
@@ -556,8 +632,29 @@ async def _handle_business_message(message: dict, db: AsyncSession | None = None
                 await session.commit()
             else:
                 await session.flush()
+            await publish_event(
+                org_id,
+                "message.created",
+                {
+                    "conversation_id": conversation.id,
+                    "direction": "customer",
+                    "text": incoming_text or "[Matn bo'lmagan xabar]",
+                    "customer_name": customer_name,
+                    "status": conversation.status,
+                },
+            )
+            await publish_event(
+                org_id,
+                "handoff.required",
+                {
+                    "conversation_id": conversation.id,
+                    "customer_name": customer_name,
+                    "reason": conversation.handoff_reason,
+                },
+            )
             return
 
+        created_order_obj: Order | None = None
         # If AI successfully completed an order, save it and alert admin via transactional outbox
         if decision.get("order_created") and decision.get("order_data"):
             order_info = decision["order_data"]
@@ -581,6 +678,7 @@ async def _handle_business_message(message: dict, db: AsyncSession | None = None
                 notes=order_info.get("notes") or "",
             )
             if created:
+                created_order_obj = new_order
                 user_handle = f"@{conversation.username}" if conversation.username else f"ID: {chat.get('id')}"
                 address_str = new_order.delivery_address or "Ko'rsatilmadi"
                 order_notification = (
@@ -660,6 +758,31 @@ async def _handle_business_message(message: dict, db: AsyncSession | None = None
             await session.commit()
         else:
             await session.flush()
+
+        if incoming_saved is not None:
+            await publish_event(
+                org_id,
+                "message.created",
+                {
+                    "conversation_id": conversation.id,
+                    "direction": "customer",
+                    "text": incoming_text or "[Matn bo'lmagan xabar]",
+                    "customer_name": customer_name,
+                    "status": conversation.status,
+                },
+            )
+        if created_order_obj is not None:
+            await publish_event(
+                org_id,
+                "order.created",
+                {
+                    "order_id": created_order_obj.id,
+                    "conversation_id": conversation.id,
+                    "customer_name": created_order_obj.customer_name,
+                    "product_summary": created_order_obj.product_summary,
+                    "status": created_order_obj.status,
+                },
+            )
 
 
 async def _handle_direct_bot_message(message: dict, db: AsyncSession, organization_id: int | None = None) -> None:
@@ -785,6 +908,16 @@ async def _handle_direct_bot_message(message: dict, db: AsyncSession, organizati
                 event_type="notify_admin",
                 payload={"text": order_notification},
                 organization_id=organization_id,
+            )
+            await publish_event(
+                organization_id,
+                "order.created",
+                {
+                    "order_id": new_order.id,
+                    "customer_name": new_order.customer_name,
+                    "product_summary": new_order.product_summary,
+                    "status": new_order.status,
+                },
             )
 
 

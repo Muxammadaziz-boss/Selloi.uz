@@ -14,6 +14,8 @@ import {
   IconMessages,
   IconClock,
   IconUser,
+  IconVolume,
+  IconVolumeOff,
 } from "@tabler/icons-react";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
@@ -56,6 +58,9 @@ export interface InboxTabProps {
   onSaveCustomerNote: (id: number, note: string) => void;
   onSendCatalogProposal: () => void;
   onSendDiscountProposal: () => void;
+  sseConnected?: boolean;
+  soundEnabled?: boolean;
+  onToggleSound?: () => void;
 }
 
 export function InboxTab({
@@ -77,6 +82,9 @@ export function InboxTab({
   onSaveCustomerNote,
   onSendCatalogProposal,
   onSendDiscountProposal,
+  sseConnected = true,
+  soundEnabled = true,
+  onToggleSound,
 }: InboxTabProps) {
   const { language, t } = useLanguage();
   const chatScrollRef = useRef<HTMLDivElement>(null);
@@ -140,11 +148,31 @@ export function InboxTab({
           <div className="linear-card d-flex flex-column h-100 overflow-hidden">
             {/* Header / Search & Filter */}
             <div className="p-3 border-bottom border-subtle">
-              <div className="d-flex align-items-center justify-content-between mb-2">
+              <div className="d-flex align-items-center justify-content-between gap-2 mb-2">
                 <span className="fw-semibold text-primary small">
                   {t("inbox.conversations_heading")} ({filteredConversations.length})
                 </span>
-                <Badge variant="accent" dot>{t("inbox.badge_live")}</Badge>
+                <div className="d-flex align-items-center gap-1.5">
+                  <Badge variant={sseConnected ? "accent" : "warning"} dot>
+                    {sseConnected ? t("inbox.badge_live") : t("inbox.badge_reconnecting")}
+                  </Badge>
+                  {onToggleSound && (
+                    <button
+                      type="button"
+                      className="btn-linear px-1.5 py-1"
+                      onClick={onToggleSound}
+                      title={soundEnabled ? t("inbox.sound_on") : t("inbox.sound_off")}
+                      aria-label={soundEnabled ? t("inbox.sound_on") : t("inbox.sound_off")}
+                      style={{ lineHeight: 1 }}
+                    >
+                      {soundEnabled ? (
+                        <IconVolume size={14} className="text-primary" />
+                      ) : (
+                        <IconVolumeOff size={14} className="text-secondary" />
+                      )}
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Search */}

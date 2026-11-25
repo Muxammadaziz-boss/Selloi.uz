@@ -1,21 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createHmac } from "node:crypto";
-import { sessionCookieName, verifySession } from "@/lib/session";
-
-function signBackendJwt(userId: number, email: string, secret: string): string {
-  const header = Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toString("base64url");
-  const now = Math.floor(Date.now() / 1000);
-  const payload = Buffer.from(
-    JSON.stringify({
-      sub: String(userId),
-      email,
-      exp: now + 3600,
-      iat: now,
-    })
-  ).toString("base64url");
-  const signature = createHmac("sha256", secret).update(`${header}.${payload}`).digest("base64url");
-  return `${header}.${payload}.${signature}`;
-}
+import { sessionCookieName, signBackendJwt, verifySession } from "@/lib/session";
 
 async function proxy(request: NextRequest) {
   const backend = process.env.BACKEND_URL || "http://127.0.0.1:8000";

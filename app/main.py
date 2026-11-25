@@ -16,6 +16,7 @@ from app.core.db import SessionLocal, engine
 from app.core.logging import get_logger, setup_logging
 from app.models import Base
 from app.services import admin_service
+from app.services.realtime import realtime_hub
 from app.services.telegram import telegram
 from app.services.bot_manager import bot_manager
 
@@ -299,8 +300,10 @@ async def lifespan(application: FastAPI):
         )
         await worker_supervisor.start()
 
+    await realtime_hub.start()
     logger.info("Application ready")
     yield
+    await realtime_hub.stop()
     if settings.run_background_workers:
         from app.services.worker_supervisor import worker_supervisor
         await worker_supervisor.stop()

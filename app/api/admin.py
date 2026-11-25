@@ -2,8 +2,8 @@ import asyncio
 from datetime import datetime, timezone
 import hmac
 from typing import Optional
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
-from fastapi.responses import Response
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
+from fastapi.responses import Response, StreamingResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 import httpx
 from pydantic import BaseModel
@@ -44,6 +44,7 @@ from app.schemas import (
     StatusUpdate,
 )
 from app.services import admin_service, settings_service
+from app.services.realtime import format_sse, publish_event, realtime_hub
 from app.services.telegram import TelegramAPIError, get_telegram_service, telegram
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -229,6 +230,40 @@ async def conversation_messages(
     return [{"id": row.id, "direction": row.direction, "text": row.text, "created_at": row.created_at.isoformat()} for row in rows]
 
 
+@router.get("/events", dependencies=[Depends(require_permission("can_view_conversations"))])
+async def stream_admin_events(
+    request: Request,
+    org_id: int = Depends(get_admin_tenant_id),
+):
+    """Server-Sent Events stream scoped strictly to the authenticated tenant organization."""
+
+    async def _event_stream():
+        async with realtime_hub.subscribe(org_id) as queue:
+            yield format_sse("connected", {"organization_id": org_id})
+            while True:
+                if await request.is_disconnected():
+                    break
+                try:
+                    event = await asyncio.wait_for(queue.get(), timeout=20.0)
+                    yield format_sse(
+                        str(event.get("type") or "message"),
+                        event,
+                        event_id=str(event.get("id") or "") or None,
+                    )
+                except asyncio.TimeoutError:
+                    yield ": keepalive\n\n"
+
+    return StreamingResponse(
+        _event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache, no-transform",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
 @router.post("/conversations/{conversation_id}/takeover", dependencies=[Depends(require_permission("can_takeover"))])
 async def takeover(
     conversation_id: int,
@@ -242,6 +277,16 @@ async def takeover(
     row.status = "human_takeover"
     row.handoff_reason = payload.reason or "Admin panel orqali operator qabul qildi"
     await db.commit()
+    await publish_event(
+        org_id,
+        "conversation.updated",
+        {
+            "conversation_id": row.id,
+            "status": row.status,
+            "handoff_reason": row.handoff_reason,
+            "customer_name": row.customer_name,
+        },
+    )
     return {"ok": True, "status": row.status}
 
 
@@ -257,6 +302,16 @@ async def resume_ai(
     row.status = "ai_active"
     row.handoff_reason = None
     await db.commit()
+    await publish_event(
+        org_id,
+        "conversation.updated",
+        {
+            "conversation_id": row.id,
+            "status": row.status,
+            "handoff_reason": None,
+            "customer_name": row.customer_name,
+        },
+    )
     return {"ok": True, "status": row.status}
 
 
@@ -301,16 +356,28 @@ async def admin_reply(
         raise HTTPException(status_code=400, detail=f"Xabar yuborishda kutilmagan xatolik: {exc}")
 
     msg_id = int(sent.get("message_id", 0)) if isinstance(sent, dict) else 0
+    msg_text = payload.text.strip()
     db.add(Message(
         organization_id=org_id,
         conversation_id=row.id,
         telegram_message_id=msg_id,
         direction="admin",
-        text=payload.text.strip(),
+        text=msg_text,
     ))
     row.status = "human_takeover"
     row.last_message_at = datetime.now(timezone.utc)
     await db.commit()
+    await publish_event(
+        org_id,
+        "message.created",
+        {
+            "conversation_id": row.id,
+            "direction": "admin",
+            "text": msg_text,
+            "customer_name": row.customer_name,
+            "status": row.status,
+        },
+    )
     return {"ok": True}
 
 
@@ -845,6 +912,17 @@ async def create_order(
     db.add(order)
     await db.commit()
     await db.refresh(order)
+    await publish_event(
+        org_id,
+        "order.created",
+        {
+            "order_id": order.id,
+            "customer_name": order.customer_name,
+            "product_summary": order.product_summary,
+            "amount": order.amount,
+            "status": order.status,
+        },
+    )
     return {
         "ok": True,
         "order": {
@@ -886,6 +964,17 @@ async def update_order(
         order.notes = payload.notes
     await db.commit()
     await db.refresh(order)
+    await publish_event(
+        org_id,
+        "order.updated",
+        {
+            "order_id": order.id,
+            "customer_name": order.customer_name,
+            "product_summary": order.product_summary,
+            "amount": order.amount,
+            "status": order.status,
+        },
+    )
     return {
         "ok": True,
         "order": {

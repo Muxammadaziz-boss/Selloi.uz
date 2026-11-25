@@ -878,8 +878,9 @@ async def _record_outbox_assistant_message(
 ) -> None:
     """Record outgoing assistant message in messages table upon successful Telegram dispatch."""
     from app.services.conversations import save_message
+    from app.services.realtime import publish_event
     try:
-        await save_message(
+        saved = await save_message(
             db,
             conversation_id=conversation_id,
             telegram_message_id=telegram_message_id,
@@ -889,6 +890,16 @@ async def _record_outbox_assistant_message(
             organization_id=organization_id,
         )
         await db.commit()
+        if saved is not None:
+            await publish_event(
+                organization_id or saved.organization_id,
+                "message.created",
+                {
+                    "conversation_id": conversation_id,
+                    "direction": "assistant",
+                    "text": text,
+                },
+            )
     except Exception as exc:
         logger.warning(
             "Could not record assistant message for conversation %s (msg_id=%s): %s",
