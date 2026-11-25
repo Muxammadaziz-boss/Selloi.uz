@@ -231,6 +231,10 @@ async def test_reset_password_success_and_session_invalidation(tmp_path, monkeyp
                 json={"email": "hero@example.uz", "password": "BrandNewPass456"},
             )
             assert new_login.status_code == 200
+            new_token = new_login.json()["access_token"]
+            me_fresh = await client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {new_token}"})
+            assert me_fresh.status_code == 200
+            assert me_fresh.json()["token_version"] >= 2
 
         async with SessionFactory() as db:
             user = (await db.execute(select(User).where(User.email == "hero@example.uz"))).scalar_one()

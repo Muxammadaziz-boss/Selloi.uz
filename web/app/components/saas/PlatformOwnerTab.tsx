@@ -41,6 +41,7 @@ import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { ActivityBarsChart, DonutChart } from "../ui/Charts";
 import { EmptyState } from "../ui/EmptyState";
+import { downloadCsvExport } from "../../lib/csvExport";
 import { OwnerPricingStudio } from "./OwnerPricingStudio";
 import { PaymentTestingStudio } from "./PaymentTestingStudio";
 
@@ -149,26 +150,7 @@ interface PlatformOwnerTabProps {
 }
 
 function downloadCsvFile(filename: string, headers: string[], rows: Array<Array<string | number | boolean | null | undefined>>) {
-  const escapeCell = (val: string | number | boolean | null | undefined) => {
-    const str = val === null || val === undefined ? "" : String(val);
-    if (/[",\n\r]/.test(str)) {
-      return `"${str.replace(/"/g, '""')}"`;
-    }
-    return str;
-  };
-  const csvLines = [
-    headers.map(escapeCell).join(","),
-    ...rows.map((r) => r.map(escapeCell).join(",")),
-  ];
-  const blob = new Blob(["\uFEFF" + csvLines.join("\r\n")], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.setAttribute("download", filename);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  downloadCsvExport(filename, headers, rows);
 }
 
 function getAuditActionVariant(action: string): "danger" | "success" | "info" | "warning" | "accent" {

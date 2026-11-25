@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   createSessionToken,
+  extractTokenVersionFromJwt,
   SessionPayload,
   sessionCookieName,
   sessionTtlSeconds,
@@ -31,6 +32,7 @@ export async function buildVerifiedSessionPayload(params: BuildSessionParams): P
   let fullName = params.fullName;
   let telegramUserId = params.telegramUserId;
   let orgId = params.organizationId;
+  let tokenVersion = extractTokenVersionFromJwt(params.backendToken);
 
   try {
     const profileRes = await fetch(`${baseUrl}/api/v1/auth/me`, {
@@ -43,6 +45,8 @@ export async function buildVerifiedSessionPayload(params: BuildSessionParams): P
       isPlatformAdmin = profile?.is_platform_admin === true;
       if (profile?.full_name) fullName = profile.full_name;
       if (profile?.telegram_user_id) telegramUserId = profile.telegram_user_id;
+      const tv = Number(profile?.token_version);
+      if (Number.isInteger(tv) && tv >= 1) tokenVersion = tv;
     }
   } catch {
     // Fail closed: keep elevated flags false if profile lookup fails
@@ -81,6 +85,7 @@ export async function buildVerifiedSessionPayload(params: BuildSessionParams): P
     isPlatformOwner,
     isPlatformAdmin,
     organizationId: orgId,
+    tokenVersion,
     backendToken: params.backendToken,
     issuedAt: Math.floor(Date.now() / 1000),
   };

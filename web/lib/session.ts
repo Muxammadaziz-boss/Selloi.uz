@@ -13,6 +13,7 @@ export interface SessionPayload {
   isPlatformOwner?: boolean;
   isPlatformAdmin?: boolean;
   organizationId?: number;
+  tokenVersion?: number;
   backendToken?: string;
   issuedAt: number;
 }
@@ -103,15 +104,38 @@ export function isValidSessionToken(token: string | undefined, secret: string): 
   return verifySession(token, secret) !== null;
 }
 
-export function signBackendJwt(userId: number, email: string, secret: string): string {
+export function extractTokenVersionFromJwt(jwtToken?: string): number {
+  if (!jwtToken || typeof jwtToken !== "string") return 1;
+  const parts = jwtToken.split(".");
+  if (parts.length !== 3) return 1;
+  try {
+    const raw = Buffer.from(parts[1], "base64url").toString("utf-8");
+    const parsed = JSON.parse(raw);
+    const tv = Number(parsed?.tv);
+    return Number.isInteger(tv) && tv >= 1 ? tv : 1;
+  } catch {
+    return 1;
+  }
+}
+
+export function signBackendJwt(
+  userId: number,
+  email: string,
+  secret: string,
+  tokenVersion = 1
+): string {
   const header = Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toString("base64url");
-  const now = Math.floor(Date.now() / 1000);
+  const nowMs = Date.now();
+  const now = Math.floor(nowMs / 1000);
+  const safeTv = Number.isInteger(tokenVersion) && tokenVersion >= 1 ? tokenVersion : 1;
   const payload = Buffer.from(
     JSON.stringify({
       sub: String(userId),
       email,
+      tv: safeTv,
       exp: now + 3600,
       iat: now,
+      iat_f: nowMs / 1000,
     })
   ).toString("base64url");
   const signature = createHmac("sha256", secret).update(`${header}.${payload}`).digest("base64url");

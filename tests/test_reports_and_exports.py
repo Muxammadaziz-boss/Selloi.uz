@@ -70,7 +70,7 @@ async def test_store_csv_exports_are_utf8_bom_and_tenant_scoped(tmp_path):
             await db.flush()
 
             db.add_all([
-                Order(organization_id=org1.id, conversation_id=conv1.id, customer_name="Kamoliddin", product_summary="Quloqchin", amount="180000 so'm", status="confirmed"),
+                Order(organization_id=org1.id, conversation_id=conv1.id, customer_name="Kamoliddin", product_summary="=CMD|'/C calc'!A0", amount="180000 so'm", status="confirmed"),
                 Order(organization_id=org2.id, conversation_id=conv2.id, customer_name="Boshqa Mijoz", product_summary="Maxfiy Tovar", amount="999$", status="new"),
                 Product(organization_id=org1.id, code="AUD-1", name="Quloqchin Pro", category="Audio", price="180000 so'm"),
                 Product(organization_id=org2.id, code="SEC-1", name="Maxfiy Mahsulot", category="Other", price="100$"),
@@ -96,6 +96,7 @@ async def test_store_csv_exports_are_utf8_bom_and_tenant_scoped(tmp_path):
             assert r_orders.content.startswith(b"\xef\xbb\xbf")
             orders_text = r_orders.content.decode("utf-8-sig")
             assert "Kamoliddin" in orders_text
+            assert "'=CMD" in orders_text
             assert "Boshqa Mijoz" not in orders_text
 
             r_custs = await client.get("/admin/export/customers")

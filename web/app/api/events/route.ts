@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { sessionCookieName, signBackendJwt, verifySession } from "@/lib/session";
+import { extractTokenVersionFromJwt, sessionCookieName, signBackendJwt, verifySession } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -35,7 +35,8 @@ export async function GET(request: NextRequest) {
 
   if (jwtSecret) {
     const userEmail = sessionData.email || `user_${sessionData.userId}@aisales.uz`;
-    headers["Authorization"] = `Bearer ${signBackendJwt(sessionData.userId, userEmail, jwtSecret)}`;
+    const tv = sessionData.tokenVersion ?? extractTokenVersionFromJwt(sessionData.backendToken);
+    headers["Authorization"] = `Bearer ${signBackendJwt(sessionData.userId, userEmail, jwtSecret, tv)}`;
   } else if (sessionData.backendToken) {
     headers["Authorization"] = `Bearer ${sessionData.backendToken}`;
   } else {

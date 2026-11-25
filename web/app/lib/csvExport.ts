@@ -11,7 +11,10 @@ export function downloadCsvExport(
   if (typeof window === "undefined") return;
 
   const escapeCell = (value: string | number | boolean | null | undefined): string => {
-    const str = value === null || value === undefined ? "" : String(value);
+    let str = value === null || value === undefined ? "" : String(value);
+    if (/^[=+\t\r]/.test(str) || /^-[^0-9.]/.test(str)) {
+      str = `'${str}`;
+    }
     if (/[",\n\r]/.test(str)) {
       return `"${str.replace(/"/g, '""')}"`;
     }

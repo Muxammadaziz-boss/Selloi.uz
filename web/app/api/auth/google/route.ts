@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createSessionToken, SessionPayload, sessionCookieName, sessionTtlSeconds } from "@/lib/session";
+import { buildVerifiedSessionPayload, attachSessionCookie } from "@/lib/authSession";
 
 function getBaseUrl(request: NextRequest): string {
   const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || "selloi.uz";
@@ -89,33 +89,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const sessionPayload: SessionPayload = {
-      userId: data.user_id,
-      email: data.email,
-      role: "owner",
-      isPlatformOwner: false,
+    const { payload: sessionPayload, defaultRedirect } = await buildVerifiedSessionPayload({
+      backendUrl,
       backendToken: data.access_token,
-      issuedAt: Math.floor(Date.now() / 1000),
-    };
+      userId: data.user_id,
+      telegramUserId: data.telegram_user_id,
+      email: data.email,
+      fullName: data.full_name || fullName,
+    });
 
     const response = NextResponse.json({
       ok: true,
-      redirect: "/dashboard",
+      redirect: defaultRedirect,
       user: {
         userId: sessionPayload.userId,
         email: sessionPayload.email,
         role: sessionPayload.role,
+        isPlatformOwner: Boolean(sessionPayload.isPlatformOwner),
+        isPlatformAdmin: Boolean(sessionPayload.isPlatformAdmin),
       },
     });
 
-    response.cookies.set(sessionCookieName, createSessionToken(sessionPayload, secret), {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: sessionTtlSeconds,
-    });
-
+    attachSessionCookie(response, sessionPayload, secret);
     return response;
   } catch (err: any) {
     return NextResponse.json(

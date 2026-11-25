@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { sessionCookieName, signBackendJwt, verifySession } from "@/lib/session";
+import { extractTokenVersionFromJwt, sessionCookieName, signBackendJwt, verifySession } from "@/lib/session";
 
 async function proxy(request: NextRequest) {
   const backend = process.env.BACKEND_URL || "http://127.0.0.1:8000";
@@ -101,11 +101,12 @@ async function proxy(request: NextRequest) {
     "X-Forwarded-For": realIp,
   };
 
-  // Attach identity: Forward cryptographically signed JWT
+  // Attach identity: Forward cryptographically signed JWT with token_version (tv)
   if (sessionData && jwtSecret) {
     const userId = sessionData.userId;
     const userEmail = sessionData.email || `user_${sessionData.userId}@aisales.uz`;
-    const userJwt = signBackendJwt(userId, userEmail, jwtSecret);
+    const tv = sessionData.tokenVersion ?? extractTokenVersionFromJwt(sessionData.backendToken);
+    const userJwt = signBackendJwt(userId, userEmail, jwtSecret, tv);
     headers["Authorization"] = `Bearer ${userJwt}`;
   } else if (sessionData?.backendToken) {
     headers["Authorization"] = `Bearer ${sessionData.backendToken}`;
@@ -136,12 +137,17 @@ async function proxy(request: NextRequest) {
     const response = await fetch(target, init);
     const contentType = response.headers.get("content-type") || "application/json";
     const data = await response.arrayBuffer();
+    const resHeaders: Record<string, string> = {
+      "Content-Type": contentType,
+      "Cache-Control": response.headers.get("cache-control") || "no-store",
+    };
+    const contentDisposition = response.headers.get("content-disposition");
+    if (contentDisposition) {
+      resHeaders["Content-Disposition"] = contentDisposition;
+    }
     return new NextResponse(data, {
       status: response.status,
-      headers: {
-        "Content-Type": contentType,
-        "Cache-Control": response.headers.get("cache-control") || "no-store",
-      },
+      headers: resHeaders,
     });
   } catch {
     return NextResponse.json(

@@ -24,13 +24,15 @@ security_optional = HTTPBearer(auto_error=False)
 def create_access_token(user_id: int, email: str, jti: str | None = None, token_version: int = 1) -> str:
     """Create a signed JWT token with unique jti, iat, and token_version for the given user."""
     now = datetime.now(timezone.utc)
+    now_ts = now.timestamp()
     expire = now + timedelta(minutes=settings.jwt_expire_minutes)
     token_id = jti or uuid.uuid4().hex
     payload = {
         "sub": str(user_id),
         "email": email,
         "jti": token_id,
-        "iat": int(now.timestamp()),
+        "iat": int(now_ts),
+        "iat_f": now_ts,
         "exp": expire,
         "tv": int(token_version),
     }
@@ -62,7 +64,7 @@ def decode_access_token(token: str) -> dict:
     if user_id_raw:
         try:
             user_id = int(user_id_raw)
-            iat = payload.get("iat")
+            iat = payload.get("iat_f") if payload.get("iat_f") is not None else payload.get("iat")
             if is_user_session_revoked(user_id, iat):
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,

@@ -290,6 +290,7 @@ async def get_current_user_profile(current_user: User = Depends(get_current_user
         "is_platform_owner": is_owner,
         "is_platform_admin": is_site_admin,
         "has_platform_access": is_owner or is_site_admin,
+        "token_version": getattr(current_user, "token_version", 1) or 1,
     }
 
 

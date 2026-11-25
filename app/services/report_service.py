@@ -322,6 +322,20 @@ async def run_all_enabled_store_reports(db: AsyncSession, *, now_utc: datetime |
     return total_sent
 
 
+def _safe_csv_cell(value: object) -> object:
+    """Prevent spreadsheet formula injection while keeping numeric/normal text intact."""
+    if value is None or isinstance(value, (int, float, bool)):
+        return value
+    text = str(value)
+    if text.startswith(("=", "+", "\t", "\r")) or (text.startswith("-") and len(text) > 1 and not text[1].isdigit()):
+        return f"'{text}"
+    return text
+
+
+def _write_safe_row(writer: csv.writer, values: list[object]) -> None:
+    writer.writerow([_safe_csv_cell(v) for v in values])
+
+
 async def build_store_csv_export(db: AsyncSession, organization_id: int, entity: str) -> tuple[str, str]:
     """Generate UTF-8 BOM CSV export string for orders, customers, or products of a tenant."""
     clean_entity = (entity or "").strip().lower()
@@ -345,7 +359,7 @@ async def build_store_csv_export(db: AsyncSession, organization_id: int, entity:
             )
         ).scalars().all()
         for o in rows:
-            writer.writerow([
+            _write_safe_row(writer, [
                 f"ORD-{1000 + o.id}",
                 o.customer_name,
                 o.phone,
@@ -368,7 +382,7 @@ async def build_store_csv_export(db: AsyncSession, organization_id: int, entity:
             )
         ).scalars().all()
         for c in convs:
-            writer.writerow([
+            _write_safe_row(writer, [
                 c.id,
                 c.customer_name,
                 f"@{c.username}" if c.username else "",
@@ -389,7 +403,7 @@ async def build_store_csv_export(db: AsyncSession, organization_id: int, entity:
         )
     ).scalars().all()
     for p in prods:
-        writer.writerow([
+        _write_safe_row(writer, [
             p.code,
             p.name,
             p.category,
