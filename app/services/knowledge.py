@@ -9,6 +9,11 @@ from openai import AsyncOpenAI
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.models import ChannelPost, ConnectedChannel, Product
+from app.services.uzbek_nlp import (
+    build_normalized_query_text,
+    expand_search_tokens,
+    normalize_for_matching,
+)
 
 logger = get_logger(__name__)
 
@@ -302,7 +307,8 @@ class KnowledgeService:
     async def search(self, db: AsyncSession, query: str, limit: int = 6, organization_id: int | None = None) -> list[ChannelPost]:
         vector = None
         try:
-            vector = await self.embed(query)
+            embed_input = build_normalized_query_text(query)
+            vector = await self.embed(embed_input or query)
         except Exception:
             logger.exception("Qidiruv embedding yaratishda xatolik")
             vector = None
@@ -316,7 +322,7 @@ class KnowledgeService:
             if rows:
                 return list(rows)
         # Fallback for unembedded posts or when the embedding API is unavailable.
-        tokens = [token.strip("?!.,:;()[]{}\"'").lower() for token in query.split() if len(token.strip("?!.,:;()[]{}\"'") ) > 2][:6]
+        tokens = expand_search_tokens(query, max_tokens=16)
         if not tokens:
             return []
         def _escape_like(t: str) -> str:
@@ -339,11 +345,7 @@ class KnowledgeService:
         organization_id: int | None = None,
     ) -> list[Product]:
         """Rank active structured Product catalog items matching query tokens for a tenant."""
-        tokens = [
-            token.strip("?!.,:;()[]{}\"'").lower()
-            for token in (query or "").split()
-            if len(token.strip("?!.,:;()[]{}\"'")) > 2
-        ][:8]
+        tokens = expand_search_tokens(query, max_tokens=16)
         if not tokens:
             return []
 
@@ -356,8 +358,10 @@ class KnowledgeService:
 
         scored: list[tuple[int, Product]] = []
         for prod in rows:
-            haystack = f"{prod.name} {prod.category} {prod.specs} {prod.code}".lower()
-            hits = sum(1 for tok in tokens if tok in haystack)
+            raw_haystack = f"{prod.name} {prod.category} {prod.specs} {prod.code}".lower()
+            norm_haystack = normalize_for_matching(raw_haystack)
+            combined_haystack = f"{raw_haystack} {norm_haystack}"
+            hits = sum(1 for tok in tokens if tok in combined_haystack)
             if hits > 0:
                 scored.append((hits, prod))
 

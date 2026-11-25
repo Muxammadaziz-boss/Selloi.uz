@@ -6,6 +6,7 @@ from openai import AsyncOpenAI
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.models import ChannelPost
+from app.services.uzbek_nlp import detect_retail_intents, normalize_for_matching
 
 logger = get_logger(__name__)
 
@@ -105,24 +106,27 @@ class SalesAI:
     @staticmethod
     def is_greeting(text: str) -> bool:
         import re
-        t = text.lower().strip()
+        t = normalize_for_matching(text)
         cleaned = re.sub(r"[^\w\s]", " ", t)
         words = cleaned.split()
         if not words or len(words) > 6:
             return False
 
-        # If customer is already asking about a product or price, do not treat as simple greeting
+        # If customer is already asking about a product, price, wholesale, delivery, or credit, do not treat as greeting
         product_question_keywords = {
-            "noutbuk", "laptop", "narx", "narxi", "qancha", "necha", "nechpul",
-            "sotuvda", "bormi", "bor", "olmoqchiman", "yetkazib", "dostavka",
-            "zakaz", "rasm", "katalog", "qanaqa", "qaysi", "model"
+            "noutbuk", "nootbuk", "laptop", "narx", "narxi", "narh", "qancha", "necha",
+            "nechpul", "nichpul", "nechipul", "skolko", "stoit", "tsena", "cena", "pochem",
+            "sotuvda", "bormi", "bor", "olmoqchiman", "yetkazib", "dostavka", "dastafka",
+            "dastavka", "optom", "ulgurji", "kredit", "nasiya", "rassrochka", "rasrochka",
+            "skidka", "chegirma", "kafolat", "garantiya", "zakaz", "rasm", "katalog",
+            "qanaqa", "qaysi", "model", "ayfon", "iphone", "telefon", "krossovka", "krasovka",
         }
         if any(w in product_question_keywords for w in words):
             return False
 
         greeting_roots = (
             "assalom", "asalom", "salom", "xayrli", "hayrli", "qalays", "qales",
-            "privet", "hello", "hi", "slm", "alaukum", "aleykum", "alekum", "keldik"
+            "privet", "zdravstv", "dobry", "hello", "hi", "slm", "alaukum", "aleykum", "alekum", "keldik"
         )
         for w in words:
             if any(w.startswith(r) or r in w for r in greeting_roots):
@@ -383,6 +387,10 @@ BUYURTMA VA ALOQA QOIDALARI:
    - Mijoz katalogda umuman bo'lmagan noma'lum mahsulot narxini so'rasa va buyurtma bermoqchi bo'lmasa.
    - Boshqa paytda handoff=false bo'lsin!
 
+5. O'ZBEK, RUS VA KIRILL/LOTIN ARALASH SHEVA:
+   - Mijoz kirill yoki lotinda, aralash o'zbek-rus shevasida yozishi mumkin ("nechpul" = narxi, "dastafka/dostavka" = yetkazib berish, "optom" = ulgurji, "nasiya/kredit/rassrochka" = muddatli to'lov, "garantiya" = kafolat).
+   - Mijoz yozgan til va uslubda aniq javob ber; do'kon qoidalarida nasiya/kredit/yetkazib berish sharti ko'rsatilmagan bo'lsa, o'ylab topma.
+
 Javobingni FAQAT quyidagi JSON formatida qaytar:
 {
   "reply": "Mijozga yuboriladigan xabar matni",
@@ -403,11 +411,13 @@ Javobingni FAQAT quyidagi JSON formatida qaytar:
         elif ai_personality or ai_language:
             instructions = f"Muloqot tili: {ai_language}. Uslubi: {ai_personality}.\n\n" + instructions
 
+        retail_intents = detect_retail_intents(customer_text)
         payload = {
             "customer_message": customer_text,
             "recent_conversation": history[-10:],
             "catalog_evidence": evidence,
             **({"matching_products": extra_products[:5]} if extra_products else {}),
+            **({"retail_intent_hints": retail_intents} if retail_intents else {}),
         }
         try:
             payload_str = json.dumps(payload, ensure_ascii=False)
