@@ -4,16 +4,16 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
-  ArrowLeft,
-  Calendar,
-  Mail,
-  Shield,
-  Lock,
-  Trash2,
-  Globe,
-  CheckCircle2,
-  AlertTriangle,
-} from "lucide-react";
+  IconArrowLeft,
+  IconCalendar,
+  IconMail,
+  IconShield,
+  IconLock,
+  IconTrash,
+  IconWorld,
+  IconCircleCheck,
+  IconAlertTriangle,
+} from "@tabler/icons-react";
 import "./legal.css";
 
 type LegalLang = "uz" | "en" | "ru";
@@ -95,7 +95,7 @@ export default function PrivacyPolicyClient() {
             </div>
 
             <Link href="/" className="selloi-legal-back-btn">
-              <ArrowLeft size={16} />
+              <IconArrowLeft size={16} />
               <span>
                 {lang === "en"
                   ? "Back to Home"
@@ -111,7 +111,7 @@ export default function PrivacyPolicyClient() {
         <div className="selloi-compliance-card">
           <div className="selloi-compliance-header">
             <div className="selloi-compliance-icon">
-              <Shield size={20} />
+              <IconShield size={20} />
             </div>
             <h3 className="selloi-compliance-title">
               Google API Services User Data Policy & Limited Use Disclosure
@@ -136,7 +136,7 @@ export default function PrivacyPolicyClient() {
           <>
             <div className="selloi-legal-title-block">
               <div className="selloi-legal-badge">
-                <Shield size={13} />
+                <IconShield size={13} />
                 <span>Rasmiy hujjat</span>
               </div>
               <h1 className="selloi-legal-title">Maxfiylik siyosati (Privacy Policy)</h1>
@@ -145,10 +145,10 @@ export default function PrivacyPolicyClient() {
               </p>
               <div className="selloi-legal-meta">
                 <span>
-                  <Calendar size={14} /> Oxirgi yangilanish: 2026-yil 21-noyabr
+                  <IconCalendar size={14} /> Oxirgi yangilanish: 2026-yil 21-noyabr
                 </span>
                 <span>
-                  <Globe size={14} /> Rasmiy manzil: https://selloi.uz
+                  <IconWorld size={14} /> Rasmiy manzil: https://selloi.uz
                 </span>
               </div>
             </div>
@@ -278,7 +278,7 @@ export default function PrivacyPolicyClient() {
                 </ul>
                 <div className="selloi-contact-box">
                   <div className="selloi-contact-item">
-                    <Trash2 size={16} color="#FF4C63" />
+                    <IconTrash size={16} color="#FF4C63" />
                     <span>
                       <strong>Ma'lumotlarni o'chirish so'rovi:</strong> Ma'lumotlaringizni to'liq o'chirish uchun{" "}
                       <a href="mailto:support@selloi.uz">support@selloi.uz</a> manziliga "Delete Account Data" mavzusi bilan xat yozing. So'rov 30 kun ichida to'liq ko'rib chiqiladi va barcha ma'lumotlar faol ma'lumotlar bazalarimizdan butunlay o'chirib tashlanadi.
@@ -294,19 +294,19 @@ export default function PrivacyPolicyClient() {
                 </p>
                 <div className="selloi-contact-box">
                   <div className="selloi-contact-item">
-                    <Mail size={16} color="#FF4C63" />
+                    <IconMail size={16} color="#FF4C63" />
                     <span>
                       Yordam va xavfsizlik: <a href="mailto:support@selloi.uz">support@selloi.uz</a>
                     </span>
                   </div>
                   <div className="selloi-contact-item">
-                    <Mail size={16} color="#FF4C63" />
+                    <IconMail size={16} color="#FF4C63" />
                     <span>
                       Ma'muriyat: <a href="mailto:admin@selloi.uz">admin@selloi.uz</a>
                     </span>
                   </div>
                   <div className="selloi-contact-item">
-                    <Globe size={16} color="#FF4C63" />
+                    <IconWorld size={16} color="#FF4C63" />
                     <span>
                       Rasmiy veb-sayt: <a href="https://selloi.uz">https://selloi.uz</a>
                     </span>
@@ -324,7 +324,7 @@ export default function PrivacyPolicyClient() {
           <>
             <div className="selloi-legal-title-block">
               <div className="selloi-legal-badge">
-                <Shield size={13} />
+                <IconShield size={13} />
                 <span>Official Legal Document</span>
               </div>
               <h1 className="selloi-legal-title">Privacy Policy & User Data Disclosure</h1>
@@ -333,10 +333,10 @@ export default function PrivacyPolicyClient() {
               </p>
               <div className="selloi-legal-meta">
                 <span>
-                  <Calendar size={14} /> Effective Date: November 21, 2026
+                  <IconCalendar size={14} /> Effective Date: November 21, 2026
                 </span>
                 <span>
-                  <Globe size={14} /> Official Domain: https://selloi.uz
+                  <IconWorld size={14} /> Official Domain: https://selloi.uz
                 </span>
               </div>
             </div>
@@ -471,7 +471,7 @@ export default function PrivacyPolicyClient() {
                 </ul>
                 <div className="selloi-contact-box">
                   <div className="selloi-contact-item">
-                    <Trash2 size={16} color="#FF4C63" />
+                    <IconTrash size={16} color="#FF4C63" />
                     <span>
                       <strong>How to Request Data Deletion:</strong> Submit an email to{" "}
                       <a href="mailto:support@selloi.uz">support@selloi.uz</a> with the subject line <code>Delete Account Data</code> from your registered email address. Your request will be fulfilled within thirty (30) calendar days, and all personal records will be permanently purged from active servers and backups.
@@ -487,19 +487,19 @@ export default function PrivacyPolicyClient() {
                 </p>
                 <div className="selloi-contact-box">
                   <div className="selloi-contact-item">
-                    <Mail size={16} color="#FF4C63" />
+                    <IconMail size={16} color="#FF4C63" />
                     <span>
                       Security & Privacy Support: <a href="mailto:support@selloi.uz">support@selloi.uz</a>
                     </span>
                   </div>
                   <div className="selloi-contact-item">
-                    <Mail size={16} color="#FF4C63" />
+                    <IconMail size={16} color="#FF4C63" />
                     <span>
                       Administration: <a href="mailto:admin@selloi.uz">admin@selloi.uz</a>
                     </span>
                   </div>
                   <div className="selloi-contact-item">
-                    <Globe size={16} color="#FF4C63" />
+                    <IconWorld size={16} color="#FF4C63" />
                     <span>
                       Official Website: <a href="https://selloi.uz">https://selloi.uz</a>
                     </span>
@@ -517,7 +517,7 @@ export default function PrivacyPolicyClient() {
           <>
             <div className="selloi-legal-title-block">
               <div className="selloi-legal-badge">
-                <Shield size={13} />
+                <IconShield size={13} />
                 <span>Официальный документ</span>
               </div>
               <h1 className="selloi-legal-title">Политика конфиденциальности (Privacy Policy)</h1>
@@ -526,10 +526,10 @@ export default function PrivacyPolicyClient() {
               </p>
               <div className="selloi-legal-meta">
                 <span>
-                  <Calendar size={14} /> Дата обновления: 21 ноября 2026 г.
+                  <IconCalendar size={14} /> Дата обновления: 21 ноября 2026 г.
                 </span>
                 <span>
-                  <Globe size={14} /> Официальный сайт: https://selloi.uz
+                  <IconWorld size={14} /> Официальный сайт: https://selloi.uz
                 </span>
               </div>
             </div>
@@ -641,7 +641,7 @@ export default function PrivacyPolicyClient() {
                 <p>Пользователь имеет право в любой момент запросить полное удаление аккаунта и всех персональных данных:</p>
                 <div className="selloi-contact-box">
                   <div className="selloi-contact-item">
-                    <Trash2 size={16} color="#FF4C63" />
+                    <IconTrash size={16} color="#FF4C63" />
                     <span>
                       <strong>Запрос на удаление данных:</strong> Направьте запрос на адрес{" "}
                       <a href="mailto:support@selloi.uz">support@selloi.uz</a> с темой "Delete Account Data". В течение 30 календарных дней аккаунт и все связанные с ним данные Google OAuth и Telegram будут безвозвратно удалены из всех активных баз данных и резервных копий.
@@ -654,19 +654,19 @@ export default function PrivacyPolicyClient() {
                 <h2>8. Контактная информация</h2>
                 <div className="selloi-contact-box">
                   <div className="selloi-contact-item">
-                    <Mail size={16} color="#FF4C63" />
+                    <IconMail size={16} color="#FF4C63" />
                     <span>
                       Служба поддержки и безопасности: <a href="mailto:support@selloi.uz">support@selloi.uz</a>
                     </span>
                   </div>
                   <div className="selloi-contact-item">
-                    <Mail size={16} color="#FF4C63" />
+                    <IconMail size={16} color="#FF4C63" />
                     <span>
                       Администрация: <a href="mailto:admin@selloi.uz">admin@selloi.uz</a>
                     </span>
                   </div>
                   <div className="selloi-contact-item">
-                    <Globe size={16} color="#FF4C63" />
+                    <IconWorld size={16} color="#FF4C63" />
                     <span>
                       Официальный сайт: <a href="https://selloi.uz">https://selloi.uz</a>
                     </span>

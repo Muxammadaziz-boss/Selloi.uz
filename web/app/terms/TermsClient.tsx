@@ -3,7 +3,14 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, Calendar, FileText, Globe, Mail, ShieldCheck } from "lucide-react";
+import {
+  IconArrowLeft,
+  IconCalendar,
+  IconFileText,
+  IconWorld,
+  IconMail,
+  IconShieldCheck,
+} from "@tabler/icons-react";
 import "../privacy/legal.css";
 
 type LegalLang = "uz" | "en" | "ru";
@@ -84,7 +91,7 @@ export default function TermsClient() {
             </div>
 
             <Link href="/" className="selloi-legal-back-btn">
-              <ArrowLeft size={16} />
+              <IconArrowLeft size={16} />
               <span>
                 {lang === "en"
                   ? "Back to Home"
@@ -99,7 +106,7 @@ export default function TermsClient() {
         {/* Title Header */}
         <div className="selloi-legal-title-block">
           <div className="selloi-legal-badge">
-            <FileText size={13} />
+            <IconFileText size={13} />
             <span>
               {lang === "en"
                 ? "Legal Agreement"
@@ -124,7 +131,7 @@ export default function TermsClient() {
           </p>
           <div className="selloi-legal-meta">
             <span>
-              <Calendar size={14} />{" "}
+              <IconCalendar size={14} />{" "}
               {lang === "en"
                 ? "Last Updated: November 21, 2026"
                 : lang === "ru"
@@ -132,7 +139,7 @@ export default function TermsClient() {
                 : "Oxirgi yangilanish: 2026-yil 21-noyabr"}
             </span>
             <span>
-              <Globe size={14} /> Manzil: https://selloi.uz
+              <IconWorld size={14} /> Manzil: https://selloi.uz
             </span>
           </div>
         </div>
@@ -216,13 +223,13 @@ export default function TermsClient() {
               <h2>7. Aloqa</h2>
               <div className="selloi-contact-box">
                 <div className="selloi-contact-item">
-                  <Mail size={16} color="#FF4C63" />
+                  <IconMail size={16} color="#FF4C63" />
                   <span>
                     Yuridik va texnik qo'llab-quvvatlash: <a href="mailto:support@selloi.uz">support@selloi.uz</a>
                   </span>
                 </div>
                 <div className="selloi-contact-item">
-                  <Globe size={16} color="#FF4C63" />
+                  <IconWorld size={16} color="#FF4C63" />
                   <span>
                     Rasmiy veb-sayt: <a href="https://selloi.uz">https://selloi.uz</a>
                   </span>
@@ -296,13 +303,13 @@ export default function TermsClient() {
               <h2>7. Contact Information</h2>
               <div className="selloi-contact-box">
                 <div className="selloi-contact-item">
-                  <Mail size={16} color="#FF4C63" />
+                  <IconMail size={16} color="#FF4C63" />
                   <span>
                     Legal & Support Inquiries: <a href="mailto:support@selloi.uz">support@selloi.uz</a>
                   </span>
                 </div>
                 <div className="selloi-contact-item">
-                  <Globe size={16} color="#FF4C63" />
+                  <IconWorld size={16} color="#FF4C63" />
                   <span>
                     Official Website: <a href="https://selloi.uz">https://selloi.uz</a>
                   </span>
@@ -368,13 +375,13 @@ export default function TermsClient() {
               <h2>7. Контакты</h2>
               <div className="selloi-contact-box">
                 <div className="selloi-contact-item">
-                  <Mail size={16} color="#FF4C63" />
+                  <IconMail size={16} color="#FF4C63" />
                   <span>
                     Поддержка: <a href="mailto:support@selloi.uz">support@selloi.uz</a>
                   </span>
                 </div>
                 <div className="selloi-contact-item">
-                  <Globe size={16} color="#FF4C63" />
+                  <IconWorld size={16} color="#FF4C63" />
                   <span>
                     Официальный сайт: <a href="https://selloi.uz">https://selloi.uz</a>
                   </span>

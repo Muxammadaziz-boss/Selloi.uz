@@ -96,11 +96,31 @@ export function CustomersTab({
           {!loading && filtered.length === 0 ? (
             <EmptyState
               icon={<IconUsers size={32} />}
-              title={search.trim() ? "Mijoz topilmadi" : "Hozircha mijozlar mavjud emas"}
+              title={
+                search.trim()
+                  ? language === "uz"
+                    ? "Mijoz topilmadi"
+                    : language === "ru"
+                    ? "Клиент не найден"
+                    : "No customers found"
+                  : language === "uz"
+                  ? "Hozircha mijozlar mavjud emas"
+                  : language === "ru"
+                  ? "Клиентов пока нет"
+                  : "No customers yet"
+              }
               description={
                 search.trim()
-                  ? `"${search}" so'rovi bo'yicha hech qanday mijoz topilmadi.`
-                  : "Telegram botingizga mijozlar xabar yozganda yoki buyurtma berganda, ular bu yerda avtomatik paydo bo'ladi."
+                  ? language === "uz"
+                    ? `"${search}" so'rovi bo'yicha hech qanday mijoz topilmadi.`
+                    : language === "ru"
+                    ? `По запросу "${search}" клиенты не найдены.`
+                    : `No customers matched "${search}".`
+                  : language === "uz"
+                  ? "Telegram botingizga mijozlar xabar yozganda yoki buyurtma berganda, ular bu yerda avtomatik paydo bo'ladi."
+                  : language === "ru"
+                  ? "Клиенты появятся автоматически, когда напишут вашему боту в Telegram или оформят заказ."
+                  : "Customers will appear here automatically once they message your Telegram bot or place orders."
               }
             />
           ) : (

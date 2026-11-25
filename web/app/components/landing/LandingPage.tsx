@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import Header from "./Header";
 import HeroSection from "./HeroSection";
 import FeaturesSection from "./FeaturesSection";
@@ -10,12 +11,16 @@ import PricingSection from "./PricingSection";
 import FAQSection from "./FAQSection";
 import FinalCTA from "./FinalCTA";
 import Footer from "./Footer";
-import { OnboardingModal } from "../saas/OnboardingModal";
 import { Toast, ToastContainer } from "../ui/Toast";
 import { LanguageProvider, useLanguage } from "@/app/lib/i18n";
 import { Language } from "@/app/lib/i18n/types";
 import { SELLOI_I18N } from "./selloiI18n";
 import "./selloi-figma.css";
+
+const OnboardingModal = dynamic(
+  () => import("../saas/OnboardingModal").then((m) => m.OnboardingModal),
+  { ssr: false }
+);
 
 interface LandingPageProps {
   isAuthenticated?: boolean;

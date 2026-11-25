@@ -3,21 +3,21 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
-  AlertCircle,
-  ArrowLeft,
-  ArrowRight,
-  Check,
-  Eye,
-  EyeOff,
-  Globe,
-  Loader2,
-  Lock,
-  Mail,
-  Send,
-  ShieldCheck,
-  Sparkles,
-  User as UserIcon,
-} from "lucide-react";
+  IconAlertCircle,
+  IconArrowLeft,
+  IconArrowRight,
+  IconCheck,
+  IconEye,
+  IconEyeOff,
+  IconWorld,
+  IconLoader2,
+  IconLock,
+  IconMail,
+  IconSend,
+  IconShieldCheck,
+  IconSparkles,
+  IconUser,
+} from "@tabler/icons-react";
 import "./login.css";
 
 interface LoginPageClientProps {
@@ -386,12 +386,12 @@ export default function LoginPageClient({
       {/* Top Bar: Home link + Language Switcher */}
       <div className="selloi-auth-topbar">
         <Link href="/" className="selloi-auth-back-link">
-          <ArrowLeft size={16} />
+          <IconArrowLeft size={16} />
           <span>{t.backToHome}</span>
         </Link>
 
         <div className="selloi-lang-picker">
-          <Globe size={15} className="text-secondary" />
+          <IconWorld size={15} className="text-secondary" />
           <button
             type="button"
             className={`selloi-lang-btn ${lang === "uz" ? "active" : ""}`}
@@ -460,14 +460,14 @@ export default function LoginPageClient({
         {/* Error and Info Notices */}
         {error && (
           <div className="selloi-alert selloi-alert-danger">
-            <AlertCircle size={16} className="flex-shrink-0" />
+            <IconAlertCircle size={16} className="flex-shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
         {infoNotice && (
           <div className="selloi-alert selloi-alert-info">
-            <Sparkles size={16} className="flex-shrink-0" />
+            <IconSparkles size={16} className="flex-shrink-0" />
             <span>{infoNotice}</span>
           </div>
         )}
@@ -536,7 +536,7 @@ export default function LoginPageClient({
             <div className="selloi-form-group">
               <label className="selloi-form-label">{t.emailLabel}</label>
               <div className="selloi-input-wrapper">
-                <Mail size={16} className="selloi-input-icon" />
+                <IconMail size={16} className="selloi-input-icon" />
                 <input
                   type="email"
                   className="selloi-input"
@@ -561,7 +561,7 @@ export default function LoginPageClient({
                 </button>
               </div>
               <div className="selloi-input-wrapper">
-                <Lock size={16} className="selloi-input-icon" />
+                <IconLock size={16} className="selloi-input-icon" />
                 <input
                   type={showPassword ? "text" : "password"}
                   className="selloi-input"
@@ -576,7 +576,7 @@ export default function LoginPageClient({
                   onClick={() => setShowPassword(!showPassword)}
                   aria-label="Toggle password visibility"
                 >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  {showPassword ? <IconEyeOff size={16} /> : <IconEye size={16} />}
                 </button>
               </div>
             </div>
@@ -599,7 +599,7 @@ export default function LoginPageClient({
               className="selloi-btn-primary"
             >
               <span>{loading ? t.loading : t.submitLogin}</span>
-              <ArrowRight size={16} />
+              <IconArrowRight size={16} />
             </button>
 
             <div className="selloi-auth-footer-prompt">
@@ -624,7 +624,7 @@ export default function LoginPageClient({
             <div className="selloi-form-group">
               <label className="selloi-form-label">{t.fullNameLabel}</label>
               <div className="selloi-input-wrapper">
-                <UserIcon size={16} className="selloi-input-icon" />
+                <IconUser size={16} className="selloi-input-icon" />
                 <input
                   type="text"
                   className="selloi-input"
@@ -640,7 +640,7 @@ export default function LoginPageClient({
             <div className="selloi-form-group">
               <label className="selloi-form-label">{t.emailLabel}</label>
               <div className="selloi-input-wrapper">
-                <Mail size={16} className="selloi-input-icon" />
+                <IconMail size={16} className="selloi-input-icon" />
                 <input
                   type="email"
                   className="selloi-input"
@@ -655,7 +655,7 @@ export default function LoginPageClient({
             <div className="selloi-form-group">
               <label className="selloi-form-label">{t.passwordLabel}</label>
               <div className="selloi-input-wrapper">
-                <Lock size={16} className="selloi-input-icon" />
+                <IconLock size={16} className="selloi-input-icon" />
                 <input
                   type={showPassword ? "text" : "password"}
                   className="selloi-input"
@@ -670,7 +670,7 @@ export default function LoginPageClient({
                   onClick={() => setShowPassword(!showPassword)}
                   aria-label="Toggle password visibility"
                 >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  {showPassword ? <IconEyeOff size={16} /> : <IconEye size={16} />}
                 </button>
               </div>
             </div>
@@ -678,7 +678,7 @@ export default function LoginPageClient({
             <div className="selloi-form-group">
               <label className="selloi-form-label">{t.confirmPasswordLabel}</label>
               <div className="selloi-input-wrapper">
-                <Lock size={16} className="selloi-input-icon" />
+                <IconLock size={16} className="selloi-input-icon" />
                 <input
                   type={showPassword ? "text" : "password"}
                   className="selloi-input"
@@ -700,7 +700,7 @@ export default function LoginPageClient({
               className="selloi-btn-primary"
             >
               <span>{loading ? t.loading : t.submitRegister}</span>
-              <Check size={16} />
+              <IconCheck size={16} />
             </button>
 
             <div className="selloi-auth-footer-prompt">
@@ -721,7 +721,7 @@ export default function LoginPageClient({
 
         {/* Security badge at bottom */}
         <div className="selloi-auth-security-badge">
-          <ShieldCheck size={13} />
+          <IconShieldCheck size={13} />
           <span>{t.sslSecure}</span>
         </div>
 
@@ -753,7 +753,7 @@ export default function LoginPageClient({
                   color: "#0088CC",
                 }}
               >
-                <Send size={26} />
+                <IconSend size={26} />
               </div>
             </div>
 
@@ -763,7 +763,7 @@ export default function LoginPageClient({
             <div className="d-flex flex-column gap-3 mb-4">
               {telegramInitLoading ? (
                 <div className="d-flex align-items-center justify-content-center gap-2 py-3 text-secondary small">
-                  <Loader2 size={18} className="animate-spin text-primary" />
+                  <IconLoader2 size={18} className="spin text-primary" />
                   <span>Xavfsiz sessiya yaratilmoqda...</span>
                 </div>
               ) : telegramBotUrl ? (
@@ -775,19 +775,19 @@ export default function LoginPageClient({
                     className="selloi-modal-btn-confirm d-inline-flex align-items-center justify-content-center gap-2 w-100 text-decoration-none py-2.5 px-4"
                     style={{ fontSize: "0.95rem" }}
                   >
-                    <Send size={18} />
+                    <IconSend size={18} />
                     <span>{t.telegramOpenBot}</span>
                   </a>
 
                   <div className="d-flex align-items-center justify-content-center gap-2 text-secondary small py-1">
                     {telegramAuthSuccess ? (
                       <span className="text-success fw-bold d-flex align-items-center gap-1.5">
-                        <Check size={16} />
+                        <IconCheck size={16} />
                         <span>{t.telegramSuccess}</span>
                       </span>
                     ) : (
                       <>
-                        <Loader2 size={15} className="animate-spin text-primary" />
+                        <IconLoader2 size={15} className="spin text-primary" />
                         <span>{t.telegramWaiting}</span>
                       </>
                     )}

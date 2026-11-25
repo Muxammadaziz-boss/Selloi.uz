@@ -115,7 +115,15 @@ export function AnalyticsTab({
         breadcrumbs={t("breadcrumb.analytics")}
         title={t("analytics.title")}
         description={t("analytics.subtitle")}
-        badge={{ text: language === "uz" ? "Haqiqiy ma'lumotlar" : "Live data", variant: "success" }}
+        badge={{
+          text:
+            language === "uz"
+              ? "Haqiqiy ma'lumotlar"
+              : language === "ru"
+              ? "Реальные данные"
+              : "Live data",
+          variant: "success",
+        }}
       />
 
       {/* 4 Metric KPI Cards */}
@@ -125,7 +133,7 @@ export function AnalyticsTab({
           <div className="linear-card p-3 h-100">
             <div className="d-flex align-items-center justify-content-between mb-2">
               <span className="text-secondary small fw-medium text-uppercase" style={{ fontSize: "0.7rem" }}>
-                Sotuv Konversiyasi
+                {language === "uz" ? "Sotuv Konversiyasi" : language === "ru" ? "Конверсия продаж" : "Sales Conversion"}
               </span>
               <Badge variant="success">
                 <IconTrendingUp size={12} />
@@ -135,7 +143,17 @@ export function AnalyticsTab({
               {conversionRate}%
             </div>
             <div className="text-secondary small">
-              {totalConv > 0 ? `${totalConv} ta suhbatdan ${totalOrders} ta buyurtma` : "Murojaatlar mavjud emas"}
+              {totalConv > 0
+                ? language === "uz"
+                  ? `${totalConv} ta suhbatdan ${totalOrders} ta buyurtma`
+                  : language === "ru"
+                  ? `${totalOrders} заказов из ${totalConv} диалогов`
+                  : `${totalOrders} orders from ${totalConv} chats`
+                : language === "uz"
+                ? "Murojaatlar mavjud emas"
+                : language === "ru"
+                ? "Обращений пока нет"
+                : "No conversations yet"}
             </div>
             <div className="mt-2" style={{ height: "4px", backgroundColor: "var(--border-subtle)", borderRadius: "2px", overflow: "hidden" }}>
               <div style={{ width: `${Math.min(100, parseFloat(conversionRate))}%`, height: "100%", backgroundColor: "var(--success)" }} />
@@ -148,7 +166,7 @@ export function AnalyticsTab({
           <div className="linear-card p-3 h-100">
             <div className="d-flex align-items-center justify-content-between mb-2">
               <span className="text-secondary small fw-medium text-uppercase" style={{ fontSize: "0.7rem" }}>
-                AI Avtonomligi
+                {language === "uz" ? "AI Avtonomligi" : language === "ru" ? "Автономность ИИ" : "AI Autonomy"}
               </span>
               <Badge variant="accent">
                 <IconRobot size={12} />
@@ -158,7 +176,11 @@ export function AnalyticsTab({
               {aiResolutionRate}%
             </div>
             <div className="text-secondary small">
-              {aiCount} ta suhbat AI nazoratida
+              {language === "uz"
+                ? `${aiCount} ta suhbat AI nazoratida`
+                : language === "ru"
+                ? `${aiCount} диалогов под управлением ИИ`
+                : `${aiCount} chats handled by AI`}
             </div>
             <div className="mt-2" style={{ height: "4px", backgroundColor: "var(--border-subtle)", borderRadius: "2px", overflow: "hidden" }}>
               <div style={{ width: `${aiResolutionRate}%`, height: "100%", backgroundColor: "var(--accent)" }} />
@@ -171,7 +193,7 @@ export function AnalyticsTab({
           <div className="linear-card p-3 h-100">
             <div className="d-flex align-items-center justify-content-between mb-2">
               <span className="text-secondary small fw-medium text-uppercase" style={{ fontSize: "0.7rem" }}>
-                O'rtacha Javob Vaqti
+                {language === "uz" ? "O'rtacha Javob Vaqti" : language === "ru" ? "Среднее время ответа" : "Avg Response Time"}
               </span>
               <Badge variant="info">
                 <IconBolt size={12} />
@@ -181,7 +203,11 @@ export function AnalyticsTab({
               ~1.2 s
             </div>
             <div className="text-secondary small">
-              Telegram webhook orqali lahzali javob
+              {language === "uz"
+                ? "Telegram webhook orqali lahzali javob"
+                : language === "ru"
+                ? "Мгновенный ответ через Telegram webhook"
+                : "Instant reply via Telegram webhook"}
             </div>
             <div className="mt-2" style={{ height: "4px", backgroundColor: "var(--border-subtle)", borderRadius: "2px", overflow: "hidden" }}>
               <div style={{ width: "95%", height: "100%", backgroundColor: "var(--info)" }} />
@@ -194,7 +220,7 @@ export function AnalyticsTab({
           <div className="linear-card p-3 h-100">
             <div className="d-flex align-items-center justify-content-between mb-2">
               <span className="text-secondary small fw-medium text-uppercase" style={{ fontSize: "0.7rem" }}>
-                Operator Ulushi
+                {language === "uz" ? "Operator Ulushi" : language === "ru" ? "Доля оператора" : "Operator Share"}
               </span>
               <Badge variant="warning">
                 <IconHeadset size={12} />
@@ -204,7 +230,11 @@ export function AnalyticsTab({
               {humanResolutionRate}%
             </div>
             <div className="text-secondary small">
-              {humanCount} ta suhbat operator qabulida
+              {language === "uz"
+                ? `${humanCount} ta suhbat operator qabulida`
+                : language === "ru"
+                ? `${humanCount} диалогов у оператора`
+                : `${humanCount} chats with operator`}
             </div>
             <div className="mt-2" style={{ height: "4px", backgroundColor: "var(--border-subtle)", borderRadius: "2px", overflow: "hidden" }}>
               <div style={{ width: `${humanResolutionRate}%`, height: "100%", backgroundColor: "var(--warning)" }} />
@@ -277,10 +307,18 @@ export function AnalyticsTab({
               {totalConv === 0 ? (
                 <EmptyState
                   icon={<IconRobot size={28} />}
-                  title={language === "uz" ? "Suhbatlar ma'lumoti yo'q" : "No conversations yet"}
+                  title={
+                    language === "uz"
+                      ? "Suhbatlar ma'lumoti yo'q"
+                      : language === "ru"
+                      ? "Нет данных о диалогах"
+                      : "No conversations yet"
+                  }
                   description={
                     language === "uz"
                       ? "Birinchi mijoz suhbatidan keyin AI va operator ulushi bu yerda ko'rsatiladi."
+                      : language === "ru"
+                      ? "После первого диалога здесь отобразится распределение между ИИ и оператором."
                       : "AI vs human takeover distribution will appear once conversations arrive."
                   }
                 />
@@ -288,22 +326,22 @@ export function AnalyticsTab({
                 <div className="d-flex flex-column gap-3">
                   <DonutChart
                     centerValue={`${aiResolutionRate}%`}
-                    centerLabel={language === "uz" ? "AI ulushi" : "AI share"}
+                    centerLabel={language === "uz" ? "AI ulushi" : language === "ru" ? "Доля ИИ" : "AI share"}
                     segments={[
                       {
-                        label: language === "uz" ? "AI Avtonom" : "AI Autonomous",
+                        label: language === "uz" ? "AI Avtonom" : language === "ru" ? "ИИ автономно" : "AI Autonomous",
                         value: aiCount,
                         color: "var(--success, #A0CA92)",
                       },
                       {
-                        label: language === "uz" ? "Operator Nazoratida" : "Human Takeover",
+                        label: language === "uz" ? "Operator Nazoratida" : language === "ru" ? "У оператора" : "Human Takeover",
                         value: humanCount,
                         color: "var(--warning, #E8B66A)",
                       },
                       ...(totalConv > aiCount + humanCount
                         ? [
                             {
-                              label: language === "uz" ? "Boshqa holatlar" : "Other",
+                              label: language === "uz" ? "Boshqa holatlar" : language === "ru" ? "Другие" : "Other",
                               value: totalConv - aiCount - humanCount,
                               color: "var(--info, #83AEEA)",
                             },
@@ -315,6 +353,8 @@ export function AnalyticsTab({
                     <div className="text-secondary small">
                       {language === "uz"
                         ? `Xulosa: Jami ${totalConv} ta suhbatning ${aiResolutionRate}% qismi AI tomonidan boshqarilmoqda.`
+                        : language === "ru"
+                        ? `Итог: ${aiResolutionRate}% из ${totalConv} диалогов полностью обрабатываются ИИ.`
                         : `Summary: ${aiResolutionRate}% of ${totalConv} total conversations are handled autonomously by AI.`}
                     </div>
                   </div>
@@ -340,10 +380,18 @@ export function AnalyticsTab({
               {topProducts.length === 0 ? (
                 <EmptyState
                   icon={<IconShoppingCart size={28} />}
-                  title={language === "uz" ? "Buyurtmalar mavjud emas" : "No order breakdown yet"}
+                  title={
+                    language === "uz"
+                      ? "Buyurtmalar mavjud emas"
+                      : language === "ru"
+                      ? "Заказов пока нет"
+                      : "No order breakdown yet"
+                  }
                   description={
                     language === "uz"
                       ? "Hozircha buyurtma qilingan mahsulotlar ma'lumoti yo'q."
+                      : language === "ru"
+                      ? "Статистика по заказанным товарам появится автоматически."
                       : "Ordered products will be ranked here automatically."
                   }
                 />

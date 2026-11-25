@@ -45,6 +45,8 @@ export function OrdersTab({
 }: OrdersTabProps) {
   const { language, t } = useLanguage();
   const [statusFilter, setStatusFilter] = useState("all");
+  const confirmLabel = language === "uz" ? "Tasdiqlash" : language === "ru" ? "Подтвердить" : "Confirm";
+  const completeLabel = language === "uz" ? "Bajarildi" : language === "ru" ? "Выполнен" : "Complete";
 
   const filteredOrders = orders.filter((ord) => {
     if (statusFilter !== "all" && ord.status.toLowerCase() !== statusFilter.toLowerCase()) {
@@ -119,8 +121,16 @@ export function OrdersTab({
               title={t("orders.empty")}
               description={
                 orderSearch.trim() || statusFilter !== "all"
-                  ? "Qidiruv yoki holat filtri bo'yicha buyurtma topilmadi."
-                  : "Telegram botingiz orqali mijozlar buyurtma berganda barcha buyurtmalar shu yerda aks etadi."
+                  ? language === "uz"
+                    ? "Qidiruv yoki holat filtri bo'yicha buyurtma topilmadi."
+                    : language === "ru"
+                    ? "По фильтру или поиску заказы не найдены."
+                    : "No orders matched your search or status filter."
+                  : language === "uz"
+                  ? "Telegram botingiz orqali mijozlar buyurtma berganda barcha buyurtmalar shu yerda aks etadi."
+                  : language === "ru"
+                  ? "Новые заказы из Telegram появятся в этом списке автоматически."
+                  : "Customer orders placed through your Telegram bot will appear here automatically."
               }
             />
           ) : (
@@ -173,10 +183,10 @@ export function OrdersTab({
                                 variant="secondary"
                                 size="xs"
                                 onClick={() => onUpdateOrderStatus(ord.id, "Confirmed")}
-                                title="Tasdiqlash"
+                                title={confirmLabel}
                                 icon={<IconCheck size={13} style={{ color: "var(--success)" }} />}
                               >
-                                Tasdiqlash
+                                {confirmLabel}
                               </Button>
                             )}
                             {ord.status?.toLowerCase() !== "completed" && (
@@ -184,9 +194,9 @@ export function OrdersTab({
                                 variant="secondary"
                                 size="xs"
                                 onClick={() => onUpdateOrderStatus(ord.id, "Completed")}
-                                title="Bajarildi"
+                                title={completeLabel}
                               >
-                                Bajarildi
+                                {completeLabel}
                               </Button>
                             )}
                             <Button
@@ -235,12 +245,12 @@ export function OrdersTab({
                       <div className="d-flex align-items-center gap-1.5">
                         {ord.status?.toLowerCase() !== "confirmed" && ord.status?.toLowerCase() !== "completed" && (
                           <Button variant="secondary" size="xs" onClick={() => onUpdateOrderStatus(ord.id, "Confirmed")} icon={<IconCheck size={12} />}>
-                            Tasdiqlash
+                            {confirmLabel}
                           </Button>
                         )}
                         {ord.status?.toLowerCase() !== "completed" && (
                           <Button variant="secondary" size="xs" onClick={() => onUpdateOrderStatus(ord.id, "Completed")}>
-                            Bajarildi
+                            {completeLabel}
                           </Button>
                         )}
                         <Button

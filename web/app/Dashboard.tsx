@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import {
   IconActivity,
   IconAdjustments,
@@ -66,29 +67,95 @@ import {
   IconChartBar,
 } from "@tabler/icons-react";
 
-import { UsageTab } from "./components/saas/UsageTab";
-import { BillingTab } from "./components/saas/BillingTab";
-import { PricingTab } from "./components/saas/PricingTab";
-import { PlatformOwnerTab } from "./components/saas/PlatformOwnerTab";
-import { OnboardingModal } from "./components/saas/OnboardingModal";
-import { UpgradeModal } from "./components/saas/UpgradeModal";
 import { ConfirmModal } from "./components/ui/ConfirmModal";
 import { Toast, ToastContainer } from "./components/ui/Toast";
+import { Skeleton } from "./components/ui/Skeleton";
 import { AppShell } from "./components/layout/AppShell";
 import { OverviewTab } from "./components/tabs/OverviewTab";
 import { InboxTab } from "./components/tabs/InboxTab";
-import { KnowledgeTab } from "./components/tabs/KnowledgeTab";
-import { ProductsTab } from "./components/tabs/ProductsTab";
-import { OrdersTab } from "./components/tabs/OrdersTab";
-import { CustomersTab } from "./components/tabs/CustomersTab";
-import { AnalyticsTab } from "./components/tabs/AnalyticsTab";
-import { SettingsTab } from "./components/tabs/SettingsTab";
-import { AdminsTab } from "./components/tabs/AdminsTab";
-import { TeamTab } from "./components/tabs/TeamTab";
-import { LogsTab } from "./components/tabs/LogsTab";
-import { ProfileTab } from "./components/tabs/ProfileTab";
 import { DesignProvider } from "./components/design/DesignContext";
 import { LanguageProvider, useLanguage } from "./lib/i18n";
+
+function TabPanelSkeleton() {
+  return (
+    <div className="linear-card p-4 space-y-3">
+      <Skeleton width={220} height={22} />
+      <Skeleton width="60%" height={14} />
+      <div className="row g-3 pt-2">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="col-12 col-md-4">
+            <div className="linear-card p-3 space-y-2">
+              <Skeleton width="50%" height={14} />
+              <Skeleton width="80%" height={24} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const UsageTab = dynamic(() => import("./components/saas/UsageTab").then((m) => m.UsageTab), {
+  loading: () => <TabPanelSkeleton />,
+});
+const BillingTab = dynamic(() => import("./components/saas/BillingTab").then((m) => m.BillingTab), {
+  loading: () => <TabPanelSkeleton />,
+});
+const PricingTab = dynamic(() => import("./components/saas/PricingTab").then((m) => m.PricingTab), {
+  loading: () => <TabPanelSkeleton />,
+});
+const PlatformOwnerTab = dynamic(
+  () => import("./components/saas/PlatformOwnerTab").then((m) => m.PlatformOwnerTab),
+  { loading: () => <TabPanelSkeleton /> }
+);
+const OnboardingModal = dynamic(
+  () => import("./components/saas/OnboardingModal").then((m) => m.OnboardingModal),
+  { ssr: false }
+);
+const UpgradeModal = dynamic(
+  () => import("./components/saas/UpgradeModal").then((m) => m.UpgradeModal),
+  { ssr: false }
+);
+const KnowledgeTab = dynamic(
+  () => import("./components/tabs/KnowledgeTab").then((m) => m.KnowledgeTab),
+  { loading: () => <TabPanelSkeleton /> }
+);
+const ProductsTab = dynamic(
+  () => import("./components/tabs/ProductsTab").then((m) => m.ProductsTab),
+  { loading: () => <TabPanelSkeleton /> }
+);
+const OrdersTab = dynamic(
+  () => import("./components/tabs/OrdersTab").then((m) => m.OrdersTab),
+  { loading: () => <TabPanelSkeleton /> }
+);
+const CustomersTab = dynamic(
+  () => import("./components/tabs/CustomersTab").then((m) => m.CustomersTab),
+  { loading: () => <TabPanelSkeleton /> }
+);
+const AnalyticsTab = dynamic(
+  () => import("./components/tabs/AnalyticsTab").then((m) => m.AnalyticsTab),
+  { loading: () => <TabPanelSkeleton /> }
+);
+const SettingsTab = dynamic(
+  () => import("./components/tabs/SettingsTab").then((m) => m.SettingsTab),
+  { loading: () => <TabPanelSkeleton /> }
+);
+const AdminsTab = dynamic(
+  () => import("./components/tabs/AdminsTab").then((m) => m.AdminsTab),
+  { loading: () => <TabPanelSkeleton /> }
+);
+const TeamTab = dynamic(
+  () => import("./components/tabs/TeamTab").then((m) => m.TeamTab),
+  { loading: () => <TabPanelSkeleton /> }
+);
+const LogsTab = dynamic(
+  () => import("./components/tabs/LogsTab").then((m) => m.LogsTab),
+  { loading: () => <TabPanelSkeleton /> }
+);
+const ProfileTab = dynamic(
+  () => import("./components/tabs/ProfileTab").then((m) => m.ProfileTab),
+  { loading: () => <TabPanelSkeleton /> }
+);
 
 type Overview = {
   conversations: number;

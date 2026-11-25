@@ -14,6 +14,7 @@ import {
   IconX,
 } from "@tabler/icons-react";
 import { getCheckoutQuote, CheckoutQuoteResponse } from "../../lib/api";
+import { useLanguage } from "../../lib/i18n";
 
 interface PlanItem {
   id: number;
@@ -41,6 +42,7 @@ export function PricingTab({
   onSelectPlan,
   loading = false,
 }: PricingTabProps) {
+  const { language } = useLanguage();
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
   const [currency, setCurrency] = useState<"USD" | "UZS">("UZS");
   const [busyPlanCode, setBusyPlanCode] = useState<string | null>(null);
@@ -92,11 +94,25 @@ export function PricingTab({
       {/* Title & Controls */}
       <div className="text-center max-w-xl mx-auto pt-2 pb-3">
         <span className="badge bg-primary-lt text-primary fw-bold text-uppercase px-3 py-1.5 mb-2">
-          Moslashuvchan SaaS Tariflar
+          {language === "uz"
+            ? "Moslashuvchan SaaS Tariflar"
+            : language === "ru"
+            ? "Гибкие SaaS тарифы"
+            : "Flexible SaaS Plans"}
         </span>
-        <h2 className="fs-1 fw-bold text-primary mb-2">Biznesingiz Ko'lamiga Mos Rejani Tanlang</h2>
+        <h2 className="fs-1 fw-bold text-primary mb-2">
+          {language === "uz"
+            ? "Biznesingiz Ko'lamiga Mos Rejani Tanlang"
+            : language === "ru"
+            ? "Выберите тариф под масштаб вашего бизнеса"
+            : "Choose the Plan That Fits Your Business"}
+        </h2>
         <p className="text-secondary small mb-4">
-          Barcha tariflarda xavfsiz multi-tenant ma'lumotlar izolyatsiyasi, Telegram Business ulanishi va sun'iy intellekt integratsiyasi mavjud.
+          {language === "uz"
+            ? "Barcha tariflarda xavfsiz multi-tenant ma'lumotlar izolyatsiyasi, Telegram Business ulanishi va sun'iy intellekt integratsiyasi mavjud."
+            : language === "ru"
+            ? "Все тарифы включают изоляцию данных multi-tenant, подключение Telegram Business и интеграцию ИИ."
+            : "Every plan includes strict multi-tenant isolation, Telegram integration, and AI sales automation."}
         </p>
 
         {/* Switchers Row: Billing Cycle & Currency Switcher */}
@@ -114,7 +130,7 @@ export function PricingTab({
               style={{ backgroundColor: billingCycle === "monthly" ? undefined : "transparent" }}
               onClick={() => setBillingCycle("monthly")}
             >
-              Oylik To'lov
+              {language === "uz" ? "Oylik To'lov" : language === "ru" ? "Ежемесячно" : "Monthly"}
             </button>
             <button
               type="button"
@@ -124,9 +140,9 @@ export function PricingTab({
               style={{ backgroundColor: billingCycle === "yearly" ? undefined : "transparent" }}
               onClick={() => setBillingCycle("yearly")}
             >
-              <span>Yillik To'lov</span>
+              <span>{language === "uz" ? "Yillik To'lov" : language === "ru" ? "Ежегодно" : "Yearly"}</span>
               <span className="badge linear-badge-success fw-bold" style={{ fontSize: "10px" }}>
-                17% TEJASH
+                {language === "uz" ? "17% TEJASH" : language === "ru" ? "-17%" : "SAVE 17%"}
               </span>
             </button>
           </div>

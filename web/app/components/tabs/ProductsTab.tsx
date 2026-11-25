@@ -163,10 +163,18 @@ export function ProductsTab({
               title={t("products.empty_products")}
               description={
                 productSearch.trim() || selectedCategory !== "all"
-                  ? "Qidiruv yoki kategoriya filtri bo'yicha mahsulot topilmadi."
-                  : "Katalogingiz bo'sh. Yangi mahsulot qo'shing yoki kanal postlaridan avtomatik aniqlang."
+                  ? language === "uz"
+                    ? "Qidiruv yoki kategoriya filtri bo'yicha mahsulot topilmadi."
+                    : language === "ru"
+                    ? "По вашему фильтру или поиску товары не найдены."
+                    : "No products matched your search or category filter."
+                  : language === "uz"
+                  ? "Katalogingiz bo'sh. Yangi mahsulot qo'shing yoki kanal postlaridan avtomatik aniqlang."
+                  : language === "ru"
+                  ? "Каталог пуст. Добавьте товар вручную или извлеките из постов канала."
+                  : "Your catalog is empty. Add a product or extract items from channel posts."
               }
-              actionLabel={language === "uz" ? "Yangi mahsulot" : "Add Product"}
+              actionLabel={language === "uz" ? "Yangi mahsulot" : language === "ru" ? "Добавить товар" : "Add Product"}
               onAction={() => setIsAddingProduct(true)}
             />
           ) : (
