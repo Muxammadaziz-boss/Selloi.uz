@@ -220,6 +220,7 @@ async def get_organization_profitability_list(db: AsyncSession, limit: int = 100
             "name": org.name,
             "slug": org.slug,
             "category": org.category,
+            "status": org.status or "active",
             "plan": plan_code,
             "subscription_status": sub_status,
             "monthly_revenue_usd": round(monthly_rev, 2),

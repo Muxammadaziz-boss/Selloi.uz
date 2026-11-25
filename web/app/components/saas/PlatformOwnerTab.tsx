@@ -7,14 +7,21 @@ import {
   IconArrowRight,
   IconBuildingSkyscraper,
   IconCheck,
+  IconCpu,
+  IconCreditCard,
   IconCrown,
-  IconPencil,
+  IconDatabase,
   IconPlus,
+  IconRefresh,
   IconSearch,
+  IconServer,
   IconShieldLock,
   IconTrash,
+  IconUserCheck,
+  IconUserOff,
   IconPlayerPause,
   IconPlayerPlay,
+  IconX,
 } from "@tabler/icons-react";
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
 import { Badge } from "../ui/Badge";
@@ -41,6 +48,7 @@ export interface OrganizationProfitability {
   name: string;
   slug: string;
   category: string;
+  status?: string;
   plan: string;
   subscription_status: string;
   monthly_revenue_usd: number;
@@ -76,11 +84,13 @@ export interface PlatformAuditLog {
 export interface PlatformSystemHealth {
   status: string;
   database: string;
+  redis?: string;
   app_env: string;
   version: string;
   gemini_configured: boolean;
   openai_configured: boolean;
   telegram_configured: boolean;
+  tezcheck_configured?: boolean;
 }
 
 interface PlatformOwnerTabProps {
@@ -101,6 +111,7 @@ interface PlatformOwnerTabProps {
   onDeleteStore?: (storeId: number) => Promise<void>;
   onAppointSiteAdmin?: (email: string, fullName?: string) => Promise<void>;
   onToggleSiteAdmin?: (userId: number, makeAdmin: boolean) => Promise<void>;
+  onToggleUserStatus?: (userId: number, isActive: boolean) => Promise<void>;
 }
 
 export function PlatformOwnerTab({
@@ -113,7 +124,7 @@ export function PlatformOwnerTab({
   loading,
   isCurrentUserOwner = false,
   onRefresh,
-  onUpdatePlan,
+  onUpdatePlan: _onUpdatePlan,
   onEnterStore,
   onSwitchSubTab,
   onCreateStore,
@@ -121,13 +132,14 @@ export function PlatformOwnerTab({
   onDeleteStore,
   onAppointSiteAdmin,
   onToggleSiteAdmin,
+  onToggleUserStatus,
 }: PlatformOwnerTabProps) {
-  const [editingPlanCode, setEditingPlanCode] = useState<string | null>(null);
-  const [newMonthlyPrice, setNewMonthlyPrice] = useState<number>(59);
-  const [newYearlyPrice, setNewYearlyPrice] = useState<number>(590);
-  const [saveBusy, setSaveBusy] = useState(false);
   const [storeSearch, setStoreSearch] = useState("");
+  const [storeStatusFilter, setStoreStatusFilter] = useState<"all" | "active" | "suspended">("all");
   const [userSearch, setUserSearch] = useState("");
+  const [userRoleFilter, setUserRoleFilter] = useState<"all" | "admins" | "owners">("all");
+  const [auditSearch, setAuditSearch] = useState("");
+  const [auditActionFilter, setAuditActionFilter] = useState<string>("all");
   const [newAdminEmail, setNewAdminEmail] = useState("");
   const [newAdminName, setNewAdminName] = useState("");
   const [adminActionBusy, setAdminActionBusy] = useState(false);
@@ -195,31 +207,39 @@ export function PlatformOwnerTab({
     }
   };
 
-  const handleSavePlan = async () => {
-    if (!editingPlanCode) return;
-    setSaveBusy(true);
-    try {
-      await onUpdatePlan(editingPlanCode, {
-        monthly_price_usd: newMonthlyPrice,
-        yearly_price_usd: newYearlyPrice,
-      });
-      setEditingPlanCode(null);
-    } finally {
-      setSaveBusy(false);
-    }
-  };
-
-  const filteredOrgs = organizations.filter(
-    (o) =>
+  const filteredOrgs = organizations.filter((o) => {
+    const matchesSearch =
       o.name.toLowerCase().includes(storeSearch.toLowerCase()) ||
-      o.slug.toLowerCase().includes(storeSearch.toLowerCase())
-  );
+      o.slug.toLowerCase().includes(storeSearch.toLowerCase());
+    if (!matchesSearch) return false;
+    const orgStatus = (o.status || "active").toLowerCase();
+    if (storeStatusFilter === "active") return orgStatus === "active";
+    if (storeStatusFilter === "suspended") return orgStatus !== "active";
+    return true;
+  });
 
-  const filteredUsers = usersList.filter(
-    (u) =>
+  const filteredUsers = usersList.filter((u) => {
+    const matchesSearch =
       u.email.toLowerCase().includes(userSearch.toLowerCase()) ||
-      (u.full_name && u.full_name.toLowerCase().includes(userSearch.toLowerCase()))
-  );
+      (u.full_name && u.full_name.toLowerCase().includes(userSearch.toLowerCase()));
+    if (!matchesSearch) return false;
+    if (userRoleFilter === "admins") return Boolean(u.is_platform_owner || u.is_platform_admin);
+    if (userRoleFilter === "owners") return !u.is_platform_owner && !u.is_platform_admin;
+    return true;
+  });
+
+  const auditActions = Array.from(new Set(auditLogs.map((l) => l.action).filter(Boolean)));
+  const filteredAuditLogs = auditLogs.filter((log) => {
+    if (auditActionFilter !== "all" && log.action !== auditActionFilter) return false;
+    if (!auditSearch.trim()) return true;
+    const q = auditSearch.toLowerCase();
+    return (
+      log.action.toLowerCase().includes(q) ||
+      log.resource.toLowerCase().includes(q) ||
+      (log.resource_id && log.resource_id.toLowerCase().includes(q)) ||
+      (log.metadata && JSON.stringify(log.metadata).toLowerCase().includes(q))
+    );
+  });
 
   return (
     <div className="d-flex flex-column gap-4">
@@ -477,11 +497,17 @@ export function PlatformOwnerTab({
                   <div className="d-flex flex-column gap-3">
                     {(() => {
                       const dist = metrics?.plan_distribution || {};
-                      const plans = ["start", "pro", "ultra"];
-                      const total = Object.values(dist).reduce((a, b) => a + (b as number), 0) || 1;
-                      return plans.map((plan) => {
-                        const count = dist[plan] || (organizations.filter(o => o.plan.toLowerCase() === plan).length) || 0;
-                        const pct = Math.round(((count as number) / total) * 100);
+                      const planKeys = Array.from(new Set(["start", "pro", "ultra", ...Object.keys(dist).map((k) => k.toLowerCase())]));
+                      const countsMap = planKeys.map((plan) => {
+                        const count =
+                          typeof dist[plan] === "number"
+                            ? dist[plan]
+                            : organizations.filter((o) => o.plan.toLowerCase() === plan).length;
+                        return { plan, count };
+                      });
+                      const total = countsMap.reduce((a, b) => a + b.count, 0) || 1;
+                      return countsMap.map(({ plan, count }) => {
+                        const pct = Math.round((count / total) * 100);
                         return (
                           <div key={plan}>
                             <div className="d-flex align-items-center justify-content-between small mb-1">
@@ -518,8 +544,8 @@ export function PlatformOwnerTab({
         <Card>
           <CardHeader
             actions={
-              <div className="d-flex align-items-center gap-2">
-                <div style={{ minWidth: "220px" }}>
+              <div className="d-flex flex-wrap align-items-center gap-2">
+                <div style={{ minWidth: "200px" }}>
                   <input
                     type="text"
                     className="linear-input"
@@ -528,6 +554,16 @@ export function PlatformOwnerTab({
                     onChange={(e) => setStoreSearch(e.target.value)}
                   />
                 </div>
+                <select
+                  className="linear-input"
+                  style={{ width: "auto", minWidth: "140px" }}
+                  value={storeStatusFilter}
+                  onChange={(e) => setStoreStatusFilter(e.target.value as any)}
+                >
+                  <option value="all">Barcha holatlar</option>
+                  <option value="active">Faol do'konlar</option>
+                  <option value="suspended">To'xtatilgan</option>
+                </select>
                 <Badge variant="accent">{filteredOrgs.length} ta do'kon</Badge>
               </div>
             }
@@ -540,8 +576,8 @@ export function PlatformOwnerTab({
                 <tr>
                   <th>Do'kon Nomi</th>
                   <th>Sohasi</th>
-                  <th>Tarif</th>
-                  <th>Obuna</th>
+                  <th>Holat</th>
+                  <th>Tarif / Obuna</th>
                   <th>Suhbatlar</th>
                   <th>Oylik Daromad</th>
                   <th>AI Xarajati</th>
@@ -576,7 +612,10 @@ export function PlatformOwnerTab({
                     </td>
                   </tr>
                 ) : (
-                  filteredOrgs.map((org) => (
+                  filteredOrgs.map((org) => {
+                    const orgStatus = (org.status || "active").toLowerCase();
+                    const isOrgActive = orgStatus === "active";
+                    return (
                     <tr key={org.id}>
                       <td>
                         <div className="d-flex align-items-center gap-2">
@@ -601,23 +640,28 @@ export function PlatformOwnerTab({
                       </td>
                       <td className="text-secondary small">{org.category || "Retail"}</td>
                       <td>
-                        <Badge variant="accent">{org.plan.toUpperCase()}</Badge>
-                      </td>
-                      <td>
-                        <Badge
-                          variant={
-                            org.subscription_status === "active"
-                              ? "success"
-                              : org.subscription_status === "trialing"
-                              ? "info"
-                              : "danger"
-                          }
-                        >
-                          {org.subscription_status}
+                        <Badge variant={isOrgActive ? "success" : "warning"} dot>
+                          {isOrgActive ? "Faol" : orgStatus === "suspended" ? "To'xtatilgan" : orgStatus}
                         </Badge>
                       </td>
+                      <td>
+                        <div className="d-flex align-items-center gap-1.5 flex-wrap">
+                          <Badge variant="accent">{org.plan.toUpperCase()}</Badge>
+                          <Badge
+                            variant={
+                              org.subscription_status === "active"
+                                ? "success"
+                                : org.subscription_status === "trialing"
+                                ? "info"
+                                : "default"
+                            }
+                          >
+                            {org.subscription_status}
+                          </Badge>
+                        </div>
+                      </td>
                       <td className="font-monospace text-secondary small">
-                        {org.conversations_count ?? "-"} ta
+                        {org.conversations_count ?? 0} ta
                       </td>
                       <td className="font-monospace fw-bold" style={{ color: "var(--success-text)" }}>
                         ${org.monthly_revenue_usd}
@@ -641,23 +685,23 @@ export function PlatformOwnerTab({
                               Do'konga kirish
                             </Button>
                           )}
-                          {onUpdateStoreStatus && (
+                          {onUpdateStoreStatus && org.id !== 1 && (
                             <button
                               type="button"
                               className="linear-btn linear-btn-secondary py-1 px-2"
                               onClick={() =>
                                 onUpdateStoreStatus(
                                   org.id,
-                                  org.subscription_status === "active" ? "suspended" : "active"
+                                  isOrgActive ? "suspended" : "active"
                                 )
                               }
                               title={
-                                org.subscription_status === "active"
+                                isOrgActive
                                   ? "Do'konni vaqtincha to'xtatish"
                                   : "Do'konni faollashtirish"
                               }
                             >
-                              {org.subscription_status === "active" ? (
+                              {isOrgActive ? (
                                 <IconPlayerPause size={14} style={{ color: "var(--warning)" }} />
                               ) : (
                                 <IconPlayerPlay size={14} style={{ color: "var(--success)" }} />
@@ -677,7 +721,8 @@ export function PlatformOwnerTab({
                         </div>
                       </td>
                     </tr>
-                  ))
+                    );
+                  })
                 )}
               </tbody>
             </table>
@@ -749,7 +794,7 @@ export function PlatformOwnerTab({
                   </div>
                 </form>
                 <div className="text-secondary small mt-2">
-                  Faqat siz (Sayt egasi) tayinlagan odamlar <code>/admin</code> paneliga kira oladi. Oddiy do'kon egalari faqat <code>/dashboard</code> ga kiradi.
+                  Faqat siz (Sayt egasi) tayinlagan odamlar <code>/admin</code> paneliga kira oladi (yangi email bo&apos;lsa Google orqali kiradi). Oddiy do&apos;kon egalari faqat <code>/dashboard</code> ga kiradi.
                 </div>
               </CardContent>
             </Card>
@@ -758,14 +803,27 @@ export function PlatformOwnerTab({
           <Card>
             <CardHeader
               actions={
-                <div style={{ minWidth: "220px" }}>
-                  <input
-                    type="text"
+                <div className="d-flex flex-wrap align-items-center gap-2">
+                  <div style={{ minWidth: "200px" }}>
+                    <input
+                      type="text"
+                      className="linear-input"
+                      placeholder="Email yoki ism bo'yicha qidirish..."
+                      value={userSearch}
+                      onChange={(e) => setUserSearch(e.target.value)}
+                    />
+                  </div>
+                  <select
                     className="linear-input"
-                    placeholder="Email yoki ism bo'yicha qidirish..."
-                    value={userSearch}
-                    onChange={(e) => setUserSearch(e.target.value)}
-                  />
+                    style={{ width: "auto", minWidth: "145px" }}
+                    value={userRoleFilter}
+                    onChange={(e) => setUserRoleFilter(e.target.value as any)}
+                  >
+                    <option value="all">Barcha rollar</option>
+                    <option value="admins">Sayt Adminlari</option>
+                    <option value="owners">Do'kon Egalari</option>
+                  </select>
+                  <Badge variant="accent">{filteredUsers.length} ta</Badge>
                 </div>
               }
             >
@@ -780,7 +838,7 @@ export function PlatformOwnerTab({
                     <th>Roli</th>
                     <th>Holati</th>
                     <th>Ro'yxatdan o'tgan</th>
-                    {isCurrentUserOwner && <th className="text-end">Admin huquqi</th>}
+                    {isCurrentUserOwner && <th className="text-end">Boshqaruv</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -805,8 +863,8 @@ export function PlatformOwnerTab({
                         )}
                       </td>
                       <td>
-                        <Badge variant={u.is_active ? "success" : "danger"}>
-                          {u.is_active ? "Faol" : "Nofaol"}
+                        <Badge variant={u.is_active ? "success" : "danger"} dot>
+                          {u.is_active ? "Faol" : "Bloklangan"}
                         </Badge>
                       </td>
                       <td className="text-secondary small font-monospace">
@@ -814,22 +872,48 @@ export function PlatformOwnerTab({
                       </td>
                       {isCurrentUserOwner && (
                         <td className="text-end">
-                          {!u.is_platform_owner && onToggleSiteAdmin ? (
-                            <Button
-                              variant={u.is_platform_admin ? "secondary" : "primary"}
-                              size="sm"
-                              disabled={adminActionBusy}
-                              onClick={async () => {
-                                setAdminActionBusy(true);
-                                try {
-                                  await onToggleSiteAdmin(u.id, !u.is_platform_admin);
-                                } finally {
-                                  setAdminActionBusy(false);
-                                }
-                              }}
-                            >
-                              {u.is_platform_admin ? "Adminlikdan olish" : "Sayt admini qilish"}
-                            </Button>
+                          {!u.is_platform_owner ? (
+                            <div className="d-flex align-items-center justify-content-end gap-1.5">
+                              {onToggleSiteAdmin && (
+                                <Button
+                                  variant={u.is_platform_admin ? "secondary" : "primary"}
+                                  size="sm"
+                                  disabled={adminActionBusy}
+                                  onClick={async () => {
+                                    setAdminActionBusy(true);
+                                    try {
+                                      await onToggleSiteAdmin(u.id, !u.is_platform_admin);
+                                    } finally {
+                                      setAdminActionBusy(false);
+                                    }
+                                  }}
+                                >
+                                  {u.is_platform_admin ? "Adminlikdan olish" : "Sayt admini qilish"}
+                                </Button>
+                              )}
+                              {onToggleUserStatus && (
+                                <button
+                                  type="button"
+                                  className={`linear-btn py-1 px-2 ${u.is_active ? "linear-btn-danger" : "linear-btn-secondary"}`}
+                                  disabled={adminActionBusy}
+                                  title={u.is_active ? "Foydalanuvchini bloklash" : "Foydalanuvchini faollashtirish"}
+                                  onClick={async () => {
+                                    setAdminActionBusy(true);
+                                    try {
+                                      await onToggleUserStatus(u.id, !u.is_active);
+                                    } finally {
+                                      setAdminActionBusy(false);
+                                    }
+                                  }}
+                                >
+                                  {u.is_active ? (
+                                    <IconUserOff size={14} />
+                                  ) : (
+                                    <IconUserCheck size={14} style={{ color: "var(--success)" }} />
+                                  )}
+                                </button>
+                              )}
+                            </div>
                           ) : (
                             <span className="text-secondary small">-</span>
                           )}
@@ -866,85 +950,243 @@ export function PlatformOwnerTab({
 
       {/* SUBTAB: USAGE */}
       {subTab === "usage" && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Platforma AI LLM Xarajatlari va Tokenlar</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="row g-3">
-              <div className="col-12 col-md-6">
-                <div className="linear-card p-3.5">
-                  <div className="text-secondary small fw-bold text-uppercase mb-2" style={{ fontSize: "0.72rem" }}>
-                    Jami Hisoblangan Xarajat
-                  </div>
-                  <div className="fs-1 fw-bold font-monospace mb-1" style={{ color: "var(--warning-text)" }}>
-                    ${metrics?.total_ai_cost_usd?.toFixed(3) || "0.000"}
-                  </div>
-                  <p className="text-secondary small mb-0">
-                    Oylik marja: <strong style={{ color: "var(--success-text)" }}>{metrics?.gross_margin_percent?.toFixed(1) || "100"}%</strong>
-                  </p>
+        <div className="d-flex flex-column gap-3">
+          <div className="row g-3">
+            <div className="col-12 col-md-4">
+              <div className="linear-card p-3.5 h-100">
+                <div className="d-flex align-items-center justify-content-between mb-2">
+                  <span className="text-secondary small fw-bold text-uppercase" style={{ fontSize: "0.72rem" }}>
+                    Jami Hisoblangan AI Xarajat
+                  </span>
+                  <Badge variant="warning">Bu oy</Badge>
                 </div>
-              </div>
-              <div className="col-12 col-md-6">
-                <div className="linear-card p-3.5">
-                  <div className="text-secondary small fw-bold text-uppercase mb-2" style={{ fontSize: "0.72rem" }}>
-                    Jami AI Xabarlari
-                  </div>
-                  <div className="fs-1 fw-bold font-monospace mb-1 text-primary">
-                    {metrics?.total_ai_messages_this_month?.toLocaleString() || "0"} ta
-                  </div>
-                  <p className="text-secondary small mb-0">
-                    O'rtacha bitta xabar narxi: <strong className="font-monospace" style={{ color: "var(--info)" }}>~$0.0003</strong>
-                  </p>
+                <div className="fs-2 fw-bold font-monospace mb-1" style={{ color: "var(--warning-text)" }}>
+                  ${metrics?.total_ai_cost_usd?.toFixed(4) || "0.0000"}
                 </div>
+                <p className="text-secondary small mb-0">
+                  Oylik marja: <strong style={{ color: "var(--success-text)" }}>{metrics?.gross_margin_percent?.toFixed(1) || "100"}%</strong>
+                </p>
               </div>
             </div>
-          </CardContent>
-        </Card>
+            <div className="col-12 col-md-4">
+              <div className="linear-card p-3.5 h-100">
+                <div className="d-flex align-items-center justify-content-between mb-2">
+                  <span className="text-secondary small fw-bold text-uppercase" style={{ fontSize: "0.72rem" }}>
+                    Jami AI Xabarlari
+                  </span>
+                  <Badge variant="info">LLM</Badge>
+                </div>
+                <div className="fs-2 fw-bold font-monospace mb-1 text-primary">
+                  {metrics?.total_ai_messages_this_month?.toLocaleString() || "0"} ta
+                </div>
+                <p className="text-secondary small mb-0">
+                  O&apos;rtacha 1 xabar narxi:{" "}
+                  <strong className="font-monospace" style={{ color: "var(--info-text)" }}>
+                    $
+                    {metrics && metrics.total_ai_messages_this_month > 0
+                      ? (metrics.total_ai_cost_usd / metrics.total_ai_messages_this_month).toFixed(5)
+                      : "0.00000"}
+                  </strong>
+                </p>
+              </div>
+            </div>
+            <div className="col-12 col-md-4">
+              <div className="linear-card p-3.5 h-100">
+                <div className="d-flex align-items-center justify-content-between mb-2">
+                  <span className="text-secondary small fw-bold text-uppercase" style={{ fontSize: "0.72rem" }}>
+                    Jami Suhbatlar
+                  </span>
+                  <Badge variant="accent">{organizations.length} do&apos;kon</Badge>
+                </div>
+                <div className="fs-2 fw-bold font-monospace mb-1 text-primary">
+                  {organizations.reduce((acc, o) => acc + (o.conversations_count || 0), 0).toLocaleString()} ta
+                </div>
+                <p className="text-secondary small mb-0">
+                  Oylik daromad (MRR): <strong className="font-monospace" style={{ color: "var(--success-text)" }}>${metrics?.mrr_usd?.toFixed(2) || "0.00"}</strong>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <Card>
+            <CardHeader actions={<Badge variant="accent">{organizations.length} ta do&apos;kon</Badge>}>
+              <CardTitle>Do&apos;konlar Kesimida AI Xarajati va Daromad</CardTitle>
+            </CardHeader>
+            <div className="table-responsive">
+              <table className="linear-table">
+                <thead>
+                  <tr>
+                    <th>Do&apos;kon</th>
+                    <th>Tarif</th>
+                    <th>Suhbatlar</th>
+                    <th>Oylik Daromad</th>
+                    <th>AI Xarajati</th>
+                    <th>Marja</th>
+                    <th>Rentabellik</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {organizations.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="text-center py-4 text-secondary">
+                        Ma&apos;lumotlar topilmadi
+                      </td>
+                    </tr>
+                  ) : (
+                    [...organizations]
+                      .sort((a, b) => (b.monthly_ai_cost_usd || 0) - (a.monthly_ai_cost_usd || 0))
+                      .map((org) => (
+                        <tr key={org.id}>
+                          <td>
+                            <div className="fw-semibold text-primary">{org.name}</div>
+                            <div className="text-secondary small font-monospace" style={{ fontSize: "0.72rem" }}>
+                              {org.slug}
+                            </div>
+                          </td>
+                          <td><Badge variant="accent">{org.plan.toUpperCase()}</Badge></td>
+                          <td className="font-monospace text-secondary small">{org.conversations_count ?? 0} ta</td>
+                          <td className="font-monospace fw-bold" style={{ color: "var(--success-text)" }}>${org.monthly_revenue_usd}</td>
+                          <td className="font-monospace" style={{ color: "var(--warning-text)" }}>${org.monthly_ai_cost_usd}</td>
+                          <td className="font-monospace text-primary small">{org.gross_margin_percent}%</td>
+                          <td>
+                            <Badge variant={org.is_profitable ? "success" : "danger"}>
+                              {org.is_profitable ? "Foydali" : "Zarar"}
+                            </Badge>
+                          </td>
+                        </tr>
+                      ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </div>
       )}
 
       {/* SUBTAB: SYSTEM */}
       {subTab === "system" && (
         <Card>
-          <CardHeader>
+          <CardHeader
+            actions={
+              <div className="d-flex align-items-center gap-2">
+                <Badge variant={systemHealth?.status === "ok" ? "success" : "danger"} dot>
+                  {systemHealth?.status === "ok" ? "Tizim Barqaror" : "Tekshirish kerak"}
+                </Badge>
+                <Button variant="secondary" size="sm" icon={<IconRefresh size={14} />} onClick={onRefresh}>
+                  Tekshirish
+                </Button>
+              </div>
+            }
+          >
             <CardTitle>Tizim va Xizmatlar Holati</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="row g-3">
               <div className="col-12 col-md-4">
-                <div className="linear-card p-3">
+                <div className="linear-card p-3 h-100">
                   <div className="d-flex align-items-center justify-content-between mb-2">
-                    <span className="fw-semibold text-primary">PostgreSQL & pgvector</span>
-                    <Badge variant="success">Connected</Badge>
+                    <span className="fw-semibold text-primary d-flex align-items-center gap-1.5">
+                      <IconDatabase size={16} style={{ color: "var(--accent)" }} />
+                      PostgreSQL &amp; pgvector
+                    </span>
+                    <Badge variant={systemHealth?.database === "healthy" ? "success" : "danger"}>
+                      {systemHealth?.database === "healthy" ? "Connected" : "Uzilgan"}
+                    </Badge>
                   </div>
                   <div className="small text-secondary font-monospace" style={{ fontSize: "0.75rem" }}>
-                    Holat: {systemHealth?.database || "healthy"}
+                    Holat: {systemHealth?.database || "tekshirilmoqda"}
                   </div>
                 </div>
               </div>
+
               <div className="col-12 col-md-4">
-                <div className="linear-card p-3">
+                <div className="linear-card p-3 h-100">
                   <div className="d-flex align-items-center justify-content-between mb-2">
-                    <span className="fw-semibold text-primary">Google Gemini API</span>
+                    <span className="fw-semibold text-primary d-flex align-items-center gap-1.5">
+                      <IconActivity size={16} style={{ color: "var(--info)" }} />
+                      Redis Kesh &amp; Navbat
+                    </span>
+                    <Badge
+                      variant={
+                        systemHealth?.redis === "healthy"
+                          ? "success"
+                          : systemHealth?.redis === "unconfigured"
+                          ? "default"
+                          : "warning"
+                      }
+                    >
+                      {systemHealth?.redis === "healthy"
+                        ? "Faol"
+                        : systemHealth?.redis === "unconfigured"
+                        ? "O'chirilgan"
+                        : "Muammo"}
+                    </Badge>
+                  </div>
+                  <div className="small text-secondary font-monospace" style={{ fontSize: "0.75rem" }}>
+                    Holat: {systemHealth?.redis || "tekshirilmoqda"}
+                  </div>
+                </div>
+              </div>
+
+              <div className="col-12 col-md-4">
+                <div className="linear-card p-3 h-100">
+                  <div className="d-flex align-items-center justify-content-between mb-2">
+                    <span className="fw-semibold text-primary d-flex align-items-center gap-1.5">
+                      <IconCpu size={16} style={{ color: "var(--warning)" }} />
+                      Google Gemini API
+                    </span>
                     <Badge variant={systemHealth?.gemini_configured ? "success" : "danger"}>
                       {systemHealth?.gemini_configured ? "Sozlangan" : "Sozlanmagan"}
                     </Badge>
                   </div>
                   <div className="small text-secondary" style={{ fontSize: "0.75rem" }}>
-                    Asosiy AI provayder (2.5 & 3.1)
+                    OpenAI zaxira: {systemHealth?.openai_configured ? "Sozlangan" : "Yo'q"}
                   </div>
                 </div>
               </div>
+
               <div className="col-12 col-md-4">
-                <div className="linear-card p-3">
+                <div className="linear-card p-3 h-100">
                   <div className="d-flex align-items-center justify-content-between mb-2">
                     <span className="fw-semibold text-primary">Telegram Bot Service</span>
                     <Badge variant={systemHealth?.telegram_configured ? "success" : "warning"}>
-                      {systemHealth?.telegram_configured ? "Faol" : "Kutilmoqda"}
+                      {systemHealth?.telegram_configured ? "Faol" : "Sozlanmagan"}
                     </Badge>
                   </div>
                   <div className="small text-secondary" style={{ fontSize: "0.75rem" }}>
-                    Muhit: {systemHealth?.app_env || "development"}
+                    Platforma asosiy boti va webhook
+                  </div>
+                </div>
+              </div>
+
+              <div className="col-12 col-md-4">
+                <div className="linear-card p-3 h-100">
+                  <div className="d-flex align-items-center justify-content-between mb-2">
+                    <span className="fw-semibold text-primary d-flex align-items-center gap-1.5">
+                      <IconCreditCard size={16} style={{ color: "var(--success)" }} />
+                      TezCheck To&apos;lov Tizimi
+                    </span>
+                    <Badge variant={systemHealth?.tezcheck_configured ? "success" : "warning"}>
+                      {systemHealth?.tezcheck_configured ? "Faol" : "Sozlanmagan"}
+                    </Badge>
+                  </div>
+                  <div className="small text-secondary" style={{ fontSize: "0.75rem" }}>
+                    Merchant API va webhook tekshiruvi
+                  </div>
+                </div>
+              </div>
+
+              <div className="col-12 col-md-4">
+                <div className="linear-card p-3 h-100">
+                  <div className="d-flex align-items-center justify-content-between mb-2">
+                    <span className="fw-semibold text-primary d-flex align-items-center gap-1.5">
+                      <IconServer size={16} style={{ color: "var(--accent)" }} />
+                      Backend Server
+                    </span>
+                    <Badge variant="accent">v{systemHealth?.version || "0.1.0"}</Badge>
+                  </div>
+                  <div className="small text-secondary font-monospace" style={{ fontSize: "0.75rem" }}>
+                    Muhit: {systemHealth?.app_env || "production"}
                   </div>
                 </div>
               </div>
@@ -956,7 +1198,36 @@ export function PlatformOwnerTab({
       {/* SUBTAB: AUDIT */}
       {subTab === "audit" && (
         <Card>
-          <CardHeader actions={<Badge variant="default">{auditLogs.length} ta yozuv</Badge>}>
+          <CardHeader
+            actions={
+              <div className="d-flex flex-wrap align-items-center gap-2">
+                <div className="position-relative" style={{ minWidth: "200px" }}>
+                  <IconSearch size={14} className="position-absolute top-50 start-0 translate-middle-y ms-2.5 text-secondary" />
+                  <input
+                    type="text"
+                    className="linear-input ps-5"
+                    placeholder="Qidirish (resurs, email, amal)..."
+                    value={auditSearch}
+                    onChange={(e) => setAuditSearch(e.target.value)}
+                  />
+                </div>
+                <select
+                  className="linear-input"
+                  style={{ width: "auto", minWidth: "160px" }}
+                  value={auditActionFilter}
+                  onChange={(e) => setAuditActionFilter(e.target.value)}
+                >
+                  <option value="all">Barcha harakatlar</option>
+                  {auditActions.map((act) => (
+                    <option key={act} value={act}>
+                      {act}
+                    </option>
+                  ))}
+                </select>
+                <Badge variant="default">{filteredAuditLogs.length} ta yozuv</Badge>
+              </div>
+            }
+          >
             <CardTitle>Xavfsizlik va Ma'muriy Audit Loglari</CardTitle>
           </CardHeader>
           <div className="table-responsive">
@@ -970,7 +1241,7 @@ export function PlatformOwnerTab({
                 </tr>
               </thead>
               <tbody>
-                {auditLogs.map((log) => (
+                {filteredAuditLogs.map((log) => (
                   <tr key={log.id}>
                     <td className="text-secondary small font-monospace" style={{ whiteSpace: "nowrap" }}>
                       {log.created_at ? new Date(log.created_at).toLocaleString() : "-"}
@@ -981,12 +1252,33 @@ export function PlatformOwnerTab({
                     <td className="text-primary small">
                       {log.resource} {log.resource_id ? `#${log.resource_id}` : ""}
                     </td>
-                    <td className="font-monospace small text-secondary">
-                      {log.metadata ? JSON.stringify(log.metadata) : "-"}
+                    <td className="font-monospace small text-secondary" style={{ maxWidth: "420px" }}>
+                      {log.metadata && typeof log.metadata === "object" ? (
+                        <div className="d-flex flex-wrap gap-1">
+                          {Object.entries(log.metadata).map(([k, v]) => (
+                            <span
+                              key={k}
+                              className="px-1.5 py-0.5 rounded border text-truncate"
+                              style={{
+                                maxWidth: "240px",
+                                fontSize: "0.7rem",
+                                backgroundColor: "var(--bg-canvas)",
+                                borderColor: "var(--border-subtle)",
+                              }}
+                              title={`${k}: ${typeof v === "object" ? JSON.stringify(v) : String(v)}`}
+                            >
+                              <strong className="text-primary">{k}:</strong>{" "}
+                              {typeof v === "object" ? JSON.stringify(v) : String(v)}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        "-"
+                      )}
                     </td>
                   </tr>
                 ))}
-                {auditLogs.length === 0 && (
+                {filteredAuditLogs.length === 0 && (
                   <tr>
                     <td colSpan={4} className="text-center py-4 text-secondary">
                       Audit yozuvlari topilmadi
@@ -997,48 +1289,6 @@ export function PlatformOwnerTab({
             </table>
           </div>
         </Card>
-      )}
-
-      {/* MODAL: EDIT PLAN */}
-      {editingPlanCode && (
-        <div
-          className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
-          style={{ backgroundColor: "rgba(0,0,0,0.65)", zIndex: 1055 }}
-        >
-          <div className="linear-card p-4" style={{ width: "420px", maxWidth: "90vw" }}>
-            <h5 className="fw-bold mb-3 text-primary">
-              {editingPlanCode.toUpperCase()} Tarifi Narxlarini O'zgartirish
-            </h5>
-            <div className="d-flex flex-column gap-3 mb-4">
-              <div>
-                <label className="text-secondary small fw-medium mb-1 d-block">Oylik Narx ($USD)</label>
-                <input
-                  type="number"
-                  className="linear-input"
-                  value={newMonthlyPrice}
-                  onChange={(e) => setNewMonthlyPrice(Number(e.target.value))}
-                />
-              </div>
-              <div>
-                <label className="text-secondary small fw-medium mb-1 d-block">Yillik Narx ($USD)</label>
-                <input
-                  type="number"
-                  className="linear-input"
-                  value={newYearlyPrice}
-                  onChange={(e) => setNewYearlyPrice(Number(e.target.value))}
-                />
-              </div>
-            </div>
-            <div className="d-flex align-items-center justify-content-end gap-2">
-              <Button variant="secondary" onClick={() => setEditingPlanCode(null)}>
-                Bekor qilish
-              </Button>
-              <Button variant="primary" onClick={handleSavePlan} disabled={saveBusy}>
-                {saveBusy ? "Saqlanmoqda..." : "Saqlash"}
-              </Button>
-            </div>
-          </div>
-        </div>
       )}
 
       {/* MODAL: CREATE NEW STORE */}
@@ -1063,9 +1313,17 @@ export function PlatformOwnerTab({
               </div>
               <button
                 type="button"
-                className="btn-close"
+                className="btn btn-sm p-1 d-flex align-items-center justify-content-center rounded"
+                style={{
+                  background: "transparent",
+                  color: "var(--text-secondary)",
+                  border: "1px solid var(--border-subtle)",
+                }}
                 onClick={() => setShowCreateModal(false)}
-              />
+                aria-label="Yopish"
+              >
+                <IconX size={16} />
+              </button>
             </div>
 
             {createStoreSuccess ? (

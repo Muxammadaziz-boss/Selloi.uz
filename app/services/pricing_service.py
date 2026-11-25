@@ -343,6 +343,33 @@ class PricingResolutionEngine:
 
         trace.append(f"6. Renewal Policy: will_change={res.will_change_on_renewal}, upcoming_price={format_currency_amount(res.renewal_price, res.currency)}")
 
+        structured_trace = [
+            {
+                "step": 1,
+                "action": "Tarif va Davrni Aniqlash",
+                "outcome": f"{res.plan_name} ({res.plan_code.upper()}) • {res.billing_interval} • {res.currency}",
+            },
+            {
+                "step": 2,
+                "action": "Katalog Asosiy Narxi",
+                "outcome": f"{format_currency_amount(res.catalog_base_price, res.currency)} ({res.catalog_base_price} minor)",
+            },
+            {
+                "step": 3,
+                "action": "Individual Chegirma Tekshiruvi",
+                "outcome": (
+                    f"Taklif #{res.applied_offer_id}: {res.applied_offer_details['discount_type']} ({res.applied_offer_details['discount_value']})"
+                    if res.applied_offer_id and res.applied_offer_details
+                    else "Faol individual taklif topilmadi; global katalog narxi qo'llanadi"
+                ),
+            },
+            {
+                "step": 4,
+                "action": "Yakuniy Hisoblangan Narx",
+                "outcome": f"{format_currency_amount(res.effective_price, res.currency)} (Chegirma: -{format_currency_amount(res.discount_amount, res.currency)})",
+            },
+        ]
+
         return {
             "organization_id": res.organization_id,
             "organization_name": res.organization_name,
@@ -358,6 +385,19 @@ class PricingResolutionEngine:
             "will_change_on_renewal": res.will_change_on_renewal,
             "renewal_price": res.renewal_price,
             "calculation_trace": trace,
+            "calculation": {
+                "catalog_base_price_formatted": format_currency_amount(res.catalog_base_price, res.currency),
+                "discount_amount_formatted": format_currency_amount(res.discount_amount, res.currency),
+                "effective_price_formatted": format_currency_amount(res.effective_price, res.currency),
+                "price_source": res.price_source,
+                "renewal_policy": {
+                    "will_change_on_renewal": res.will_change_on_renewal,
+                    "upcoming_renewal_price": res.renewal_price,
+                    "upcoming_renewal_price_formatted": format_currency_amount(res.renewal_price, res.currency),
+                    "explanation": res.renewal_reason,
+                },
+            },
+            "trace": structured_trace,
         }
 
 

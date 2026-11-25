@@ -525,26 +525,39 @@ class CentralizedPricingService:
     async def get_price_history(
         self,
         db: AsyncSession,
-        plan_code: Optional[str] = None
+        plan_code: Optional[str] = None,
+        limit: int = 50,
     ) -> List[Dict[str, Any]]:
         """Retrieve chronological immutable audit records of all price adjustments."""
-        query = select(PlanPriceHistory).order_by(desc(PlanPriceHistory.created_at))
+        query = select(PlanPriceHistory).order_by(desc(PlanPriceHistory.created_at), desc(PlanPriceHistory.id))
         if plan_code:
             norm_code = normalize_tariff_code(plan_code)
             query = query.where(PlanPriceHistory.plan_code == norm_code)
+        if limit and limit > 0:
+            query = query.limit(min(limit, 200))
 
         res = await db.execute(query)
         records = res.scalars().all()
 
         history_list = []
         for r in records:
+            # Normalize previous/new values: update_tariff_pricing writes whole UZS, while update_plan writes tiyin
+            prev_raw = r.previous_price_uzs or 0
+            new_raw = r.new_price_uzs or 0
+            prev_uzs = prev_raw // 100 if prev_raw >= 1_000_000 and r.billing_period == "ALL" else prev_raw
+            new_uzs = new_raw // 100 if new_raw >= 1_000_000 and r.billing_period == "ALL" else new_raw
+
             history_list.append({
                 "id": r.id,
                 "plan_id": r.plan_id,
                 "plan_code": r.plan_code,
                 "billing_period": r.billing_period,
-                "previous_price_uzs": r.previous_price_uzs // 100 if r.previous_price_uzs else 0,
-                "new_price_uzs": r.new_price_uzs // 100 if r.new_price_uzs else 0,
+                "price_monthly_cents": r.price_monthly or 0,
+                "price_yearly_cents": r.price_yearly or 0,
+                "price_monthly_uzs": r.price_monthly_uzs or 0,
+                "price_yearly_uzs": r.price_yearly_uzs or 0,
+                "previous_price_uzs": prev_uzs,
+                "new_price_uzs": new_uzs,
                 "price_version": r.price_version,
                 "currency": r.currency,
                 "approval_status": r.approval_status,

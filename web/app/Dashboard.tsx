@@ -677,7 +677,15 @@ function DashboardContent({
       "analytics", "settings", "admins", "team", "logs", "profile",
       "usage", "billing", "pricing", "platform"
     ];
-    if (initialTab && valid.includes(initialTab)) return initialTab as any;
+    if (initialTab && valid.includes(initialTab)) {
+      if (typeof window !== "undefined") {
+        const h = window.location.hash.replace("#", "");
+        if (h === "profile" && (window.location.pathname.startsWith("/admin") || window.location.pathname.startsWith("/platform"))) {
+          return "profile";
+        }
+      }
+      return initialTab as any;
+    }
     if (typeof window !== "undefined") {
       if (window.location.pathname.startsWith("/settings/billing")) return "billing";
       if (window.location.pathname.startsWith("/settings")) return "settings";
@@ -933,7 +941,8 @@ function DashboardContent({
 
     const syncFromUrl = () => {
       if (typeof window === "undefined") return;
-      if ((window.location.pathname.startsWith("/admin") || window.location.pathname.startsWith("/platform")) && hasPlatformAccess) {
+      const onAdminPath = window.location.pathname.startsWith("/admin") || window.location.pathname.startsWith("/platform");
+      if (onAdminPath && hasPlatformAccess) {
         setZone("platform");
       } else if (window.location.pathname.startsWith("/t/") || window.location.pathname.startsWith("/dashboard")) {
         setZone("tenant");
@@ -948,6 +957,9 @@ function DashboardContent({
             setTab("overview");
             setZone("tenant");
           }
+        } else if (onAdminPath && hasPlatformAccess && h === "profile") {
+          setTab("profile");
+          setZone("platform");
         } else {
           setTab(h);
           if (h !== "profile") {
@@ -976,15 +988,15 @@ function DashboardContent({
     }
   }, [tab]);
 
-  // Live real-time polling every 6 seconds for overview and conversations
+  // Live real-time polling every 6 seconds for tenant overview and conversations
   useEffect(() => {
-    if (!authenticated) return;
+    if (!authenticated || zone === "platform") return;
     const interval = setInterval(() => {
       api<Overview>("/admin/overview").then(setOverview).catch(() => {});
       api<Conversation[]>("/admin/conversations").then(setConversations).catch(() => {});
     }, 6000);
     return () => clearInterval(interval);
-  }, [authenticated]);
+  }, [authenticated, zone]);
 
   useEffect(() => {
     if (authenticated && selected !== null) void loadMessages(selected);
@@ -1292,7 +1304,7 @@ function DashboardContent({
         }
       } catch {}
 
-      if (isPlatformOwner) {
+      if (hasPlatformAccess) {
         try {
           const m = await api<any>("/api/platform/metrics");
           setPlatformMetrics(m);
@@ -1307,7 +1319,7 @@ function DashboardContent({
     } finally {
       setIsSubscriptionLoading(false);
     }
-  }, [activeOrgId, isPlatformOwner, currentAdmin?.role]);
+  }, [activeOrgId, hasPlatformAccess, currentAdmin?.role]);
 
   const loadPlatformData = useCallback(async () => {
     setLoading(true);
@@ -1335,11 +1347,16 @@ function DashboardContent({
     if (!authenticated) return;
     if (zone === "platform") {
       void loadPlatformData();
+      if (currentUser?.organizationId) {
+        void loadSaaSData(currentUser.organizationId);
+      } else {
+        setIsSubscriptionLoading(false);
+      }
     } else {
       void load();
       void loadSaaSData(activeOrgId);
     }
-  }, [authenticated, zone, activeOrgId, loadPlatformData, load, loadSaaSData]);
+  }, [authenticated, zone, activeOrgId, currentUser?.organizationId, loadPlatformData, load, loadSaaSData]);
 
   // Handle Saas Upgrade event
   useEffect(() => {
@@ -1630,6 +1647,23 @@ function DashboardContent({
       await loadPlatformData();
     } catch (err: any) {
       setError(err.message || "Foydalanuvchi rolini yangilashda xatolik");
+      throw err;
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleToggleUserStatus = async (userId: number, isActive: boolean) => {
+    setBusy(true);
+    try {
+      await api(`/api/platform/users/${userId}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ is_active: isActive }),
+      });
+      setSuccess(isActive ? "Foydalanuvchi faollashtirildi!" : "Foydalanuvchi bloklandi.");
+      await loadPlatformData();
+    } catch (err: any) {
+      setError(err.message || "Foydalanuvchi holatini yangilashda xatolik");
       throw err;
     } finally {
       setBusy(false);
@@ -2164,7 +2198,10 @@ function DashboardContent({
   // Enforce authentication via /login
   useEffect(() => {
     if (!authenticated) {
-      window.location.href = "/login?redirect=/dashboard";
+      const onAdminPath =
+        typeof window !== "undefined" &&
+        (window.location.pathname.startsWith("/admin") || window.location.pathname.startsWith("/platform"));
+      window.location.href = onAdminPath ? "/login?redirect=/admin" : "/login?redirect=/dashboard";
     }
   }, [authenticated]);
 
@@ -2269,6 +2306,7 @@ function DashboardContent({
         onSelectPlatformSubTab={setPlatformSubTab}
         storesCount={platformOrgs.length}
         usersCount={platformUsers.length}
+        systemHealthOk={!systemHealth || systemHealth.status === "ok"}
         organizations={userOrganizations}
         activeOrgId={activeOrgId}
         onSelectOrg={switchOrganization}
@@ -2407,6 +2445,7 @@ function DashboardContent({
             onDeleteStore={handleDeleteStore}
             onAppointSiteAdmin={handleAppointSiteAdmin}
             onToggleSiteAdmin={handleToggleSiteAdmin}
+            onToggleUserStatus={handleToggleUserStatus}
           />
         ) : (
           <>

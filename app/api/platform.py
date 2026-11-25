@@ -10,6 +10,7 @@ import httpx
 from pydantic import BaseModel, EmailStr
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.api.admin import get_current_admin
 from app.core.config import settings
@@ -77,7 +78,7 @@ async def require_platform_owner(
 
     raise HTTPException(
         status_code=status.HTTP_403_FORBIDDEN,
-        detail="Faqat Sayt egasi (Owner) yoki tayinlangan Sayt Admini kirishi mumkin",
+        detail="Faqat Platforma egasi (Owner) yoki tayinlangan Sayt Admini kirishi mumkin",
     )
 
 
@@ -482,6 +483,7 @@ async def list_platform_plans(
         offer_count = await db.scalar(
             select(func.count(CustomerPricing.id)).where(CustomerPricing.plan_id == p.id, CustomerPricing.status == "active")
         ) or 0
+        promo_uzs = getattr(p, "price_promo_uzs", 0) or 0
         plan_list.append({
             "id": p.id,
             "code": p.code,
@@ -491,10 +493,13 @@ async def list_platform_plans(
             "price_yearly": p.price_yearly,
             "price_monthly_uzs": p.price_monthly_uzs,
             "price_yearly_uzs": p.price_yearly_uzs,
+            "price_promo_uzs": promo_uzs,
+            "price_version": getattr(p, "price_version", 1) or 1,
             "price_monthly_formatted": format_currency_amount(p.price_monthly * 100, "USD"),
             "price_yearly_formatted": format_currency_amount(p.price_yearly * 100, "USD"),
             "price_monthly_uzs_formatted": format_currency_amount(p.price_monthly_uzs, "UZS"),
             "price_yearly_uzs_formatted": format_currency_amount(p.price_yearly_uzs, "UZS"),
+            "price_promo_uzs_formatted": format_currency_amount(promo_uzs, "UZS"),
             "currency": p.currency,
             "is_active": p.is_active,
             "is_public": p.is_public,
@@ -504,6 +509,7 @@ async def list_platform_plans(
             "limits": p.limits,
             "active_subscribers": sub_count,
             "active_offers": offer_count,
+            "active_offers_count": offer_count,
             "created_at": p.created_at.isoformat() if p.created_at else None,
             "updated_at": p.updated_at.isoformat() if p.updated_at else None,
         })
@@ -756,39 +762,44 @@ async def list_customer_pricing(
 
     res = await db.execute(
         select(CustomerPricing)
+        .options(selectinload(CustomerPricing.plan))
         .where(CustomerPricing.customer_id == customer_id)
         .order_by(CustomerPricing.created_at.desc())
     )
     records = res.scalars().all()
 
+    serialized = [
+        {
+            "id": r.id,
+            "customer_id": r.customer_id,
+            "plan_id": r.plan_id,
+            "plan_code": r.plan.code if r.plan else None,
+            "plan_name": r.plan.name if r.plan else (r.plan.code.upper() if r.plan else ""),
+            "billing_interval": r.billing_interval,
+            "currency": r.currency,
+            "discount_type": r.discount_type,
+            "discount_value": r.discount_value,
+            "discount_formatted": (
+                f"{r.discount_value}%"
+                if r.discount_type == "percentage"
+                else format_currency_amount(r.discount_value, r.currency)
+            ),
+            "starts_at": r.starts_at.isoformat() if r.starts_at else None,
+            "expires_at": r.expires_at.isoformat() if r.expires_at else None,
+            "status": r.status,
+            "notes": r.notes,
+            "created_at": r.created_at.isoformat() if r.created_at else None,
+            "updated_at": r.updated_at.isoformat() if r.updated_at else None,
+        }
+        for r in records
+    ]
+
     return {
         "success": True,
         "customer_id": org.id,
         "customer_name": org.name,
-        "pricing_records": [
-            {
-                "id": r.id,
-                "customer_id": r.customer_id,
-                "plan_id": r.plan_id,
-                "plan_code": r.plan.code if r.plan else None,
-                "billing_interval": r.billing_interval,
-                "currency": r.currency,
-                "discount_type": r.discount_type,
-                "discount_value": r.discount_value,
-                "discount_formatted": (
-                    f"{r.discount_value}%"
-                    if r.discount_type == "percentage"
-                    else format_currency_amount(r.discount_value, r.currency)
-                ),
-                "starts_at": r.starts_at.isoformat() if r.starts_at else None,
-                "expires_at": r.expires_at.isoformat() if r.expires_at else None,
-                "status": r.status,
-                "notes": r.notes,
-                "created_at": r.created_at.isoformat() if r.created_at else None,
-                "updated_at": r.updated_at.isoformat() if r.updated_at else None,
-            }
-            for r in records
-        ],
+        "offers": serialized,
+        "pricing_records": serialized,
     }
 
 
@@ -848,6 +859,9 @@ async def create_customer_pricing(
                 detail=f"Ushbu mijoz uchun '{clean_code}' tarifi bo'yicha faol individual narx allaqachon mavjud. O'rniga yangisini kiritish uchun 'supersede_existing: true' parametrini uzating.",
             )
 
+    real_user = await _resolve_request_user(admin, db)
+    creator_user_id = real_user.id if real_user else admin.id
+
     new_offer = CustomerPricing(
         customer_id=customer_id,
         plan_id=plan.id,
@@ -858,7 +872,7 @@ async def create_customer_pricing(
         starts_at=req.starts_at,
         expires_at=req.expires_at,
         status="active",
-        created_by_id=admin.id,
+        created_by_id=creator_user_id,
         notes=req.notes,
     )
     db.add(new_offer)
@@ -1010,12 +1024,18 @@ async def preview_tariff_price_changes(
 ):
     """Preview tariff price changes with diffs and percentage comparisons."""
     try:
+        proposed_updates = {}
+        if req.price_promo_uzs is not None:
+            proposed_updates["price_promo_uzs"] = req.price_promo_uzs
+        if req.price_monthly_uzs is not None:
+            proposed_updates["price_monthly_uzs"] = req.price_monthly_uzs
+        if req.price_yearly_uzs is not None:
+            proposed_updates["price_yearly_uzs"] = req.price_yearly_uzs
+
         preview = await centralized_pricing_service.preview_price_changes(
             db=db,
             plan_code=req.plan_code,
-            price_promo_uzs=req.price_promo_uzs,
-            price_monthly_uzs=req.price_monthly_uzs,
-            price_yearly_uzs=req.price_yearly_uzs,
+            proposed_updates=proposed_updates,
         )
         return {"success": True, "preview": preview}
     except ValueError as e:
@@ -1228,6 +1248,10 @@ class SiteAdminToggleRequest(BaseModel):
     is_platform_admin: bool
 
 
+class UserStatusToggleRequest(BaseModel):
+    is_active: bool
+
+
 @router.post("/site-admins")
 async def appoint_site_admin_by_email(
     payload: SiteAdminAppointRequest,
@@ -1330,12 +1354,55 @@ async def toggle_site_admin_access(
     }
 
 
+@router.patch("/users/{user_id}/status")
+async def toggle_user_active_status(
+    user_id: int,
+    payload: UserStatusToggleRequest,
+    owner: Admin = Depends(require_strict_owner),
+    db: AsyncSession = Depends(get_db),
+):
+    """Owner-only: Activate or suspend a platform user account."""
+    target = await db.get(User, user_id)
+    if target is None:
+        raise HTTPException(status_code=404, detail="Foydalanuvchi topilmadi")
+    if target.is_platform_owner:
+        raise HTTPException(status_code=400, detail="Sayt egasini bloklash mumkin emas")
+
+    target.is_active = bool(payload.is_active)
+    target.token_version = (getattr(target, "token_version", 1) or 1) + 1
+    db.add(
+        AuditLog(
+            organization_id=None,
+            user_id=getattr(getattr(owner, "_user", None), "id", None),
+            action="ACTIVATE_USER" if target.is_active else "SUSPEND_USER",
+            resource="user",
+            resource_id=str(target.id),
+            metadata_json={"email": target.email, "is_active": target.is_active},
+        )
+    )
+    await db.commit()
+    await db.refresh(target)
+    return {
+        "ok": True,
+        "user": {
+            "id": target.id,
+            "email": target.email,
+            "full_name": target.full_name,
+            "telegram_user_id": target.telegram_user_id,
+            "is_platform_owner": target.is_platform_owner,
+            "is_platform_admin": bool(getattr(target, "is_platform_admin", False)),
+            "is_active": target.is_active,
+            "created_at": target.created_at.isoformat() if target.created_at else None,
+        },
+    }
+
+
 @router.get("/system-health")
 async def get_system_health(
     admin: Admin = Depends(require_platform_owner),
     db: AsyncSession = Depends(get_db),
 ):
-    """Check system health, database, storage, and bot setup."""
+    """Check system health, database, Redis, storage, AI providers, and bot setup."""
     from sqlalchemy import text
     db_status = "healthy"
     try:
@@ -1343,14 +1410,39 @@ async def get_system_health(
     except Exception as e:
         db_status = f"unhealthy: {e}"
 
+    redis_status = "unconfigured"
+    if settings.redis_url:
+        try:
+            import asyncio as _asyncio
+            from urllib.parse import urlparse as _urlparse
+            parsed = _urlparse(settings.redis_url)
+            r_host = parsed.hostname or "localhost"
+            r_port = parsed.port or 6379
+            reader, writer = await _asyncio.wait_for(_asyncio.open_connection(r_host, r_port), timeout=1.0)
+            try:
+                writer.write(b"*1\r\n$4\r\nPING\r\n")
+                await writer.drain()
+                line = await _asyncio.wait_for(reader.readline(), timeout=1.0)
+                redis_status = "healthy" if b"PONG" in line else "unhealthy"
+            finally:
+                writer.close()
+                try:
+                    await writer.wait_closed()
+                except Exception:
+                    pass
+        except Exception as e:
+            redis_status = f"unavailable: {type(e).__name__}"
+
     return {
         "status": "ok" if db_status == "healthy" else "degraded",
         "database": db_status,
+        "redis": redis_status,
         "app_env": settings.app_env,
         "version": "0.1.0",
         "gemini_configured": bool(settings.gemini_api_key),
         "openai_configured": bool(settings.openai_api_key),
         "telegram_configured": bool(settings.telegram_bot_token),
+        "tezcheck_configured": bool(settings.tezcheck_api_key and settings.tezcheck_merchant_id),
     }
 
 

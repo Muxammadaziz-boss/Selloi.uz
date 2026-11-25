@@ -25,6 +25,10 @@ import {
   IconCornerDownLeft,
   IconSparkles,
   IconX,
+  IconCpu,
+  IconCreditCard,
+  IconLayersLinked,
+  IconHistory,
 } from "@tabler/icons-react";
 import { NavTabId, PlatformSubTabId } from "./Sidebar";
 
@@ -47,6 +51,7 @@ export interface CommandPaletteProps {
   onRefresh: () => void;
   onOpenNewStoreModal: () => void;
   isPlatformOwner?: boolean;
+  zone?: "store" | "platform";
   onSwitchZone?: (zone: "store" | "platform") => void;
   onSelectPlatformSubTab?: (subTab: PlatformSubTabId) => void;
 }
@@ -60,10 +65,11 @@ export function CommandPalette({
   onRefresh,
   onOpenNewStoreModal,
   isPlatformOwner = false,
+  zone = "store",
   onSwitchZone,
   onSelectPlatformSubTab,
 }: CommandPaletteProps) {
-  const { language, setLanguage, t } = useLanguage();
+  const { language, setLanguage } = useLanguage();
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -71,7 +77,90 @@ export function CommandPalette({
 
   // Command items definition
   const items: CommandItem[] = useMemo(() => {
-    const list: CommandItem[] = [
+    const goPlatformSub = (sub: PlatformSubTabId) => {
+      onSelectPlatformSubTab?.(sub);
+      onSelectTab("platform");
+    };
+
+    const platformNavItems: CommandItem[] = [
+      {
+        id: "plat-overview",
+        title: "Umumiy Ko'rinish (Overview)",
+        subtitle: "MRR, ARR, yalpi foyda marjasi va do'konlar statistikasi",
+        category: "Admin Panel",
+        icon: <IconLayoutDashboard size={18} style={{ color: "var(--accent)" }} />,
+        shortcut: "P O",
+        perform: () => goPlatformSub("overview"),
+      },
+      {
+        id: "plat-stores",
+        title: "Do'konlar Portfeli (Stores)",
+        subtitle: "Barcha do'konlar, holati, to'xtatish va ichiga kirish",
+        category: "Admin Panel",
+        icon: <IconBuildingStore size={18} className="text-info" />,
+        shortcut: "P S",
+        perform: () => goPlatformSub("stores"),
+      },
+      {
+        id: "plat-users",
+        title: "Foydalanuvchilar & Sayt Adminlari",
+        subtitle: "Ro'yxatdan o'tgan foydalanuvchilar va admin huquqlari",
+        category: "Admin Panel",
+        icon: <IconUsers size={18} className="text-primary" />,
+        shortcut: "P U",
+        perform: () => goPlatformSub("users"),
+      },
+      {
+        id: "plat-plans",
+        title: "Tariflar & Narxlar Studio",
+        subtitle: "Global tariflar, individual chegirmalar va narx simulyatori",
+        category: "Admin Panel",
+        icon: <IconLayersLinked size={18} className="text-success" />,
+        perform: () => goPlatformSub("plans"),
+      },
+      {
+        id: "plat-usage",
+        title: "AI Xarajati & Tokenlar",
+        subtitle: "Platforma bo'ylab LLM xarajatlari va do'kon kesimi",
+        category: "Admin Panel",
+        icon: <IconCpu size={18} className="text-warning" />,
+        perform: () => goPlatformSub("usage"),
+      },
+      {
+        id: "plat-payment-testing",
+        title: "To'lov Diagnostikasi (Payment Testing)",
+        subtitle: "TezCheck test va live to'lovlar diagnostikasi",
+        category: "Admin Panel",
+        icon: <IconCreditCard size={18} className="text-success" />,
+        perform: () => goPlatformSub("payment-testing"),
+      },
+      {
+        id: "plat-system",
+        title: "Tizim Holati (System Health)",
+        subtitle: "PostgreSQL, Redis, Gemini API, TezCheck va Telegram holati",
+        category: "Admin Panel",
+        icon: <IconShieldLock size={18} className="text-info" />,
+        perform: () => goPlatformSub("system"),
+      },
+      {
+        id: "plat-audit",
+        title: "Audit Jurnali (Audit Logs)",
+        subtitle: "Ma'muriy amallar va xavfsizlik tarixi",
+        category: "Admin Panel",
+        icon: <IconHistory size={18} className="text-secondary" />,
+        perform: () => goPlatformSub("audit"),
+      },
+      {
+        id: "plat-profile",
+        title: "Profil & Dizayn (Profile)",
+        subtitle: "Mavzu, dizayn tizimi, shrift va til sozlamalari",
+        category: "Admin Panel",
+        icon: <IconUser size={18} style={{ color: "var(--accent)" }} />,
+        perform: () => onSelectTab("profile"),
+      },
+    ];
+
+    const storeNavItems: CommandItem[] = [
       // Navigation
       {
         id: "tab-overview",
@@ -168,12 +257,15 @@ export function CommandPalette({
       {
         id: "tab-profile",
         title: "Admin Profili va Dizayn (Profile)",
-        subtitle: "Mavzu, dizayn tizimlari va Olline/Pogonia shriftlari",
+        subtitle: "Mavzu, dizayn tizimlari va shriftlar",
         category: "Navigatsiya",
         icon: <IconUser size={18} className="text-accent" />,
         perform: () => onSelectTab("profile"),
       },
+    ];
 
+    const list: CommandItem[] = [
+      ...(zone === "platform" ? platformNavItems : storeNavItems),
       // Quick Actions
       {
         id: "action-theme",
@@ -195,15 +287,17 @@ export function CommandPalette({
         shortcut: "L",
         perform: () => setLanguage(language === "uz" ? "en" : "uz"),
       },
-      {
-        id: "action-new-store",
-        title: "Yangi Do'kon Qo'shish (New Store)",
-        subtitle: "Yangi tenant tashkilotini ro'yxatdan o'tkazish",
-        category: "Tezkor Amallar",
-        icon: <IconPlus size={18} className="text-success" />,
-        shortcut: "N",
-        perform: onOpenNewStoreModal,
-      },
+      ...(zone === "store" ? [
+        {
+          id: "action-new-store",
+          title: "Yangi Do'kon Qo'shish (New Store)",
+          subtitle: "Yangi tenant tashkilotini ro'yxatdan o'tkazish",
+          category: "Tezkor Amallar",
+          icon: <IconPlus size={18} className="text-success" />,
+          shortcut: "N",
+          perform: onOpenNewStoreModal,
+        },
+      ] : []),
       {
         id: "action-refresh",
         title: "Ma'lumotlarni Yangilash (Sync)",
@@ -215,22 +309,25 @@ export function CommandPalette({
       },
     ];
 
-    if (isPlatformOwner) {
+    if (isPlatformOwner && zone === "store" && onSwitchZone) {
       list.unshift({
         id: "action-platform-owner",
-        title: "Platforma Egasi Nazorati (Platform Owner)",
-        subtitle: "Barcha tenantlar, hisob-kitoblar va global audit",
+        title: "Admin Panelga Qaytish",
+        subtitle: "Barcha do'konlar, hisob-kitoblar va global audit",
         category: "Tizim",
         icon: <IconShieldLock size={18} className="text-danger" />,
         perform: () => {
-          if (onSwitchZone) onSwitchZone("platform");
-          if (onSelectPlatformSubTab) onSelectPlatformSubTab("overview");
+          onSwitchZone("platform");
+          onSelectPlatformSubTab?.("overview");
         },
       });
     }
 
     return list;
   }, [
+    zone,
+    language,
+    setLanguage,
     onSelectTab,
     onToggleTheme,
     theme,

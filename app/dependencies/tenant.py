@@ -38,15 +38,17 @@ async def get_admin_tenant_id(
             )
 
     # 1. Resolve underlying user if available
-    user: User | None = None
-    if current_admin.telegram_user_id:
+    user: User | None = getattr(current_admin, "_user", None)
+    if user is None and current_admin.telegram_user_id:
         user_res = await db.execute(
             select(User).where(User.telegram_user_id == current_admin.telegram_user_id)
         )
         user = user_res.scalar_one_or_none()
 
-    is_platform_owner = bool(
-        (user and user.is_platform_owner)
+    is_platform_staff = bool(
+        getattr(current_admin, "_is_platform_owner", False)
+        or getattr(current_admin, "_is_platform_admin", False)
+        or (user and (user.is_platform_owner or getattr(user, "is_platform_admin", False)))
         or (current_admin.role == "owner" and current_admin.organization_id in (None, 1))
     )
 
@@ -56,8 +58,8 @@ async def get_admin_tenant_id(
         if org is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tashkilot topilmadi")
 
-        # Platform owner can target any existing organization
-        if is_platform_owner:
+        # Platform Owner or appointed Site Admin can inspect any existing organization
+        if is_platform_staff:
             return target_org_id
 
         # Verify admin row itself is assigned to this organization and active
@@ -96,7 +98,7 @@ async def get_admin_tenant_id(
         ).scalars().first()
         if first_mem is not None:
             return first_mem
-        if is_platform_owner:
+        if is_platform_staff:
             return 1
 
     if current_admin.role == "owner":

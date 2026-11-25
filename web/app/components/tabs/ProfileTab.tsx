@@ -104,7 +104,8 @@ export function ProfileTab({
   onNavigateToBilling,
 }: ProfileTabProps) {
   const { language, setLanguage, t } = useLanguage();
-  const isOwner = currentAdmin?.role === "owner" || Boolean(currentAdmin?.isPlatformOwner);
+  const isOwner = currentAdmin?.role === "platform_owner" || currentAdmin?.role === "owner" || Boolean(currentAdmin?.isPlatformOwner);
+  const isSiteAdmin = currentAdmin?.role === "platform_admin" || Boolean(currentAdmin?.isPlatformAdmin);
 
   return (
     <div>
@@ -161,10 +162,28 @@ export function ProfileTab({
                 </div>
 
                 <div className="d-flex align-items-center gap-2">
-                  <Badge variant={isOwner ? "warning" : "accent"}>
-                    {isOwner ? (language === "uz" ? "Bosh Ega" : "Owner") : (currentAdmin?.role === "admin" ? (language === "uz" ? "Menejer" : "Admin") : (language === "uz" ? "Operator" : "Moderator"))}
+                  <Badge variant={isOwner ? "accent" : isSiteAdmin ? "info" : "default"}>
+                    {isOwner
+                      ? language === "uz"
+                        ? "Sayt Egasi (Owner)"
+                        : language === "ru"
+                        ? "Владелец сайта"
+                        : "Site Owner"
+                      : isSiteAdmin
+                      ? language === "uz"
+                        ? "Sayt Admini"
+                        : language === "ru"
+                        ? "Админ сайта"
+                        : "Site Admin"
+                      : currentAdmin?.role === "admin"
+                      ? language === "uz"
+                        ? "Menejer"
+                        : "Admin"
+                      : language === "uz"
+                      ? "Operator"
+                      : "Moderator"}
                   </Badge>
-                  <Badge variant="success" dot>{language === "uz" ? "Faol" : "Online"}</Badge>
+                  <Badge variant="success" dot>{language === "uz" ? "Faol" : language === "ru" ? "Активен" : "Online"}</Badge>
                 </div>
 
                 {/* Account Details Box */}
@@ -316,7 +335,7 @@ export function ProfileTab({
             </CardHeader>
             <CardContent>
               <div className="row g-3">
-                <div className="col-12 col-sm-6">
+                <div className="col-12 col-sm-4">
                   <div
                     onClick={() => setLanguage("uz")}
                     className={`p-3 rounded-2 border cursor-pointer transition-fast d-flex align-items-center justify-content-between ${
@@ -339,7 +358,30 @@ export function ProfileTab({
                   </div>
                 </div>
 
-                <div className="col-12 col-sm-6">
+                <div className="col-12 col-sm-4">
+                  <div
+                    onClick={() => setLanguage("ru")}
+                    className={`p-3 rounded-2 border cursor-pointer transition-fast d-flex align-items-center justify-content-between ${
+                      language === "ru" ? "border-accent" : "border-subtle"
+                    }`}
+                    style={{
+                      backgroundColor: language === "ru" ? "var(--bg-surface-hover)" : "var(--bg-surface-elevated)",
+                    }}
+                  >
+                    <div>
+                      <div className="d-flex align-items-center gap-2">
+                        <span style={{ fontSize: "1.1rem" }}>🇷🇺</span>
+                        <span className="fw-medium text-primary small">{t("profile.language_ru_title")}</span>
+                      </div>
+                      <p className="text-secondary small mb-0 mt-1" style={{ fontSize: "0.75rem" }}>
+                        {t("profile.language_ru_desc")}
+                      </p>
+                    </div>
+                    {language === "ru" && <IconCheck size={16} style={{ color: "var(--accent)" }} />}
+                  </div>
+                </div>
+
+                <div className="col-12 col-sm-4">
                   <div
                     onClick={() => setLanguage("en")}
                     className={`p-3 rounded-2 border cursor-pointer transition-fast d-flex align-items-center justify-content-between ${
@@ -370,7 +412,7 @@ export function ProfileTab({
             <CardHeader
               actions={
                 <Badge variant="accent">
-                  {FONT_OPTIONS.find((f) => f.id === appFont)?.name || "Olline"} faol
+                  {FONT_OPTIONS.find((f) => f.id === appFont)?.name || "Quicksand"} faol
                 </Badge>
               }
             >

@@ -24,6 +24,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "nav.group.system": "TIZIM",
     "nav.group.account": "HISOB",
     "nav.group.platform": "PLATFORMA NAZORATI",
+    "nav.group.finance": "MOLIYA & TO'LOVLAR",
     "nav.group.security": "XAVFSIZLIK & TIZIM",
 
     // Nav Items
@@ -46,6 +47,8 @@ export const translations: Record<Language, Record<string, string>> = {
     "nav.item.stores": "Do'konlar",
     "nav.item.users": "Foydalanuvchilar",
     "nav.item.plans": "Tariflar & Narxlar",
+    "nav.item.ai_costs": "AI Xarajati",
+    "nav.item.payment_testing": "To'lov Diagnostikasi",
     "nav.item.system_health": "Tizim Holati",
     "nav.item.audit_logs": "Audit Jurnali",
 
@@ -376,6 +379,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "nav.group.system": "СИСТЕМА",
     "nav.group.account": "АККАУНТ",
     "nav.group.platform": "УПРАВЛЕНИЕ ПЛАТФОРМОЙ",
+    "nav.group.finance": "ФИНАНСЫ И ПЛАТЕЖИ",
     "nav.group.security": "БЕЗОПАСНОСТЬ",
 
     // Nav Items
@@ -398,6 +402,8 @@ export const translations: Record<Language, Record<string, string>> = {
     "nav.item.stores": "Магазины",
     "nav.item.users": "Пользователи",
     "nav.item.plans": "Тарифы и Цены",
+    "nav.item.ai_costs": "Расходы AI",
+    "nav.item.payment_testing": "Тест Платежей",
     "nav.item.system_health": "Статус Системы",
     "nav.item.audit_logs": "Журнал Аудита",
 
@@ -728,6 +734,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "nav.group.system": "SYSTEM",
     "nav.group.account": "ACCOUNT",
     "nav.group.platform": "PLATFORM CONTROL",
+    "nav.group.finance": "FINANCE & PAYMENTS",
     "nav.group.security": "SECURITY & SYSTEM",
 
     // Nav Items
@@ -750,6 +757,8 @@ export const translations: Record<Language, Record<string, string>> = {
     "nav.item.stores": "Stores",
     "nav.item.users": "Users",
     "nav.item.plans": "Plans & Pricing",
+    "nav.item.ai_costs": "AI Costs",
+    "nav.item.payment_testing": "Payment Testing",
     "nav.item.system_health": "System Health",
     "nav.item.audit_logs": "Audit Logs",
 

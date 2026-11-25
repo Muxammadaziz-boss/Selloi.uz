@@ -14,6 +14,8 @@ export async function GET(request: NextRequest) {
       userId: session.userId,
       telegramUserId: session.telegramUserId,
       email: session.email,
+      fullName: session.fullName,
+      username: session.username,
       role: session.role,
       organizationId: session.organizationId,
       isPlatformOwner: Boolean(session.isPlatformOwner),

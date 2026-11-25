@@ -56,7 +56,8 @@ export interface OwnerPlan {
   features: Record<string, any>;
   limits: Record<string, any>;
   active_subscribers: number;
-  active_offers_count: number;
+  active_offers?: number;
+  active_offers_count?: number;
 }
 
 export interface CustomerOffer {
@@ -81,10 +82,14 @@ export interface PriceHistoryEntry {
   id: number;
   plan_id: number;
   plan_code: string | null;
-  price_monthly_cents: number;
-  price_yearly_cents: number;
-  price_monthly_uzs: number;
-  price_yearly_uzs: number;
+  billing_period?: string;
+  price_monthly_cents?: number;
+  price_yearly_cents?: number;
+  price_monthly_uzs?: number;
+  price_yearly_uzs?: number;
+  previous_price_uzs?: number;
+  new_price_uzs?: number;
+  price_version?: number;
   currency: string;
   change_reason: string;
   effective_from: string | null;
@@ -246,12 +251,13 @@ export function OwnerPricingStudio({
     setLoadingOffers(true);
     setOffersError("");
     try {
-      const data = await fetchApi<{ success: boolean; offers: CustomerOffer[] }>(
-        `/api/platform/customers/${orgId}/pricing`
-      );
-      if (data && data.offers) {
-        setCustomerOffers(data.offers);
-      }
+      const data = await fetchApi<{
+        success: boolean;
+        offers?: CustomerOffer[];
+        pricing_records?: CustomerOffer[];
+      }>(`/api/platform/customers/${orgId}/pricing`);
+      const list = data?.offers || data?.pricing_records || [];
+      setCustomerOffers(list);
     } catch (err: any) {
       setOffersError(err.message || "Individual takliflarni yuklashda xatolik");
     } finally {
@@ -310,6 +316,17 @@ export function OwnerPricingStudio({
     loadPlans();
     loadCbuReference();
   }, [loadPlans, loadCbuReference]);
+
+  useEffect(() => {
+    if (organizations.length > 0) {
+      if (!organizations.some((o) => o.id === selectedCustomerOrgId)) {
+        setSelectedCustomerOrgId(organizations[0].id);
+      }
+      if (!organizations.some((o) => o.id === simOrgId)) {
+        setSimOrgId(organizations[0].id);
+      }
+    }
+  }, [organizations, selectedCustomerOrgId, simOrgId]);
 
   useEffect(() => {
     if (activeSection === "offers" && selectedCustomerOrgId) {
@@ -564,56 +581,34 @@ export function OwnerPricingStudio({
       )}
 
       {/* Pricing Studio Navigation Bar */}
-      <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 border-bottom pb-3">
+      <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 border-bottom pb-3" style={{ borderColor: "var(--border-subtle)" }}>
         <div className="d-flex flex-wrap align-items-center gap-2">
-          <button
-            type="button"
-            className={`btn btn-sm rounded-pill px-3 py-1.5 fw-semibold transition-all ${
-              activeSection === "plans"
-                ? "btn-primary shadow-sm"
-                : "btn-outline-secondary text-primary"
-            }`}
-            onClick={() => setActiveSection("plans")}
-          >
-            <IconLayersLinked size={15} className="me-1.5" />
-            Global Tariflar Katalogi
-          </button>
-          <button
-            type="button"
-            className={`btn btn-sm rounded-pill px-3 py-1.5 fw-semibold transition-all ${
-              activeSection === "offers"
-                ? "btn-primary shadow-sm"
-                : "btn-outline-secondary text-primary"
-            }`}
-            onClick={() => setActiveSection("offers")}
-          >
-            <IconCrown size={15} className="me-1.5" />
-            Mijoz Individual Chegirmalari
-          </button>
-          <button
-            type="button"
-            className={`btn btn-sm rounded-pill px-3 py-1.5 fw-semibold transition-all ${
-              activeSection === "history"
-                ? "btn-primary shadow-sm"
-                : "btn-outline-secondary text-primary"
-            }`}
-            onClick={() => setActiveSection("history")}
-          >
-            <IconHistory size={15} className="me-1.5" />
-            Narxlar Tarixi va Audit
-          </button>
-          <button
-            type="button"
-            className={`btn btn-sm rounded-pill px-3 py-1.5 fw-semibold transition-all ${
-              activeSection === "simulator"
-                ? "btn-primary shadow-sm"
-                : "btn-outline-secondary text-primary"
-            }`}
-            onClick={() => setActiveSection("simulator")}
-          >
-            <IconPlayerPlay size={15} className="me-1.5" />
-            Narx Simulyatori (Dry-Run)
-          </button>
+          {[
+            { id: "plans" as const, label: "Global Tariflar Katalogi", icon: IconLayersLinked },
+            { id: "offers" as const, label: "Mijoz Individual Chegirmalari", icon: IconCrown },
+            { id: "history" as const, label: "Narxlar Tarixi va Audit", icon: IconHistory },
+            { id: "simulator" as const, label: "Narx Simulyatori (Dry-Run)", icon: IconPlayerPlay },
+          ].map((sec) => {
+            const Icon = sec.icon;
+            const active = activeSection === sec.id;
+            return (
+              <button
+                key={sec.id}
+                type="button"
+                className="linear-btn rounded-pill px-3 py-1.5 fw-semibold"
+                style={{
+                  backgroundColor: active ? "var(--accent)" : "var(--bg-surface-elevated)",
+                  color: active ? "#ffffff" : "var(--text-secondary)",
+                  borderColor: active ? "var(--accent-border)" : "var(--border-default)",
+                  boxShadow: active ? "0 2px 10px rgba(255, 76, 99, 0.25)" : "none",
+                }}
+                onClick={() => setActiveSection(sec.id)}
+              >
+                <Icon size={15} />
+                <span>{sec.label}</span>
+              </button>
+            );
+          })}
         </div>
 
         <div className="d-flex align-items-center gap-2">
@@ -668,10 +663,17 @@ export function OwnerPricingStudio({
           </div>
 
           {/* Central Bank of Uzbekistan (CBU) Reference Rate Card */}
-          <div className="p-3.5 rounded-3 border border-secondary border-opacity-25 bg-body-tertiary">
+          <div className="linear-card p-3.5">
             <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
               <div className="d-flex align-items-center gap-3">
-                <div className="p-2.5 rounded-2 bg-primary bg-opacity-10 text-primary">
+                <div
+                  className="p-2.5 rounded-2 d-flex align-items-center justify-content-center"
+                  style={{
+                    backgroundColor: "var(--accent-subtle)",
+                    border: "1px solid var(--accent-border)",
+                    color: "var(--accent)",
+                  }}
+                >
                   <IconCoin size={24} />
                 </div>
                 <div>
@@ -730,11 +732,10 @@ export function OwnerPricingStudio({
                 return (
                   <div key={p.code} className="col-12 col-md-4">
                     <div
-                      className={`linear-card p-4 h-100 d-flex flex-column justify-content-between position-relative ${
-                        p.is_featured ? "border-primary" : ""
-                      }`}
+                      className="linear-card p-4 h-100 d-flex flex-column justify-content-between position-relative"
                       style={{
-                        backgroundColor: p.is_active ? "var(--bg-surface-elevated)" : "rgba(255,255,255,0.02)",
+                        backgroundColor: p.is_active ? "var(--bg-surface-elevated)" : "var(--bg-surface)",
+                        borderColor: p.is_featured ? "var(--accent-border)" : undefined,
                         opacity: p.is_active ? 1 : 0.7,
                       }}
                     >
@@ -808,7 +809,7 @@ export function OwnerPricingStudio({
                             Obunachilar: <strong className="text-primary">{p.active_subscribers} ta</strong>
                           </span>
                           <span>
-                            Maxsus takliflar: <strong className="text-primary">{p.active_offers_count} ta</strong>
+                            Maxsus takliflar: <strong className="text-primary">{p.active_offers_count ?? p.active_offers ?? 0} ta</strong>
                           </span>
                         </div>
                       </div>
@@ -977,14 +978,17 @@ export function OwnerPricingStudio({
                   </div>
 
                   {/* Toggles */}
-                  <div className="d-flex align-items-center justify-content-between p-2.5 rounded-2 bg-dark bg-opacity-25">
+                  <div
+                    className="d-flex flex-wrap align-items-center justify-content-between gap-2 p-2.5 rounded-2 border"
+                    style={{ backgroundColor: "var(--bg-canvas)", borderColor: "var(--border-subtle)" }}
+                  >
                     <label className="d-flex align-items-center gap-2 small text-primary m-0 cursor-pointer">
                       <input
                         type="checkbox"
                         checked={editIsPublic}
                         onChange={(e) => setEditIsPublic(e.target.checked)}
                       />
-                      <span>Public Katalogda Ko'rsatish (is_public)</span>
+                      <span>Public (is_public)</span>
                     </label>
                     <label className="d-flex align-items-center gap-2 small text-primary m-0 cursor-pointer">
                       <input
@@ -992,15 +996,26 @@ export function OwnerPricingStudio({
                         checked={editIsActive}
                         onChange={(e) => setEditIsActive(e.target.checked)}
                       />
-                      <span>Tarif Faol (is_active)</span>
+                      <span>Faol (is_active)</span>
+                    </label>
+                    <label className="d-flex align-items-center gap-2 small text-primary m-0 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={editIsFeatured}
+                        onChange={(e) => setEditIsFeatured(e.target.checked)}
+                      />
+                      <span>Tavsiya (Featured)</span>
                     </label>
                   </div>
 
                   {/* Live Preview Card */}
-                  <div className="p-3 rounded-2 border border-secondary border-opacity-20 bg-dark bg-opacity-40">
+                  <div
+                    className="p-3 rounded-2 border"
+                    style={{ backgroundColor: "var(--bg-canvas)", borderColor: "var(--border-default)" }}
+                  >
                     <div className="d-flex align-items-center justify-content-between text-secondary small fw-bold text-uppercase mb-1" style={{ fontSize: "0.7rem" }}>
-                      <span>Ko'rinishining Jonli Prevyusi (Live Preview)</span>
-                      <span className="badge bg-secondary font-monospace">Versiya: v{(editingPlan.price_version || 1) + 1}</span>
+                      <span>Ko&apos;rinishining Jonli Prevyusi (Live Preview)</span>
+                      <Badge variant="accent" className="font-monospace">v{(editingPlan.price_version || 1) + 1}</Badge>
                     </div>
                     <div className="d-flex flex-wrap align-items-baseline gap-3">
                       <div>
@@ -1217,9 +1232,19 @@ export function OwnerPricingStudio({
                       value={schedulePlanCode}
                       onChange={(e) => setSchedulePlanCode(e.target.value)}
                     >
-                      <option value="start">START</option>
-                      <option value="pro">PRO</option>
-                      <option value="ultra">ULTRA</option>
+                      {plans.length > 0 ? (
+                        plans.map((p) => (
+                          <option key={p.code} value={p.code}>
+                            {p.name} ({p.code.toUpperCase()})
+                          </option>
+                        ))
+                      ) : (
+                        <>
+                          <option value="start">START</option>
+                          <option value="pro">PRO</option>
+                          <option value="ultra">ULTRA</option>
+                        </>
+                      )}
                     </select>
                   </div>
 
@@ -1316,18 +1341,30 @@ export function OwnerPricingStudio({
           </div>
 
           {/* Customer Selection Row */}
-          <div className="p-3 rounded-3 border border-secondary border-opacity-20 d-flex flex-wrap align-items-center gap-3 bg-dark bg-opacity-25">
+          <div
+            className="p-3 rounded-3 border d-flex flex-wrap align-items-center gap-3"
+            style={{ backgroundColor: "var(--bg-surface-elevated)", borderColor: "var(--border-subtle)" }}
+          >
             <div className="d-flex align-items-center gap-2">
-              <IconBuildingSkyscraper size={18} className="text-secondary" />
-              <span className="small fw-semibold text-primary">Do'konni Tanlang:</span>
+              <IconBuildingSkyscraper size={18} style={{ color: "var(--accent)" }} />
+              <span className="small fw-semibold text-primary">Do&apos;konni Tanlang:</span>
             </div>
-            <div style={{ minWidth: "260px" }}>
+            <div style={{ minWidth: "180px" }}>
+              <input
+                type="text"
+                className="linear-input"
+                placeholder="Do'kon qidirish..."
+                value={customerSearch}
+                onChange={(e) => setCustomerSearch(e.target.value)}
+              />
+            </div>
+            <div style={{ minWidth: "240px" }}>
               <select
                 className="linear-input w-100"
                 value={selectedCustomerOrgId}
                 onChange={(e) => setSelectedCustomerOrgId(Number(e.target.value))}
               >
-                {organizations.map((org) => (
+                {(filteredOrgs.length > 0 ? filteredOrgs : organizations).map((org) => (
                   <option key={org.id} value={org.id}>
                     #{org.id} {org.name} ({org.slug})
                   </option>
@@ -1578,14 +1615,17 @@ export function OwnerPricingStudio({
                     />
                   </div>
 
-                  <div className="p-2.5 rounded-2 bg-dark bg-opacity-25">
+                  <div
+                    className="p-2.5 rounded-2 border"
+                    style={{ backgroundColor: "var(--bg-canvas)", borderColor: "var(--border-subtle)" }}
+                  >
                     <label className="d-flex align-items-center gap-2 small text-primary m-0 cursor-pointer">
                       <input
                         type="checkbox"
                         checked={offerSupersede}
                         onChange={(e) => setOfferSupersede(e.target.checked)}
                       />
-                      <span>Mavjud faol taklif bo'lsa uni almashtirish (Supersede)</span>
+                      <span>Mavjud faol taklif bo&apos;lsa uni almashtirish (Supersede)</span>
                     </label>
                   </div>
                 </div>
@@ -1657,7 +1697,18 @@ export function OwnerPricingStudio({
                           </td>
                         </tr>
                       ) : (
-                        historyList.map((h) => (
+                        historyList.map((h) => {
+                          const monthlyUzsDisplay =
+                            typeof h.price_monthly_uzs === "number" && h.price_monthly_uzs > 0
+                              ? `${Math.round(h.price_monthly_uzs / 100).toLocaleString("uz-UZ")} so'm`
+                              : typeof h.new_price_uzs === "number" && h.new_price_uzs > 0
+                              ? `${h.new_price_uzs.toLocaleString("uz-UZ")} so'm`
+                              : "-";
+                          const usdDisplay =
+                            typeof h.price_monthly_cents === "number" && h.price_monthly_cents > 0
+                              ? `$${h.price_monthly_cents / 100} / $${(h.price_yearly_cents || 0) / 100}`
+                              : h.billing_period || "-";
+                          return (
                           <tr key={h.id}>
                             <td>
                               <span className="fw-bold font-monospace text-primary">
@@ -1666,12 +1717,12 @@ export function OwnerPricingStudio({
                             </td>
                             <td>
                               <span className="small text-primary font-monospace">
-                                ${h.price_monthly_cents / 100} / ${h.price_yearly_cents / 100}
+                                {usdDisplay}
                               </span>
                             </td>
                             <td>
                               <span className="small text-secondary font-monospace">
-                                {(h.price_monthly_uzs / 100).toLocaleString("uz-UZ")}
+                                {monthlyUzsDisplay}
                               </span>
                             </td>
                             <td>
@@ -1683,7 +1734,8 @@ export function OwnerPricingStudio({
                               </span>
                             </td>
                           </tr>
-                        ))
+                          );
+                        })
                       )}
                     </tbody>
                   </table>
@@ -1858,7 +1910,38 @@ export function OwnerPricingStudio({
           )}
 
           {/* Simulator Results */}
-          {simResult && (
+          {simResult && (() => {
+            const calc = simResult.calculation || {
+              catalog_base_price_formatted:
+                simResult.currency === "UZS"
+                  ? `${Math.round((simResult.catalog_base_price || 0) / 100).toLocaleString("uz-UZ")} so'm`
+                  : `$${((simResult.catalog_base_price || 0) / 100).toFixed(2)}`,
+              discount_amount_formatted:
+                simResult.currency === "UZS"
+                  ? `${Math.round((simResult.discount_amount || 0) / 100).toLocaleString("uz-UZ")} so'm`
+                  : `$${((simResult.discount_amount || 0) / 100).toFixed(2)}`,
+              effective_price_formatted: simResult.effective_price_formatted || "-",
+              price_source: simResult.price_source || "global_catalog",
+              renewal_policy: simResult.will_change_on_renewal !== undefined
+                ? {
+                    will_change_on_renewal: Boolean(simResult.will_change_on_renewal),
+                    explanation: simResult.will_change_on_renewal
+                      ? "Keyingi davrda narx standart katalogga qaytadi."
+                      : "Keyingi davrda joriy narx saqlanadi.",
+                  }
+                : null,
+            };
+            const steps =
+              Array.isArray(simResult.trace) && simResult.trace.length > 0
+                ? simResult.trace
+                : Array.isArray(simResult.calculation_trace)
+                ? simResult.calculation_trace.map((line: string, i: number) => ({
+                    step: i + 1,
+                    action: `Bosqich ${i + 1}`,
+                    outcome: line,
+                  }))
+                : [];
+            return (
             <div className="space-y-3">
               {/* Summary Cards */}
               <div className="row g-3">
@@ -1868,7 +1951,7 @@ export function OwnerPricingStudio({
                       Katalog Asosiy Narxi
                     </div>
                     <div className="fs-2 fw-bold font-monospace text-primary">
-                      {simResult.calculation.catalog_base_price_formatted}
+                      {calc.catalog_base_price_formatted}
                     </div>
                     <span className="small text-secondary">Standart global narx</span>
                   </div>
@@ -1876,23 +1959,23 @@ export function OwnerPricingStudio({
                 <div className="col-12 col-md-4">
                   <div className="linear-card p-3.5">
                     <div className="text-secondary small fw-bold text-uppercase mb-1" style={{ fontSize: "0.72rem" }}>
-                      Qo'llangan Chegirma
+                      Qo&apos;llangan Chegirma
                     </div>
                     <div className="fs-2 fw-bold font-monospace text-success">
-                      {simResult.calculation.discount_amount_formatted}
+                      {calc.discount_amount_formatted}
                     </div>
                     <span className="small text-secondary">
-                      Manba: {simResult.calculation.price_source}
+                      Manba: {calc.price_source}
                     </span>
                   </div>
                 </div>
                 <div className="col-12 col-md-4">
-                  <div className="linear-card p-3.5 border-primary">
+                  <div className="linear-card p-3.5" style={{ borderColor: "var(--accent-border)" }}>
                     <div className="text-secondary small fw-bold text-uppercase mb-1" style={{ fontSize: "0.72rem" }}>
-                      Yakuniy To'lov Miqdori
+                      Yakuniy To&apos;lov Miqdori
                     </div>
                     <div className="fs-2 fw-bold font-monospace text-primary">
-                      {simResult.calculation.effective_price_formatted}
+                      {calc.effective_price_formatted}
                     </div>
                     <span className="small text-secondary">
                       Valyuta: {simResult.currency} ({simResult.billing_interval})
@@ -1907,49 +1990,56 @@ export function OwnerPricingStudio({
                   <CardTitle>Bosqichma-bosqich Hisoblash Izohi</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-2 mb-4">
-                    {simResult.trace &&
-                      simResult.trace.map((step: any, idx: number) => (
-                        <div
-                          key={idx}
-                          className="p-2.5 rounded-2 d-flex align-items-center justify-content-between"
-                          style={{ backgroundColor: "var(--bg-canvas)" }}
-                        >
-                          <div className="d-flex align-items-center gap-2">
-                            <span
-                              className="badge rounded-circle p-1 d-flex align-items-center justify-content-center"
-                              style={{ width: "22px", height: "22px", backgroundColor: "var(--accent)" }}
-                            >
-                              {step.step}
-                            </span>
-                            <span className="fw-semibold text-primary small">{step.action}</span>
-                          </div>
-                          <span className="small text-secondary">{step.outcome}</span>
+                  <div className="d-flex flex-column gap-2 mb-4">
+                    {steps.map((step: any, idx: number) => (
+                      <div
+                        key={idx}
+                        className="p-2.5 rounded-2 d-flex flex-wrap align-items-center justify-content-between gap-2 border"
+                        style={{ backgroundColor: "var(--bg-canvas)", borderColor: "var(--border-subtle)" }}
+                      >
+                        <div className="d-flex align-items-center gap-2">
+                          <span
+                            className="badge rounded-circle p-1 d-flex align-items-center justify-content-center"
+                            style={{ width: "22px", height: "22px", backgroundColor: "var(--accent)", color: "#ffffff" }}
+                          >
+                            {step.step}
+                          </span>
+                          <span className="fw-semibold text-primary small">{step.action}</span>
                         </div>
-                      ))}
+                        <span className="small text-secondary">{step.outcome}</span>
+                      </div>
+                    ))}
                   </div>
 
                   {/* Renewal Transition Policy Alert */}
-                  {simResult.calculation.renewal_policy && (
+                  {calc.renewal_policy && (
                     <div
-                      className={`p-3 rounded-2 border ${
-                        simResult.calculation.renewal_policy.will_change_on_renewal
-                          ? "border-warning bg-warning bg-opacity-10 text-warning"
-                          : "border-success bg-success bg-opacity-10 text-success"
-                      }`}
+                      className="p-3 rounded-2 border"
+                      style={{
+                        backgroundColor: calc.renewal_policy.will_change_on_renewal
+                          ? "var(--warning-subtle)"
+                          : "var(--success-subtle)",
+                        borderColor: calc.renewal_policy.will_change_on_renewal
+                          ? "var(--warning-border)"
+                          : "var(--success-border)",
+                        color: calc.renewal_policy.will_change_on_renewal
+                          ? "var(--warning-text)"
+                          : "var(--success-text)",
+                      }}
                     >
                       <div className="fw-bold small mb-1">
-                        Navbatdagi Yangilanish Siyosati (Platform Owner Decision 2: Option A):
+                        Navbatdagi Yangilanish Siyosati:
                       </div>
                       <div className="small">
-                        {simResult.calculation.renewal_policy.explanation}
+                        {calc.renewal_policy.explanation}
                       </div>
                     </div>
                   )}
                 </CardContent>
               </Card>
             </div>
-          )}
+            );
+          })()}
         </div>
       )}
     </div>

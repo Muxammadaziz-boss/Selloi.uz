@@ -471,7 +471,20 @@ export function Topbar({
                 <div className="px-3 py-2 border-bottom" style={{ borderColor: "var(--border-subtle)" }}>
                   <div className="fw-semibold text-primary small text-truncate">{adminName}</div>
                   <div className="text-secondary" style={{ fontSize: "0.7rem" }}>
-                    {language === "uz" ? "Roli:" : "Role:"} <span className="text-uppercase fw-medium">{adminRole === "owner" ? t("topbar.role_owner") : adminRole === "admin" ? t("topbar.role_admin") : t("topbar.role_moderator")}</span>
+                    {language === "uz" ? "Roli:" : language === "ru" ? "Роль:" : "Role:"}{" "}
+                    <span className="text-uppercase fw-medium">
+                      {adminRole === "platform_owner" || adminRole === "owner"
+                        ? t("topbar.role_owner")
+                        : adminRole === "platform_admin"
+                        ? language === "uz"
+                          ? "Sayt Admini"
+                          : language === "ru"
+                          ? "Админ сайта"
+                          : "Site Admin"
+                        : adminRole === "admin"
+                        ? t("topbar.role_admin")
+                        : t("topbar.role_moderator")}
+                    </span>
                   </div>
                 </div>
 

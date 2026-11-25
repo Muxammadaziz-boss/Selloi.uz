@@ -21,7 +21,6 @@ import {
   IconBuildingStore,
   IconChevronLeft,
   IconChevronRight,
-  IconSparkles,
   IconX,
 } from "@tabler/icons-react";
 
@@ -72,6 +71,7 @@ export interface SidebarProps {
   onSelectPlatformSubTab?: (subTab: PlatformSubTabId) => void;
   storesCount?: number;
   usersCount?: number;
+  systemHealthOk?: boolean;
   storeName?: string;
   unreadCount?: number;
   productsCount?: number;
@@ -95,6 +95,7 @@ export function Sidebar({
   onSelectPlatformSubTab,
   storesCount = 0,
   usersCount = 0,
+  systemHealthOk = true,
   storeName = "AI Sales Control",
   unreadCount = 0,
   productsCount = 0,
@@ -163,19 +164,19 @@ export function Sidebar({
         { id: "platform", label: t("nav.item.stores"), icon: IconBuildingStore, count: storesCount > 0 ? storesCount : undefined, subTab: "stores" },
         { id: "platform", label: t("nav.item.users"), icon: IconUsers, count: usersCount > 0 ? usersCount : undefined, subTab: "users" },
         { id: "platform", label: t("nav.item.plans"), icon: IconLayersLinked, subTab: "plans" },
-        { id: "platform", label: "AI Xarajati", icon: IconCpu, subTab: "usage" },
+        { id: "platform", label: t("nav.item.ai_costs"), icon: IconCpu, subTab: "usage" },
       ],
     },
     {
-      title: "Finance",
+      title: t("nav.group.finance"),
       items: [
-        { id: "platform", label: "Payment Testing", icon: IconCreditCard, subTab: "payment-testing" },
+        { id: "platform", label: t("nav.item.payment_testing"), icon: IconCreditCard, subTab: "payment-testing" },
       ],
     },
     {
       title: t("nav.group.security"),
       items: [
-        { id: "platform", label: t("nav.item.system_health"), icon: IconShieldLock, badge: "OK", subTab: "system" },
+        { id: "platform", label: t("nav.item.system_health"), icon: IconShieldLock, badge: systemHealthOk ? "OK" : "!", subTab: "system" },
         { id: "platform", label: t("nav.item.audit_logs"), icon: IconHistory, subTab: "audit" },
       ],
     },
@@ -392,11 +393,15 @@ export function Sidebar({
                           fontSize: "0.65rem",
                           padding: "2px 6px",
                           backgroundColor:
-                            typeof item.badge === "number"
+                            item.badge === "!"
+                              ? "var(--danger-subtle)"
+                              : typeof item.badge === "number"
                               ? "var(--accent)"
                               : "var(--accent-subtle)",
                           color:
-                            typeof item.badge === "number"
+                            item.badge === "!"
+                              ? "var(--danger-text)"
+                              : typeof item.badge === "number"
                               ? "#ffffff"
                               : "var(--accent-text)",
                         }}
@@ -423,65 +428,7 @@ export function Sidebar({
         ))}
       </div>
 
-      {/* Single Clean Zone Switcher (Admin Panel <-> Store Dashboard) */}
-      {isPlatformOwner && !collapsed && (
-        <div
-          className="p-2.5 m-2 rounded-2 border"
-          style={{
-            backgroundColor: "var(--bg-surface-elevated)",
-            borderColor: "var(--border-subtle)",
-          }}
-        >
-          <div className="d-flex align-items-center justify-content-between mb-2">
-            <span
-              className="badge rounded-pill fw-semibold"
-              style={{
-                fontSize: "0.66rem",
-                padding: "3px 8px",
-                backgroundColor: "var(--accent-subtle)",
-                color: "var(--accent-text)",
-                border: "1px solid var(--accent-border)",
-              }}
-            >
-              {zone === "platform" ? "Admin Panel" : "Do'kon Paneli"}
-            </span>
-            <IconSparkles size={13} style={{ color: "var(--accent)" }} />
-          </div>
-          <button
-            type="button"
-            onClick={() => onSwitchZone(zone === "platform" ? "store" : "platform")}
-            className="btn btn-sm w-100 py-1.5 fw-semibold transition-fast"
-            style={{
-              fontSize: "0.75rem",
-              backgroundColor: zone === "platform" ? "var(--bg-surface)" : "var(--accent)",
-              color: zone === "platform" ? "var(--text-primary)" : "#ffffff",
-              border: zone === "platform" ? "1px solid var(--border-default)" : "1px solid var(--accent-border)",
-              borderRadius: "var(--radius-sm)",
-            }}
-          >
-            {zone === "platform" ? "Do'kon Dashboardiga o'tish" : "Admin Panelga o'tish"}
-          </button>
-        </div>
-      )}
-      {isPlatformOwner && collapsed && (
-        <div className="p-2 d-flex justify-content-center border-top" style={{ borderColor: "var(--border-subtle)" }}>
-          <button
-            type="button"
-            onClick={() => onSwitchZone(zone === "platform" ? "store" : "platform")}
-            className="btn btn-sm p-1.5 rounded-2 border"
-            style={{
-              backgroundColor: "var(--bg-surface-elevated)",
-              borderColor: "var(--border-default)",
-              color: "var(--accent)",
-              width: "34px",
-              height: "34px",
-            }}
-            title={zone === "platform" ? "Do'kon Dashboardiga o'tish" : "Admin Panelga o'tish"}
-          >
-            <IconBuildingStore size={16} />
-          </button>
-        </div>
-      )}
+
     </aside>
     </>
   );
