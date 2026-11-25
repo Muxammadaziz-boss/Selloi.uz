@@ -17,6 +17,7 @@ from app.dependencies.auth import decode_access_token, get_current_admin
 from app.dependencies.tenant import get_admin_tenant_id
 from app.models import (
     Admin,
+    AuditLog,
     ChannelPost,
     ConnectedChannel,
     Conversation,
@@ -131,6 +132,21 @@ async def list_conversations(
         .offset(offset)
         .limit(limit)
     )).scalars().all()
+
+    chat_ids = list({row.chat_id for row in rows if row.chat_id is not None})
+    note_map: dict[int, str] = {}
+    if chat_ids:
+        cust_rows = (await db.execute(
+            select(Customer.telegram_user_id, Customer.notes)
+            .where(
+                Customer.organization_id == org_id,
+                Customer.telegram_user_id.in_(chat_ids),
+            )
+        )).all()
+        for tg_uid, note_val in cust_rows:
+            if tg_uid is not None and note_val:
+                note_map[int(tg_uid)] = note_val
+
     return [{
         "id": row.id,
         "customer_name": row.customer_name,
@@ -138,10 +154,60 @@ async def list_conversations(
         "chat_id": row.chat_id,
         "status": row.status,
         "handoff_reason": row.handoff_reason,
+        "note": note_map.get(row.chat_id, ""),
         "business_connection_id": row.business_connection_id,
         "last_message_at": row.last_message_at.isoformat() if row.last_message_at else None,
         "organization_id": row.organization_id,
     } for row in rows]
+
+
+class ConversationNoteUpdate(BaseModel):
+    notes: str = ""
+
+
+@router.put("/conversations/{conversation_id}/note", dependencies=[Depends(require_permission("can_view_conversations"))])
+async def upsert_conversation_note(
+    conversation_id: int,
+    payload: ConversationNoteUpdate,
+    db: AsyncSession = Depends(get_db),
+    org_id: int = Depends(get_admin_tenant_id),
+):
+    conv = await db.get(Conversation, conversation_id)
+    if conv is None or conv.organization_id != org_id:
+        raise HTTPException(status_code=404, detail="Suhbat topilmadi")
+
+    cleaned_note = (payload.notes or "").strip()[:2000]
+    cust = (await db.execute(
+        select(Customer).where(
+            Customer.organization_id == org_id,
+            Customer.telegram_user_id == conv.chat_id,
+        )
+    )).scalar_one_or_none()
+
+    if cust is None:
+        cust = Customer(
+            organization_id=org_id,
+            telegram_user_id=conv.chat_id,
+            name=conv.customer_name or "Mijoz",
+            username=conv.username,
+            notes=cleaned_note,
+        )
+        db.add(cust)
+        await db.flush()
+    else:
+        cust.notes = cleaned_note
+
+    db.add(
+        AuditLog(
+            organization_id=org_id,
+            action="customer.note_updated",
+            resource="conversation",
+            resource_id=str(conv.id),
+            metadata_json={"customer_name": conv.customer_name or "Mijoz"},
+        )
+    )
+    await db.commit()
+    return {"ok": True, "conversation_id": conv.id, "note": cust.notes}
 
 
 @router.get("/conversations/{conversation_id}/messages", dependencies=[Depends(require_permission("can_view_conversations"))])
@@ -1061,6 +1127,101 @@ async def update_admin_role(
         return {"ok": True, "role": updated.role, "permissions": updated.permissions}
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.get("/logs")
+async def list_tenant_logs(
+    limit: int = Query(50, ge=1, le=200),
+    db: AsyncSession = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin),
+    org_id: int = Depends(get_admin_tenant_id),
+):
+    """Aggregate real chronological tenant activity from audit logs, AI/admin replies, orders, and channel syncs."""
+    events: list[tuple[datetime, dict]] = []
+
+    audit_rows = (await db.execute(
+        select(AuditLog)
+        .where(AuditLog.organization_id == org_id)
+        .order_by(AuditLog.created_at.desc())
+        .limit(limit)
+    )).scalars().all()
+    for a in audit_rows:
+        ts = a.created_at or datetime.now(timezone.utc)
+        meta_txt = ""
+        if isinstance(a.metadata_json, dict) and a.metadata_json:
+            meta_txt = ", ".join(f"{k}: {v}" for k, v in list(a.metadata_json.items())[:3])
+        events.append((ts, {
+            "id": f"audit-{a.id}",
+            "time": ts.isoformat(),
+            "source": (a.resource or "System").capitalize(),
+            "action": a.action,
+            "details": meta_txt or (f"ID: {a.resource_id}" if a.resource_id else "-"),
+            "status": "OK",
+        }))
+
+    msg_rows = (await db.execute(
+        select(Message, Conversation.customer_name)
+        .join(Conversation, Conversation.id == Message.conversation_id)
+        .where(
+            Message.organization_id == org_id,
+            Conversation.organization_id == org_id,
+            Message.direction.in_(["assistant", "admin"]),
+        )
+        .order_by(Message.created_at.desc())
+        .limit(limit)
+    )).all()
+    for msg, cust_name in msg_rows:
+        ts = msg.created_at or datetime.now(timezone.utc)
+        is_ai = msg.direction == "assistant"
+        snippet = (msg.text or "").strip().replace("\n", " ")[:90]
+        events.append((ts, {
+            "id": f"msg-{msg.id}",
+            "time": ts.isoformat(),
+            "source": "AI Engine" if is_ai else "Operator",
+            "action": "Avtomatik mijozga javob" if is_ai else "Operator xabari",
+            "details": f"{cust_name}: {snippet}" if cust_name else snippet,
+            "status": "Yuborildi",
+        }))
+
+    order_rows = (await db.execute(
+        select(Order)
+        .where(Order.organization_id == org_id)
+        .order_by(Order.created_at.desc())
+        .limit(limit)
+    )).scalars().all()
+    for ord_row in order_rows:
+        ts = ord_row.created_at or datetime.now(timezone.utc)
+        events.append((ts, {
+            "id": f"order-{ord_row.id}",
+            "time": ts.isoformat(),
+            "source": "Order",
+            "action": f"Buyurtma ORD-{ord_row.id:04d}",
+            "details": f"{ord_row.customer_name or 'Mijoz'} - {ord_row.product_summary or '-'} ({ord_row.amount})",
+            "status": ord_row.status or "new",
+        }))
+
+    channel_rows = (await db.execute(
+        select(ConnectedChannel)
+        .where(
+            ConnectedChannel.organization_id == org_id,
+            ConnectedChannel.last_synced_at.isnot(None),
+        )
+        .order_by(ConnectedChannel.last_synced_at.desc())
+        .limit(20)
+    )).scalars().all()
+    for ch in channel_rows:
+        ts = ch.last_synced_at or datetime.now(timezone.utc)
+        events.append((ts, {
+            "id": f"sync-{ch.id}",
+            "time": ts.isoformat(),
+            "source": "Channel Sync",
+            "action": f"@{ch.channel_username} sinxronlandi",
+            "details": f"{ch.posts_count or 0} ta post bazaga yuklangan",
+            "status": "Faol" if ch.is_active else "Nofaol",
+        }))
+
+    events.sort(key=lambda item: item[0], reverse=True)
+    return {"logs": [item[1] for item in events[:limit]], "organization_id": org_id}
 
 
 @router.get("/settings")

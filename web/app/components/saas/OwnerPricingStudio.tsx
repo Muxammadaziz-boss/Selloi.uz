@@ -30,6 +30,7 @@ import {
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
+import { ConfirmModal } from "../ui/ConfirmModal";
 import { fetchApi } from "../../lib/api";
 
 export interface OwnerPlan {
@@ -202,6 +203,8 @@ export function OwnerPricingStudio({
   const [offerNotes, setOfferNotes] = useState("");
   const [offerSupersede, setOfferSupersede] = useState(true);
   const [creatingOffer, setCreatingOffer] = useState(false);
+  const [confirmRevokeOfferId, setConfirmRevokeOfferId] = useState<number | null>(null);
+  const [revokingOffer, setRevokingOffer] = useState(false);
 
   // History & Audit state
   const [historyList, setHistoryList] = useState<PriceHistoryEntry[]>([]);
@@ -503,17 +506,26 @@ export function OwnerPricingStudio({
 
   // Revoke Customer Offer
   const handleRevokeOffer = async (offerId: number) => {
-    if (!confirm("Ushbu individual taklifni bekor qilishga ishonchingiz komilmi?")) return;
+    setConfirmRevokeOfferId(offerId);
+  };
+
+  const executeRevokeOffer = async () => {
+    if (confirmRevokeOfferId === null) return;
+    setRevokingOffer(true);
     try {
       await fetchApi(
-        `/api/platform/customers/${selectedCustomerOrgId}/pricing/${offerId}`,
+        `/api/platform/customers/${selectedCustomerOrgId}/pricing/${confirmRevokeOfferId}`,
         { method: "DELETE" }
       );
+      setConfirmRevokeOfferId(null);
       showFeedback("success", "Individual taklif bekor qilindi (revoked)");
       await loadCustomerOffers(selectedCustomerOrgId);
       await loadPlans();
     } catch (err: any) {
+      setConfirmRevokeOfferId(null);
       showFeedback("error", err.message || "Taklifni bekor qilishda xatolik");
+    } finally {
+      setRevokingOffer(false);
     }
   };
 
@@ -2042,6 +2054,18 @@ export function OwnerPricingStudio({
           })()}
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={confirmRevokeOfferId !== null}
+        onClose={() => setConfirmRevokeOfferId(null)}
+        onConfirm={executeRevokeOffer}
+        title="Individual taklifni bekor qilish"
+        message="Ushbu individual taklifni bekor qilishga ishonchingiz komilmi?"
+        confirmText="Ha, bekor qilish"
+        cancelText="Qoldirish"
+        variant="danger"
+        loading={revokingOffer}
+      />
     </div>
   );
 }

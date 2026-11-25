@@ -26,6 +26,7 @@ export interface ConversationItem {
   chat_id: number;
   status: string;
   handoff_reason?: string | null;
+  note?: string | null;
   last_message_at?: string | null;
 }
 

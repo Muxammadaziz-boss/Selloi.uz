@@ -172,6 +172,7 @@ type Conversation = {
   chat_id: number;
   status: string;
   handoff_reason?: string | null;
+  note?: string | null;
   last_message_at?: string | null;
 };
 
@@ -737,6 +738,7 @@ function DashboardContent({
   const [platformUsers, setPlatformUsers] = useState<any[]>([]);
   const [systemHealth, setSystemHealth] = useState<any>(null);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [tenantLogs, setTenantLogs] = useState<any[]>([]);
 
   const [tab, setTab] = useState<
     "overview" | "inbox" | "knowledge" | "products" | "orders" | "customers" | "analytics" | "settings" | "admins" | "team" | "logs" | "profile" | "usage" | "billing" | "pricing" | "platform"
@@ -784,7 +786,12 @@ function DashboardContent({
   });
   const [showOrgDropdown, setShowOrgDropdown] = useState(false);
   const [showOnboardingModal, setShowOnboardingModal] = useState(false);
-  const [confirmDeleteStoreId, setConfirmDeleteStoreId] = useState<number | null>(null);
+  const [pendingConfirm, setPendingConfirm] = useState<{
+    title: string;
+    message: string;
+    confirmText?: string;
+    onConfirm: () => Promise<void>;
+  } | null>(null);
   const [subscriptionData, setSubscriptionData] = useState<any>(null);
   const [isSubscriptionLoading, setIsSubscriptionLoading] = useState<boolean>(true);
   const [subscriptionError, setSubscriptionError] = useState<string | null>(null);
@@ -856,9 +863,7 @@ function DashboardContent({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [productSearch, setProductSearch] = useState("");
   const [orderSearch, setOrderSearch] = useState("");
-  const [customerNotes, setCustomerNotes] = useState<Record<number, string>>({
-    4: "Mijoz o'yin uchun hamyonbop Asus TUF qidiryapti. 2 oy kafolat so'radi.",
-  });
+  const [customerNotes, setCustomerNotes] = useState<Record<number, string>>({});
 
   const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(false);
@@ -926,7 +931,7 @@ function DashboardContent({
     setLoading(true);
     setError("");
     try {
-      const [o, c, p, a, s, chList, prodsList, ordersList] = await Promise.all([
+      const [o, c, p, a, s, chList, prodsList, ordersList, tenantLogsRes] = await Promise.all([
         api<Overview>("/admin/overview"),
         api<Conversation[]>("/admin/conversations"),
         api<KnowledgePost[]>("/admin/knowledge"),
@@ -935,6 +940,7 @@ function DashboardContent({
         api<ConnectedChannel[]>("/admin/channels").catch(() => []),
         api<ProductItem[]>("/admin/products").catch(() => []),
         api<OrderItem[]>("/admin/orders").catch(() => []),
+        api<{ logs?: any[] }>("/admin/logs").catch(() => ({ logs: [] })),
       ]);
       setOverview(o);
       setConversations(c);
@@ -943,6 +949,14 @@ function DashboardContent({
       setChannels(chList);
       setProducts(prodsList || []);
       setOrders(ordersList || []);
+      setTenantLogs(tenantLogsRes?.logs || []);
+      const serverNotes: Record<number, string> = {};
+      (c || []).forEach((conv) => {
+        if (conv.note) {
+          serverNotes[conv.id] = conv.note;
+        }
+      });
+      setCustomerNotes(serverNotes);
       if (chList.length > 0) {
         setChannel(chList[0].channel_username);
       } else if (s?.public_channel) {
@@ -1169,15 +1183,6 @@ function DashboardContent({
       if (savedLogo) {
         setLogoUrl(savedLogo);
         setCustomLogoInput(savedLogo);
-      }
-    } catch {}
-  }, []);
-
-  useEffect(() => {
-    try {
-      const savedNotes = localStorage.getItem("ai_sales_customer_notes");
-      if (savedNotes) {
-        setCustomerNotes((prev) => ({ ...prev, ...JSON.parse(savedNotes) }));
       }
     } catch {}
   }, []);
@@ -1775,26 +1780,18 @@ function DashboardContent({
   };
 
   const handleDeleteStore = async (storeId: number) => {
-    setConfirmDeleteStoreId(storeId);
-  };
-
-  const executeDeleteStore = async () => {
-    if (confirmDeleteStoreId === null) return;
-    const storeId = confirmDeleteStoreId;
-    setBusy(true);
-    try {
-      await api<any>(`/api/platform/organizations/${storeId}`, {
-        method: "DELETE",
-      });
-      setConfirmDeleteStoreId(null);
-      setSuccess("Do'kon muvaffaqiyatli o'chirildi");
-      await loadPlatformData();
-    } catch (err: any) {
-      setConfirmDeleteStoreId(null);
-      setError(err.message || "Do'konni o'chirishda xatolik");
-    } finally {
-      setBusy(false);
-    }
+    setPendingConfirm({
+      title: "Do'konni o'chirish",
+      message: "Haqiqatan ham ushbu do'konni o'chirmoqchimisiz? Barcha bog'liq sozlamalar nofaol holatga o'tadi.",
+      confirmText: "Ha, o'chirish",
+      onConfirm: async () => {
+        await api<any>(`/api/platform/organizations/${storeId}`, {
+          method: "DELETE",
+        });
+        setSuccess("Do'kon muvaffaqiyatli o'chirildi");
+        await loadPlatformData();
+      },
+    });
   };
 
   useEffect(() => {
@@ -1891,25 +1888,41 @@ function DashboardContent({
     }
   }
 
-  const handleSaveCustomerNote = (id: number) => {
+  const handleSaveCustomerNote = async (id: number, noteText: string) => {
+    setBusy(true);
     try {
-      localStorage.setItem("ai_sales_customer_notes", JSON.stringify(customerNotes));
-      setSuccess("Operator eslatmasi muvaffaqiyatli saqlandi!");
-    } catch {
-      setError("Eslatmani saqlashda xatolik yuz berdi");
+      const res = await api<{ ok: boolean; note: string }>(`/admin/conversations/${id}/note`, {
+        method: "PUT",
+        body: JSON.stringify({ notes: noteText }),
+      });
+      const savedNote = res?.note ?? noteText;
+      setCustomerNotes((prev) => ({ ...prev, [id]: savedNote }));
+      setConversations((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, note: savedNote } : c))
+      );
+      setSuccess("Operator eslatmasi bazaga saqlandi!");
+    } catch (err: any) {
+      setError(err?.message || "Eslatmani saqlashda xatolik yuz berdi");
+    } finally {
+      setBusy(false);
     }
   };
 
   const handleSendCatalogProposal = () => {
+    if (!products || products.length === 0) {
+      setError("Katalogda hali mahsulotlar mavjud emas. Avval Mahsulotlar bo'limidan qo'shing.");
+      return;
+    }
+    const itemsList = products.slice(0, 6).map((p, idx) => {
+      const specsPart = p.specs ? ` (${p.specs})` : "";
+      return `${idx + 1}. ${p.name} - ${p.price}${specsPart}`;
+    });
     setDraft(
-      "Assalomu alaykum! Bizdagi eng ommabop va sifatli noutbuklar katalogi bilan tanishing:\n\n" +
-      "1. Asus TUF Gaming FX505GE - $340 (i7-8750H, 16GB RAM, GTX1050ti 4GB)\n" +
-      "2. Lenovo ThinkPad E14 Gen 4 - $430 (Ryzen 5 5625U, 16GB RAM, IPS FHD)\n" +
-      "3. HP Victus 15 - $490 (Ryzen 5 5600H, 16GB RAM, GTX1650 4GB)\n" +
-      "4. Apple MacBook Air M1 - $610 (Apple M1 8-Core, 8GB Unified, 256GB SSD)\n\n" +
-      "Qaysi model bo'yicha batafsil ma'lumot beraylik?"
+      "Assalomu alaykum! Do'konimizdagi eng ommabop mahsulotlar katalogi bilan tanishing:\n\n" +
+        itemsList.join("\n") +
+        "\n\nQaysi mahsulot bo'yicha batafsil ma'lumot beraylik?"
     );
-    setSuccess("Katalog taklifi xabar maydoniga tayyorlandi!");
+    setSuccess("Do'kon katalogi taklifi xabar maydoniga tayyorlandi!");
   };
 
   const handleSendDiscountProposal = () => {
@@ -1920,17 +1933,16 @@ function DashboardContent({
   };
 
   async function handleDeletePost(postId: number, msgId?: number) {
-    if (!confirm(`#${msgId || postId} postni bazadan o'chirmoqchimisiz?`)) return;
-    try {
-      setBusy(true);
-      await api(`/admin/knowledge/${postId}`, { method: "DELETE" });
-      setPosts((prev) => prev.filter((p) => p.id !== postId));
-      setSuccess(`#${msgId || postId} post bazadan muvaffaqiyatli o'chirildi!`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Postni o'chirishda xatolik yuz berdi");
-    } finally {
-      setBusy(false);
-    }
+    setPendingConfirm({
+      title: "Bilim bazasidan o'chirish",
+      message: `#${msgId || postId} postni bazadan o'chirmoqchimisiz?`,
+      confirmText: "O'chirish",
+      onConfirm: async () => {
+        await api(`/admin/knowledge/${postId}`, { method: "DELETE" });
+        setPosts((prev) => prev.filter((p) => p.id !== postId));
+        setSuccess(`#${msgId || postId} post bazadan muvaffaqiyatli o'chirildi!`);
+      },
+    });
   }
 
   const handleSaveProductEdit = async () => {
@@ -2014,26 +2026,30 @@ function DashboardContent({
   };
 
   const handleDeleteOrder = async (orderIdStr: string) => {
-    if (!confirm(`${orderIdStr} buyurtmasi o'chirilsinmi?`)) return;
-    const rawId = parseInt(orderIdStr.replace("ORD-", ""), 10);
-    try {
-      await api(`/admin/orders/${rawId}`, { method: "DELETE" });
-      setOrders((prev) => prev.filter((o) => o.id !== orderIdStr));
-      setSuccess(`${orderIdStr} o'chirildi!`);
-    } catch (e: any) {
-      setError(e.message || "Buyurtmani o'chirishda xatolik");
-    }
+    setPendingConfirm({
+      title: "Buyurtmani o'chirish",
+      message: `${orderIdStr} buyurtmasini o'chirishga ishonchingiz komilmi?`,
+      confirmText: "Ha, o'chirish",
+      onConfirm: async () => {
+        const rawId = parseInt(orderIdStr.replace("ORD-", ""), 10);
+        await api(`/admin/orders/${rawId}`, { method: "DELETE" });
+        setOrders((prev) => prev.filter((o) => o.id !== orderIdStr));
+        setSuccess(`${orderIdStr} o'chirildi!`);
+      },
+    });
   };
 
   const handleDeleteProduct = async (prod: ProductItem) => {
-    if (!confirm(`${prod.name} o'chirilsinmi?`)) return;
-    try {
-      await api(`/admin/products/${encodeURIComponent(prod.id)}`, { method: "DELETE" });
-      setProducts((prev) => prev.filter((p) => p.id !== prod.id));
-      setSuccess(`${prod.name} katalogdan o'chirildi!`);
-    } catch (e: any) {
-      setError(e.message || "Mahsulotni o'chirishda xatolik");
-    }
+    setPendingConfirm({
+      title: "Mahsulotni o'chirish",
+      message: `"${prod.name}" mahsulotini katalogdan o'chirishni tasdiqlaysizmi?`,
+      confirmText: "O'chirish",
+      onConfirm: async () => {
+        await api(`/admin/products/${encodeURIComponent(prod.id)}`, { method: "DELETE" });
+        setProducts((prev) => prev.filter((p) => p.id !== prod.id));
+        setSuccess(`${prod.name} katalogdan o'chirildi!`);
+      },
+    });
   };
 
   async function handleSyncKnowledge() {
@@ -2090,19 +2106,16 @@ function DashboardContent({
   }
 
   async function handleDeleteChannel(channelUsername: string) {
-    if (!confirm(`@${channelUsername} kanali ro'yxatdan o'chirilsinmi?`)) return;
-    setBusy(true);
-    setError("");
-    setSuccess("");
-    try {
-      await api(`/admin/channels/${encodeURIComponent(channelUsername)}`, { method: "DELETE" });
-      setSuccess(`@${channelUsername} kanali muvaffaqiyatli o'chirildi.`);
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Kanalni o'chirishda xatolik");
-    } finally {
-      setBusy(false);
-    }
+    setPendingConfirm({
+      title: "Kanalni uzish",
+      message: `@${channelUsername} kanalini ro'yxatdan o'chirmoqchimisiz?`,
+      confirmText: "O'chirish",
+      onConfirm: async () => {
+        await api(`/admin/channels/${encodeURIComponent(channelUsername)}`, { method: "DELETE" });
+        setSuccess(`@${channelUsername} kanali muvaffaqiyatli o'chirildi.`);
+        await load();
+      },
+    });
   }
 
   async function handleAddAdmin(e: React.FormEvent) {
@@ -2139,22 +2152,19 @@ function DashboardContent({
       setError("Owner (Bosh admin)ni o'chirib bo'lmaydi");
       return;
     }
-    if (!confirm(`${name || telegram_user_id} adminlikdan o'chirilsinmi?`)) return;
-    setBusy(true);
-    setError("");
-    setSuccess("");
-    try {
-      await api(`/admin/admins/${telegram_user_id}`, { method: "DELETE" });
-      setSuccess(`${name || "Admin"} tizimdan muvaffaqiyatli o'chirildi.`);
-      if (managingPermissionsAdmin?.telegram_user_id === telegram_user_id) {
-        setManagingPermissionsAdmin(null);
-      }
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Admin o'chirishda xatolik");
-    } finally {
-      setBusy(false);
-    }
+    setPendingConfirm({
+      title: "Adminni o'chirish",
+      message: `${name || telegram_user_id} adminlik huquqidan o'chirilsinmi?`,
+      confirmText: "O'chirish",
+      onConfirm: async () => {
+        await api(`/admin/admins/${telegram_user_id}`, { method: "DELETE" });
+        setSuccess(`${name || "Admin"} tizimdan muvaffaqiyatli o'chirildi.`);
+        if (managingPermissionsAdmin?.telegram_user_id === telegram_user_id) {
+          setManagingPermissionsAdmin(null);
+        }
+        await load();
+      },
+    });
   }
 
   async function handleTogglePermission(telegram_user_id: number, permission: string, currentVal: boolean) {
@@ -2691,7 +2701,7 @@ function DashboardContent({
             )}
 
             {tab === "logs" && (
-              <LogsTab logs={auditLogs} />
+              <LogsTab logs={tenantLogs} loading={loading} />
             )}
 
             {tab === "profile" && (
@@ -2827,14 +2837,27 @@ function DashboardContent({
         onComplete={handleCreateOrganization}
       />
 
-      {/* Store Delete Confirmation Modal */}
+      {/* Unified Selloi Delete Confirmation Modal */}
       <ConfirmModal
-        isOpen={confirmDeleteStoreId !== null}
-        onClose={() => setConfirmDeleteStoreId(null)}
-        onConfirm={executeDeleteStore}
-        title="Do'konni o'chirish"
-        message="Haqiqatan ham ushbu do'konni o'chirmoqchimisiz? Barcha bog'liq sozlamalar nofaol holatga o'tadi."
-        confirmText="Ha, o'chirish"
+        isOpen={pendingConfirm !== null}
+        onClose={() => setPendingConfirm(null)}
+        onConfirm={async () => {
+          if (!pendingConfirm) return;
+          const action = pendingConfirm.onConfirm;
+          setBusy(true);
+          try {
+            await action();
+            setPendingConfirm(null);
+          } catch (err: any) {
+            setPendingConfirm(null);
+            setError(err?.message || "Amalni bajarishda xatolik yuz berdi");
+          } finally {
+            setBusy(false);
+          }
+        }}
+        title={pendingConfirm?.title || "Amalni tasdiqlang"}
+        message={pendingConfirm?.message || ""}
+        confirmText={pendingConfirm?.confirmText || "Tasdiqlash"}
         cancelText="Bekor qilish"
         variant="danger"
         loading={busy}
