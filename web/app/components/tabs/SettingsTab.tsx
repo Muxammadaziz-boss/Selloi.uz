@@ -28,6 +28,12 @@ import { Tooltip } from "../ui/Tooltip";
 import { PageHeader } from "../layout/PageHeader";
 import { AiPlaygroundPanel, type PlaygroundApiResponse } from "../ai/AiPlaygroundPanel";
 import { StorePaymentSettingsCard, type StorePaymentConfigData } from "../settings/StorePaymentSettingsCard";
+import {
+  SmartFollowupSettingsCard,
+  type FollowupBundle,
+  type FollowupConfigData,
+  type FollowupPreviewItem,
+} from "../settings/SmartFollowupSettingsCard";
 
 export interface SettingsTabProps {
   aiModel: string;
@@ -95,6 +101,10 @@ export interface SettingsTabProps {
     card_number?: string;
     card_holder?: string;
   }) => Promise<void>;
+  followupBundle?: FollowupBundle | null;
+  onSaveFollowupConfig?: (payload: Partial<FollowupConfigData>) => Promise<void>;
+  onPreviewFollowup?: () => Promise<{ candidates_count: number; items: FollowupPreviewItem[] }>;
+  onRunFollowupNow?: () => Promise<{ sent_count: number }>;
 }
 
 export function SettingsTab({
@@ -146,6 +156,10 @@ export function SettingsTab({
   onRunPlayground,
   storePaymentConfig = null,
   onSaveStorePaymentConfig,
+  followupBundle = null,
+  onSaveFollowupConfig,
+  onPreviewFollowup,
+  onRunFollowupNow,
 }: SettingsTabProps) {
   const { language, t } = useLanguage();
   return (
@@ -536,6 +550,13 @@ export function SettingsTab({
           <StorePaymentSettingsCard
             config={storePaymentConfig}
             onSaveConfig={onSaveStorePaymentConfig}
+          />
+
+          <SmartFollowupSettingsCard
+            bundle={followupBundle}
+            onSaveConfig={onSaveFollowupConfig}
+            onPreview={onPreviewFollowup}
+            onRunNow={onRunFollowupNow}
           />
         </div>
 

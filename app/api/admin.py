@@ -27,8 +27,10 @@ from app.models import (
     Organization,
     OrganizationMember,
     Product,
+    StoreFollowupConfig,
     StoreOrderPayment,
     StorePaymentConfig,
+    FollowupLog,
     SystemSetting,
     User,
 )
@@ -1723,3 +1725,113 @@ async def check_order_payment_status(
                 raise HTTPException(status_code=400, detail=str(exc))
 
     return {"ok": True, "paid": False, "status": payment.status}
+
+
+# ---------------------------------------------------------------------------
+# Smart Follow-up Automation Settings, Dry-Run Preview & History
+# ---------------------------------------------------------------------------
+
+class FollowupConfigUpdate(BaseModel):
+    is_enabled: bool | None = None
+    delay_hours: int | None = None
+    max_attempts: int | None = None
+    business_hours_only: bool | None = None
+    start_hour: int | None = None
+    end_hour: int | None = None
+    offer_discount_pct: int | None = None
+    custom_template: str | None = None
+
+
+@router.get("/followup/config", dependencies=[Depends(require_permission("can_view_conversations"))])
+async def get_followup_config(
+    db: AsyncSession = Depends(get_db),
+    org_id: int = Depends(get_admin_tenant_id),
+):
+    from app.services.followup_service import (
+        find_followup_candidates,
+        get_or_create_followup_config,
+        serialize_followup_config,
+    )
+
+    cfg = await get_or_create_followup_config(db, org_id)
+    candidates = await find_followup_candidates(db, organization_id=org_id, cfg=cfg, limit=20)
+    history_rows = (
+        await db.execute(
+            select(FollowupLog, Conversation.customer_name)
+            .join(Conversation, Conversation.id == FollowupLog.conversation_id)
+            .where(FollowupLog.organization_id == org_id)
+            .order_by(FollowupLog.sent_at.desc())
+            .limit(20)
+        )
+    ).all()
+    await db.commit()
+
+    return {
+        "config": serialize_followup_config(cfg),
+        "eligible_count": len(candidates),
+        "history": [
+            {
+                "id": log.id,
+                "conversation_id": log.conversation_id,
+                "customer_name": cust_name or "Mijoz",
+                "attempt_number": log.attempt_number,
+                "message_text": log.message_text,
+                "status": log.status,
+                "error_message": log.error_message,
+                "sent_at": log.sent_at.isoformat() if log.sent_at else None,
+            }
+            for log, cust_name in history_rows
+        ],
+    }
+
+
+@router.put("/followup/config", dependencies=[Depends(require_permission("can_manage_settings"))])
+async def update_followup_config(
+    payload: FollowupConfigUpdate,
+    db: AsyncSession = Depends(get_db),
+    org_id: int = Depends(get_admin_tenant_id),
+):
+    from app.services.followup_service import serialize_followup_config, upsert_followup_config
+
+    try:
+        cfg = await upsert_followup_config(db, org_id, payload.model_dump())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    db.add(
+        AuditLog(
+            organization_id=org_id,
+            action="followup.config_updated",
+            resource="store_followup_config",
+            resource_id=str(org_id),
+            metadata_json={"is_enabled": cfg.is_enabled, "delay_hours": cfg.delay_hours, "max_attempts": cfg.max_attempts},
+        )
+    )
+    await db.commit()
+    return {"ok": True, "config": serialize_followup_config(cfg)}
+
+
+@router.post("/followup/preview", dependencies=[Depends(require_permission("can_manage_settings"))])
+async def preview_followup_candidates(
+    db: AsyncSession = Depends(get_db),
+    org_id: int = Depends(get_admin_tenant_id),
+):
+    from app.services.followup_service import run_org_followups
+
+    return await run_org_followups(db, organization_id=org_id, dry_run=True, limit=15)
+
+
+@router.post("/followup/run-now", dependencies=[Depends(require_permission("can_manage_settings"))])
+async def run_followup_sweep_now(
+    db: AsyncSession = Depends(get_db),
+    org_id: int = Depends(get_admin_tenant_id),
+):
+    from app.services.followup_service import run_org_followups
+
+    return await run_org_followups(
+        db,
+        organization_id=org_id,
+        dry_run=False,
+        ignore_business_hours=True,
+        limit=10,
+    )

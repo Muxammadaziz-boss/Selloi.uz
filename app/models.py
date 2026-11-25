@@ -714,3 +714,40 @@ class StoreOrderPayment(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
+
+class StoreFollowupConfig(Base):
+    """Per-organization Smart Follow-up automation rules and anti-spam limits."""
+    __tablename__ = "store_followup_configs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    organization_id: Mapped[int] = mapped_column(
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        unique=True,
+        index=True,
+        nullable=False,
+    )
+    is_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    delay_hours: Mapped[int] = mapped_column(Integer, default=6, nullable=False)
+    max_attempts: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    business_hours_only: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    start_hour: Mapped[int] = mapped_column(Integer, default=9, nullable=False)
+    end_hour: Mapped[int] = mapped_column(Integer, default=20, nullable=False)
+    offer_discount_pct: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    custom_template: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+
+class FollowupLog(Base):
+    """Audit trail of automated Smart Follow-up nudges sent per conversation."""
+    __tablename__ = "followup_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True, nullable=False)
+    conversation_id: Mapped[int] = mapped_column(ForeignKey("conversations.id", ondelete="CASCADE"), index=True, nullable=False)
+    attempt_number: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    message_text: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    status: Mapped[str] = mapped_column(String(32), default="sent", index=True, nullable=False)  # sent, failed
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    sent_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+

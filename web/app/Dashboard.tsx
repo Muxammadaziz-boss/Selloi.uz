@@ -77,6 +77,7 @@ import { DesignProvider } from "./components/design/DesignContext";
 import { LanguageProvider, useLanguage } from "./lib/i18n";
 import { playNotificationChime, showBrowserNotification } from "../lib/sound";
 import type { StorePaymentConfigData } from "./components/settings/StorePaymentSettingsCard";
+import type { FollowupBundle, FollowupConfigData } from "./components/settings/SmartFollowupSettingsCard";
 
 function TabPanelSkeleton() {
   return (
@@ -861,6 +862,7 @@ function DashboardContent({
   const [channelFilter, setChannelFilter] = useState("all");
   const [orders, setOrders] = useState<OrderItem[]>(INITIAL_ORDERS);
   const [storePaymentConfig, setStorePaymentConfig] = useState<StorePaymentConfigData | null>(null);
+  const [followupBundle, setFollowupBundle] = useState<FollowupBundle | null>(null);
   const [products, setProducts] = useState<ProductItem[]>(INITIAL_PRODUCTS);
   const [editingProduct, setEditingProduct] = useState<ProductItem | null>(null);
   const [isAddingProduct, setIsAddingProduct] = useState(false);
@@ -991,7 +993,7 @@ function DashboardContent({
     setLoading(true);
     setError("");
     try {
-      const [o, c, p, a, s, chList, prodsList, ordersList, tenantLogsRes, storePayCfg] = await Promise.all([
+      const [o, c, p, a, s, chList, prodsList, ordersList, tenantLogsRes, storePayCfg, followupRes] = await Promise.all([
         api<Overview>("/admin/overview"),
         api<Conversation[]>("/admin/conversations"),
         api<KnowledgePost[]>("/admin/knowledge"),
@@ -1002,6 +1004,7 @@ function DashboardContent({
         api<OrderItem[]>("/admin/orders").catch(() => []),
         api<{ logs?: any[] }>("/admin/logs").catch(() => ({ logs: [] })),
         api<StorePaymentConfigData>("/admin/payments/config").catch(() => null),
+        api<FollowupBundle>("/admin/followup/config").catch(() => null),
       ]);
       setOverview(o);
       setConversations(c);
@@ -1012,6 +1015,7 @@ function DashboardContent({
       setOrders(ordersList || []);
       setTenantLogs(tenantLogsRes?.logs || []);
       setStorePaymentConfig(storePayCfg);
+      setFollowupBundle(followupRes);
       const serverNotes: Record<number, string> = {};
       (c || []).forEach((conv) => {
         if (conv.note) {
@@ -2311,6 +2315,38 @@ function DashboardContent({
     }
   };
 
+  const handleSaveFollowupConfig = async (payload: Partial<FollowupConfigData>) => {
+    try {
+      await api("/admin/followup/config", {
+        method: "PUT",
+        body: JSON.stringify(payload),
+      });
+      const updated = await api<FollowupBundle>("/admin/followup/config").catch(() => null);
+      if (updated) setFollowupBundle(updated);
+      setSuccess("Smart Follow-up qoidalari saqlandi!");
+    } catch (e: any) {
+      setError(e.message || "Follow-up sozlamalarini saqlashda xatolik");
+      throw e;
+    }
+  };
+
+  const handlePreviewFollowup = async () => {
+    return api<any>("/admin/followup/preview", { method: "POST" });
+  };
+
+  const handleRunFollowupNow = async () => {
+    try {
+      const res = await api<any>("/admin/followup/run-now", { method: "POST" });
+      const updated = await api<FollowupBundle>("/admin/followup/config").catch(() => null);
+      if (updated) setFollowupBundle(updated);
+      setSuccess(`${res?.sent_count || 0} ta mijozga Smart Follow-up xabari yuborildi.`);
+      return res;
+    } catch (e: any) {
+      setError(e.message || "Follow-up yuborishda xatolik");
+      throw e;
+    }
+  };
+
   const handleDeleteOrder = async (orderIdStr: string) => {
     setPendingConfirm({
       title: "Buyurtmani o'chirish",
@@ -2968,6 +3004,10 @@ function DashboardContent({
                 onRunPlayground={handleRunAiPlayground}
                 storePaymentConfig={storePaymentConfig}
                 onSaveStorePaymentConfig={handleSaveStorePaymentConfig}
+                followupBundle={followupBundle}
+                onSaveFollowupConfig={handleSaveFollowupConfig}
+                onPreviewFollowup={handlePreviewFollowup}
+                onRunFollowupNow={handleRunFollowupNow}
               />
             )}
 

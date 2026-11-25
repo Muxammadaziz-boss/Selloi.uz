@@ -78,6 +78,23 @@ async def _subscription_maintenance_loop():
             logger.exception("Obunalarni tekshirish fon vazifasida xatolik")
 
 
+async def _smart_followup_loop():
+    """Background scheduler sending respectful Smart Follow-ups every 15 minutes."""
+    while True:
+        try:
+            await asyncio.sleep(900)
+            async with SessionLocal() as db:
+                from app.services.followup_service import run_all_enabled_followups
+
+                sent_total = await run_all_enabled_followups(db)
+                if sent_total > 0:
+                    logger.info("Smart Follow-up fon vazifasi: %s ta mijozga eslatma yuborildi", sent_total)
+        except asyncio.CancelledError:
+            break
+        except Exception:
+            logger.exception("Smart Follow-up fon vazifasida xatolik")
+
+
 async def verify_database_readiness(conn) -> tuple[bool, list[str]]:
     """Verify presence of mandatory tables and required columns."""
     from sqlalchemy import inspect
@@ -282,6 +299,7 @@ async def lifespan(application: FastAPI):
             logger.exception("setMyCommands o'rnatishda xatolik yuz berdi")
 
     maintenance_task = asyncio.create_task(_subscription_maintenance_loop())
+    followup_task = asyncio.create_task(_smart_followup_loop())
     bot_task = asyncio.create_task(bot_manager.start())
 
     if settings.run_background_workers:
@@ -311,10 +329,12 @@ async def lifespan(application: FastAPI):
     await bot_manager.stop()
     bot_task.cancel()
     maintenance_task.cancel()
-    try:
-        await maintenance_task
-    except asyncio.CancelledError:
-        pass
+    followup_task.cancel()
+    for task in (maintenance_task, followup_task):
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
     await engine.dispose()
     logger.info("Application shut down")
 
