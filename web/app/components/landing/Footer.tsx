@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { SelloiTranslations } from "./selloiI18n";
+import { smoothScrollToSection } from "./smoothScroll";
 
 interface FooterProps {
   t: SelloiTranslations["footer"];
@@ -11,10 +12,7 @@ interface FooterProps {
 
 export default function Footer({ t, onLanguageClick }: FooterProps) {
   const scrollTo = (id: string) => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth" });
-    }
+    smoothScrollToSection(id);
   };
 
   return (
@@ -32,7 +30,7 @@ export default function Footer({ t, onLanguageClick }: FooterProps) {
               className="selloi-footer-logo-row"
               onClick={(e) => {
                 e.preventDefault();
-                window.scrollTo({ top: 0, behavior: "smooth" });
+                scrollTo("top");
               }}
               title="Selloi"
             >

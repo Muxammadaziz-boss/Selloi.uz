@@ -340,7 +340,7 @@ export function ConversationDemoSection({ language }: { language?: Language }) {
   const [typing, setTyping] = useState(false);
   const [quotedProduct, setQuotedProduct] = useState<Product | null>(null);
   const [orderProduct, setOrderProduct] = useState<Product | null>(null);
-  const chatEndRef = useRef<HTMLDivElement>(null);
+  const messagesBoxRef = useRef<HTMLDivElement>(null);
   const idRef = useRef(100);
 
   const filteredProducts = useMemo(() => {
@@ -357,7 +357,12 @@ export function ConversationDemoSection({ language }: { language?: Language }) {
   }, [channelFilter, channelSearch]);
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messagesBoxRef.current) {
+      messagesBoxRef.current.scrollTo({
+        top: messagesBoxRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+    }
   }, [messages, typing]);
 
   const sendMessage = useCallback((text: string, quoted?: Product) => {
@@ -414,7 +419,7 @@ export function ConversationDemoSection({ language }: { language?: Language }) {
   ];
 
   return (
-    <section className="tg-demo-section" id="demo">
+    <section className="tg-demo-section selloi-reveal-item" id="suhbat-namunasi">
       {/* Section label */}
       <div className="tg-demo-label">
         <span className="tg-demo-badge">📱 LIVE SINOV</span>
@@ -559,7 +564,7 @@ export function ConversationDemoSection({ language }: { language?: Language }) {
                 {/* Wallpaper + messages */}
                 <div className="tg-messages-area">
                   <div className="tg-wallpaper" />
-                  <div className="tg-messages">
+                  <div className="tg-messages" ref={messagesBoxRef}>
                     {messages.map(m => <ChatBubble key={m.id} msg={m} />)}
                     {typing && (
                       <div className="tg-bubble-wrap">
@@ -569,7 +574,6 @@ export function ConversationDemoSection({ language }: { language?: Language }) {
                         </div>
                       </div>
                     )}
-                    <div ref={chatEndRef} />
                   </div>
                 </div>
 

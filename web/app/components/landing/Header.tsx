@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Language } from "@/app/lib/i18n/types";
 import { SelloiTranslations } from "./selloiI18n";
+import { smoothScrollToSection } from "./smoothScroll";
 
 interface HeaderProps {
   onOpenOnboarding: () => void;
@@ -52,6 +53,7 @@ export default function Header({
 
   const langWrapperRef = useRef<HTMLDivElement>(null);
   const navRef = useRef<HTMLElement>(null);
+  const isProgrammaticScrollRef = useRef<boolean>(false);
 
   // Close language dropdown on outside click
   useEffect(() => {
@@ -69,12 +71,19 @@ export default function Header({
     };
   }, []);
 
-  // Smooth scroll helper
-  const scrollTo = (id: string) => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth" });
+  // Eased smooth scroll helper that locks ScrollSpy during flight so pill glides cleanly
+  const scrollTo = (id: string, navId?: string) => {
+    if (navId) {
+      setActiveSection(navId);
     }
+    smoothScrollToSection(id, {
+      onStart: () => {
+        isProgrammaticScrollRef.current = true;
+      },
+      onComplete: () => {
+        isProgrammaticScrollRef.current = false;
+      },
+    });
   };
 
   // Cycle languages on click (uz -> ru -> en -> uz)
@@ -101,6 +110,7 @@ export default function Header({
     };
 
     const handleScroll = () => {
+      if (isProgrammaticScrollRef.current) return;
       // Dynamic offset based on viewport height
       const scrollPos = window.scrollY + window.innerHeight * 0.35;
 
@@ -175,8 +185,7 @@ export default function Header({
           data-node-id="89:5"
           onClick={(e) => {
             e.preventDefault();
-            setActiveSection("top");
-            window.scrollTo({ top: 0, behavior: "smooth" });
+            scrollTo("top", "top");
           }}
           title="Selloi"
         >
@@ -224,18 +233,11 @@ export default function Header({
                 onMouseEnter={() => setHoveredNavId(item.id)}
                 onClick={(e) => {
                   e.preventDefault();
-                  setActiveSection(item.id);
-                  if (item.id === "top") {
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  } else if (item.id === "boshlash") {
-                    if (isAuthenticated) {
-                      window.location.href = "/dashboard";
-                    } else {
-                      scrollTo("boshlash");
-                    }
-                  } else {
-                    scrollTo(item.targetId);
+                  if (item.id === "boshlash" && isAuthenticated) {
+                    window.location.href = "/dashboard";
+                    return;
                   }
+                  scrollTo(item.targetId, item.id);
                 }}
               >
                 <span>{t[item.labelKey]}</span>
