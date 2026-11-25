@@ -7,7 +7,9 @@ import {
   IconSearch,
   IconMessageDots,
   IconClock,
+  IconDownload,
 } from "@tabler/icons-react";
+import { downloadCsvExport } from "../../lib/csvExport";
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
@@ -74,19 +76,43 @@ export function CustomersTab({
       <Card>
         <CardHeader
           actions={
-            <div className="position-relative" style={{ width: "220px" }}>
-              <IconSearch
-                size={14}
-                className="position-absolute start-0 ms-2.5 top-50 translate-middle-y text-secondary"
-              />
-              <input
-                type="text"
-                placeholder={t("customers.search_placeholder")}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="linear-input ps-5 py-1"
-                style={{ fontSize: "0.78rem" }}
-              />
+            <div className="d-flex flex-wrap align-items-center gap-2">
+              <div className="position-relative" style={{ width: "220px" }}>
+                <IconSearch
+                  size={14}
+                  className="position-absolute start-0 ms-2.5 top-50 translate-middle-y text-secondary"
+                />
+                <input
+                  type="text"
+                  placeholder={t("customers.search_placeholder")}
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="linear-input ps-5 py-1"
+                  style={{ fontSize: "0.78rem" }}
+                />
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={<IconDownload size={14} />}
+                disabled={filtered.length === 0}
+                onClick={() =>
+                  downloadCsvExport(
+                    `mijozlar-${new Date().toISOString().slice(0, 10)}.csv`,
+                    ["ID", "Mijoz", "Username", "Chat ID", "Holat", "Oxirgi xabar"],
+                    filtered.map((c) => [
+                      c.id,
+                      c.customer_name,
+                      c.username ? `@${c.username}` : "",
+                      c.chat_id,
+                      c.status,
+                      c.last_message_at || "",
+                    ])
+                  )
+                }
+              >
+                CSV Eksport
+              </Button>
             </div>
           }
         >

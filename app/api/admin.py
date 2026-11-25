@@ -1835,3 +1835,98 @@ async def run_followup_sweep_now(
         ignore_business_hours=True,
         limit=10,
     )
+
+
+class StoreReportConfigUpdate(BaseModel):
+    is_enabled: bool | None = None
+    send_hour: int | None = None
+    include_orders: bool | None = None
+    include_customers: bool | None = None
+
+
+class StoreReportSendRequest(BaseModel):
+    dry_run: bool = False
+
+
+@router.get("/reports/config", dependencies=[Depends(require_permission("can_view_orders"))])
+async def get_store_report_config(
+    db: AsyncSession = Depends(get_db),
+    org_id: int = Depends(get_admin_tenant_id),
+):
+    from app.services.report_service import (
+        build_store_daily_digest,
+        get_or_create_report_config,
+        serialize_report_config,
+    )
+
+    cfg = await get_or_create_report_config(db, org_id)
+    digest = await build_store_daily_digest(
+        db,
+        org_id,
+        include_orders=cfg.include_orders,
+        include_customers=cfg.include_customers,
+    )
+    await db.commit()
+    return {
+        "config": serialize_report_config(cfg),
+        "preview": digest,
+    }
+
+
+@router.put("/reports/config", dependencies=[Depends(require_permission("can_manage_settings"))])
+async def update_store_report_config(
+    payload: StoreReportConfigUpdate,
+    db: AsyncSession = Depends(get_db),
+    org_id: int = Depends(get_admin_tenant_id),
+):
+    from app.services.report_service import serialize_report_config, upsert_report_config
+
+    try:
+        cfg = await upsert_report_config(db, org_id, payload.model_dump())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    db.add(
+        AuditLog(
+            organization_id=org_id,
+            action="store_report.config_updated",
+            resource="store_report_config",
+            resource_id=str(org_id),
+            metadata_json={"is_enabled": cfg.is_enabled, "send_hour": cfg.send_hour},
+        )
+    )
+    await db.commit()
+    return {"ok": True, "config": serialize_report_config(cfg)}
+
+
+@router.post("/reports/send-now", dependencies=[Depends(require_permission("can_manage_settings"))])
+async def send_store_report_now(
+    payload: StoreReportSendRequest | None = None,
+    dry_run: bool = Query(default=False),
+    db: AsyncSession = Depends(get_db),
+    org_id: int = Depends(get_admin_tenant_id),
+):
+    from app.services.report_service import send_store_daily_digest
+
+    effective_dry = dry_run or bool(payload.dry_run if payload else False)
+    return await send_store_daily_digest(db, org_id, dry_run=effective_dry, force=not effective_dry)
+
+
+@router.get("/export/{entity}", dependencies=[Depends(require_permission("can_view_orders"))])
+async def export_store_csv(
+    entity: str,
+    db: AsyncSession = Depends(get_db),
+    org_id: int = Depends(get_admin_tenant_id),
+):
+    from app.services.report_service import build_store_csv_export
+
+    try:
+        filename, csv_content = await build_store_csv_export(db, org_id, entity)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    return Response(
+        content=csv_content.encode("utf-8"),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )

@@ -10,7 +10,9 @@ import {
   IconPencil,
   IconTrash,
   IconFilter,
+  IconDownload,
 } from "@tabler/icons-react";
+import { downloadCsvExport } from "../../lib/csvExport";
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
@@ -89,7 +91,30 @@ export function ProductsTab({
           variant: "accent",
         }}
         actions={
-          <div className="d-flex align-items-center gap-2">
+          <div className="d-flex flex-wrap align-items-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={filteredProducts.length === 0}
+              onClick={() =>
+                downloadCsvExport(
+                  `mahsulotlar-${new Date().toISOString().slice(0, 10)}.csv`,
+                  ["Kod", "Nomi", "Kategoriya", "Narx", "Zaxira", "Kafolat", "Xususiyatlar"],
+                  filteredProducts.map((p) => [
+                    p.id,
+                    p.name,
+                    p.category,
+                    p.price,
+                    p.stock,
+                    p.warranty,
+                    p.specs,
+                  ])
+                )
+              }
+              icon={<IconDownload size={14} />}
+            >
+              CSV Eksport
+            </Button>
             <Button
               variant="outline"
               size="sm"

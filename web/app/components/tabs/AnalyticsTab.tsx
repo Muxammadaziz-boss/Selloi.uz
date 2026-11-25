@@ -10,7 +10,10 @@ import {
   IconHeadset,
   IconShoppingCart,
   IconCheck,
+  IconDownload,
 } from "@tabler/icons-react";
+import { downloadCsvExport } from "../../lib/csvExport";
+import { Button } from "../ui/Button";
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { EmptyState } from "../ui/EmptyState";
@@ -124,6 +127,22 @@ export function AnalyticsTab({
               : "Live data",
           variant: "success",
         }}
+        actions={
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<IconDownload size={14} />}
+            onClick={() =>
+              downloadCsvExport(
+                `tahlil-hisobot-${new Date().toISOString().slice(0, 10)}.csv`,
+                ["Sana", "Suhbatlar", "Buyurtmalar"],
+                activityDays.map((d) => [d.label, d.primary, d.secondary])
+              )
+            }
+          >
+            Hisobot CSV
+          </Button>
+        }
       />
 
       {/* 4 Metric KPI Cards */}

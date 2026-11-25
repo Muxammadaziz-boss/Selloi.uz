@@ -766,3 +766,19 @@ class PasswordResetToken(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
 
 
+class StoreReportConfig(Base):
+    """Per-store daily Telegram report schedule and preferences."""
+    __tablename__ = "store_report_configs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), unique=True, index=True, nullable=False)
+    is_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    send_hour: Mapped[int] = mapped_column(Integer, default=21, nullable=False)  # Tashkent local hour 0..23
+    include_orders: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    include_customers: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    last_sent_date: Mapped[str | None] = mapped_column(String(16), nullable=True)  # YYYY-MM-DD (Tashkent)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+
+

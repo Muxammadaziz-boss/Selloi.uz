@@ -78,6 +78,7 @@ import { LanguageProvider, useLanguage } from "./lib/i18n";
 import { playNotificationChime, showBrowserNotification } from "../lib/sound";
 import type { StorePaymentConfigData } from "./components/settings/StorePaymentSettingsCard";
 import type { FollowupBundle, FollowupConfigData } from "./components/settings/SmartFollowupSettingsCard";
+import type { StoreReportBundle, StoreReportConfigData } from "./components/settings/DailyReportSettingsCard";
 
 function TabPanelSkeleton() {
   return (
@@ -863,6 +864,7 @@ function DashboardContent({
   const [orders, setOrders] = useState<OrderItem[]>(INITIAL_ORDERS);
   const [storePaymentConfig, setStorePaymentConfig] = useState<StorePaymentConfigData | null>(null);
   const [followupBundle, setFollowupBundle] = useState<FollowupBundle | null>(null);
+  const [reportBundle, setReportBundle] = useState<StoreReportBundle | null>(null);
   const [products, setProducts] = useState<ProductItem[]>(INITIAL_PRODUCTS);
   const [editingProduct, setEditingProduct] = useState<ProductItem | null>(null);
   const [isAddingProduct, setIsAddingProduct] = useState(false);
@@ -993,7 +995,7 @@ function DashboardContent({
     setLoading(true);
     setError("");
     try {
-      const [o, c, p, a, s, chList, prodsList, ordersList, tenantLogsRes, storePayCfg, followupRes] = await Promise.all([
+      const [o, c, p, a, s, chList, prodsList, ordersList, tenantLogsRes, storePayCfg, followupRes, reportRes] = await Promise.all([
         api<Overview>("/admin/overview"),
         api<Conversation[]>("/admin/conversations"),
         api<KnowledgePost[]>("/admin/knowledge"),
@@ -1005,6 +1007,7 @@ function DashboardContent({
         api<{ logs?: any[] }>("/admin/logs").catch(() => ({ logs: [] })),
         api<StorePaymentConfigData>("/admin/payments/config").catch(() => null),
         api<FollowupBundle>("/admin/followup/config").catch(() => null),
+        api<StoreReportBundle>("/admin/reports/config").catch(() => null),
       ]);
       setOverview(o);
       setConversations(c);
@@ -1016,6 +1019,7 @@ function DashboardContent({
       setTenantLogs(tenantLogsRes?.logs || []);
       setStorePaymentConfig(storePayCfg);
       setFollowupBundle(followupRes);
+      setReportBundle(reportRes);
       const serverNotes: Record<number, string> = {};
       (c || []).forEach((conv) => {
         if (conv.note) {
@@ -2419,6 +2423,48 @@ function DashboardContent({
     }
   };
 
+  const handleSaveReportConfig = async (payload: Partial<StoreReportConfigData>) => {
+    try {
+      await api("/admin/reports/config", {
+        method: "PUT",
+        body: JSON.stringify(payload),
+      });
+      const updated = await api<StoreReportBundle>("/admin/reports/config").catch(() => null);
+      if (updated) setReportBundle(updated);
+      setSuccess("Kunlik Telegram hisoboti sozlamalari saqlandi!");
+    } catch (e: any) {
+      setError(e.message || "Hisobot sozlamalarini saqlashda xatolik");
+      throw e;
+    }
+  };
+
+  const handlePreviewDailyReport = async () => {
+    return api<any>("/admin/reports/send-now?dry_run=true", {
+      method: "POST",
+      body: JSON.stringify({ dry_run: true }),
+    });
+  };
+
+  const handleSendDailyReportNow = async () => {
+    try {
+      const res = await api<any>("/admin/reports/send-now", {
+        method: "POST",
+        body: JSON.stringify({ dry_run: false }),
+      });
+      const updated = await api<StoreReportBundle>("/admin/reports/config").catch(() => null);
+      if (updated) setReportBundle(updated);
+      setSuccess(
+        res?.sent_count > 0
+          ? `Kunlik hisobot ${res.sent_count} ta admin Telegramiga yuborildi.`
+          : "Kunlik hisobot tayyorlandi."
+      );
+      return res;
+    } catch (e: any) {
+      setError(e.message || "Hisobot yuborishda xatolik");
+      throw e;
+    }
+  };
+
   const handleDeleteOrder = async (orderIdStr: string) => {
     setPendingConfirm({
       title: "Buyurtmani o'chirish",
@@ -3084,6 +3130,10 @@ function DashboardContent({
                 onSaveFollowupConfig={handleSaveFollowupConfig}
                 onPreviewFollowup={handlePreviewFollowup}
                 onRunFollowupNow={handleRunFollowupNow}
+                reportBundle={reportBundle}
+                onSaveReportConfig={handleSaveReportConfig}
+                onPreviewReport={handlePreviewDailyReport}
+                onSendReportNow={handleSendDailyReportNow}
               />
             )}
 

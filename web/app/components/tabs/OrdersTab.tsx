@@ -12,7 +12,9 @@ import {
   IconCopy,
   IconRefresh,
   IconX,
+  IconDownload,
 } from "@tabler/icons-react";
+import { downloadCsvExport } from "../../lib/csvExport";
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
@@ -166,6 +168,32 @@ export function OrdersTab({
                   style={{ fontSize: "0.78rem" }}
                 />
               </div>
+
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={<IconDownload size={14} />}
+                disabled={filteredOrders.length === 0}
+                onClick={() =>
+                  downloadCsvExport(
+                    `buyurtmalar-${new Date().toISOString().slice(0, 10)}.csv`,
+                    ["ID", "Mijoz", "Username", "Mahsulot", "Summa", "Holat", "To'lov", "Kanal", "Sana"],
+                    filteredOrders.map((o) => [
+                      o.id,
+                      o.customer,
+                      o.username,
+                      o.product,
+                      o.amount,
+                      o.status,
+                      o.latest_payment?.status || "-",
+                      o.channel,
+                      o.date,
+                    ])
+                  )
+                }
+              >
+                CSV Eksport
+              </Button>
             </div>
           }
         >

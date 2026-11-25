@@ -95,6 +95,23 @@ async def _smart_followup_loop():
             logger.exception("Smart Follow-up fon vazifasida xatolik")
 
 
+async def _daily_store_reports_loop():
+    """Background scheduler sending per-store daily Telegram digest reports every 15 minutes."""
+    while True:
+        try:
+            await asyncio.sleep(900)
+            async with SessionLocal() as db:
+                from app.services.report_service import run_all_enabled_store_reports
+
+                sent_total = await run_all_enabled_store_reports(db)
+                if sent_total > 0:
+                    logger.info("Kunlik do'kon hisobotlari fon vazifasi: %s ta xabar yuborildi", sent_total)
+        except asyncio.CancelledError:
+            break
+        except Exception:
+            logger.exception("Kunlik do'kon hisobotlari fon vazifasida xatolik")
+
+
 async def verify_database_readiness(conn) -> tuple[bool, list[str]]:
     """Verify presence of mandatory tables and required columns."""
     from sqlalchemy import inspect
@@ -300,6 +317,7 @@ async def lifespan(application: FastAPI):
 
     maintenance_task = asyncio.create_task(_subscription_maintenance_loop())
     followup_task = asyncio.create_task(_smart_followup_loop())
+    reports_task = asyncio.create_task(_daily_store_reports_loop())
     bot_task = asyncio.create_task(bot_manager.start())
 
     if settings.run_background_workers:
@@ -330,7 +348,8 @@ async def lifespan(application: FastAPI):
     bot_task.cancel()
     maintenance_task.cancel()
     followup_task.cancel()
-    for task in (maintenance_task, followup_task):
+    reports_task.cancel()
+    for task in (maintenance_task, followup_task, reports_task):
         try:
             await task
         except asyncio.CancelledError:

@@ -34,6 +34,12 @@ import {
   type FollowupConfigData,
   type FollowupPreviewItem,
 } from "../settings/SmartFollowupSettingsCard";
+import {
+  DailyReportSettingsCard,
+  type StoreReportBundle,
+  type StoreReportConfigData,
+  type StoreReportPreviewData,
+} from "../settings/DailyReportSettingsCard";
 
 export interface SettingsTabProps {
   aiModel: string;
@@ -105,6 +111,10 @@ export interface SettingsTabProps {
   onSaveFollowupConfig?: (payload: Partial<FollowupConfigData>) => Promise<void>;
   onPreviewFollowup?: () => Promise<{ candidates_count: number; items: FollowupPreviewItem[] }>;
   onRunFollowupNow?: () => Promise<{ sent_count: number }>;
+  reportBundle?: StoreReportBundle | null;
+  onSaveReportConfig?: (payload: Partial<StoreReportConfigData>) => Promise<void>;
+  onPreviewReport?: () => Promise<StoreReportPreviewData>;
+  onSendReportNow?: () => Promise<StoreReportPreviewData>;
 }
 
 export function SettingsTab({
@@ -160,6 +170,10 @@ export function SettingsTab({
   onSaveFollowupConfig,
   onPreviewFollowup,
   onRunFollowupNow,
+  reportBundle = null,
+  onSaveReportConfig,
+  onPreviewReport,
+  onSendReportNow,
 }: SettingsTabProps) {
   const { language, t } = useLanguage();
   return (
@@ -557,6 +571,13 @@ export function SettingsTab({
             onSaveConfig={onSaveFollowupConfig}
             onPreview={onPreviewFollowup}
             onRunNow={onRunFollowupNow}
+          />
+
+          <DailyReportSettingsCard
+            bundle={reportBundle}
+            onSaveConfig={onSaveReportConfig}
+            onPreviewReport={onPreviewReport}
+            onSendReportNow={onSendReportNow}
           />
         </div>
 
