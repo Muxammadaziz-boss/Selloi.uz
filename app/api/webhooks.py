@@ -36,6 +36,46 @@ def _date(value: str | None) -> datetime | None:
         return None
 
 
+async def _extract_voice_transcript(
+    message: dict,
+    *,
+    tg_svc: TelegramService | None,
+    org_id: int | None,
+    db: AsyncSession,
+) -> str:
+    """Download and transcribe Telegram voice, audio, or video_note attachments when present."""
+    if not tg_svc:
+        return ""
+    attachment = message.get("voice") or message.get("audio") or message.get("video_note")
+    if not isinstance(attachment, dict):
+        return ""
+    file_id = attachment.get("file_id")
+    duration = int(attachment.get("duration") or 0)
+    if not file_id or duration > 180:
+        return ""
+
+    if message.get("voice"):
+        mime_type = attachment.get("mime_type") or "audio/ogg"
+    elif message.get("video_note"):
+        mime_type = "video/mp4"
+    else:
+        mime_type = attachment.get("mime_type") or "audio/mpeg"
+
+    try:
+        audio_bytes, _ = await tg_svc.download_file_bytes(file_id)
+        transcript = await sales_ai.transcribe_audio(
+            audio_bytes,
+            mime_type=mime_type,
+            organization_id=org_id,
+            db=db,
+        )
+        if transcript.strip():
+            return f"🎤 {transcript.strip()}"
+    except Exception as exc:
+        logger.warning("Ovozli xabarni matnga o'girishda xatolik: %s", exc)
+    return ""
+
+
 _PROCESSED_UPDATES: OrderedDict[int, float] = OrderedDict()
 _PENDING_TOKENS: dict[int, tuple[float, str]] = {}
 _MAX_PROCESSED_UPDATES = 10000
@@ -467,6 +507,22 @@ async def _handle_business_message(message: dict, db: AsyncSession | None = None
             username=sender.get("username"),
             organization_id=org_id,
         )
+        if not incoming_text.strip() and (message.get("voice") or message.get("audio") or message.get("video_note")):
+            already_msg = (
+                await session.execute(
+                    select(Message.id).where(
+                        Message.conversation_id == conversation.id,
+                        Message.telegram_message_id == msg_id_int,
+                    ).limit(1)
+                )
+            ).scalar_one_or_none()
+            if already_msg is None:
+                incoming_text = await _extract_voice_transcript(
+                    message,
+                    tg_svc=tg_svc,
+                    org_id=org_id,
+                    db=session,
+                )
         incoming_saved = await save_message(
             session,
             conversation_id=conversation.id,
@@ -790,7 +846,7 @@ async def _handle_direct_bot_message(message: dict, db: AsyncSession, organizati
     chat_id = chat.get("id")
     sender = message.get("from") or {}
     text = (message.get("text") or message.get("caption") or "").strip()
-    if not chat_id or not text:
+    if not chat_id:
         return
 
     first_name = sender.get("first_name", "")
@@ -804,6 +860,16 @@ async def _handle_direct_bot_message(message: dict, db: AsyncSession, organizati
             tg_svc = get_telegram_service()
     except Exception:
         tg_svc = None
+
+    if not text and (message.get("voice") or message.get("audio") or message.get("video_note")):
+        text = await _extract_voice_transcript(
+            message,
+            tg_svc=tg_svc,
+            org_id=organization_id,
+            db=db,
+        )
+    if not text:
+        return
 
     stop_typing = asyncio.Event()
     typing_task = asyncio.create_task(_typing_loop(chat_id_int, None, stop_typing, tg_svc=tg_svc))

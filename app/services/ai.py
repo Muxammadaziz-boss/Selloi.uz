@@ -1,3 +1,5 @@
+import base64
+import io
 import json
 import httpx
 from openai import AsyncOpenAI
@@ -127,6 +129,129 @@ class SalesAI:
                 return True
         return False
 
+    async def _resolve_org_ai_context(self, db: any, organization_id: int | None) -> dict:
+        """Resolve per-organization AI provider credentials and store persona preferences."""
+        org_gemini_key = None
+        org_openai_key = None
+        custom_system_prompt = None
+        ai_language = "uz"
+        ai_personality = "Professional & Courteous"
+
+        if db is not None and organization_id is not None:
+            try:
+                from app.models import Organization
+                org = await db.get(Organization, organization_id)
+                if org:
+                    org_gemini_key = org.decrypted_gemini_api_key
+                    org_openai_key = org.decrypted_openai_api_key
+                    custom_system_prompt = org.custom_system_prompt
+                    ai_language = org.ai_language or "uz"
+                    ai_personality = org.ai_personality or "Professional & Courteous"
+            except Exception:
+                logger.exception("Organization ma'lumotlarini yuklashda xatolik: org_id=%s", organization_id)
+
+        if org_gemini_key:
+            active_provider = "gemini"
+            active_gemini_key = org_gemini_key
+            active_openai_key = None
+        elif org_openai_key:
+            active_provider = "openai"
+            active_gemini_key = None
+            active_openai_key = org_openai_key
+        elif self.gemini_key:
+            active_provider = "gemini"
+            active_gemini_key = self.gemini_key
+            active_openai_key = None
+        elif self.openai_client:
+            active_provider = "openai"
+            active_gemini_key = None
+            active_openai_key = settings.openai_api_key
+        else:
+            active_provider = "none"
+            active_gemini_key = None
+            active_openai_key = None
+
+        return {
+            "provider": active_provider,
+            "gemini_key": active_gemini_key,
+            "openai_key": active_openai_key,
+            "custom_system_prompt": custom_system_prompt,
+            "ai_language": ai_language,
+            "ai_personality": ai_personality,
+        }
+
+    async def transcribe_audio(
+        self,
+        audio_bytes: bytes,
+        *,
+        mime_type: str = "audio/ogg",
+        organization_id: int | None = None,
+        db: any = None,
+    ) -> str:
+        """Transcribe customer voice/audio/video_note into verbatim text via Gemini or OpenAI."""
+        if not audio_bytes or len(audio_bytes) > 10 * 1024 * 1024:
+            return ""
+
+        ctx = await self._resolve_org_ai_context(db, organization_id)
+        active_provider = ctx["provider"]
+        if active_provider == "none":
+            return ""
+
+        if active_provider == "gemini":
+            encoded = base64.b64encode(audio_bytes).decode("ascii")
+            client = self._get_http_client()
+            candidate_models = [self.gemini_model]
+            for fallback in ("gemini-3.1-flash-lite", "gemini-3.5-flash", "gemini-flash-latest", "gemini-3.5-flash-lite"):
+                if fallback not in candidate_models:
+                    candidate_models.append(fallback)
+            prompt_text = (
+                "Mijozning ushbu ovozli xabarini so'zma-so'z aniq matnga o'gir "
+                "(o'zbek, rus yoki ingliz tilida bo'lishi mumkin). "
+                "Hech narsa qo'shma va izoh yozma, faqat eshitilgan nutq matnini qaytar."
+            )
+            for model in candidate_models:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={ctx['gemini_key']}"
+                body = {
+                    "contents": [{
+                        "role": "user",
+                        "parts": [
+                            {"text": prompt_text},
+                            {"inline_data": {"mime_type": mime_type, "data": encoded}},
+                        ],
+                    }],
+                    "generationConfig": {"temperature": 0.0},
+                }
+                try:
+                    resp = await client.post(url, json=body, timeout=20.0)
+                    resp.raise_for_status()
+                    data = resp.json()
+                    parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+                    transcript = " ".join(str(p.get("text") or "") for p in parts).strip()
+                    if transcript:
+                        return transcript[:2000]
+                except Exception as exc:
+                    logger.warning("Gemini voice transcription model %s xatolik (%s)", model, exc)
+                    continue
+            return ""
+
+        # OpenAI Whisper fallback
+        try:
+            oai_client = (
+                AsyncOpenAI(api_key=ctx["openai_key"], base_url=settings.openai_base_url or None)
+                if ctx["openai_key"]
+                else self.openai_client
+            )
+            if not oai_client:
+                return ""
+            ext = "mp3" if "mpeg" in mime_type else "mp4" if "mp4" in mime_type else "ogg"
+            buf = io.BytesIO(audio_bytes)
+            buf.name = f"voice.{ext}"
+            resp = await oai_client.audio.transcriptions.create(model="whisper-1", file=buf)
+            return str(getattr(resp, "text", "") or "").strip()[:2000]
+        except Exception:
+            logger.exception("OpenAI voice transcription failed")
+            return ""
+
     async def answer(
         self,
         customer_text: str,
@@ -188,47 +313,13 @@ class SalesAI:
                 "source_post_id": None,
             }
 
-        # Resolve per-organization AI keys and settings
-        org_gemini_key = None
-        org_openai_key = None
-        custom_system_prompt = None
-        ai_language = "uz"
-        ai_personality = "Professional & Courteous"
-
-        if db is not None and organization_id is not None:
-            try:
-                from app.models import Organization
-                org = await db.get(Organization, organization_id)
-                if org:
-                    org_gemini_key = org.decrypted_gemini_api_key
-                    org_openai_key = org.decrypted_openai_api_key
-                    custom_system_prompt = org.custom_system_prompt
-                    ai_language = org.ai_language or "uz"
-                    ai_personality = org.ai_personality or "Professional & Courteous"
-            except Exception:
-                logger.exception("Organization ma'lumotlarini yuklashda xatolik: org_id=%s", organization_id)
-
-        # Decide provider: prioritize org-specific credentials
-        if org_gemini_key:
-            active_provider = "gemini"
-            active_gemini_key = org_gemini_key
-            active_openai_key = None
-        elif org_openai_key:
-            active_provider = "openai"
-            active_gemini_key = None
-            active_openai_key = org_openai_key
-        elif self.gemini_key:
-            active_provider = "gemini"
-            active_gemini_key = self.gemini_key
-            active_openai_key = None
-        elif self.openai_client:
-            active_provider = "openai"
-            active_gemini_key = None
-            active_openai_key = settings.openai_api_key
-        else:
-            active_provider = "none"
-            active_gemini_key = None
-            active_openai_key = None
+        ctx = await self._resolve_org_ai_context(db, organization_id)
+        active_provider = ctx["provider"]
+        active_gemini_key = ctx["gemini_key"]
+        active_openai_key = ctx["openai_key"]
+        custom_system_prompt = ctx["custom_system_prompt"]
+        ai_language = ctx["ai_language"]
+        ai_personality = ctx["ai_personality"]
 
         if active_provider == "none":
             return {

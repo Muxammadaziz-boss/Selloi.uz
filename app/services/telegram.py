@@ -97,6 +97,23 @@ class TelegramService:
         destination.write_bytes(response.content)
         return destination
 
+    async def download_file_bytes(self, file_id: str, max_bytes: int = 10 * 1024 * 1024) -> tuple[bytes, str]:
+        """Fetch raw bytes for a Telegram file (voice, audio, image) with size safety guard."""
+        file_info = await self.call("getFile", {"file_id": file_id})
+        file_size = int(file_info.get("file_size") or 0)
+        if file_size > max_bytes:
+            raise TelegramAPIError(f"Fayl hajmi juda katta ({file_size} bayt)")
+        file_path = file_info.get("file_path")
+        if not file_path:
+            raise TelegramAPIError("Telegram fayl manzili topilmadi")
+        url = f"https://api.telegram.org/file/bot{self.bot_token}/{file_path}"
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(url)
+            response.raise_for_status()
+        if len(response.content) > max_bytes:
+            raise TelegramAPIError("Yuklab olingan fayl hajmi ruxsat etilgan chegaradan oshdi")
+        return response.content, str(file_path)
+
     async def read_business_message(
         self,
         business_connection_id: str,
