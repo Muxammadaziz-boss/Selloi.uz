@@ -37,11 +37,11 @@ export function Toast({ type = "info", message, onClose, duration = 4000 }: Toas
 
   return (
     <div
-      className={`linear-card-elevated p-3 d-flex align-items-center gap-2.5 shadow-lg ${borderClass}`}
+      className={`linear-card-elevated toast-slide-in toast-floating p-3 d-flex align-items-center gap-2.5 shadow-lg ${borderClass}`}
       style={{
         minWidth: 280,
         maxWidth: 420,
-        backgroundColor: "var(--bg-surface-elevated)",
+        backgroundColor: "rgba(27, 27, 30, 0.88)",
         borderColor: "var(--border-strong)",
       }}
       role="alert"
@@ -53,7 +53,7 @@ export function Toast({ type = "info", message, onClose, duration = 4000 }: Toas
       {onClose && (
         <button
           type="button"
-          className="linear-btn linear-btn-ghost p-0 text-secondary"
+          className="linear-btn linear-btn-ghost p-1 text-secondary"
           onClick={onClose}
           aria-label="Close"
         >
@@ -68,7 +68,7 @@ export function ToastContainer({ children }: { children: React.ReactNode }) {
   return (
     <div
       className="position-fixed top-0 end-0 p-3 d-flex flex-column gap-2"
-      style={{ zIndex: 1100 }}
+      style={{ zIndex: 99999, pointerEvents: "none" }}
     >
       {children}
     </div>

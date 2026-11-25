@@ -164,7 +164,12 @@ export function AppShell({
             margin: "0 auto",
           }}
         >
-          {children}
+          <div
+            key={`${zone}-${activeTab}-${platformSubTab || ""}`}
+            className="selloi-tab-transition"
+          >
+            {children}
+          </div>
         </main>
       </div>
 

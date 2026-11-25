@@ -11,6 +11,7 @@ import FAQSection from "./FAQSection";
 import FinalCTA from "./FinalCTA";
 import Footer from "./Footer";
 import { OnboardingModal } from "../saas/OnboardingModal";
+import { Toast, ToastContainer } from "../ui/Toast";
 import { LanguageProvider, useLanguage } from "@/app/lib/i18n";
 import { Language } from "@/app/lib/i18n/types";
 import { SELLOI_I18N } from "./selloiI18n";
@@ -27,6 +28,7 @@ function LandingPageContent({ isAuthenticated = false, isAdminSession = false }:
 
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<string>("start");
+  const [landingError, setLandingError] = useState<string | null>(null);
 
   // Smooth scroll reveal animations for sections (low threshold + scroll fallback so tall mobile/laptop sections never stay hidden)
   useEffect(() => {
@@ -101,7 +103,7 @@ function LandingPageContent({ isAuthenticated = false, isAdminSession = false }:
         window.location.href = "/dashboard";
       }
     } catch (err: any) {
-      alert(err.message || "Xatolik yuz berdi");
+      setLandingError(err.message || "Do‘kon yaratishda xatolik yuz berdi");
       throw err;
     }
   };
@@ -171,6 +173,12 @@ function LandingPageContent({ isAuthenticated = false, isAdminSession = false }:
         onClose={() => setIsOnboardingOpen(false)}
         onComplete={handleOnboardingComplete}
       />
+
+      {landingError && (
+        <ToastContainer>
+          <Toast type="error" message={landingError} onClose={() => setLandingError(null)} />
+        </ToastContainer>
+      )}
     </div>
   );
 }

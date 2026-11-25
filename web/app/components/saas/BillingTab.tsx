@@ -16,6 +16,7 @@ import {
   IconSparkles,
   IconX,
 } from "@tabler/icons-react";
+import { Skeleton } from "../ui/Skeleton";
 
 interface SubscriptionOverview {
   organization_id: number;
@@ -83,9 +84,27 @@ export function BillingTab({
 
   if (!subscription && loading) {
     return (
-      <div className="card p-5 text-center">
-        <div className="spinner-border text-primary mx-auto mb-3" role="status" />
-        <p className="text-secondary mb-0">Obuna ma'lumotlari yuklanmoqda...</p>
+      <div className="d-flex flex-column gap-3">
+        <div className="linear-card p-4">
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <Skeleton width={180} height={22} />
+            <Skeleton width={100} height={24} borderRadius={9999} />
+          </div>
+          <Skeleton width="65%" height={14} className="mb-2" />
+          <Skeleton width="40%" height={14} />
+        </div>
+        <div className="row g-3">
+          {[1, 2, 3].map((idx) => (
+            <div key={idx} className="col-12 col-md-4">
+              <div className="linear-card p-4 space-y-3">
+                <Skeleton width={90} height={18} />
+                <Skeleton width={150} height={28} />
+                <Skeleton width="100%" height={12} />
+                <Skeleton width="80%" height={12} />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }

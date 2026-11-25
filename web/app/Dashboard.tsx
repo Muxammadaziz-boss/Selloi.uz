@@ -72,6 +72,8 @@ import { PricingTab } from "./components/saas/PricingTab";
 import { PlatformOwnerTab } from "./components/saas/PlatformOwnerTab";
 import { OnboardingModal } from "./components/saas/OnboardingModal";
 import { UpgradeModal } from "./components/saas/UpgradeModal";
+import { ConfirmModal } from "./components/ui/ConfirmModal";
+import { Toast, ToastContainer } from "./components/ui/Toast";
 import { AppShell } from "./components/layout/AppShell";
 import { OverviewTab } from "./components/tabs/OverviewTab";
 import { InboxTab } from "./components/tabs/InboxTab";
@@ -715,6 +717,7 @@ function DashboardContent({
   });
   const [showOrgDropdown, setShowOrgDropdown] = useState(false);
   const [showOnboardingModal, setShowOnboardingModal] = useState(false);
+  const [confirmDeleteStoreId, setConfirmDeleteStoreId] = useState<number | null>(null);
   const [subscriptionData, setSubscriptionData] = useState<any>(null);
   const [isSubscriptionLoading, setIsSubscriptionLoading] = useState<boolean>(true);
   const [subscriptionError, setSubscriptionError] = useState<string | null>(null);
@@ -1705,15 +1708,22 @@ function DashboardContent({
   };
 
   const handleDeleteStore = async (storeId: number) => {
-    if (typeof window !== "undefined" && !window.confirm("Haqiqatan ham ushbu do'konni o'chirmoqchimisiz?")) return;
+    setConfirmDeleteStoreId(storeId);
+  };
+
+  const executeDeleteStore = async () => {
+    if (confirmDeleteStoreId === null) return;
+    const storeId = confirmDeleteStoreId;
     setBusy(true);
     try {
       await api<any>(`/api/platform/organizations/${storeId}`, {
         method: "DELETE",
       });
+      setConfirmDeleteStoreId(null);
       setSuccess("Do'kon muvaffaqiyatli o'chirildi");
       await loadPlatformData();
     } catch (err: any) {
+      setConfirmDeleteStoreId(null);
       setError(err.message || "Do'konni o'chirishda xatolik");
     } finally {
       setBusy(false);
@@ -2207,10 +2217,24 @@ function DashboardContent({
 
   if (!authenticated) {
     return (
-      <div className="d-flex align-items-center justify-content-center min-vh-100" style={{ background: "var(--bg-canvas)" }}>
-        <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Yuklanmoqda...</span>
+      <div
+        className="d-flex flex-column align-items-center justify-content-center min-vh-100 gap-3"
+        style={{ background: "var(--bg-canvas, #0D0D0D)" }}
+      >
+        <div
+          className="d-flex align-items-center justify-content-center rounded-3 border"
+          style={{
+            width: 52,
+            height: 52,
+            backgroundColor: "var(--accent-subtle, rgba(255, 76, 99, 0.14))",
+            borderColor: "var(--accent-border, rgba(255, 76, 99, 0.35))",
+          }}
+        >
+          <IconSparkles size={24} style={{ color: "var(--accent, #FF4C63)" }} className="spin" />
         </div>
+        <span className="small text-secondary" style={{ letterSpacing: "0.04em" }}>
+          Selloi yuklanmoqda...
+        </span>
       </div>
     );
   }
@@ -2382,47 +2406,12 @@ function DashboardContent({
           </div>
         )}
 
-        {/* Global Toast Alerts */}
-        {error && (
-          <div
-            className="p-3 mb-3 rounded-2 d-flex align-items-center justify-content-between border"
-            style={{
-              backgroundColor: "var(--danger-subtle)",
-              borderColor: "var(--danger-border)",
-              color: "var(--danger-text)",
-            }}
-          >
-            <div className="d-flex align-items-center gap-2 small">
-              <IconAlertCircle size={18} />
-              <span>{error}</span>
-            </div>
-            <button
-              type="button"
-              className="btn-close"
-              onClick={() => setError("")}
-            />
-          </div>
-        )}
-
-        {success && (
-          <div
-            className="p-3 mb-3 rounded-2 d-flex align-items-center justify-content-between border"
-            style={{
-              backgroundColor: "var(--success-subtle)",
-              borderColor: "var(--success-border)",
-              color: "var(--success-text)",
-            }}
-          >
-            <div className="d-flex align-items-center gap-2 small">
-              <IconCheck size={18} />
-              <span>{success}</span>
-            </div>
-            <button
-              type="button"
-              className="btn-close"
-              onClick={() => setSuccess("")}
-            />
-          </div>
+        {/* Global Floating Toast Notifications */}
+        {(error || success) && (
+          <ToastContainer>
+            {error && <Toast type="error" message={error} onClose={() => setError("")} />}
+            {success && <Toast type="success" message={success} onClose={() => setSuccess("")} />}
+          </ToastContainer>
         )}
 
         {/* Tab Modules */}
@@ -2767,6 +2756,19 @@ function DashboardContent({
         isOpen={showOnboardingModal}
         onClose={() => setShowOnboardingModal(false)}
         onComplete={handleCreateOrganization}
+      />
+
+      {/* Store Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={confirmDeleteStoreId !== null}
+        onClose={() => setConfirmDeleteStoreId(null)}
+        onConfirm={executeDeleteStore}
+        title="Do'konni o'chirish"
+        message="Haqiqatan ham ushbu do'konni o'chirmoqchimisiz? Barcha bog'liq sozlamalar nofaol holatga o'tadi."
+        confirmText="Ha, o'chirish"
+        cancelText="Bekor qilish"
+        variant="danger"
+        loading={busy}
       />
 
       {/* Feature / Limit Upgrade Modal */}

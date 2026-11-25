@@ -1,19 +1,46 @@
 /* ==========================================================================
    CLASSIC DESIGN SYSTEM: THEME STYLES
+   Selloi Obsidian + Coral-Crimson + Glass SaaS Foundation
    Scoped exclusively under html[data-design="classic"]
    ========================================================================== */
 
 html[data-design="classic"] body {
   background-color: var(--bg-canvas);
   color: var(--text-primary);
+  font-feature-settings: "cv03", "cv04", "cv11";
+  -webkit-font-smoothing: antialiased;
 }
 
 html[data-design="classic"] .sidebar-container {
-  background-color: var(--bg-surface);
-  border-right: 1px solid var(--border-default);
+  background: linear-gradient(180deg, #121214 0%, #0e0e10 100%) !important;
+  border-right: 1px solid var(--border-subtle) !important;
 }
 
 html[data-design="classic"] .topbar-container {
-  background-color: var(--bg-surface);
-  border-bottom: 1px solid var(--border-default);
+  background-color: rgba(21, 21, 22, 0.84) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border-subtle) !important;
+}
+
+html[data-design="classic"][data-theme="light"] .sidebar-container,
+html[data-design="classic"][data-bs-theme="light"] .sidebar-container {
+  background: #ffffff !important;
+  border-right: 1px solid var(--border-default) !important;
+}
+
+html[data-design="classic"][data-theme="light"] .topbar-container,
+html[data-design="classic"][data-bs-theme="light"] .topbar-container {
+  background-color: rgba(255, 255, 255, 0.88) !important;
+  border-bottom: 1px solid var(--border-default) !important;
+}
+
+html[data-design="classic"] .nav-link-item {
+  border-radius: 8px !important;
+  transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease !important;
+}
+
+html[data-design="classic"] .nav-link-item:hover {
+  background-color: var(--bg-surface-hover) !important;
+  color: var(--text-primary) !important;
 }

@@ -88,10 +88,9 @@ export function Topbar({
 
   return (
     <header
-      className="d-flex align-items-center justify-content-between px-3 py-2 border-bottom flex-shrink-0 topbar-container"
+      className="d-flex align-items-center justify-content-between px-3 py-2 border-bottom flex-shrink-0 topbar-container selloi-glass-bar"
       style={{
         height: "56px",
-        backgroundColor: "var(--bg-surface)",
         borderColor: "var(--border-subtle)",
         position: "sticky",
         top: 0,

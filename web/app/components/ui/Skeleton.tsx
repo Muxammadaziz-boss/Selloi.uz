@@ -15,13 +15,11 @@ export function Skeleton({
 }) {
   return (
     <div
-      className={`position-relative overflow-hidden ${className}`}
+      className={`position-relative overflow-hidden skeleton-shimmer ${className}`}
       style={{
         width: width ?? "100%",
         height: height ?? 16,
         borderRadius: borderRadius ?? "var(--radius-sm)",
-        backgroundColor: "var(--bg-surface-hover)",
-        opacity: 0.65,
       }}
     />
   );

@@ -197,19 +197,26 @@ html[data-design="premium"] .inbox-conversation-item:hover {
 }
 
 html[data-design="premium"] .inbox-conversation-item.active {
-  background-color: #1f1f1f !important;
-  border-left: 3px solid #3b82f6 !important;
+  background: linear-gradient(90deg, rgba(255, 76, 99, 0.12) 0%, rgba(255, 76, 99, 0.03) 100%) !important;
+  border-left: 3px solid var(--premium-accent) !important;
 }
 
 html[data-design="premium"] .chat-bubble-user {
-  background: #1e3a8a !important;
-  border: 1px solid #2563eb !important;
+  background: #292126 !important;
+  border: 1px solid rgba(255, 76, 99, 0.36) !important;
   border-radius: var(--premium-radius-sm) !important;
-  color: #ffffff !important;
+  color: #F6F6F7 !important;
+}
+
+html[data-design="premium"][data-theme="light"] .chat-bubble-user,
+html[data-design="premium"][data-bs-theme="light"] .chat-bubble-user {
+  background: #fff1f3 !important;
+  border: 1px solid rgba(224, 46, 72, 0.32) !important;
+  color: #121316 !important;
 }
 
 html[data-design="premium"] .chat-bubble-peer {
-  background: #1c1c1c !important;
+  background: #1c1c1e !important;
   border: 1px solid var(--premium-border) !important;
   border-radius: var(--premium-radius-sm) !important;
   color: var(--premium-text) !important;

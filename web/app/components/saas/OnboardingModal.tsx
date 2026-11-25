@@ -48,6 +48,7 @@ interface OnboardingModalProps {
 export function OnboardingModal({ isOpen, onClose, onComplete, initialPlanCode }: OnboardingModalProps) {
   const [step, setStep] = useState(1);
   const [busy, setBusy] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Form state
   const [businessName, setBusinessName] = useState("");
@@ -185,6 +186,7 @@ export function OnboardingModal({ isOpen, onClose, onComplete, initialPlanCode }
   };
 
   const handleNext = async () => {
+    setSubmitError(null);
     if (step < totalSteps) {
       setStep((prev) => prev + 1);
       return;
@@ -216,12 +218,15 @@ export function OnboardingModal({ isOpen, onClose, onComplete, initialPlanCode }
         ai_personality: aiPersonality,
       });
       onClose();
+    } catch (err: any) {
+      setSubmitError(err?.message || "Do'kon yaratishda xatolik yuz berdi");
     } finally {
       setBusy(false);
     }
   };
 
   const handleBack = () => {
+    setSubmitError(null);
     if (step > 1) setStep((prev) => prev - 1);
   };
 
@@ -235,19 +240,20 @@ export function OnboardingModal({ isOpen, onClose, onComplete, initialPlanCode }
         <div
           className="modal-content shadow-lg border"
           style={{
-            backgroundColor: "var(--bg-surface, #0f141c)",
-            borderColor: "var(--border-default, rgba(255, 255, 255, 0.12))",
+            backgroundColor: "var(--bg-surface, #151516)",
+            borderColor: "var(--border-default, #303035)",
             borderRadius: "16px",
-            boxShadow: "0 24px 64px rgba(0, 0, 0, 0.75)",
+            boxShadow: "0 24px 64px rgba(0, 0, 0, 0.78)",
             overflow: "hidden",
+            animation: "linearModalIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
           }}
         >
           {/* Header */}
           <div
             className="modal-header py-3 px-4 d-flex align-items-center justify-content-between border-bottom"
             style={{
-              borderColor: "var(--border-subtle, rgba(255, 255, 255, 0.08))",
-              backgroundColor: "var(--bg-surface-elevated, #161b22)",
+              borderColor: "var(--border-subtle, #2A2A2D)",
+              backgroundColor: "var(--bg-surface-elevated, #1B1B1E)",
             }}
           >
             <div className="d-flex align-items-center gap-2.5">
@@ -256,11 +262,11 @@ export function OnboardingModal({ isOpen, onClose, onComplete, initialPlanCode }
                 style={{
                   width: "36px",
                   height: "36px",
-                  backgroundColor: "var(--accent-subtle, rgba(99, 102, 241, 0.15))",
-                  border: "1px solid rgba(99, 102, 241, 0.3)",
+                  backgroundColor: "var(--accent-subtle, rgba(255, 76, 99, 0.14))",
+                  border: "1px solid var(--accent-border, rgba(255, 76, 99, 0.35))",
                 }}
               >
-                <IconSparkles size={18} style={{ color: "var(--accent, #6366f1)" }} />
+                <IconSparkles size={18} style={{ color: "var(--accent, #FF4C63)" }} />
               </div>
               <div>
                 <h4 className="modal-title fw-bold mb-0 text-white" style={{ fontSize: "1.05rem" }}>
@@ -286,7 +292,7 @@ export function OnboardingModal({ isOpen, onClose, onComplete, initialPlanCode }
               style={{
                 height: "100%",
                 width: `${(step / totalSteps) * 100}%`,
-                background: "linear-gradient(90deg, #6366f1, #8b5cf6, #ec4899)",
+                background: "linear-gradient(90deg, #FF4C63, #FF7A8C)",
                 transition: "width 0.3s ease",
               }}
             />
@@ -294,6 +300,30 @@ export function OnboardingModal({ isOpen, onClose, onComplete, initialPlanCode }
 
           {/* Body with Steps */}
           <div className="modal-body p-4">
+            {submitError && (
+              <div
+                className="p-3 mb-3 rounded-2 d-flex align-items-center justify-content-between border"
+                style={{
+                  backgroundColor: "var(--danger-subtle, rgba(228, 119, 119, 0.14))",
+                  borderColor: "var(--danger-border, rgba(228, 119, 119, 0.35))",
+                  color: "var(--danger-text, #E47777)",
+                }}
+                role="alert"
+              >
+                <div className="d-flex align-items-center gap-2 small">
+                  <IconAlertCircle size={16} />
+                  <span>{submitError}</span>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-sm p-0 border-0 text-reset"
+                  onClick={() => setSubmitError(null)}
+                  aria-label="Yopish"
+                >
+                  <IconX size={15} />
+                </button>
+              </div>
+            )}
             {/* Step 1: Business Name & Slug */}
             {step === 1 && (
               <div className="space-y-3">
@@ -771,7 +801,7 @@ export function OnboardingModal({ isOpen, onClose, onComplete, initialPlanCode }
                         currency === "USD" ? "text-white" : "text-secondary"
                       }`}
                       style={{
-                        background: currency === "USD" ? "var(--accent, #6366f1)" : "transparent",
+                        background: currency === "USD" ? "var(--accent, #FF4C63)" : "transparent",
                         fontSize: "0.78rem",
                       }}
                       onClick={() => setCurrency("USD")}
@@ -784,7 +814,7 @@ export function OnboardingModal({ isOpen, onClose, onComplete, initialPlanCode }
                         currency === "UZS" ? "text-white" : "text-secondary"
                       }`}
                       style={{
-                        background: currency === "UZS" ? "var(--accent, #6366f1)" : "transparent",
+                        background: currency === "UZS" ? "var(--accent, #FF4C63)" : "transparent",
                         fontSize: "0.78rem",
                       }}
                       onClick={() => setCurrency("UZS")}
@@ -812,16 +842,16 @@ export function OnboardingModal({ isOpen, onClose, onComplete, initialPlanCode }
                           onClick={() => setPlanCode(pl.code)}
                           style={{
                             cursor: "pointer",
-                            backgroundColor: isSelected ? "rgba(99, 102, 241, 0.12)" : "var(--bg-surface-elevated, #161b22)",
-                            borderColor: isSelected ? "var(--accent, #6366f1)" : "var(--border-default, rgba(255, 255, 255, 0.1))",
-                            boxShadow: isSelected ? "0 0 0 1px var(--accent, #6366f1), 0 8px 24px rgba(99, 102, 241, 0.25)" : "none",
+                            backgroundColor: isSelected ? "rgba(255, 76, 99, 0.12)" : "var(--bg-surface-elevated, #1B1B1E)",
+                            borderColor: isSelected ? "var(--accent, #FF4C63)" : "var(--border-default, #303035)",
+                            boxShadow: isSelected ? "0 0 0 1px var(--accent, #FF4C63), 0 8px 24px rgba(255, 76, 99, 0.22)" : "none",
                             borderRadius: "12px",
                           }}
                         >
                           <div>
                             <div className="d-flex align-items-center justify-content-between mb-1.5">
                               <span className="fw-bold text-white font-monospace">{pl.name}</span>
-                              {isSelected && <IconCheck size={18} style={{ color: "var(--accent, #6366f1)" }} />}
+                              {isSelected && <IconCheck size={18} style={{ color: "var(--accent, #FF4C63)" }} />}
                             </div>
                             <div className="fs-3 fw-bold text-success font-monospace mb-2">{priceFormatted}</div>
                             <p className="text-secondary small mb-0">{pl.description || pl.desc}</p>
@@ -1053,8 +1083,8 @@ export function OnboardingModal({ isOpen, onClose, onComplete, initialPlanCode }
           <div
             className="modal-footer py-3 px-4 d-flex align-items-center justify-content-between border-top"
             style={{
-              borderColor: "var(--border-subtle, rgba(255, 255, 255, 0.08))",
-              backgroundColor: "var(--bg-surface-elevated, #161b22)",
+              borderColor: "var(--border-subtle, #2A2A2D)",
+              backgroundColor: "var(--bg-surface-elevated, #1B1B1E)",
             }}
           >
             {step > 1 ? (
@@ -1066,7 +1096,7 @@ export function OnboardingModal({ isOpen, onClose, onComplete, initialPlanCode }
                 style={{
                   borderRadius: "8px",
                   borderColor: "var(--border-default, rgba(255, 255, 255, 0.15))",
-                  color: "var(--text-secondary, #94a3b8)",
+                  color: "var(--text-secondary, #A6A6AF)",
                 }}
               >
                 <IconArrowLeft size={16} />
@@ -1083,9 +1113,9 @@ export function OnboardingModal({ isOpen, onClose, onComplete, initialPlanCode }
               disabled={busy || (step === 1 && !businessName.trim())}
               style={{
                 borderRadius: "8px",
-                background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)",
-                border: "none",
-                boxShadow: "0 4px 14px rgba(99, 102, 241, 0.4)",
+                background: "linear-gradient(135deg, #FF4C63 0%, #E02E48 100%)",
+                border: "1px solid rgba(255, 255, 255, 0.16)",
+                boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 4px 16px rgba(255, 76, 99, 0.38)",
               }}
             >
               {busy ? (
