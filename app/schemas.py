@@ -158,4 +158,17 @@ class TelegramAuthRequest(BaseModel):
     full_name: str = ""
 
 
+class ForgotPasswordRequest(BaseModel):
+    """Schema for requesting a 6-digit password reset OTP via Telegram."""
+    email: str = Field(min_length=1, max_length=255)
+
+
+class ResetPasswordRequest(BaseModel):
+    """Schema for verifying Telegram OTP and resetting user password."""
+    email: str = Field(min_length=1, max_length=255)
+    code: str = Field(min_length=6, max_length=12)
+    new_password: str = Field(min_length=6, max_length=255)
+
+
+
 

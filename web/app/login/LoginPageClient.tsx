@@ -66,6 +66,19 @@ interface TranslationText {
   telegramCancel: string;
   passwordsDoNotMatch: string;
   forgotPasswordNotice: string;
+  resetModalTitle: string;
+  resetStep1Desc: string;
+  resetStep2Desc: string;
+  resetSendCodeBtn: string;
+  resetSending: string;
+  resetCodeLabel: string;
+  resetCodePlaceholder: string;
+  resetNewPasswordLabel: string;
+  resetSubmitBtn: string;
+  resetSubmitting: string;
+  resetBackStep: string;
+  resetSentNotice: string;
+  resetSuccessNotice: string;
 }
 
 const TRANSLATIONS: Record<Language, TranslationText> = {
@@ -105,7 +118,20 @@ const TRANSLATIONS: Record<Language, TranslationText> = {
     telegramSuccess: "Tasdiqlandi! Boshqaruv paneliga o'tilmoqda...",
     telegramCancel: "Bekor qilish",
     passwordsDoNotMatch: "Kiritilgan parollar bir-biriga mos kelmadi",
-    forgotPasswordNotice: "Parolni tiklash bo'yicha yo'riqnoma Tez orada Telegram botingizga yuboriladi.",
+    forgotPasswordNotice: "Parolni tiklash uchun email manzilingizni kiriting.",
+    resetModalTitle: "Parolni tiklash",
+    resetStep1Desc: "Hisobingiz email manzilini kiriting. Akkaunt Telegramga ulangan bo'lsa, 6 xonali tasdiqlash kodi Telegram botingizga yuboriladi.",
+    resetStep2Desc: "Telegram botingizga kelgan 6 xonali kodni va yangi parolingizni kiriting.",
+    resetSendCodeBtn: "Tasdiqlash kodini yuborish",
+    resetSending: "Yuborilmoqda...",
+    resetCodeLabel: "6 xonali Telegram kodi",
+    resetCodePlaceholder: "123456",
+    resetNewPasswordLabel: "Yangi parol",
+    resetSubmitBtn: "Parolni yangilash",
+    resetSubmitting: "Yangilanmoqda...",
+    resetBackStep: "Emailni o'zgartirish",
+    resetSentNotice: "Agar akkauntingiz Telegramga ulangan bo'lsa, 6 xonali kod Telegram botingizga yuborildi.",
+    resetSuccessNotice: "Parol muvaffaqiyatli yangilandi! Endi yangi parol bilan kirishingiz mumkin.",
   },
   ru: {
     brandSubtitle: "Экосистема продаж на базе искусственного интеллекта",
@@ -143,7 +169,20 @@ const TRANSLATIONS: Record<Language, TranslationText> = {
     telegramSuccess: "Подтверждено! Переход в панель управления...",
     telegramCancel: "Отмена",
     passwordsDoNotMatch: "Пароли не совпадают",
-    forgotPasswordNotice: "Инструкция по восстановлению пароля будет отправлена в Telegram.",
+    forgotPasswordNotice: "Введите ваш email для восстановления пароля.",
+    resetModalTitle: "Восстановление пароля",
+    resetStep1Desc: "Введите email аккаунта. Если аккаунт привязан к Telegram, 6-значный код подтверждения придет в Telegram-бот.",
+    resetStep2Desc: "Введите 6-значный код из Telegram и новый пароль.",
+    resetSendCodeBtn: "Отправить код в Telegram",
+    resetSending: "Отправка...",
+    resetCodeLabel: "6-значный код из Telegram",
+    resetCodePlaceholder: "123456",
+    resetNewPasswordLabel: "Новый пароль",
+    resetSubmitBtn: "Обновить пароль",
+    resetSubmitting: "Обновление...",
+    resetBackStep: "Изменить email",
+    resetSentNotice: "Если аккаунт привязан к Telegram, 6-значный код отправлен в ваш Telegram-бот.",
+    resetSuccessNotice: "Пароль успешно обновлен! Теперь войдите с новым паролем.",
   },
   en: {
     brandSubtitle: "AI-Powered Sales Automation Ecosystem",
@@ -181,7 +220,20 @@ const TRANSLATIONS: Record<Language, TranslationText> = {
     telegramSuccess: "Confirmed! Redirecting to dashboard...",
     telegramCancel: "Cancel",
     passwordsDoNotMatch: "Passwords do not match",
-    forgotPasswordNotice: "Password reset instructions will be sent to your connected Telegram bot.",
+    forgotPasswordNotice: "Enter your email address to reset your password.",
+    resetModalTitle: "Reset Password",
+    resetStep1Desc: "Enter your account email. If your account is linked to Telegram, a 6-digit verification code will be sent to your Telegram bot.",
+    resetStep2Desc: "Enter the 6-digit code sent to your Telegram bot along with your new password.",
+    resetSendCodeBtn: "Send Code via Telegram",
+    resetSending: "Sending...",
+    resetCodeLabel: "6-digit Telegram code",
+    resetCodePlaceholder: "123456",
+    resetNewPasswordLabel: "New password",
+    resetSubmitBtn: "Update Password",
+    resetSubmitting: "Updating...",
+    resetBackStep: "Change email",
+    resetSentNotice: "If your account is linked to Telegram, a 6-digit code has been sent via Telegram.",
+    resetSuccessNotice: "Password updated successfully! You can now sign in with your new password.",
   },
 };
 
@@ -221,6 +273,7 @@ export default function LoginPageClient({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(getInitialErrorText(initialError));
   const [infoNotice, setInfoNotice] = useState<string | null>(null);
+  const [successNotice, setSuccessNotice] = useState<string | null>(null);
 
   // Telegram verification modal state
   const [telegramModalOpen, setTelegramModalOpen] = useState(false);
@@ -228,6 +281,17 @@ export default function LoginPageClient({
   const [telegramBotUrl, setTelegramBotUrl] = useState<string>("");
   const [telegramInitLoading, setTelegramInitLoading] = useState(false);
   const [telegramAuthSuccess, setTelegramAuthSuccess] = useState(false);
+
+  // Forgot password modal state
+  const [resetModalOpen, setResetModalOpen] = useState(false);
+  const [resetStep, setResetStep] = useState<1 | 2>(1);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetCode, setResetCode] = useState("");
+  const [resetNewPassword, setResetNewPassword] = useState("");
+  const [resetConfirmPassword, setResetConfirmPassword] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
+  const [resetInfo, setResetInfo] = useState<string | null>(null);
 
   const t = TRANSLATIONS[lang];
 
@@ -373,8 +437,96 @@ export default function LoginPageClient({
   const handleGoogleAuth = () => {
     setError(null);
     setInfoNotice(null);
+    setSuccessNotice(null);
     setLoading(true);
     window.location.href = "/api/auth/google";
+  };
+
+  const openResetModal = () => {
+    setError(null);
+    setInfoNotice(null);
+    setSuccessNotice(null);
+    setResetError(null);
+    setResetInfo(null);
+    setResetEmail(email.trim().toLowerCase());
+    setResetCode("");
+    setResetNewPassword("");
+    setResetConfirmPassword("");
+    setResetStep(1);
+    setResetModalOpen(true);
+  };
+
+  const handleForgotPasswordRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setResetError(null);
+    setResetInfo(null);
+    const cleanEmail = resetEmail.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes("@")) {
+      setResetError(t.emailPlaceholder);
+      return;
+    }
+
+    setResetLoading(true);
+    try {
+      const res = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: cleanEmail }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setResetError(data.detail || "Kod yuborishda xatolik yuz berdi");
+        setResetLoading(false);
+        return;
+      }
+      setResetEmail(cleanEmail);
+      setResetInfo(t.resetSentNotice);
+      setResetStep(2);
+    } catch (err: any) {
+      setResetError("Tarmoq xatosi: " + err.message);
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  const handleResetPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setResetError(null);
+    if (resetNewPassword !== resetConfirmPassword) {
+      setResetError(t.passwordsDoNotMatch);
+      return;
+    }
+    if (resetNewPassword.length < 6) {
+      setResetError(t.passwordPlaceholder);
+      return;
+    }
+
+    setResetLoading(true);
+    try {
+      const res = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: resetEmail.trim().toLowerCase(),
+          code: resetCode.trim(),
+          new_password: resetNewPassword,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setResetError(data.detail || "Parolni yangilashda xatolik yuz berdi");
+        setResetLoading(false);
+        return;
+      }
+      setEmail(resetEmail.trim().toLowerCase());
+      setPassword("");
+      setResetModalOpen(false);
+      setSuccessNotice(t.resetSuccessNotice);
+    } catch (err: any) {
+      setResetError("Tarmoq xatosi: " + err.message);
+    } finally {
+      setResetLoading(false);
+    }
   };
 
   return (
@@ -472,6 +624,13 @@ export default function LoginPageClient({
           </div>
         )}
 
+        {successNotice && (
+          <div className="selloi-alert selloi-alert-success">
+            <IconCheck size={16} className="flex-shrink-0" />
+            <span>{successNotice}</span>
+          </div>
+        )}
+
         {/* Third-Party Fast Auth Options (Shown on Login & Register) */}
         <div className="selloi-social-auth-section">
             <button
@@ -555,7 +714,7 @@ export default function LoginPageClient({
                 <button
                   type="button"
                   className="selloi-forgot-link"
-                  onClick={() => setInfoNotice(t.forgotPasswordNotice)}
+                  onClick={openResetModal}
                 >
                   {t.forgotPassword}
                 </button>
@@ -809,6 +968,150 @@ export default function LoginPageClient({
                 {t.telegramCancel}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Password Reset Modal via Telegram OTP */}
+      {resetModalOpen && (
+        <div className="selloi-modal-backdrop" onClick={() => setResetModalOpen(false)}>
+          <div className="selloi-modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "430px" }}>
+            <h3 className="selloi-modal-title">{t.resetModalTitle}</h3>
+            <p className="selloi-modal-desc">
+              {resetStep === 1 ? t.resetStep1Desc : t.resetStep2Desc}
+            </p>
+
+            {resetError && (
+              <div className="selloi-alert selloi-alert-danger">
+                <IconAlertCircle size={16} className="flex-shrink-0" />
+                <span>{resetError}</span>
+              </div>
+            )}
+
+            {resetInfo && (
+              <div className="selloi-alert selloi-alert-info">
+                <IconSparkles size={16} className="flex-shrink-0" />
+                <span>{resetInfo}</span>
+              </div>
+            )}
+
+            {resetStep === 1 ? (
+              <form onSubmit={handleForgotPasswordRequest} className="selloi-auth-form">
+                <div className="selloi-form-group">
+                  <label className="selloi-form-label">{t.emailLabel}</label>
+                  <div className="selloi-input-wrapper">
+                    <IconMail size={16} className="selloi-input-icon" />
+                    <input
+                      type="email"
+                      className="selloi-input"
+                      placeholder={t.emailPlaceholder}
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                      required
+                      autoFocus
+                    />
+                  </div>
+                </div>
+
+                <div className="selloi-modal-btn-row" style={{ marginTop: "6px" }}>
+                  <button
+                    type="button"
+                    className="selloi-modal-btn-cancel"
+                    onClick={() => setResetModalOpen(false)}
+                  >
+                    {t.telegramCancel}
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={resetLoading}
+                    className="selloi-modal-btn-confirm"
+                  >
+                    {resetLoading ? t.resetSending : t.resetSendCodeBtn}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <form onSubmit={handleResetPasswordSubmit} className="selloi-auth-form">
+                <div className="selloi-form-group">
+                  <label className="selloi-form-label">{t.resetCodeLabel}</label>
+                  <div className="selloi-input-wrapper">
+                    <IconShieldCheck size={16} className="selloi-input-icon" />
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={6}
+                      className="selloi-input"
+                      placeholder={t.resetCodePlaceholder}
+                      value={resetCode}
+                      onChange={(e) => setResetCode(e.target.value.replace(/\D/g, ""))}
+                      required
+                      autoFocus
+                    />
+                  </div>
+                </div>
+
+                <div className="selloi-form-group">
+                  <label className="selloi-form-label">{t.resetNewPasswordLabel}</label>
+                  <div className="selloi-input-wrapper">
+                    <IconLock size={16} className="selloi-input-icon" />
+                    <input
+                      type="password"
+                      className="selloi-input"
+                      placeholder={t.passwordPlaceholder}
+                      value={resetNewPassword}
+                      onChange={(e) => setResetNewPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="selloi-form-group">
+                  <label className="selloi-form-label">{t.confirmPasswordLabel}</label>
+                  <div className="selloi-input-wrapper">
+                    <IconLock size={16} className="selloi-input-icon" />
+                    <input
+                      type="password"
+                      className="selloi-input"
+                      placeholder={t.confirmPasswordPlaceholder}
+                      value={resetConfirmPassword}
+                      onChange={(e) => setResetConfirmPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="d-flex justify-content-end">
+                  <button
+                    type="button"
+                    className="selloi-forgot-link"
+                    onClick={() => {
+                      setResetStep(1);
+                      setResetError(null);
+                      setResetInfo(null);
+                    }}
+                  >
+                    {t.resetBackStep}
+                  </button>
+                </div>
+
+                <div className="selloi-modal-btn-row">
+                  <button
+                    type="button"
+                    className="selloi-modal-btn-cancel"
+                    onClick={() => setResetModalOpen(false)}
+                  >
+                    {t.telegramCancel}
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={resetLoading}
+                    className="selloi-modal-btn-confirm"
+                  >
+                    {resetLoading ? t.resetSubmitting : t.resetSubmitBtn}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

@@ -1,13 +1,17 @@
 """Organization onboarding, configuration, and authentication endpoints."""
 
 import asyncio
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+import hashlib
+import hmac
+import logging
+import secrets
 from typing import Optional
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
@@ -25,19 +29,30 @@ from app.core.security import (
     verify_password,
 )
 from app.dependencies.auth import create_access_token, decode_access_token, get_current_user, security
-from app.models import Organization, OrganizationMember, User
+from app.models import AuditLog, Organization, OrganizationMember, PasswordResetToken, User
 from app.schemas import (
+    ForgotPasswordRequest,
     GoogleAuthRequest,
     OrganizationCreate,
     OrganizationOut,
     OrganizationUpdate,
     RegisterRequest,
+    ResetPasswordRequest,
     TelegramAuthRequest,
     TokenRequest,
     TokenResponse,
 )
 
 router = APIRouter(prefix="/api/v1", tags=["onboarding"])
+logger = logging.getLogger(__name__)
+PASSWORD_RESET_TTL_MINUTES = 10
+
+
+def _hash_password_reset_code(user_id: int, code: str) -> str:
+    """Compute keyed HMAC-SHA256 digest for a password reset OTP."""
+    secret = (get_settings().jwt_secret or "selloi-pwreset-dev-fallback").encode("utf-8")
+    msg = f"pwreset:{user_id}:{code.strip()}".encode("utf-8")
+    return hmac.new(secret, msg, hashlib.sha256).hexdigest()
 
 
 def _org_to_out(org: Organization) -> dict:
@@ -356,6 +371,181 @@ async def change_password(
     # Invalidate all active tokens issued before this moment
     revoke_user_sessions(current_user.id)
     return {"ok": True, "detail": "Parol muvaffaqiyatli o'zgartirildi va barcha eski sessiyalar bekor qilindi"}
+
+
+@router.post("/auth/forgot-password")
+async def forgot_password(payload: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)):
+    """Send a 6-digit password reset OTP via Telegram if account has a linked Telegram ID."""
+    clean_email = payload.email.strip().lower()
+    if not clean_email or "@" not in clean_email:
+        raise HTTPException(status_code=400, detail="Noto'g'ri email manzil")
+
+    rate_key = f"forgot_pw:{clean_email}"
+    if is_rate_limited(rate_key, max_attempts=5, window_seconds=300):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Juda ko'p so'rov yuborildi. 5 daqiqadan so'ng qayta urinib ko'ring.",
+        )
+    record_attempt(rate_key)
+
+    result = await db.execute(
+        select(User).where(User.email == clean_email, User.is_active.is_(True))
+    )
+    user = result.scalar_one_or_none()
+
+    if user is not None and user.telegram_user_id:
+        from app.services.telegram import telegram as default_telegram
+
+        if default_telegram is not None:
+            now = datetime.now(timezone.utc)
+            await db.execute(
+                update(PasswordResetToken)
+                .where(PasswordResetToken.user_id == user.id, PasswordResetToken.used_at.is_(None))
+                .values(used_at=now)
+            )
+            code = f"{secrets.randbelow(900000) + 100000}"
+            reset_row = PasswordResetToken(
+                user_id=user.id,
+                code_hash=_hash_password_reset_code(user.id, code),
+                expires_at=now + timedelta(minutes=PASSWORD_RESET_TTL_MINUTES),
+            )
+            db.add(reset_row)
+            db.add(
+                AuditLog(
+                    user_id=user.id,
+                    action="password_reset_requested",
+                    resource="user",
+                    resource_id=str(user.id),
+                    metadata_json={"channel": "telegram"},
+                )
+            )
+            await db.commit()
+            try:
+                await default_telegram.send_message(
+                    user.telegram_user_id,
+                    (
+                        "Selloi hisobingiz uchun parolni tiklash kodi:\n\n"
+                        f"Kod: {code}\n\n"
+                        f"Ushbu kod {PASSWORD_RESET_TTL_MINUTES} daqiqa davomida amal qiladi. "
+                        "Agar bu so'rovni siz yubormagan bo'lsangiz, xabarni e'tiborsiz qoldiring."
+                    ),
+                )
+            except Exception as exc:
+                logger.warning("Telegram parol tiklash kodini yuborishda xatolik user_id=%s: %s", user.id, exc)
+                reset_row.used_at = datetime.now(timezone.utc)
+                await db.commit()
+
+    return {
+        "ok": True,
+        "detail": "Agar akkauntingiz Telegramga ulangan bo'lsa, 6 xonali tasdiqlash kodi Telegram bot orqali yuborildi.",
+    }
+
+
+@router.post("/auth/reset-password")
+async def reset_password(payload: ResetPasswordRequest, db: AsyncSession = Depends(get_db)):
+    """Verify 6-digit Telegram OTP and reset password, invalidating prior sessions."""
+    clean_email = payload.email.strip().lower()
+    clean_code = payload.code.strip()
+
+    if not clean_email or "@" not in clean_email:
+        raise HTTPException(status_code=400, detail="Noto'g'ri email manzil")
+
+    rate_key = f"reset_pw:{clean_email}"
+    if is_rate_limited(rate_key, max_attempts=10, window_seconds=300):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Juda ko'p urinishlar qilindi. 5 daqiqadan so'ng qayta urinib ko'ring.",
+        )
+
+    if not (clean_code.isdigit() and len(clean_code) == 6):
+        record_attempt(rate_key)
+        raise HTTPException(status_code=400, detail="Tasdiqlash kodi 6 xonali raqam bo'lishi kerak")
+
+    user_res = await db.execute(
+        select(User).where(User.email == clean_email, User.is_active.is_(True))
+    )
+    user = user_res.scalar_one_or_none()
+    if user is None:
+        record_attempt(rate_key)
+        raise HTTPException(status_code=400, detail="Tasdiqlash kodi noto'g'ri yoki muddati tugagan")
+
+    token_res = await db.execute(
+        select(PasswordResetToken)
+        .where(PasswordResetToken.user_id == user.id, PasswordResetToken.used_at.is_(None))
+        .order_by(PasswordResetToken.id.desc())
+        .limit(1)
+    )
+    reset_row = token_res.scalar_one_or_none()
+    if reset_row is None:
+        record_attempt(rate_key)
+        raise HTTPException(status_code=400, detail="Tasdiqlash kodi noto'g'ri yoki muddati tugagan")
+
+    now = datetime.now(timezone.utc)
+    expires_at = (
+        reset_row.expires_at
+        if reset_row.expires_at.tzinfo is not None
+        else reset_row.expires_at.replace(tzinfo=timezone.utc)
+    )
+    if expires_at <= now:
+        reset_row.used_at = now
+        await db.commit()
+        raise HTTPException(status_code=400, detail="Tasdiqlash kodi muddati tugagan. Yangi kod so'rang.")
+
+    if reset_row.attempts >= reset_row.max_attempts:
+        reset_row.used_at = now
+        await db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Urinishlar soni tugadi. Yangi tasdiqlash kodi so'rang.",
+        )
+
+    expected_hash = _hash_password_reset_code(user.id, clean_code)
+    if not hmac.compare_digest(reset_row.code_hash, expected_hash):
+        reset_row.attempts += 1
+        exhausted = reset_row.attempts >= reset_row.max_attempts
+        if exhausted:
+            reset_row.used_at = now
+        record_attempt(rate_key)
+        await db.commit()
+        if exhausted:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Urinishlar soni tugadi. Yangi tasdiqlash kodi so'rang.",
+            )
+        raise HTTPException(status_code=400, detail="Tasdiqlash kodi noto'g'ri")
+
+    user.hashed_password = hash_password(payload.new_password)
+    user.token_version = (getattr(user, "token_version", 1) or 1) + 1
+    user.updated_at = now
+    reset_row.used_at = now
+    await db.execute(
+        update(PasswordResetToken)
+        .where(
+            PasswordResetToken.user_id == user.id,
+            PasswordResetToken.used_at.is_(None),
+            PasswordResetToken.id != reset_row.id,
+        )
+        .values(used_at=now)
+    )
+    db.add(
+        AuditLog(
+            user_id=user.id,
+            action="password_reset_completed",
+            resource="user",
+            resource_id=str(user.id),
+            metadata_json={"token_id": reset_row.id},
+        )
+    )
+    await db.commit()
+
+    revoke_user_sessions(user.id)
+    reset_rate_limit(f"login:{clean_email}")
+    reset_rate_limit(f"forgot_pw:{clean_email}")
+    reset_rate_limit(rate_key)
+    return {
+        "ok": True,
+        "detail": "Parol muvaffaqiyatli yangilandi. Endi yangi parol bilan tizimga kirishingiz mumkin.",
+    }
 
 
 # ---------------------------------------------------------------------------

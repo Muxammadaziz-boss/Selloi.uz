@@ -237,6 +237,12 @@
   color: #93C5FD;
 }
 
+.selloi-alert-success {
+  background: rgba(16, 185, 129, 0.14);
+  border: 1px solid rgba(16, 185, 129, 0.34);
+  color: #6EE7B7;
+}
+
 /* Third-Party Fast Auth */
 .selloi-social-auth-section {
   display: flex;

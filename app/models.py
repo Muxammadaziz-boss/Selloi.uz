@@ -751,3 +751,18 @@ class FollowupLog(Base):
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     sent_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
 
+
+class PasswordResetToken(Base):
+    """Short-lived hashed OTP token for Telegram-verified password resets."""
+    __tablename__ = "password_reset_tokens"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    code_hash: Mapped[str] = mapped_column(String(128), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True, nullable=False)
+    attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    max_attempts: Mapped[int] = mapped_column(Integer, default=5, nullable=False)
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+
+
