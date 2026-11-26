@@ -76,15 +76,20 @@ export function AnalyticsTab({
 
   const { language, t } = useLanguage();
 
-  // Build real 7-day activity buckets from conversation timestamps and order dates
+  // Build real 7-day activity buckets from conversation timestamps and order dates (SSR-safe labels)
   const activityDays = React.useMemo(() => {
+    const monthsByLang: Record<string, string[]> = {
+      uz: ["yan", "fev", "mar", "apr", "may", "iyn", "iyl", "avg", "sen", "okt", "noy", "dek"],
+      ru: ["янв", "фев", "мар", "апр", "май", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"],
+      en: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+    };
+    const months = monthsByLang[language] || monthsByLang.uz;
     const days: Array<{ key: string; label: string; primary: number; secondary: number }> = [];
     const now = new Date();
-    const locale = language === "ru" ? "ru-RU" : language === "en" ? "en-US" : "uz-UZ";
     for (let offset = 6; offset >= 0; offset--) {
       const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - offset);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-      const label = d.toLocaleDateString(locale, { month: "short", day: "numeric" });
+      const label = `${d.getDate()} ${months[d.getMonth()]}`;
       days.push({ key, label, primary: 0, secondary: 0 });
     }
     const dayMap = new Map(days.map((d) => [d.key, d]));

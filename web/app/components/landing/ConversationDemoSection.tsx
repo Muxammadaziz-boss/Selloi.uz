@@ -142,7 +142,18 @@ const CATALOG: Product[] = [
 // HELPERS
 // ─────────────────────────────────────────────
 function fmtPrice(n: number) {
-  return n.toLocaleString("uz-UZ").replace(/,/g, " ") + " so'm";
+  return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " so'm";
+}
+function fmtCount(n: number) {
+  return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+}
+function hashProductSeed(id: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < id.length; i++) {
+    h ^= id.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return Math.abs(h);
 }
 function now() {
   return new Date().toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit" });
@@ -234,9 +245,10 @@ const TgVerified = () => (
 
 // Channel post card
 function ChannelPost({ p, onAsk, onOrder }: { p: Product; onAsk: (p: Product) => void; onOrder: (p: Product) => void }) {
+  const seed = hashProductSeed(p.id);
   const [liked, setLiked] = useState(false);
-  const [likes, setLikes] = useState(Math.floor(Math.random() * 80) + 10);
-  const views = Math.floor(Math.random() * 2000) + 100;
+  const [likes, setLikes] = useState((seed % 80) + 10);
+  const views = (seed % 2000) + 100;
 
   return (
     <div className="tg-channel-post">
@@ -292,7 +304,7 @@ function ChannelPost({ p, onAsk, onOrder }: { p: Product; onAsk: (p: Product) =>
         >
           ❤️ {likes}
         </button>
-        <span className="tg-post-views">👁 {views.toLocaleString()}</span>
+        <span className="tg-post-views">👁 {fmtCount(views)}</span>
       </div>
     </div>
   );
@@ -472,7 +484,7 @@ export function ConversationDemoSection({ language }: { language?: Language }) {
                   </div>
                 </div>
                 <div className="tg-chat-time">
-                  <div className="tg-chat-ts">{now()}</div>
+                  <div className="tg-chat-ts">{messages[messages.length - 1]?.ts || "12:00"}</div>
                   {typing && <div className="tg-unread-badge">●</div>}
                 </div>
               </button>

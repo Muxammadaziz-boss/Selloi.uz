@@ -288,6 +288,7 @@ export function Sidebar({
               height: "24px",
             }}
             title={collapsed ? (t("common.expand", { defaultValue: "Kengaytirish" })) : (t("common.collapse", { defaultValue: "Yig'ish" }))}
+            aria-label={collapsed ? (t("common.expand", { defaultValue: "Kengaytirish" })) : (t("common.collapse", { defaultValue: "Yig'ish" }))}
           >
             {collapsed ? <IconChevronRight size={14} /> : <IconChevronLeft size={14} />}
           </button>

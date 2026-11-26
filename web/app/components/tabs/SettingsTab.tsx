@@ -479,6 +479,7 @@ export function SettingsTab({
                           type="button"
                           variant="secondary"
                           size="sm"
+                          aria-label={showApiHash ? "API Hash ni yashirish" : "API Hash ni ko'rsatish"}
                           onClick={() => setShowApiHash(!showApiHash)}
                           icon={showApiHash ? <IconEyeOff size={14} /> : <IconEye size={14} />}
                         />

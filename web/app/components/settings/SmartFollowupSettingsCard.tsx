@@ -165,6 +165,7 @@ export function SmartFollowupSettingsCard({
             <div className="col-12 col-md-4">
               <label className="small text-secondary d-block mb-1">{t("followup.delay_label")}</label>
               <select
+                aria-label={t("followup.delay_label")}
                 value={delayHours}
                 onChange={(e) => setDelayHours(Number(e.target.value))}
                 className="linear-input"
@@ -179,6 +180,7 @@ export function SmartFollowupSettingsCard({
             <div className="col-12 col-md-4">
               <label className="small text-secondary d-block mb-1">{t("followup.max_attempts_label")}</label>
               <select
+                aria-label={t("followup.max_attempts_label")}
                 value={maxAttempts}
                 onChange={(e) => setMaxAttempts(Number(e.target.value))}
                 className="linear-input"
@@ -193,6 +195,7 @@ export function SmartFollowupSettingsCard({
             <div className="col-12 col-md-4">
               <label className="small text-secondary d-block mb-1">{t("followup.discount_label")}</label>
               <select
+                aria-label={t("followup.discount_label")}
                 value={discountPct}
                 onChange={(e) => setDiscountPct(Number(e.target.value))}
                 className="linear-input"
@@ -222,6 +225,7 @@ export function SmartFollowupSettingsCard({
             {businessHoursOnly && (
               <div className="d-flex align-items-center gap-2 small">
                 <select
+                  aria-label="Ish vaqti boshlanish soati"
                   value={startHour}
                   onChange={(e) => setStartHour(Number(e.target.value))}
                   className="linear-input py-1"
@@ -233,6 +237,7 @@ export function SmartFollowupSettingsCard({
                 </select>
                 <span className="text-secondary">-</span>
                 <select
+                  aria-label="Ish vaqti tugash soati"
                   value={endHour}
                   onChange={(e) => setEndHour(Number(e.target.value))}
                   className="linear-input py-1"

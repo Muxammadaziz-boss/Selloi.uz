@@ -1037,6 +1037,7 @@ export function PlatformOwnerTab({
                   />
                 </div>
                 <select
+                  aria-label="Do'kon holati bo'yicha filtr"
                   className="linear-input"
                   style={{ width: "auto", minWidth: "125px" }}
                   value={storeStatusFilter}
@@ -1047,6 +1048,7 @@ export function PlatformOwnerTab({
                   <option value="suspended">To&apos;xtatilgan</option>
                 </select>
                 <select
+                  aria-label="Tarif bo'yicha filtr"
                   className="linear-input"
                   style={{ width: "auto", minWidth: "115px" }}
                   value={storePlanFilter}
@@ -1058,6 +1060,7 @@ export function PlatformOwnerTab({
                   <option value="ultra">ULTRA</option>
                 </select>
                 <select
+                  aria-label="Do'konlarni saralash"
                   className="linear-input"
                   style={{ width: "auto", minWidth: "130px" }}
                   value={storeSort}
@@ -1421,6 +1424,7 @@ export function PlatformOwnerTab({
                     />
                   </div>
                   <select
+                    aria-label="Foydalanuvchi roli bo'yicha filtr"
                     className="linear-input"
                     style={{ width: "auto", minWidth: "155px" }}
                     value={userRoleFilter}
@@ -1914,6 +1918,7 @@ export function PlatformOwnerTab({
                   />
                 </div>
                 <select
+                  aria-label="Audit harakatlari bo'yicha filtr"
                   className="linear-input"
                   style={{ width: "auto", minWidth: "160px" }}
                   value={auditActionFilter}

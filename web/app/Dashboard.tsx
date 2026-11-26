@@ -76,9 +76,38 @@ import { InboxTab } from "./components/tabs/InboxTab";
 import { DesignProvider } from "./components/design/DesignContext";
 import { LanguageProvider, useLanguage } from "./lib/i18n";
 import { playNotificationChime, showBrowserNotification } from "../lib/sound";
+import {
+  type AdminUser,
+  type ConnectedChannel,
+  type Conversation,
+  type DashboardProps,
+  type DashboardTabId,
+  type DashboardUser,
+  type KnowledgePost,
+  type Message,
+  type OrderItem,
+  type Overview,
+  type PendingConfirmState,
+  type ProductItem,
+  INITIAL_ORDERS,
+  INITIAL_PRODUCTS,
+  PERMISSION_CATEGORIES_EN,
+  PERMISSION_CATEGORIES_UZ,
+  PERMISSION_LABELS_EN,
+  PERMISSION_LABELS_UZ,
+  api,
+  cleanTelegramUsername,
+  formatChatTime,
+  timeLabel,
+} from "./lib/dashboardApi";
+import { usePlatformData } from "./hooks/usePlatformData";
+import { useStoreAutomation } from "./hooks/useStoreAutomation";
+import { useChatAndCatalogActions } from "./hooks/useChatAndCatalogActions";
 import type { StorePaymentConfigData } from "./components/settings/StorePaymentSettingsCard";
-import type { FollowupBundle, FollowupConfigData } from "./components/settings/SmartFollowupSettingsCard";
-import type { StoreReportBundle, StoreReportConfigData } from "./components/settings/DailyReportSettingsCard";
+import type { FollowupBundle } from "./components/settings/SmartFollowupSettingsCard";
+import type { StoreReportBundle } from "./components/settings/DailyReportSettingsCard";
+
+export type { DashboardUser, DashboardProps };
 
 function TabPanelSkeleton() {
   return (
@@ -160,279 +189,6 @@ const ProfileTab = dynamic(
   () => import("./components/tabs/ProfileTab").then((m) => m.ProfileTab),
   { loading: () => <TabPanelSkeleton /> }
 );
-
-type Overview = {
-  conversations: number;
-  ai_active: number;
-  human_takeover: number;
-  knowledge_posts: number;
-  orders: number;
-};
-
-type Conversation = {
-  id: number;
-  customer_name: string;
-  username?: string | null;
-  chat_id: number;
-  status: string;
-  handoff_reason?: string | null;
-  note?: string | null;
-  last_message_at?: string | null;
-};
-
-type Message = {
-  id: number;
-  direction: string;
-  text: string;
-  created_at: string;
-};
-
-type KnowledgePost = {
-  id: number;
-  channel_username: string;
-  telegram_message_id: number;
-  text: string;
-  image_description: string;
-  source_url?: string | null;
-};
-
-type ConnectedChannel = {
-  id: number;
-  channel_username: string;
-  title?: string | null;
-  is_active: boolean;
-  posts_count: number;
-  last_synced_at?: string | null;
-  created_at?: string | null;
-};
-
-type AdminUser = {
-  id: number;
-  telegram_user_id: number;
-  name: string;
-  username?: string | null;
-  role: "owner" | "admin" | "moderator";
-  permissions: Record<string, boolean>;
-  is_active: boolean;
-  added_by?: number | null;
-  created_at?: string | null;
-};
-
-type OrderItem = {
-  id: string;
-  db_id?: number;
-  conversation_id?: number | null;
-  customer: string;
-  username: string;
-  product: string;
-  amount: string;
-  status: "New" | "Processing" | "Confirmed" | "Completed" | "Paid" | "Cancelled" | string;
-  date: string;
-  channel: string;
-  latest_payment?: {
-    bill_id: string;
-    provider: string;
-    amount_uzs: number;
-    payment_url?: string | null;
-    status: string;
-    paid_at?: string | null;
-  } | null;
-};
-
-type ProductItem = {
-  id: string;
-  name: string;
-  category: string;
-  specs: string;
-  price: string;
-  stock: "In Stock" | "Low Stock" | "Pre-order";
-  warranty: string;
-};
-
-const PERMISSION_LABELS_UZ: Record<string, string> = {
-  can_view_conversations: "Suhbatlarni ko'rish",
-  can_reply_customers: "Mijozlarga javob berish",
-  can_takeover: "Suhbatni qabul qilish",
-  can_resume_ai: "AI ni qayta yoqish",
-  can_view_knowledge: "Bilim bazasini ko'rish",
-  can_manage_knowledge: "Bilim bazasini boshqarish",
-  can_manage_admins: "Adminlarni boshqarish",
-  can_view_orders: "Buyurtmalarni ko'rish",
-  can_manage_orders: "Buyurtmalarni boshqarish",
-  can_view_analytics: "Statistikani ko'rish",
-  can_manage_settings: "Sozlamalarni boshqarish",
-};
-
-const PERMISSION_LABELS_EN: Record<string, string> = {
-  can_view_conversations: "View Conversations",
-  can_reply_customers: "Reply to Customers",
-  can_takeover: "Takeover Chat",
-  can_resume_ai: "Resume AI",
-  can_view_knowledge: "View Knowledge Base",
-  can_manage_knowledge: "Manage Knowledge Base",
-  can_manage_admins: "Manage Administrators",
-  can_view_orders: "View Orders",
-  can_manage_orders: "Manage Orders",
-  can_view_analytics: "View Analytics",
-  can_manage_settings: "Manage Settings",
-};
-
-function cleanTelegramUsername(val?: string | null): string {
-  if (!val) return "";
-  return val
-    .trim()
-    .replace(/^https?:\/\/(www\.)?t\.me\//i, "")
-    .replace(/^t\.me\//i, "")
-    .replace(/^@+/, "")
-    .split("/")[0]
-    .split("?")[0]
-    .trim();
-}
-
-const PERMISSION_CATEGORIES_UZ = [
-  {
-    category: "Mijozlar va Jonli Suhbatlar",
-    icon: "💬",
-    description: "Mijozlar bilan yozishmalar va AI assistent boshqaruvi",
-    permissions: [
-      { key: "can_view_conversations", label: "Suhbatlarni ko'rish", desc: "Mijozlar bilan barcha jonli yozishmalarni o'qish" },
-      { key: "can_reply_customers", label: "Mijozlarga javob berish", desc: "Telegram orqali mijozlarga bevosita xabar yozish" },
-      { key: "can_takeover", label: "Suhbatni qabul qilish", desc: "AI ni to'xtatib, suhbatni o'z nazoratiga olish" },
-      { key: "can_resume_ai", label: "AI ni qayta yoqish", desc: "Suhbatni qaytadan AI avtomatik rejimiga o'tkazish" },
-    ],
-  },
-  {
-    category: "Mahsulotlar va Buyurtmalar",
-    icon: "📦",
-    description: "Katalog, Telegram kanal bazasi va savdo buyurtmalari",
-    permissions: [
-      { key: "can_view_knowledge", label: "Bilim bazasini ko'rish", desc: "Telegram kanalidagi postlar va mahsulotlar ro'yxatini ko'rish" },
-      { key: "can_manage_knowledge", label: "Bilim bazasini boshqarish", desc: "Yangi postlarni sinxronlash va kanalni tekshirish" },
-      { key: "can_view_orders", label: "Buyurtmalarni ko'rish", desc: "Shakllangan barcha buyurtmalar va shartnomalarni ko'rish" },
-      { key: "can_manage_orders", label: "Buyurtmalarni boshqarish", desc: "Buyurtma holatini tasdiqlash, rad etish yoki tahrirlash" },
-    ],
-  },
-  {
-    category: "Tizim, Tahlil va Adminlar",
-    icon: "⚙️",
-    description: "Umumiy statistika, tizim parametrlari va jamoa",
-    permissions: [
-      { key: "can_view_analytics", label: "Statistikani ko'rish", desc: "Savdo va konversiya ko'rsatkichlarini kuzatish" },
-      { key: "can_manage_settings", label: "Sozlamalarni boshqarish", desc: "AI modeli, harorati va tizim sozlamalarini o'zgartirish" },
-      { key: "can_manage_admins", label: "Adminlarni boshqarish", desc: "Yangi admin qo'shish va huquqlarini belgilash" },
-    ],
-  },
-];
-
-const PERMISSION_CATEGORIES_EN = [
-  {
-    category: "Customers & Live Chat",
-    icon: "💬",
-    description: "Customer interactions, live messaging, and AI takeover",
-    permissions: [
-      { key: "can_view_conversations", label: "View Conversations", desc: "Read all incoming customer chat messages" },
-      { key: "can_reply_customers", label: "Reply to Customers", desc: "Send direct messages to customers via Telegram" },
-      { key: "can_takeover", label: "Takeover Chat", desc: "Pause AI and assume manual human control" },
-      { key: "can_resume_ai", label: "Resume AI", desc: "Return conversation back to AI automation" },
-    ],
-  },
-  {
-    category: "Products & Orders",
-    icon: "📦",
-    description: "Catalog management, knowledge channels, and customer orders",
-    permissions: [
-      { key: "can_view_knowledge", label: "View Knowledge Base", desc: "View Telegram posts and synced product catalogs" },
-      { key: "can_manage_knowledge", label: "Manage Knowledge Base", desc: "Sync new posts and inspect channel pipelines" },
-      { key: "can_view_orders", label: "View Orders", desc: "Access all incoming customer orders" },
-      { key: "can_manage_orders", label: "Manage Orders", desc: "Approve, update, or cancel order transactions" },
-    ],
-  },
-  {
-    category: "System, Analytics & Access",
-    icon: "⚙️",
-    description: "Sales metrics, system parameters, and administrative privileges",
-    permissions: [
-      { key: "can_view_analytics", label: "View Analytics", desc: "Monitor sales volume and conversion rates" },
-      { key: "can_manage_settings", label: "Manage Settings", desc: "Configure AI model, temperature, and store rules" },
-      { key: "can_manage_admins", label: "Manage Administrators", desc: "Add or remove admins and grant permissions" },
-    ],
-  },
-];
-
-const INITIAL_PRODUCTS: ProductItem[] = [];
-const INITIAL_ORDERS: OrderItem[] = [];
-
-async function api<T>(path: string, options?: RequestInit & { orgId?: number | string }): Promise<T> {
-  const currentOrgId =
-    options?.orgId ||
-    (typeof window !== "undefined"
-      ? (new URLSearchParams(window.location.search).get("org") ||
-         sessionStorage.getItem("active_org_id") ||
-         localStorage.getItem("active_org_id") ||
-         "1")
-      : "1");
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    "X-Organization-Id": String(currentOrgId),
-    ...(options?.headers as Record<string, string> || {}),
-  };
-  const response = await fetch(`/api/proxy?path=${encodeURIComponent(path)}`, {
-    ...options,
-    headers,
-    cache: "no-store",
-  });
-  let rawText = "";
-  try {
-    rawText = await response.text();
-  } catch {
-    rawText = "";
-  }
-  let data: any = {};
-  try {
-    data = JSON.parse(rawText);
-  } catch {
-    data = {};
-  }
-  if (!response.ok) {
-    if (data.error === "FEATURE_NOT_AVAILABLE" || data.error === "LIMIT_EXCEEDED" || response.status === 402) {
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new CustomEvent("saas-upgrade-needed", { detail: data }));
-      }
-    }
-    const errorDetail =
-      data.detail ||
-      (typeof data.message === "string" ? data.message : "") ||
-      (rawText.length < 200 && rawText ? rawText : `HTTP ${response.status}`);
-    throw new Error(errorDetail);
-  }
-  return data as T;
-}
-
-function timeLabel(value?: string | null) {
-  if (!value) return "-";
-  const d = new Date(value);
-  if (isNaN(d.getTime())) return "-";
-  const time = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-  const months = ["yan", "fev", "mar", "apr", "may", "iyn", "iyl", "avg", "sen", "okt", "noy", "dek"];
-  return `${d.getDate()}-${months[d.getMonth()]}, ${time}`;
-}
-
-function formatChatTime(value?: string | null) {
-  if (!value) return "";
-  const d = new Date(value);
-  if (isNaN(d.getTime())) return "";
-  const now = new Date();
-  const isToday =
-    d.getDate() === now.getDate() &&
-    d.getMonth() === now.getMonth() &&
-    d.getFullYear() === now.getFullYear();
-
-  const time = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-  if (isToday) return time;
-
-  const months = ["yan", "fev", "mar", "apr", "may", "iyn", "iyl", "avg", "sen", "okt", "noy", "dek"];
-  return `${d.getDate()}-${months[d.getMonth()]}, ${time}`;
-}
 
 function AppLogo({
   src,
@@ -676,27 +432,6 @@ function MiniSparkline({
   );
 }
 
-export interface DashboardUser {
-  userId: number;
-  telegramUserId?: number;
-  email?: string;
-  fullName?: string;
-  username?: string;
-  role?: string;
-  organizationId?: number;
-  isPlatformOwner?: boolean;
-  isPlatformAdmin?: boolean;
-}
-
-export interface DashboardProps {
-  initialAuthenticated?: boolean;
-  initialUser?: DashboardUser | null;
-  initialZone?: "platform" | "tenant";
-  initialTenantSlug?: string;
-  initialTab?: "overview" | "inbox" | "knowledge" | "products" | "orders" | "customers" | "analytics" | "settings" | "admins" | "team" | "logs" | "profile" | "usage" | "billing" | "pricing" | "platform";
-  initialPlan?: string;
-}
-
 function DashboardContent({
   initialAuthenticated = false,
   initialUser = null,
@@ -717,125 +452,44 @@ function DashboardContent({
     if (initialZone) {
       return initialZone === "platform" && !hasPlatformAccess ? "tenant" : initialZone;
     }
-    if (typeof window !== "undefined") {
-      if ((window.location.pathname.startsWith("/admin") || window.location.pathname.startsWith("/platform")) && hasPlatformAccess) {
-        return "platform";
-      }
-      if (window.location.pathname.startsWith("/t/")) return "tenant";
-    }
     return hasPlatformAccess ? "platform" : "tenant";
   });
 
-  const [platformSubTab, setPlatformSubTab] = useState<
-    "overview" | "stores" | "users" | "plans" | "usage" | "system" | "audit" | "payment-testing"
-  >("overview");
+  const [isOwnerImpersonating, setIsOwnerImpersonating] = useState<boolean>(false);
 
-  const [isOwnerImpersonating, setIsOwnerImpersonating] = useState<boolean>(() => {
-    if (typeof window !== "undefined") {
-      return Boolean(localStorage.getItem("owner_impersonating_store"));
-    }
-    return false;
-  });
+  const [activeStoreMeta, setActiveStoreMeta] = useState<{ id: number; name: string; slug: string } | null>(null);
 
-  const [activeStoreMeta, setActiveStoreMeta] = useState<{ id: number; name: string; slug: string } | null>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("owner_impersonating_store");
-      if (saved) {
-        try {
-          return JSON.parse(saved);
-        } catch {}
-      }
-    }
-    return null;
-  });
-
-  const [platformUsers, setPlatformUsers] = useState<any[]>([]);
-  const [systemHealth, setSystemHealth] = useState<any>(null);
-  const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [tenantLogs, setTenantLogs] = useState<any[]>([]);
 
-  const [tab, setTab] = useState<
-    "overview" | "inbox" | "knowledge" | "products" | "orders" | "customers" | "analytics" | "settings" | "admins" | "team" | "logs" | "profile" | "usage" | "billing" | "pricing" | "platform"
-  >(() => {
+  const [tab, setTab] = useState<DashboardTabId>(() => {
     const valid = [
       "overview", "inbox", "knowledge", "products", "orders", "customers",
       "analytics", "settings", "admins", "team", "logs", "profile",
       "usage", "billing", "pricing", "platform"
     ];
     if (initialTab && valid.includes(initialTab)) {
-      if (typeof window !== "undefined") {
-        const h = window.location.hash.replace("#", "");
-        if (h === "profile" && (window.location.pathname.startsWith("/admin") || window.location.pathname.startsWith("/platform"))) {
-          return "profile";
-        }
-      }
-      return initialTab as any;
-    }
-    if (typeof window !== "undefined") {
-      if (window.location.pathname.startsWith("/settings/billing")) return "billing";
-      if (window.location.pathname.startsWith("/settings")) return "settings";
-      if (window.location.hash) {
-        const h = window.location.hash.replace("#", "");
-        if (valid.includes(h)) return h as any;
-      }
-      const params = new URLSearchParams(window.location.search);
-      const qTab = params.get("tab");
-      if (qTab && valid.includes(qTab)) return qTab as any;
+      return initialTab;
     }
     return "overview";
   });
 
   // SaaS Multi-Tenant & Subscription States
   const [userOrganizations, setUserOrganizations] = useState<any[]>([]);
-  const [activeOrgId, setActiveOrgId] = useState<number>(() => {
-    if (typeof window !== "undefined") {
-      const qOrg = new URLSearchParams(window.location.search).get("org");
-      if (qOrg && !isNaN(parseInt(qOrg, 10))) return parseInt(qOrg, 10);
-      const sessionSaved = sessionStorage.getItem("active_org_id");
-      if (sessionSaved && !isNaN(parseInt(sessionSaved, 10))) return parseInt(sessionSaved, 10);
-      const saved = localStorage.getItem("active_org_id");
-      return saved ? parseInt(saved, 10) : (initialUser?.organizationId || 1);
-    }
-    return initialUser?.organizationId || 1;
-  });
+  const [activeOrgId, setActiveOrgId] = useState<number>(initialUser?.organizationId || 1);
   const [showOrgDropdown, setShowOrgDropdown] = useState(false);
   const [showOnboardingModal, setShowOnboardingModal] = useState(false);
-  const [pendingConfirm, setPendingConfirm] = useState<{
-    title: string;
-    message: string;
-    confirmText?: string;
-    onConfirm: () => Promise<void>;
-  } | null>(null);
+  const [pendingConfirm, setPendingConfirm] = useState<PendingConfirmState | null>(null);
   const [subscriptionData, setSubscriptionData] = useState<any>(null);
   const [isSubscriptionLoading, setIsSubscriptionLoading] = useState<boolean>(true);
   const [subscriptionError, setSubscriptionError] = useState<string | null>(null);
   const [usageData, setUsageData] = useState<any>(null);
   const [plansList, setPlansList] = useState<any[]>([]);
-  const [platformMetrics, setPlatformMetrics] = useState<any>(null);
-  const [platformOrgs, setPlatformOrgs] = useState<any[]>([]);
   const [upgradeModalConfig, setUpgradeModalConfig] = useState<{
     isOpen: boolean;
     featureName?: string;
     requiredPlan?: string;
     message?: string;
   }>({ isOpen: false });
-
-  // Organization Details & Telegram Bot Integration States
-  const [currentOrgDetails, setCurrentOrgDetails] = useState<any>(null);
-  const [botTokenInput, setBotTokenInput] = useState("");
-  const [showBotToken, setShowBotToken] = useState(false);
-  const [botTokenVerifying, setBotTokenVerifying] = useState(false);
-  const [botTokenResult, setBotTokenResult] = useState<any>(null);
-  const [customPromptInput, setCustomPromptInput] = useState("");
-  const [telegramApiIdInput, setTelegramApiIdInput] = useState("");
-  const [telegramApiHashInput, setTelegramApiHashInput] = useState("");
-  const [telegramPhoneInput, setTelegramPhoneInput] = useState("");
-  const [adminChatIdInput, setAdminChatIdInput] = useState("");
-  const [showApiHash, setShowApiHash] = useState(false);
-  const [webhookSetting, setWebhookSetting] = useState(false);
-  const [webhookStatusChecking, setWebhookStatusChecking] = useState(false);
-  const [webhookInfo, setWebhookInfo] = useState<any>(null);
-  const [savingOrgSettings, setSavingOrgSettings] = useState(false);
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">("dark");
@@ -862,9 +516,6 @@ function DashboardContent({
   const [newChannelInput, setNewChannelInput] = useState("");
   const [channelFilter, setChannelFilter] = useState("all");
   const [orders, setOrders] = useState<OrderItem[]>(INITIAL_ORDERS);
-  const [storePaymentConfig, setStorePaymentConfig] = useState<StorePaymentConfigData | null>(null);
-  const [followupBundle, setFollowupBundle] = useState<FollowupBundle | null>(null);
-  const [reportBundle, setReportBundle] = useState<StoreReportBundle | null>(null);
   const [products, setProducts] = useState<ProductItem[]>(INITIAL_PRODUCTS);
   const [editingProduct, setEditingProduct] = useState<ProductItem | null>(null);
   const [isAddingProduct, setIsAddingProduct] = useState(false);
@@ -889,12 +540,8 @@ function DashboardContent({
   const [success, setSuccess] = useState("");
   const [infoToast, setInfoToast] = useState("");
   const [sseConnected, setSseConnected] = useState(false);
-  const [soundEnabled, setSoundEnabled] = useState<boolean>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("selloi_sound_alerts") !== "false";
-    }
-    return true;
-  });
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
+  const soundHydratedRef = useRef(false);
 
   const selectedRef = useRef<number | null>(selected);
   const tabRef = useRef<string>(tab);
@@ -909,6 +556,18 @@ function DashboardContent({
   }, [tab]);
 
   useEffect(() => {
+    if (!soundHydratedRef.current) {
+      soundHydratedRef.current = true;
+      try {
+        const saved = localStorage.getItem("selloi_sound_alerts");
+        if (saved !== null) {
+          const val = saved !== "false";
+          soundEnabledRef.current = val;
+          setSoundEnabled(val);
+          return;
+        }
+      } catch {}
+    }
     soundEnabledRef.current = soundEnabled;
     if (typeof window !== "undefined") {
       localStorage.setItem("selloi_sound_alerts", soundEnabled ? "true" : "false");
@@ -991,6 +650,73 @@ function DashboardContent({
   const [businessHoursOnly, setBusinessHoursOnly] = useState(false);
   const [doubleConfirmation, setDoubleConfirmation] = useState(true);
 
+  const loadMessages = useCallback(async (id: number) => {
+    try {
+      setMessages(await api<Message[]>(`/admin/conversations/${id}/messages`));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Xabarlar yuklanmadi");
+    }
+  }, []);
+
+  const {
+    storePaymentConfig,
+    setStorePaymentConfig,
+    followupBundle,
+    setFollowupBundle,
+    reportBundle,
+    setReportBundle,
+    currentOrgDetails,
+    setCurrentOrgDetails,
+    botTokenInput,
+    setBotTokenInput,
+    showBotToken,
+    setShowBotToken,
+    botTokenVerifying,
+    botTokenResult,
+    customPromptInput,
+    setCustomPromptInput,
+    telegramApiIdInput,
+    setTelegramApiIdInput,
+    telegramApiHashInput,
+    setTelegramApiHashInput,
+    telegramPhoneInput,
+    setTelegramPhoneInput,
+    adminChatIdInput,
+    setAdminChatIdInput,
+    showApiHash,
+    setShowApiHash,
+    webhookSetting,
+    webhookStatusChecking,
+    webhookInfo,
+    savingOrgSettings,
+    handleVerifyBotToken,
+    handleSaveBotSettings,
+    handleSetWebhook,
+    handleCheckWebhookStatus,
+    handleRunAiPlayground,
+    handleOpenPlayground,
+    handleSaveStorePaymentConfig,
+    handleSendOrderPayment,
+    handleSendConversationPayment,
+    handleMarkOrderPaid,
+    handleCheckOrderPayment,
+    handleSaveFollowupConfig,
+    handlePreviewFollowup,
+    handleRunFollowupNow,
+    handleSaveReportConfig,
+    handlePreviewDailyReport,
+    handleSendDailyReportNow,
+  } = useStoreAutomation({
+    activeOrgId,
+    selectedConversationId: selected,
+    setTab,
+    setOrders,
+    loadMessages,
+    setSuccess,
+    setError,
+    setInfoToast,
+  });
+
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
@@ -1040,15 +766,93 @@ function DashboardContent({
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [setFollowupBundle, setReportBundle, setStorePaymentConfig]);
 
-  const loadMessages = useCallback(async (id: number) => {
-    try {
-      setMessages(await api<Message[]>(`/admin/conversations/${id}/messages`));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Xabarlar yuklanmadi");
-    }
-  }, []);
+  const {
+    perform,
+    sendReply,
+    handleSaveCustomerNote,
+    handleSendCatalogProposal,
+    handleSendDiscountProposal,
+    handleDeletePost,
+    handleSaveProductEdit,
+    handleCreateProduct,
+    handleExtractProductsFromPosts,
+    handleUpdateOrderStatus,
+    handleDeleteOrder,
+    handleDeleteProduct,
+    handleSyncKnowledge,
+    handleConnectChannel,
+    handleSyncChannel,
+    handleDeleteChannel,
+  } = useChatAndCatalogActions({
+    selected,
+    draft,
+    setDraft,
+    setBusy,
+    setSuccess,
+    setError,
+    load,
+    loadMessages,
+    products,
+    setProducts,
+    editingProduct,
+    setEditingProduct,
+    newProduct,
+    setNewProduct,
+    setIsAddingProduct,
+    setOrders,
+    setPosts,
+    setConversations,
+    setCustomerNotes,
+    newChannelInput,
+    setNewChannelInput,
+    setPendingConfirm,
+  });
+
+  const loadSaaSDataRef = useRef<(orgId?: number) => Promise<void>>(async () => {});
+  const loadSaaSDataBridge = useCallback((orgId?: number) => loadSaaSDataRef.current(orgId), []);
+
+  const {
+    platformMetrics,
+    setPlatformMetrics,
+    platformOrgs,
+    setPlatformOrgs,
+    platformUsers,
+    systemHealth,
+    auditLogs,
+    platformSubTab,
+    setPlatformSubTab,
+    loadPlatformData,
+    handleUpdatePlanConfig,
+    handleEnterStore,
+    handleExitStore,
+    handleAppointSiteAdmin,
+    handleToggleSiteAdmin,
+    handleToggleUserStatus,
+    handleCreateStore,
+    handleUpdateStoreStatus,
+    handleDeleteStore,
+    handleInspectStore,
+    handleUpdateStoreSubscription,
+    handleSendPlatformDailyReport,
+    handleSendPlatformBroadcast,
+  } = usePlatformData({
+    zone,
+    activeOrgId,
+    setActiveOrgId,
+    setZone,
+    setTab,
+    setLoading,
+    setBusy,
+    setSuccess,
+    setError,
+    setActiveStoreMeta,
+    setIsOwnerImpersonating,
+    setPendingConfirm,
+    loadStoreData: load,
+    loadSaaSData: loadSaaSDataBridge,
+  });
 
   useEffect(() => {
     if (!authenticated) {
@@ -1071,6 +875,28 @@ function DashboardContent({
         .finally(() => clearTimeout(timer));
     }
   }, [authenticated, initialZone]);
+
+  const urlSyncDoneRef = useRef(false);
+
+  // Hydrate client-only storage/URL state after SSR mount to prevent React hydration mismatches
+  useEffect(() => {
+    try {
+      const imp = localStorage.getItem("owner_impersonating_store");
+      if (imp) {
+        setIsOwnerImpersonating(true);
+        setActiveStoreMeta(JSON.parse(imp));
+      }
+    } catch {}
+    try {
+      const qOrg = new URLSearchParams(window.location.search).get("org");
+      const sessionSaved = sessionStorage.getItem("active_org_id");
+      const saved = localStorage.getItem("active_org_id");
+      const rawOrg = qOrg || sessionSaved || saved;
+      if (rawOrg && !isNaN(parseInt(rawOrg, 10))) {
+        setActiveOrgId(parseInt(rawOrg, 10));
+      }
+    } catch {}
+  }, []);
 
   // Synchronize tab with URL hash on mount and hashchange
   useEffect(() => {
@@ -1120,10 +946,20 @@ function DashboardContent({
             setZone("tenant");
           }
         }
+      } else if (window.location.pathname.startsWith("/settings/billing")) {
+        setTab("billing");
+      } else if (window.location.pathname.startsWith("/settings")) {
+        setTab("settings");
+      } else {
+        const qTab = new URLSearchParams(window.location.search).get("tab") as (typeof validTabs)[number] | null;
+        if (qTab && validTabs.includes(qTab)) {
+          setTab(qTab);
+        }
       }
     };
 
     syncFromUrl();
+    urlSyncDoneRef.current = true;
     window.addEventListener("hashchange", syncFromUrl);
     window.addEventListener("popstate", syncFromUrl);
     return () => {
@@ -1134,6 +970,7 @@ function DashboardContent({
 
   // Sync window URL hash when tab changes
   useEffect(() => {
+    if (!urlSyncDoneRef.current) return;
     if (typeof window !== "undefined") {
       const targetHash = `#${tab}`;
       if (window.location.hash !== targetHash) {
@@ -1558,29 +1395,22 @@ function DashboardContent({
     } finally {
       setIsSubscriptionLoading(false);
     }
-  }, [activeOrgId, hasPlatformAccess, currentAdmin?.role]);
+  }, [
+    activeOrgId,
+    hasPlatformAccess,
+    currentAdmin?.role,
+    setCurrentOrgDetails,
+    setCustomPromptInput,
+    setTelegramApiIdInput,
+    setTelegramPhoneInput,
+    setAdminChatIdInput,
+    setPlatformMetrics,
+    setPlatformOrgs,
+  ]);
 
-  const loadPlatformData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [m, o, u, h, a] = await Promise.all([
-        api<any>("/api/platform/metrics").catch(() => null),
-        api<any>("/api/platform/organizations").catch(() => ({ organizations: [] })),
-        api<any>("/api/platform/users").catch(() => ({ users: [] })),
-        api<any>("/api/platform/system-health").catch(() => null),
-        api<any>("/api/platform/audit-logs").catch(() => ({ logs: [] })),
-      ]);
-      if (m) setPlatformMetrics(m);
-      if (o?.organizations) setPlatformOrgs(o.organizations);
-      if (u?.users) setPlatformUsers(u.users);
-      if (h) setSystemHealth(h);
-      if (a?.logs) setAuditLogs(a.logs);
-    } catch (e) {
-      console.error("loadPlatformData error:", e);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  useEffect(() => {
+    loadSaaSDataRef.current = loadSaaSData;
+  }, [loadSaaSData]);
 
   useEffect(() => {
     if (!authenticated) return;
@@ -1686,127 +1516,6 @@ function DashboardContent({
     }
   };
 
-  const handleVerifyBotToken = async () => {
-    if (!botTokenInput.trim()) {
-      setError("Iltimos, tekshirish uchun Bot Token kiriting");
-      return;
-    }
-    setBotTokenVerifying(true);
-    setBotTokenResult(null);
-    try {
-      const res = await api<any>("/api/organizations/verify-token", {
-        method: "POST",
-        body: JSON.stringify({ token: botTokenInput.trim() }),
-      });
-      setBotTokenResult(res);
-      if (res.valid) {
-        setSuccess(`Bot tasdiqlandi: @${res.bot_username} (${res.bot_name})`);
-      } else {
-        setError(`Bot token xato: ${res.error || "Noto'g'ri token"}`);
-      }
-    } catch (err: any) {
-      setError(err.message || "Bot tokenni tekshirishda xatolik yuz berdi");
-    } finally {
-      setBotTokenVerifying(false);
-    }
-  };
-
-  const handleSaveBotSettings = async () => {
-    setSavingOrgSettings(true);
-    try {
-      const payload: any = {
-        custom_system_prompt: customPromptInput,
-      };
-      if (botTokenInput.trim()) {
-        payload.telegram_bot_token = botTokenInput.trim();
-      }
-      if (telegramApiIdInput.trim()) {
-        payload.telegram_api_id = parseInt(telegramApiIdInput.trim(), 10);
-      }
-      if (telegramApiHashInput.trim()) {
-        payload.telegram_api_hash = telegramApiHashInput.trim();
-      }
-      if (telegramPhoneInput.trim()) {
-        payload.telegram_phone = telegramPhoneInput.trim();
-      }
-      if (adminChatIdInput.trim()) {
-        payload.admin_chat_id = adminChatIdInput.trim();
-      }
-      const res = await api<any>(`/api/organizations/current?organization_id=${activeOrgId}`, {
-        method: "PUT",
-        body: JSON.stringify(payload),
-      });
-      if (res.organization) {
-        setCurrentOrgDetails(res.organization);
-        setSuccess("Bot, Telegram API va AI sozlamalari muvaffaqiyatli saqlandi!");
-        setBotTokenInput("");
-        setTelegramApiHashInput("");
-        setBotTokenResult(null);
-      }
-    } catch (err: any) {
-      setError(err.message || "Sozlamalarni saqlashda xatolik");
-    } finally {
-      setSavingOrgSettings(false);
-    }
-  };
-
-  const handleSetWebhook = async () => {
-    setWebhookSetting(true);
-    try {
-      const res = await api<any>(`/api/organizations/${activeOrgId}/set-webhook`, {
-        method: "POST",
-      });
-      setSuccess(`Telegram Webhook muvaffaqiyatli o'rnatildi: ${res.webhook_url}`);
-      await handleCheckWebhookStatus();
-    } catch (err: any) {
-      setError(err.message || "Telegram Webhook o'rnatishda xatolik yuz berdi");
-    } finally {
-      setWebhookSetting(false);
-    }
-  };
-
-  const handleCheckWebhookStatus = async () => {
-    setWebhookStatusChecking(true);
-    try {
-      const res = await api<any>(`/api/organizations/${activeOrgId}/webhook-status`);
-      setWebhookInfo(res);
-      if (res.configured && res.webhook_info) {
-        setSuccess(`Webhook holati: ${res.webhook_info.url || "O'rnatilmagan"} (Kutilayotgan: ${res.webhook_info.pending_update_count || 0})`);
-      } else if (!res.configured) {
-        setError(res.reason || "Bot token sozlanmagan");
-      }
-    } catch (err: any) {
-      setError(err.message || "Webhook holatini tekshirishda xatolik");
-    } finally {
-      setWebhookStatusChecking(false);
-    }
-  };
-
-  const handleRunAiPlayground = useCallback(
-    async (payload: {
-      message: string;
-      history: Array<{ direction: "customer" | "assistant"; text: string }>;
-      custom_system_prompt?: string;
-      ai_temperature?: number;
-      ai_model?: string;
-    }) => {
-      return api<any>("/admin/ai/playground", {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
-    },
-    []
-  );
-
-  const handleOpenPlayground = useCallback(() => {
-    setTab("settings");
-    if (typeof window !== "undefined") {
-      setTimeout(() => {
-        document.getElementById("ai-playground")?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 150);
-    }
-  }, []);
-
   const switchOrganization = (orgId: number) => {
     setActiveOrgId(orgId);
     setSubscriptionData(null);
@@ -1822,237 +1531,6 @@ function DashboardContent({
     setSuccess(`Faol tashkilot almashtirildi: #${orgId}`);
     load();
     loadSaaSData(orgId);
-  };
-
-  const handleUpdatePlanConfig = async (planCode: string, payload: any) => {
-    setBusy(true);
-    try {
-      await api(`/api/platform/plans/${planCode}`, {
-        method: "PUT",
-        body: JSON.stringify(payload),
-      });
-      setSuccess(`${planCode.toUpperCase()} tarifi parametrlari yangilandi!`);
-      if (zone === "platform") {
-        await loadPlatformData();
-      } else {
-        await loadSaaSData(activeOrgId);
-      }
-    } catch (err: any) {
-      setError(err.message || "Tarifni tahrirlashda xatolik");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleEnterStore = async (store: any) => {
-    setBusy(true);
-    try {
-      await api(`/api/platform/organizations/${store.slug}/impersonate`, { method: "POST" });
-      const meta = { id: store.id, name: store.name, slug: store.slug };
-      if (typeof window !== "undefined") {
-        sessionStorage.setItem("active_org_id", String(store.id));
-        localStorage.setItem("active_org_id", String(store.id));
-        localStorage.setItem("owner_impersonating_store", JSON.stringify(meta));
-        window.history.pushState(null, "", `/t/${store.slug}`);
-      }
-      setActiveOrgId(store.id);
-      setActiveStoreMeta(meta);
-      setIsOwnerImpersonating(true);
-      setZone("tenant");
-      setTab("overview");
-      setSuccess(`"${store.name}" do'koniga muvaffaqiyatli kirildi!`);
-      await load();
-      await loadSaaSData(store.id);
-    } catch (err: any) {
-      setError(err.message || "Do'konga kirishda xatolik yuz berdi");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleExitStore = () => {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("owner_impersonating_store");
-      window.history.pushState(null, "", "/admin");
-    }
-    setIsOwnerImpersonating(false);
-    setActiveStoreMeta(null);
-    setZone("platform");
-    setPlatformSubTab("stores");
-    setSuccess("Admin panelga qaytildi.");
-    loadPlatformData();
-  };
-
-  const handleAppointSiteAdmin = async (email: string, fullName?: string) => {
-    setBusy(true);
-    try {
-      await api("/api/platform/site-admins", {
-        method: "POST",
-        body: JSON.stringify({ email, full_name: fullName || "" }),
-      });
-      setSuccess(`${email} Sayt Admini sifatida tayinlandi!`);
-      await loadPlatformData();
-    } catch (err: any) {
-      setError(err.message || "Sayt adminini tayinlashda xatolik");
-      throw err;
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleToggleSiteAdmin = async (userId: number, makeAdmin: boolean) => {
-    setBusy(true);
-    try {
-      await api(`/api/platform/users/${userId}/platform-admin`, {
-        method: "PATCH",
-        body: JSON.stringify({ is_platform_admin: makeAdmin }),
-      });
-      setSuccess(makeAdmin ? "Sayt Admini huquqi berildi!" : "Sayt Admini huquqi olib tashlandi.");
-      await loadPlatformData();
-    } catch (err: any) {
-      setError(err.message || "Foydalanuvchi rolini yangilashda xatolik");
-      throw err;
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleToggleUserStatus = async (userId: number, isActive: boolean) => {
-    setBusy(true);
-    try {
-      await api(`/api/platform/users/${userId}/status`, {
-        method: "PATCH",
-        body: JSON.stringify({ is_active: isActive }),
-      });
-      setSuccess(isActive ? "Foydalanuvchi faollashtirildi!" : "Foydalanuvchi bloklandi.");
-      await loadPlatformData();
-    } catch (err: any) {
-      setError(err.message || "Foydalanuvchi holatini yangilashda xatolik");
-      throw err;
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleCreateStore = async (payload: any) => {
-    setBusy(true);
-    try {
-      const res = await api<any>("/api/platform/organizations", {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
-      setSuccess(`"${payload.name}" do'koni muvaffaqiyatli ochildi!`);
-      await loadPlatformData();
-      return res;
-    } catch (err: any) {
-      setError(err.message || "Do'kon ochishda xatolik yuz berdi");
-      throw err;
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleUpdateStoreStatus = async (storeId: number, newStatus: string) => {
-    setBusy(true);
-    try {
-      await api<any>(`/api/platform/organizations/${storeId}/status`, {
-        method: "PATCH",
-        body: JSON.stringify({ status: newStatus }),
-      });
-      setSuccess(`Do'kon holati "${newStatus}" ga o'zgartirildi`);
-      await loadPlatformData();
-    } catch (err: any) {
-      setError(err.message || "Holatni o'zgartirishda xatolik");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleDeleteStore = async (storeId: number) => {
-    setPendingConfirm({
-      title: "Do'konni o'chirish",
-      message: "Haqiqatan ham ushbu do'konni o'chirmoqchimisiz? Barcha bog'liq sozlamalar nofaol holatga o'tadi.",
-      confirmText: "Ha, o'chirish",
-      onConfirm: async () => {
-        await api<any>(`/api/platform/organizations/${storeId}`, {
-          method: "DELETE",
-        });
-        setSuccess("Do'kon muvaffaqiyatli o'chirildi");
-        await loadPlatformData();
-      },
-    });
-  };
-
-  const handleInspectStore = async (storeId: number) => {
-    return api<any>(`/api/platform/organizations/${storeId}/details`);
-  };
-
-  const handleUpdateStoreSubscription = async (
-    storeId: number,
-    payload: { plan_code: string; status: string; billing_cycle: string; extend_days: number }
-  ) => {
-    setBusy(true);
-    try {
-      const res = await api<any>(`/api/platform/organizations/${storeId}/subscription`, {
-        method: "PATCH",
-        body: JSON.stringify(payload),
-      });
-      setSuccess(res.message || "Do'kon obunasi yangilandi");
-      await loadPlatformData();
-      return res;
-    } catch (err: any) {
-      setError(err.message || "Do'kon obunasini yangilashda xatolik");
-      throw err;
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleSendPlatformDailyReport = async () => {
-    setBusy(true);
-    try {
-      const res = await api<any>("/api/platform/daily-report", {
-        method: "POST",
-      });
-      setSuccess(
-        res.sent_count > 0
-          ? `Platforma hisoboti Telegramga (${res.sent_count} ta admin) yuborildi!`
-          : "Platforma hisoboti tayyorlandi."
-      );
-      await loadPlatformData();
-      return res;
-    } catch (err: any) {
-      setError(err.message || "Hisobot yuborishda xatolik");
-      throw err;
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleSendPlatformBroadcast = async (payload: {
-    audience: string;
-    message: string;
-    dry_run?: boolean;
-  }) => {
-    if (!payload.dry_run) setBusy(true);
-    try {
-      const res = await api<any>("/api/platform/broadcast", {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
-      if (!payload.dry_run) {
-        setSuccess(`Xabarnoma ${res.sent_count} ta foydalanuvchiga yuborildi!`);
-        await loadPlatformData();
-      }
-      return res;
-    } catch (err: any) {
-      if (!payload.dry_run) {
-        setError(err.message || "E'lon yuborishda xatolik");
-      }
-      throw err;
-    } finally {
-      if (!payload.dry_run) setBusy(false);
-    }
   };
 
   useEffect(() => {
@@ -2122,441 +1600,6 @@ function DashboardContent({
       );
     });
   }, [orders, orderSearch]);
-
-  async function perform(path: string, body?: unknown): Promise<boolean> {
-    setBusy(true);
-    setError("");
-    setSuccess("");
-    try {
-      await api(path, { method: "POST", body: body === undefined ? undefined : JSON.stringify(body) });
-      await load();
-      if (selected !== null) await loadMessages(selected);
-      return true;
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Amal bajarilmadi");
-      return false;
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function sendReply() {
-    if (!selected || !draft.trim()) return;
-    const text = draft.trim();
-    const ok = await perform(`/admin/conversations/${selected}/reply`, { text });
-    if (ok) {
-      setDraft("");
-    }
-  }
-
-  const handleSaveCustomerNote = async (id: number, noteText: string) => {
-    setBusy(true);
-    try {
-      const res = await api<{ ok: boolean; note: string }>(`/admin/conversations/${id}/note`, {
-        method: "PUT",
-        body: JSON.stringify({ notes: noteText }),
-      });
-      const savedNote = res?.note ?? noteText;
-      setCustomerNotes((prev) => ({ ...prev, [id]: savedNote }));
-      setConversations((prev) =>
-        prev.map((c) => (c.id === id ? { ...c, note: savedNote } : c))
-      );
-      setSuccess("Operator eslatmasi bazaga saqlandi!");
-    } catch (err: any) {
-      setError(err?.message || "Eslatmani saqlashda xatolik yuz berdi");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleSendCatalogProposal = () => {
-    if (!products || products.length === 0) {
-      setError("Katalogda hali mahsulotlar mavjud emas. Avval Mahsulotlar bo'limidan qo'shing.");
-      return;
-    }
-    const itemsList = products.slice(0, 6).map((p, idx) => {
-      const specsPart = p.specs ? ` (${p.specs})` : "";
-      return `${idx + 1}. ${p.name} - ${p.price}${specsPart}`;
-    });
-    setDraft(
-      "Assalomu alaykum! Do'konimizdagi eng ommabop mahsulotlar katalogi bilan tanishing:\n\n" +
-        itemsList.join("\n") +
-        "\n\nQaysi mahsulot bo'yicha batafsil ma'lumot beraylik?"
-    );
-    setSuccess("Do'kon katalogi taklifi xabar maydoniga tayyorlandi!");
-  };
-
-  const handleSendDiscountProposal = () => {
-    setDraft(
-      "Hurmatli mijoz, agar siz bugun buyurtmani tasdiqlasangiz, siz uchun maxsus 5% chegirma va bepul yetkazib berish xizmatini taqdim etamiz!"
-    );
-    setSuccess("Chegirma taklifi xabar maydoniga tayyorlandi!");
-  };
-
-  async function handleDeletePost(postId: number, msgId?: number) {
-    setPendingConfirm({
-      title: "Bilim bazasidan o'chirish",
-      message: `#${msgId || postId} postni bazadan o'chirmoqchimisiz?`,
-      confirmText: "O'chirish",
-      onConfirm: async () => {
-        await api(`/admin/knowledge/${postId}`, { method: "DELETE" });
-        setPosts((prev) => prev.filter((p) => p.id !== postId));
-        setSuccess(`#${msgId || postId} post bazadan muvaffaqiyatli o'chirildi!`);
-      },
-    });
-  }
-
-  const handleSaveProductEdit = async () => {
-    if (!editingProduct) return;
-    try {
-      const res = await api<any>(`/admin/products/${encodeURIComponent(editingProduct.id)}`, {
-        method: "PUT",
-        body: JSON.stringify(editingProduct),
-      });
-      setProducts((prev) =>
-        prev.map((p) => (p.id === editingProduct.id ? { ...p, ...res } : p))
-      );
-      setSuccess(`${editingProduct.name} muvaffaqiyatli yangilandi!`);
-      setEditingProduct(null);
-    } catch (e: any) {
-      setError(e.message || "Mahsulotni yangilashda xatolik");
-    }
-  };
-
-  const handleCreateProduct = async () => {
-    if (!newProduct.name || !newProduct.price) {
-      setError("Iltimos, mahsulot nomi va narxini kiriting");
-      return;
-    }
-    const newId = `PRD-${String(products.length + 1).padStart(2, "0")}`;
-    const item: ProductItem = {
-      id: newId,
-      name: newProduct.name,
-      category: newProduct.category || "General",
-      specs: newProduct.specs || "Standart parametrlar",
-      price: newProduct.price.startsWith("$") ? newProduct.price : `$${newProduct.price}`,
-      stock: (newProduct.stock as any) || "In Stock",
-      warranty: newProduct.warranty || "Mavjud",
-    };
-    try {
-      const res = await api<any>("/admin/products", {
-        method: "POST",
-        body: JSON.stringify(item),
-      });
-      setProducts((prev) => [res || item, ...prev]);
-      setSuccess(`${item.name} katalogga qo'shildi!`);
-      setIsAddingProduct(false);
-      setNewProduct({ category: "General", stock: "In Stock", warranty: "Mavjud" });
-    } catch (e: any) {
-      setError(e.message || "Mahsulotni qo'shishda xatolik");
-    }
-  };
-
-  const handleExtractProductsFromPosts = async () => {
-    setBusy(true);
-    try {
-      const res = await api<any>("/admin/products/extract-from-posts", { method: "POST" });
-      if (res.extracted_count > 0) {
-        setSuccess(`${res.extracted_count} ta yangi mahsulot kanal postlaridan aniqlandi va katalogga qo'shildi!`);
-        const updated = await api<ProductItem[]>("/admin/products");
-        setProducts(updated || []);
-      } else {
-        setSuccess("Kanal postlaridan yangi mahsulot topilmadi yoki barchasi avval qo'shilgan.");
-      }
-    } catch (e: any) {
-      setError(e.message || "Mahsulotlarni aniqlashda xatolik");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleUpdateOrderStatus = async (orderIdStr: string, status: string) => {
-    const rawId = parseInt(orderIdStr.replace("ORD-", ""), 10);
-    try {
-      await api(`/admin/orders/${rawId}`, {
-        method: "PATCH",
-        body: JSON.stringify({ status }),
-      });
-      setOrders((prev) =>
-        prev.map((o) => (o.id === orderIdStr ? { ...o, status } : o))
-      );
-      setSuccess(`Buyurtma #${orderIdStr} statusi yangilandi: ${status}`);
-    } catch (e: any) {
-      setError(e.message || "Buyurtma statusini o'zgartirishda xatolik");
-    }
-  };
-
-  const handleSaveStorePaymentConfig = async (payload: {
-    provider: string;
-    is_enabled: boolean;
-    tezcheck_cash_desk_code?: string;
-    tezcheck_api_key?: string;
-    tezcheck_secret_key?: string;
-    click_service_id?: string;
-    click_merchant_id?: string;
-    payme_merchant_id?: string;
-    card_number?: string;
-    card_holder?: string;
-  }) => {
-    try {
-      const res = await api<{ ok: boolean; config: StorePaymentConfigData }>("/admin/payments/config", {
-        method: "PUT",
-        body: JSON.stringify(payload),
-      });
-      if (res?.config) setStorePaymentConfig(res.config);
-      setSuccess("Mijozlardan to'lov qabul qilish sozlamalari saqlandi!");
-    } catch (e: any) {
-      setError(e.message || "To'lov sozlamalarini saqlashda xatolik");
-      throw e;
-    }
-  };
-
-  const handleSendOrderPayment = async (orderIdStr: string, amountUzs: number, description?: string) => {
-    const rawId = parseInt(orderIdStr.replace("ORD-", ""), 10);
-    try {
-      const res = await api<any>(`/admin/orders/${rawId}/send-payment`, {
-        method: "POST",
-        body: JSON.stringify({
-          amount_uzs: amountUzs,
-          description: description || undefined,
-          send_to_telegram: true,
-        }),
-      });
-      const updatedOrders = await api<OrderItem[]>("/admin/orders").catch(() => null);
-      if (updatedOrders) setOrders(updatedOrders);
-      if (res?.telegram_sent) {
-        setSuccess(`Buyurtma ${orderIdStr} uchun to'lov havolasi Telegramga yuborildi!`);
-      } else {
-        setSuccess(`Buyurtma ${orderIdStr} uchun to'lov havolasi yaratildi (nusxalab yuborishingiz mumkin).`);
-      }
-      if (selected !== null) {
-        void loadMessages(selected);
-      }
-      return res;
-    } catch (e: any) {
-      setError(e.message || "To'lov havolasi yaratishda xatolik");
-      throw e;
-    }
-  };
-
-  const handleSendConversationPayment = async (conversationId: number, amountUzs: number, productSummary: string) => {
-    try {
-      const res = await api<any>(`/admin/conversations/${conversationId}/send-payment`, {
-        method: "POST",
-        body: JSON.stringify({
-          amount_uzs: amountUzs,
-          product_summary: productSummary,
-        }),
-      });
-      if (res?.telegram_sent) {
-        setSuccess("To'lov havolasi mijozga Telegram chatida yuborildi!");
-      } else {
-        setSuccess("Buyurtma va to'lov havolasi yaratildi.");
-      }
-      await Promise.all([
-        api<OrderItem[]>("/admin/orders").then(setOrders).catch(() => {}),
-        loadMessages(conversationId),
-      ]);
-    } catch (e: any) {
-      setError(e.message || "To'lov havolasini yuborishda xatolik");
-      throw e;
-    }
-  };
-
-  const handleMarkOrderPaid = async (orderIdStr: string) => {
-    const rawId = parseInt(orderIdStr.replace("ORD-", ""), 10);
-    try {
-      await api(`/admin/orders/${rawId}/mark-paid`, { method: "POST" });
-      const updatedOrders = await api<OrderItem[]>("/admin/orders").catch(() => null);
-      if (updatedOrders) setOrders(updatedOrders);
-      setSuccess(`Buyurtma ${orderIdStr} to'langan (Paid) deb belgilandi!`);
-    } catch (e: any) {
-      setError(e.message || "To'lovni tasdiqlashda xatolik");
-    }
-  };
-
-  const handleCheckOrderPayment = async (orderIdStr: string) => {
-    const rawId = parseInt(orderIdStr.replace("ORD-", ""), 10);
-    try {
-      const res = await api<any>(`/admin/orders/${rawId}/payment-check`, { method: "POST" });
-      if (res?.paid) {
-        const updatedOrders = await api<OrderItem[]>("/admin/orders").catch(() => null);
-        if (updatedOrders) setOrders(updatedOrders);
-        setSuccess(`Buyurtma ${orderIdStr} bo'yicha to'lov tasdiqlandi!`);
-      } else {
-        setInfoToast(`Buyurtma ${orderIdStr} to'lovi hali kutilmoqda (${res?.status || "pending"}).`);
-      }
-    } catch (e: any) {
-      setError(e.message || "To'lov holatini tekshirishda xatolik");
-    }
-  };
-
-  const handleSaveFollowupConfig = async (payload: Partial<FollowupConfigData>) => {
-    try {
-      await api("/admin/followup/config", {
-        method: "PUT",
-        body: JSON.stringify(payload),
-      });
-      const updated = await api<FollowupBundle>("/admin/followup/config").catch(() => null);
-      if (updated) setFollowupBundle(updated);
-      setSuccess("Smart Follow-up qoidalari saqlandi!");
-    } catch (e: any) {
-      setError(e.message || "Follow-up sozlamalarini saqlashda xatolik");
-      throw e;
-    }
-  };
-
-  const handlePreviewFollowup = async () => {
-    return api<any>("/admin/followup/preview", { method: "POST" });
-  };
-
-  const handleRunFollowupNow = async () => {
-    try {
-      const res = await api<any>("/admin/followup/run-now", { method: "POST" });
-      const updated = await api<FollowupBundle>("/admin/followup/config").catch(() => null);
-      if (updated) setFollowupBundle(updated);
-      setSuccess(`${res?.sent_count || 0} ta mijozga Smart Follow-up xabari yuborildi.`);
-      return res;
-    } catch (e: any) {
-      setError(e.message || "Follow-up yuborishda xatolik");
-      throw e;
-    }
-  };
-
-  const handleSaveReportConfig = async (payload: Partial<StoreReportConfigData>) => {
-    try {
-      await api("/admin/reports/config", {
-        method: "PUT",
-        body: JSON.stringify(payload),
-      });
-      const updated = await api<StoreReportBundle>("/admin/reports/config").catch(() => null);
-      if (updated) setReportBundle(updated);
-      setSuccess("Kunlik Telegram hisoboti sozlamalari saqlandi!");
-    } catch (e: any) {
-      setError(e.message || "Hisobot sozlamalarini saqlashda xatolik");
-      throw e;
-    }
-  };
-
-  const handlePreviewDailyReport = async () => {
-    return api<any>("/admin/reports/send-now?dry_run=true", {
-      method: "POST",
-      body: JSON.stringify({ dry_run: true }),
-    });
-  };
-
-  const handleSendDailyReportNow = async () => {
-    try {
-      const res = await api<any>("/admin/reports/send-now", {
-        method: "POST",
-        body: JSON.stringify({ dry_run: false }),
-      });
-      const updated = await api<StoreReportBundle>("/admin/reports/config").catch(() => null);
-      if (updated) setReportBundle(updated);
-      setSuccess(
-        res?.sent_count > 0
-          ? `Kunlik hisobot ${res.sent_count} ta admin Telegramiga yuborildi.`
-          : "Kunlik hisobot tayyorlandi."
-      );
-      return res;
-    } catch (e: any) {
-      setError(e.message || "Hisobot yuborishda xatolik");
-      throw e;
-    }
-  };
-
-  const handleDeleteOrder = async (orderIdStr: string) => {
-    setPendingConfirm({
-      title: "Buyurtmani o'chirish",
-      message: `${orderIdStr} buyurtmasini o'chirishga ishonchingiz komilmi?`,
-      confirmText: "Ha, o'chirish",
-      onConfirm: async () => {
-        const rawId = parseInt(orderIdStr.replace("ORD-", ""), 10);
-        await api(`/admin/orders/${rawId}`, { method: "DELETE" });
-        setOrders((prev) => prev.filter((o) => o.id !== orderIdStr));
-        setSuccess(`${orderIdStr} o'chirildi!`);
-      },
-    });
-  };
-
-  const handleDeleteProduct = async (prod: ProductItem) => {
-    setPendingConfirm({
-      title: "Mahsulotni o'chirish",
-      message: `"${prod.name}" mahsulotini katalogdan o'chirishni tasdiqlaysizmi?`,
-      confirmText: "O'chirish",
-      onConfirm: async () => {
-        await api(`/admin/products/${encodeURIComponent(prod.id)}`, { method: "DELETE" });
-        setProducts((prev) => prev.filter((p) => p.id !== prod.id));
-        setSuccess(`${prod.name} katalogdan o'chirildi!`);
-      },
-    });
-  };
-
-  async function handleSyncKnowledge() {
-    await handleSyncChannel();
-  }
-
-  async function handleConnectChannel(e: React.FormEvent) {
-    e.preventDefault();
-    if (!newChannelInput.trim()) return;
-    setBusy(true);
-    setError("");
-    setSuccess("");
-    try {
-      const res = await api<{ ok: boolean; channel: ConnectedChannel; imported_posts: number }>(
-        "/admin/channels",
-        {
-          method: "POST",
-          body: JSON.stringify({ channel: newChannelInput.trim() }),
-        }
-      );
-      setSuccess(`@${res.channel.channel_username} kanali muvaffaqiyatli ulandi va ${res.imported_posts} ta post sinxronlandi!`);
-      setNewChannelInput("");
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Kanal ulashda xatolik yuz berdi");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function handleSyncChannel(targetChannel?: string) {
-    setBusy(true);
-    setError("");
-    setSuccess("");
-    try {
-      const res = await api<{ ok: boolean; synced: Record<string, number>; total_synced: number }>(
-        "/admin/channels/sync",
-        {
-          method: "POST",
-          body: targetChannel ? JSON.stringify({ channel: targetChannel }) : undefined,
-        }
-      );
-      if (targetChannel) {
-        setSuccess(`@${targetChannel} muvaffaqiyatli sinxronlandi (${res.total_synced} ta post)!`);
-      } else {
-        setSuccess(`Barcha kanallar muvaffaqiyatli sinxronlandi (Jami ${res.total_synced} ta post)!`);
-      }
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Kanal postlarini sinxronlashda xatolik");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function handleDeleteChannel(channelUsername: string) {
-    setPendingConfirm({
-      title: "Kanalni uzish",
-      message: `@${channelUsername} kanalini ro'yxatdan o'chirmoqchimisiz?`,
-      confirmText: "O'chirish",
-      onConfirm: async () => {
-        await api(`/admin/channels/${encodeURIComponent(channelUsername)}`, { method: "DELETE" });
-        setSuccess(`@${channelUsername} kanali muvaffaqiyatli o'chirildi.`);
-        await load();
-      },
-    });
-  }
 
   async function handleAddAdmin(e: React.FormEvent) {
     e.preventDefault();
