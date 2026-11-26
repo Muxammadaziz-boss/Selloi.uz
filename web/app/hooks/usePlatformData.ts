@@ -128,6 +128,7 @@ export function usePlatformData({
     setIsOwnerImpersonating(false);
     setActiveStoreMeta(null);
     setZone("platform");
+    setTab("platform");
     setPlatformSubTab("stores");
     setSuccess("Admin panelga qaytildi.");
     void loadPlatformData();

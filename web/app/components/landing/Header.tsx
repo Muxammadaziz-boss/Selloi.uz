@@ -236,7 +236,7 @@ export default function Header({
                 onClick={(e) => {
                   e.preventDefault();
                   if (item.id === "boshlash" && isAuthenticated) {
-                    window.location.href = "/dashboard";
+                    window.location.href = isAdminSession ? "/admin" : "/dashboard";
                     return;
                   }
                   scrollTo(item.targetId, item.id);

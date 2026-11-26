@@ -5,6 +5,7 @@ import {
   SessionPayload,
   sessionCookieName,
   sessionTtlSeconds,
+  signBackendJwt,
 } from "./session";
 
 export interface BuildSessionParams {
@@ -102,4 +103,51 @@ export function attachSessionCookie(response: NextResponse, payload: SessionPayl
     path: "/",
     maxAge: sessionTtlSeconds,
   });
+}
+
+/**
+ * Resolve the freshest platform role flags from FastAPI /api/v1/auth/me when reachable,
+ * falling back safely to the verified signed cookie claims when offline or during tests.
+ */
+export async function resolveEffectiveSessionClaims(session: SessionPayload): Promise<{
+  isPlatformOwner: boolean;
+  isPlatformAdmin: boolean;
+}> {
+  const fallback = {
+    isPlatformOwner: Boolean(session.isPlatformOwner),
+    isPlatformAdmin: Boolean(session.isPlatformAdmin),
+  };
+
+  const jwtSecret = process.env.JWT_SECRET || process.env.ADMIN_JWT_SECRET || "";
+  const backendUrl = (process.env.BACKEND_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
+  let bearer = session.backendToken || "";
+  if (!bearer && jwtSecret) {
+    bearer = signBackendJwt(
+      session.userId,
+      session.email || `user_${session.userId}@selloi.uz`,
+      jwtSecret,
+      session.tokenVersion || 1
+    );
+  }
+  if (!bearer) return fallback;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 1500);
+  try {
+    const res = await fetch(`${backendUrl}/api/v1/auth/me`, {
+      headers: { Authorization: `Bearer ${bearer}` },
+      cache: "no-store",
+      signal: controller.signal,
+    });
+    if (!res.ok) return fallback;
+    const data = await res.json();
+    return {
+      isPlatformOwner: Boolean(data?.is_platform_owner),
+      isPlatformAdmin: Boolean(data?.is_platform_admin),
+    };
+  } catch {
+    return fallback;
+  } finally {
+    clearTimeout(timer);
+  }
 }

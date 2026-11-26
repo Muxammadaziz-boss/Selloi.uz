@@ -47,6 +47,7 @@ class Settings(BaseSettings):
     admin_api_token: str = ""
     internal_ingest_token: str = ""
     admin_telegram_id: int = 0  # Owner Telegram user ID: set in .env
+    admin_email: str = ""  # Owner email address(es), comma-separated in .env
 
     # TezCheck Payment Gateway
     tezcheck_api_url: str = "https://api.tezcheck.uz/api/merchant/v1"

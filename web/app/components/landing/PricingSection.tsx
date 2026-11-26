@@ -7,19 +7,21 @@ import { SelloiTariflarTranslations } from "./selloiI18n";
 interface PricingSectionProps {
   onOpenOnboarding: (planCode?: string) => void;
   isAuthenticated?: boolean;
+  isAdminSession?: boolean;
   t: SelloiTariflarTranslations;
 }
 
 export default function PricingSection({
   onOpenOnboarding,
   isAuthenticated = false,
+  isAdminSession = false,
   t,
 }: PricingSectionProps) {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
 
   const handleCtaClick = (planCode: string = "start") => {
     if (isAuthenticated) {
-      window.location.href = `/settings/billing?plan=${planCode}&cycle=${billingCycle}`;
+      window.location.href = isAdminSession ? "/admin" : `/settings/billing?plan=${planCode}&cycle=${billingCycle}`;
     } else {
       onOpenOnboarding(planCode);
     }

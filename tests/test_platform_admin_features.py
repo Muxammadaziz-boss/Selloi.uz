@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.api.admin import get_current_admin
+from app.core.config import get_settings
 from app.core.db import get_db
 from app.core.permissions import ROLE_DEFAULTS
 from app.core.security import hash_password
@@ -238,6 +239,75 @@ async def test_platform_daily_report_and_broadcast(tmp_path, monkeypatch):
             logs = (await db.execute(select(AuditLog))).scalars().all()
             actions = {l.action for l in logs}
             assert {"platform_daily_report", "platform_broadcast"}.issubset(actions)
+    finally:
+        app.dependency_overrides.clear()
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_configured_admin_email_grants_owner_on_google_and_login(tmp_path, monkeypatch):
+    engine, SessionFactory = await _make_isolated_session_maker(tmp_path / "admin_email_promote.db")
+    monkeypatch.setattr(get_settings(), "admin_email", "boss@selloi.uz, backup@selloi.uz")
+
+    async def _override_get_db():
+        async with SessionFactory() as session:
+            yield session
+
+    try:
+        app.dependency_overrides[get_db] = _override_get_db
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+            # Google OAuth with configured ADMIN_EMAIL creates/promotes platform owner
+            g_owner = await client.post(
+                "/api/v1/auth/google",
+                json={"email": "boss@selloi.uz", "full_name": "Site Boss", "google_id": "g-boss"},
+            )
+            assert g_owner.status_code == 200
+            owner_token = g_owner.json()["access_token"]
+            me_owner = await client.get(
+                "/api/v1/auth/me",
+                headers={"Authorization": f"Bearer {owner_token}"},
+            )
+            assert me_owner.status_code == 200
+            assert me_owner.json()["is_platform_owner"] is True
+
+            # Regular Google OAuth email stays a regular customer (not platform owner)
+            g_client = await client.post(
+                "/api/v1/auth/google",
+                json={"email": "client@shop.uz", "full_name": "Merchant Client", "google_id": "g-client"},
+            )
+            assert g_client.status_code == 200
+            client_token = g_client.json()["access_token"]
+            me_client = await client.get(
+                "/api/v1/auth/me",
+                headers={"Authorization": f"Bearer {client_token}"},
+            )
+            assert me_client.status_code == 200
+            assert me_client.json()["is_platform_owner"] is False
+
+            # Email/password login promotes an existing account if listed in ADMIN_EMAIL
+            async with SessionFactory() as db:
+                db.add(
+                    User(
+                        email="backup@selloi.uz",
+                        hashed_password=hash_password("PassWord123!"),
+                        full_name="Backup Boss",
+                        is_platform_owner=False,
+                        is_active=True,
+                    )
+                )
+                await db.commit()
+
+            pw_res = await client.post(
+                "/api/v1/auth/login",
+                json={"email": "backup@selloi.uz", "password": "PassWord123!"},
+            )
+            assert pw_res.status_code == 200
+            me_backup = await client.get(
+                "/api/v1/auth/me",
+                headers={"Authorization": f"Bearer {pw_res.json()['access_token']}"},
+            )
+            assert me_backup.status_code == 200
+            assert me_backup.json()["is_platform_owner"] is True
     finally:
         app.dependency_overrides.clear()
         await engine.dispose()

@@ -762,11 +762,17 @@ function DashboardContent({
       }
       setSelected((curr) => curr ?? c[0]?.id ?? null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Ma'lumotlarni yuklab bo'lmadi");
+      const msg = e instanceof Error ? e.message : "Ma'lumotlarni yuklab bo'lmadi";
+      if (!hasPlatformAccess && msg.includes("ruxsati mavjud emas")) {
+        setShowOnboardingModal(true);
+        setInfoToast("Ishni boshlash uchun birinchi do'koningizni yarating.");
+      } else {
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }
-  }, [setFollowupBundle, setReportBundle, setStorePaymentConfig]);
+  }, [hasPlatformAccess, setFollowupBundle, setReportBundle, setStorePaymentConfig]);
 
   const {
     perform,
@@ -922,6 +928,14 @@ function DashboardContent({
     const syncFromUrl = () => {
       if (typeof window === "undefined") return;
       const onAdminPath = window.location.pathname.startsWith("/admin") || window.location.pathname.startsWith("/platform");
+      const onCustomerOnlyPath =
+        window.location.pathname.startsWith("/dashboard") || window.location.pathname.startsWith("/settings");
+
+      if (hasPlatformAccess && onCustomerOnlyPath) {
+        window.location.replace("/admin");
+        return;
+      }
+
       if (onAdminPath && hasPlatformAccess) {
         setZone("platform");
       } else if (window.location.pathname.startsWith("/t/") || window.location.pathname.startsWith("/dashboard")) {
@@ -1931,41 +1945,10 @@ function DashboardContent({
         logoUrl={logoUrl}
         onOpenLogoModal={() => setShowLogoModal(true)}
         onLogout={logout}
+        onReturnToAdmin={hasPlatformAccess && zone !== "platform" ? handleExitStore : undefined}
         breadcrumb={breadcrumb}
         tabTitle={tabTitle}
       >
-        {/* Sticky Impersonation Banner if Owner/Admin is exploring a store */}
-        {zone === "tenant" && (isOwnerImpersonating || hasPlatformAccess) && (
-          <div
-            className="p-2.5 px-3 mb-3 rounded-2 d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2.5 border"
-            style={{
-              backgroundColor: "var(--warning-subtle)",
-              borderColor: "var(--warning-border)",
-              color: "var(--warning-text)",
-            }}
-          >
-            <div className="d-flex align-items-center gap-2 small">
-              <IconAlertCircle size={16} className="flex-shrink-0" />
-              <span>
-                Siz hozir <strong>{activeStoreMeta?.name || userOrganizations.find((o) => o.id === activeOrgId)?.name || "Do'kon"}</strong> ishchi maydonidasiz (Platform Owner ko'rinishi)
-              </span>
-            </div>
-            <button
-              type="button"
-              className="btn btn-sm btn-outline-warning flex-shrink-0"
-              style={{
-                color: "var(--warning-text)",
-                borderColor: "var(--warning-border)",
-                fontWeight: 600,
-                minHeight: "36px",
-              }}
-              onClick={handleExitStore}
-            >
-              Platformaga qaytish
-            </button>
-          </div>
-        )}
-
         {/* Global Floating Toast Notifications */}
         {(error || success || infoToast) && (
           <ToastContainer>
@@ -2237,6 +2220,7 @@ function DashboardContent({
                 onLogout={logout}
                 permissionLabels={permissionLabels}
                 onNavigateToBilling={() => setTab("billing")}
+                onReturnToAdmin={hasPlatformAccess && zone !== "platform" ? handleExitStore : undefined}
               />
             )}
 

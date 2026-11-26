@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sessionCookieName, verifySession } from "@/lib/session";
+import { resolveEffectiveSessionClaims } from "@/lib/authSession";
 
 export async function GET(request: NextRequest) {
   const secret = process.env.SESSION_SECRET || "";
@@ -8,6 +9,7 @@ export async function GET(request: NextRequest) {
   if (!session) {
     return NextResponse.json({ authenticated: false, user: null });
   }
+  const claims = await resolveEffectiveSessionClaims(session);
   return NextResponse.json({
     authenticated: true,
     user: {
@@ -16,10 +18,10 @@ export async function GET(request: NextRequest) {
       email: session.email,
       fullName: session.fullName,
       username: session.username,
-      role: session.role,
+      role: claims.isPlatformOwner ? "platform_owner" : claims.isPlatformAdmin ? "platform_admin" : session.role,
       organizationId: session.organizationId,
-      isPlatformOwner: Boolean(session.isPlatformOwner),
-      isPlatformAdmin: Boolean(session.isPlatformAdmin),
+      isPlatformOwner: claims.isPlatformOwner,
+      isPlatformAdmin: claims.isPlatformAdmin,
     },
   });
 }

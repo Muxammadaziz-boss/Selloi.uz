@@ -37,6 +37,7 @@ export interface AppShellProps {
   logoUrl?: string;
   onOpenLogoModal?: () => void;
   onLogout: () => void;
+  onReturnToAdmin?: () => void;
   breadcrumb: string;
   tabTitle: string;
 }
@@ -73,6 +74,7 @@ export function AppShell({
   logoUrl = "/logo.svg",
   onOpenLogoModal,
   onLogout,
+  onReturnToAdmin,
   breadcrumb,
   tabTitle,
 }: AppShellProps) {
@@ -153,6 +155,7 @@ export function AppShell({
           onOpenCommandPalette={() => setCommandPaletteOpen(true)}
           onToggleMobileNav={() => setMobileNavOpen((prev) => !prev)}
           onSwitchZone={onSwitchZone}
+          onReturnToAdmin={onReturnToAdmin}
         />
 
         {/* Tab Page Workspace */}

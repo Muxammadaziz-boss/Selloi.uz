@@ -295,6 +295,30 @@ export default function LoginPageClient({
 
   const t = TRANSLATIONS[lang];
 
+  const resolvePostLoginDestination = (data: any): string => {
+    const isPlatformStaff = Boolean(data?.user?.isPlatformOwner || data?.user?.isPlatformAdmin);
+    const safeRedirect =
+      initialRedirect &&
+      initialRedirect.trim().startsWith("/") &&
+      !initialRedirect.trim().startsWith("//")
+        ? initialRedirect.trim()
+        : "";
+    if (isPlatformStaff) {
+      if (
+        safeRedirect.startsWith("/admin") ||
+        safeRedirect.startsWith("/platform") ||
+        safeRedirect.startsWith("/t/")
+      ) {
+        return safeRedirect;
+      }
+      return "/admin";
+    }
+    if (safeRedirect && !safeRedirect.startsWith("/admin") && !safeRedirect.startsWith("/platform")) {
+      return safeRedirect;
+    }
+    return data?.redirect || "/dashboard";
+  };
+
   useEffect(() => {
     if (!telegramModalOpen || !telegramSessionCode || telegramAuthSuccess) return;
 
@@ -311,7 +335,7 @@ export default function LoginPageClient({
           setTelegramAuthSuccess(true);
           clearInterval(interval);
           setTimeout(() => {
-            window.location.href = (initialRedirect && initialRedirect.trim()) || data.redirect || "/dashboard";
+            window.location.href = resolvePostLoginDestination(data);
           }, 800);
         } else if (isSubscribed && res.status === 404) {
           setError(data.detail || "Sessiya muddati tugadi. Iltimos, qaytadan urinib ko'ring.");
@@ -354,7 +378,7 @@ export default function LoginPageClient({
         return;
       }
 
-      window.location.href = (initialRedirect && initialRedirect.trim()) || data.redirect || "/dashboard";
+      window.location.href = resolvePostLoginDestination(data);
     } catch (err: any) {
       setError("Tarmoq xatosi: " + err.message);
       setLoading(false);
@@ -396,7 +420,7 @@ export default function LoginPageClient({
         return;
       }
 
-      window.location.href = (initialRedirect && initialRedirect.trim()) || data.redirect || "/dashboard";
+      window.location.href = resolvePostLoginDestination(data);
     } catch (err: any) {
       setError("Tarmoq xatosi: " + err.message);
       setLoading(false);

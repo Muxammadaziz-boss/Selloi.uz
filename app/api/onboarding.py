@@ -55,6 +55,15 @@ def _hash_password_reset_code(user_id: int, code: str) -> str:
     return hmac.new(secret, msg, hashlib.sha256).hexdigest()
 
 
+def _is_configured_admin_email(email: str) -> bool:
+    """Return True if the verified email matches ADMIN_EMAIL in settings."""
+    configured = (get_settings().admin_email or "").strip()
+    if not configured:
+        return False
+    allowed = {part.strip().lower() for part in configured.split(",") if part.strip()}
+    return email.strip().lower() in allowed
+
+
 def _org_to_out(org: Organization) -> dict:
     return {
         "id": org.id,
@@ -134,6 +143,11 @@ async def login(payload: TokenRequest, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=403, detail="Foydalanuvchi faol emas")
 
     reset_rate_limit(rate_key)
+    if _is_configured_admin_email(clean_email) and not user.is_platform_owner:
+        user.is_platform_owner = True
+        await db.commit()
+        await db.refresh(user)
+
     token = create_access_token(user.id, user.email, token_version=getattr(user, "token_version", 1) or 1)
     return TokenResponse(
         access_token=token,
@@ -161,12 +175,15 @@ async def google_auth(payload: GoogleAuthRequest, db: AsyncSession = Depends(get
     result = await db.execute(select(User).where(User.email == clean_email))
     user = result.scalar_one_or_none()
 
+    is_owner_email = _is_configured_admin_email(clean_email)
+
     if user is None:
         display_name = payload.full_name.strip() or clean_email.split("@")[0]
         user = User(
             email=clean_email,
             full_name=display_name,
             hashed_password="",
+            is_platform_owner=is_owner_email,
             is_active=True,
         )
         db.add(user)
@@ -175,8 +192,14 @@ async def google_auth(payload: GoogleAuthRequest, db: AsyncSession = Depends(get
     else:
         if not user.is_active:
             raise HTTPException(status_code=403, detail="Foydalanuvchi hisobi faol emas")
+        dirty = False
+        if is_owner_email and not user.is_platform_owner:
+            user.is_platform_owner = True
+            dirty = True
         if not user.full_name and payload.full_name.strip():
             user.full_name = payload.full_name.strip()
+            dirty = True
+        if dirty:
             await db.commit()
             await db.refresh(user)
 

@@ -88,6 +88,7 @@ export interface ProfileTabProps {
   onLogout: () => void;
   permissionLabels: Record<string, string>;
   onNavigateToBilling?: () => void;
+  onReturnToAdmin?: () => void;
 }
 
 export function ProfileTab({
@@ -102,6 +103,7 @@ export function ProfileTab({
   onLogout,
   permissionLabels,
   onNavigateToBilling,
+  onReturnToAdmin,
 }: ProfileTabProps) {
   const { language, setLanguage, t } = useLanguage();
   const isOwner = currentAdmin?.role === "platform_owner" || currentAdmin?.role === "owner" || Boolean(currentAdmin?.isPlatformOwner);
@@ -203,6 +205,22 @@ export function ProfileTab({
                     </span>
                   </div>
                 </div>
+
+                {onReturnToAdmin && (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    className="w-100 mt-2"
+                    onClick={onReturnToAdmin}
+                    icon={<IconShieldCheck size={15} />}
+                  >
+                    {language === "ru"
+                      ? "Вернуться в админ-панель"
+                      : language === "en"
+                      ? "Back to Admin Panel"
+                      : "Admin panelga qaytish"}
+                  </Button>
+                )}
 
                 <Button
                   variant="danger"

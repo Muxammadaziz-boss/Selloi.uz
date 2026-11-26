@@ -538,8 +538,31 @@ async function runSuite() {
       await page.waitForTimeout(200);
       await assertNoHorizontalOverflow(page, "Admin mobile");
 
+      // Platform Owner visiting /dashboard must be strictly redirected to /admin
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.goto(`${baseUrl}/dashboard`, { waitUntil: "domcontentloaded" });
+      if (!new URL(page.url()).pathname.startsWith("/admin")) {
+        throw new Error(`Expected Platform Owner on /dashboard to redirect to /admin, got ${page.url()}`);
+      }
+
+      // Platform Owner visiting a store via /t/[slug] has NO yellow reminder banner and HAS "Admin panelga qaytish" in Profile menu
+      await page.goto(`${baseUrl}/t/techhub-toshkent`, { waitUntil: "domcontentloaded" });
+      await page.getByText("TechHub Toshkent").first().waitFor({ timeout: 10000 });
+      const bannerCount = await page.getByText("Platformaga qaytish").count();
+      if (bannerCount > 0) {
+        throw new Error("Sticky impersonation reminder banner should not be rendered inside client store mode");
+      }
+      await page.getByRole("button", { name: /profil menyusi/i }).click();
+      const returnBtn = page.getByRole("button", { name: /Admin panelga qaytish/i });
+      await returnBtn.waitFor({ state: "visible", timeout: 5000 });
+      await returnBtn.click();
+      await page.getByPlaceholder("Do'kon nomi yoki slug...").waitFor({ state: "visible", timeout: 10000 });
+      if (!new URL(page.url()).pathname.startsWith("/admin")) {
+        throw new Error(`Expected returning from profile menu to navigate to /admin, got ${page.url()}`);
+      }
+
       if (pageErrors.length > 0) throw new Error(`/admin JS errors: ${pageErrors.join(" | ")}`);
-      report.push(`PASS /admin platform portal + responsive (0 critical a11y, ${adminA11y} minor/moderate)`);
+      report.push(`PASS /admin redirect + /t/[slug] profile return flow (0 critical a11y, ${adminA11y} minor/moderate)`);
       await ctx.close();
     }
 

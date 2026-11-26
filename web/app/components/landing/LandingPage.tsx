@@ -133,6 +133,7 @@ function LandingPageContent({ isAuthenticated = false, isAdminSession = false }:
         <HeroSection
           onOpenOnboarding={() => setIsOnboardingOpen(true)}
           isAuthenticated={isAuthenticated}
+          isAdminSession={isAdminSession}
           t={t.hero}
         />
 
@@ -154,6 +155,7 @@ function LandingPageContent({ isAuthenticated = false, isAdminSession = false }:
             setIsOnboardingOpen(true);
           }}
           isAuthenticated={isAuthenticated}
+          isAdminSession={isAdminSession}
           t={t.tariflar}
         />
 
@@ -164,6 +166,7 @@ function LandingPageContent({ isAuthenticated = false, isAdminSession = false }:
         <FinalCTA
           onOpenOnboarding={() => setIsOnboardingOpen(true)}
           isAuthenticated={isAuthenticated}
+          isAdminSession={isAdminSession}
           t={t.finalCta}
         />
       </main>

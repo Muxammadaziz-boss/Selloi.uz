@@ -49,6 +49,7 @@ export interface TopbarProps {
   onOpenCommandPalette?: () => void;
   onToggleMobileNav?: () => void;
   onSwitchZone?: (zone: "store" | "platform") => void;
+  onReturnToAdmin?: () => void;
 }
 
 export function Topbar({
@@ -74,6 +75,7 @@ export function Topbar({
   onOpenCommandPalette,
   onToggleMobileNav,
   onSwitchZone: _onSwitchZone,
+  onReturnToAdmin,
 }: TopbarProps) {
   const { language, setLanguage, t } = useLanguage();
   const [showOrgMenu, setShowOrgMenu] = useState(false);
@@ -409,6 +411,7 @@ export function Topbar({
         <div className="position-relative">
           <button
             type="button"
+            aria-label={`${adminName} profil menyusi`}
             onClick={() => setShowUserMenu(!showUserMenu)}
             className="d-flex align-items-center gap-2 p-1 rounded-pill border transition-fast"
             style={{
@@ -486,6 +489,35 @@ export function Topbar({
                     </span>
                   </div>
                 </div>
+
+                {isPlatformOwner && zone !== "platform" && onReturnToAdmin && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        onReturnToAdmin();
+                      }}
+                      className="d-flex align-items-center gap-2 w-100 px-3 py-2 text-start border-0 fw-semibold"
+                      style={{
+                        backgroundColor: "var(--accent-subtle)",
+                        color: "var(--accent-text)",
+                        fontSize: "0.8rem",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <IconShieldLock size={14} style={{ color: "var(--accent)" }} />
+                      <span>
+                        {language === "ru"
+                          ? "Вернуться в админ-панель"
+                          : language === "en"
+                          ? "Back to Admin Panel"
+                          : "Admin panelga qaytish"}
+                      </span>
+                    </button>
+                    <div className="border-top my-1" style={{ borderColor: "var(--border-subtle)" }} />
+                  </>
+                )}
 
                 <button
                   type="button"

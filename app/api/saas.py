@@ -390,17 +390,22 @@ async def list_user_organizations(
     db: AsyncSession = Depends(get_db),
 ):
     """List all organizations accessible to the authenticated user."""
-    # Look up user by admin's telegram_user_id
-    if admin and admin.telegram_user_id:
+    user: User | None = getattr(admin, "_user", None)
+    if user is None and admin and admin.telegram_user_id:
         u_res = await db.execute(select(User).where(User.telegram_user_id == admin.telegram_user_id))
         user = u_res.scalar_one_or_none()
-        if user:
-            orgs = await get_user_organizations(db, user.id)
+
+    if user is not None:
+        orgs = await get_user_organizations(db, user.id)
+        if orgs:
             return {"organizations": orgs}
 
     if admin and admin.organization_id:
         org = await get_organization_details(db, admin.organization_id)
         return {"organizations": [org] if org else []}
+
+    if getattr(admin, "_is_platform_owner", False) or getattr(admin, "_is_platform_admin", False):
+        return {"organizations": []}
 
     raise HTTPException(status_code=403, detail="Siz hech qaysi tashkilotga a'zo emassiz")
 

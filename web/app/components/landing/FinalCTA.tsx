@@ -6,17 +6,19 @@ import { SelloiTranslations } from "./selloiI18n";
 interface FinalCTAProps {
   onOpenOnboarding: () => void;
   isAuthenticated?: boolean;
+  isAdminSession?: boolean;
   t: SelloiTranslations["finalCta"];
 }
 
 export default function FinalCTA({
   onOpenOnboarding,
   isAuthenticated = false,
+  isAdminSession = false,
   t,
 }: FinalCTAProps) {
   const handleCtaClick = () => {
     if (isAuthenticated) {
-      window.location.href = "/dashboard";
+      window.location.href = isAdminSession ? "/admin" : "/dashboard";
     } else {
       onOpenOnboarding();
     }

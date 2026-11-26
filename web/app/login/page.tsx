@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { sessionCookieName, verifySession } from "@/lib/session";
+import { resolveEffectiveSessionClaims } from "@/lib/authSession";
 import LoginPageClient from "./LoginPageClient";
 
 export const metadata: Metadata = {
@@ -38,15 +39,26 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   if (sessionCookie && secret) {
     const session = verifySession(sessionCookie.value, secret);
     if (session) {
-      const hasAdminAccess = Boolean(session.isPlatformOwner || session.isPlatformAdmin);
+      const claims = await resolveEffectiveSessionClaims(session);
+      const hasAdminAccess = claims.isPlatformOwner || claims.isPlatformAdmin;
       const requested = resolvedParams.redirect || "";
+      if (hasAdminAccess) {
+        if (
+          requested &&
+          (requested.startsWith("/admin") || requested.startsWith("/platform") || requested.startsWith("/t/")) &&
+          !requested.startsWith("//")
+        ) {
+          redirect(requested);
+        }
+        redirect("/admin");
+      }
       if (requested && requested.startsWith("/") && !requested.startsWith("//")) {
-        if ((requested.startsWith("/admin") || requested.startsWith("/platform")) && !hasAdminAccess) {
+        if (requested.startsWith("/admin") || requested.startsWith("/platform")) {
           redirect("/dashboard");
         }
         redirect(requested);
       }
-      redirect(hasAdminAccess ? "/admin" : "/dashboard");
+      redirect("/dashboard");
     }
   }
 

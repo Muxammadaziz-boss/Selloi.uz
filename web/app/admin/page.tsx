@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { sessionCookieName, verifySession } from "@/lib/session";
+import { resolveEffectiveSessionClaims } from "@/lib/authSession";
 import Dashboard from "../Dashboard";
 
 export const metadata: Metadata = {
@@ -21,8 +22,10 @@ export default async function AdminPortalPage() {
     redirect("/login?redirect=/admin");
   }
 
+  const claims = await resolveEffectiveSessionClaims(session);
+
   // Strictly only Sayt egasi (Owner) and Owner-appointed Sayt Adminlari can enter /admin
-  if (!session.isPlatformOwner && !session.isPlatformAdmin) {
+  if (!claims.isPlatformOwner && !claims.isPlatformAdmin) {
     redirect("/dashboard");
   }
 
@@ -35,10 +38,10 @@ export default async function AdminPortalPage() {
         email: session.email,
         fullName: session.fullName,
         username: session.username,
-        role: session.role,
+        role: claims.isPlatformOwner ? "platform_owner" : claims.isPlatformAdmin ? "platform_admin" : session.role,
         organizationId: session.organizationId,
-        isPlatformOwner: Boolean(session.isPlatformOwner),
-        isPlatformAdmin: Boolean(session.isPlatformAdmin),
+        isPlatformOwner: claims.isPlatformOwner,
+        isPlatformAdmin: claims.isPlatformAdmin,
       }}
       initialZone="platform"
       initialTab="platform"

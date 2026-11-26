@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { sessionCookieName, verifySession } from "@/lib/session";
+import { resolveEffectiveSessionClaims } from "@/lib/authSession";
 import LandingPage from "./components/landing/LandingPage";
 
 export const metadata = {
@@ -59,7 +60,8 @@ export default async function Home() {
   const cookieStore = await cookies();
   const token = cookieStore.get(sessionCookieName)?.value;
   const session = verifySession(token, process.env.SESSION_SECRET || "");
-  const isAdminSession = Boolean(session?.isPlatformOwner || session?.isPlatformAdmin);
+  const claims = session ? await resolveEffectiveSessionClaims(session) : null;
+  const isAdminSession = Boolean(claims?.isPlatformOwner || claims?.isPlatformAdmin);
 
   return <LandingPage isAuthenticated={!!session} isAdminSession={isAdminSession} />;
 }

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { sessionCookieName, verifySession } from "@/lib/session";
+import { resolveEffectiveSessionClaims } from "@/lib/authSession";
 import Dashboard from "../Dashboard";
 
 export const metadata: Metadata = {
@@ -21,6 +22,11 @@ export default async function SettingsPage() {
     redirect("/login?redirect=/settings");
   }
 
+  const claims = await resolveEffectiveSessionClaims(session);
+  if (claims.isPlatformOwner || claims.isPlatformAdmin) {
+    redirect("/admin");
+  }
+
   return (
     <Dashboard
       initialAuthenticated={true}
@@ -32,7 +38,8 @@ export default async function SettingsPage() {
         username: session.username,
         role: session.role,
         organizationId: session.organizationId,
-        isPlatformOwner: Boolean(session.isPlatformOwner),
+        isPlatformOwner: claims.isPlatformOwner,
+        isPlatformAdmin: claims.isPlatformAdmin,
       }}
       initialZone="tenant"
       initialTab="settings"
