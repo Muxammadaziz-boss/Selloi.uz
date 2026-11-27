@@ -119,6 +119,31 @@ async def send_password_reset_email(to_email: str, code: str, full_name: str = "
     )
 
 
+async def send_email_verification_code(to_email: str, code: str, full_name: str = "") -> bool:
+    """Send 6-digit account email verification OTP code."""
+    greeting = f"Salom, {full_name.strip()}!" if full_name and full_name.strip() else "Assalomu alaykum!"
+    safe_greeting = html.escape(greeting)
+    safe_code = html.escape(code)
+    text_body = (
+        f"{greeting}\n\n"
+        f"Selloi hisobingiz email manzilini tasdiqlash kodi: {code}\n"
+        "Kod 15 daqiqa davomida amal qiladi.\n"
+        "Agar siz ro'yxatdan o'tmagan bo'lsangiz, ushbu xabarni e'tiborsiz qoldiring."
+    )
+    html_body = (
+        f"<p>{safe_greeting}</p>"
+        f"<p>Selloi hisobingiz uchun email manzilingizni tasdiqlash kodi:</p>"
+        f"<p style='font-size:24px;font-weight:700;letter-spacing:4px;'>{safe_code}</p>"
+        f"<p style='color:#666'>Kod 15 daqiqa davomida amal qiladi.</p>"
+    )
+    return await send_email(
+        to_email=to_email,
+        subject="Selloi — Email manzilingizni tasdiqlash",
+        text_body=text_body,
+        html_body=html_body,
+    )
+
+
 async def send_team_invite_email(
     *,
     to_email: str,

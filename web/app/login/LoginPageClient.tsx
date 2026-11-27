@@ -79,6 +79,14 @@ interface TranslationText {
   resetBackStep: string;
   resetSentNotice: string;
   resetSuccessNotice: string;
+  verifyModalTitle: string;
+  verifyModalDesc: string;
+  verifyCodeLabel: string;
+  verifySubmitBtn: string;
+  verifySubmitting: string;
+  verifyResendBtn: string;
+  verifyResentNotice: string;
+  verifySuccessNotice: string;
 }
 
 const TRANSLATIONS: Record<Language, TranslationText> = {
@@ -132,6 +140,14 @@ const TRANSLATIONS: Record<Language, TranslationText> = {
     resetBackStep: "Emailni o'zgartirish",
     resetSentNotice: "Agar hisobingiz mavjud bo'lsa, 6 xonali tasdiqlash kodi Telegram yoki email pochtangizga yuborildi.",
     resetSuccessNotice: "Parol muvaffaqiyatli yangilandi! Endi yangi parol bilan kirishingiz mumkin.",
+    verifyModalTitle: "Email manzilni tasdiqlash",
+    verifyModalDesc: "Pochtangizga yuborilgan 6 xonali tasdiqlash kodini kiriting:",
+    verifyCodeLabel: "6 xonali email kodi",
+    verifySubmitBtn: "Tasdiqlash va kirish",
+    verifySubmitting: "Tekshirilmoqda...",
+    verifyResendBtn: "Kodni qayta yuborish",
+    verifyResentNotice: "Yangi tasdiqlash kodi emailingizga yuborildi.",
+    verifySuccessNotice: "Emailingiz tasdiqlandi! Tizimga yo'naltirilmoqda...",
   },
   ru: {
     brandSubtitle: "Экосистема продаж на базе искусственного интеллекта",
@@ -183,6 +199,14 @@ const TRANSLATIONS: Record<Language, TranslationText> = {
     resetBackStep: "Изменить email",
     resetSentNotice: "Если аккаунт существует, 6-значный код отправлен в Telegram или на вашу почту.",
     resetSuccessNotice: "Пароль успешно обновлен! Теперь войдите с новым паролем.",
+    verifyModalTitle: "Подтверждение Email",
+    verifyModalDesc: "Введите 6-значный код подтверждения, отправленный на вашу почту:",
+    verifyCodeLabel: "6-значный код из email",
+    verifySubmitBtn: "Подтвердить и войти",
+    verifySubmitting: "Проверка...",
+    verifyResendBtn: "Отправить код повторно",
+    verifyResentNotice: "Новый код подтверждения отправлен на ваш email.",
+    verifySuccessNotice: "Email подтвержден! Переход в панель управления...",
   },
   en: {
     brandSubtitle: "AI-Powered Sales Automation Ecosystem",
@@ -234,6 +258,14 @@ const TRANSLATIONS: Record<Language, TranslationText> = {
     resetBackStep: "Change email",
     resetSentNotice: "If your account exists, a 6-digit verification code has been sent via Telegram or email.",
     resetSuccessNotice: "Password updated successfully! You can now sign in with your new password.",
+    verifyModalTitle: "Verify Email Address",
+    verifyModalDesc: "Enter the 6-digit verification code sent to your inbox:",
+    verifyCodeLabel: "6-digit email code",
+    verifySubmitBtn: "Verify & Sign In",
+    verifySubmitting: "Verifying...",
+    verifyResendBtn: "Resend code",
+    verifyResentNotice: "A fresh verification code has been sent to your email.",
+    verifySuccessNotice: "Email verified! Redirecting to dashboard...",
   },
 };
 
@@ -292,6 +324,15 @@ export default function LoginPageClient({
   const [resetLoading, setResetLoading] = useState(false);
   const [resetError, setResetError] = useState<string | null>(null);
   const [resetInfo, setResetInfo] = useState<string | null>(null);
+
+  // Email verification modal state
+  const [verifyModalOpen, setVerifyModalOpen] = useState(false);
+  const [verifyEmail, setVerifyEmail] = useState("");
+  const [verifyCode, setVerifyCode] = useState("");
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const [verifyResending, setVerifyResending] = useState(false);
+  const [verifyError, setVerifyError] = useState<string | null>(null);
+  const [verifyInfo, setVerifyInfo] = useState<string | null>(null);
 
   const t = TRANSLATIONS[lang];
 
@@ -373,7 +414,21 @@ export default function LoginPageClient({
 
       const data = await res.json();
       if (!res.ok) {
-        setError(data.detail || "Email yoki parol noto'g'ri");
+        const errPayload = data?.detail && typeof data.detail === "object" ? data.detail : data;
+        if (res.status === 403 && errPayload?.error === "EMAIL_NOT_VERIFIED") {
+          setVerifyEmail((errPayload.email || email).trim().toLowerCase());
+          setVerifyCode("");
+          setVerifyError(null);
+          setVerifyInfo(errPayload.message || t.verifyModalDesc);
+          setVerifyModalOpen(true);
+          setLoading(false);
+          return;
+        }
+        setError(
+          typeof data?.detail === "string"
+            ? data.detail
+            : errPayload?.message || "Email yoki parol noto'g'ri"
+        );
         setLoading(false);
         return;
       }
@@ -416,6 +471,16 @@ export default function LoginPageClient({
       const data = await res.json();
       if (!res.ok) {
         setError(data.detail || "Ro'yxatdan o'tishda xatolik yuz berdi");
+        setLoading(false);
+        return;
+      }
+
+      if (data.verification_required) {
+        setVerifyEmail((data.email || email).trim().toLowerCase());
+        setVerifyCode("");
+        setVerifyError(null);
+        setVerifyInfo(data.detail || t.verifyModalDesc);
+        setVerifyModalOpen(true);
         setLoading(false);
         return;
       }
@@ -550,6 +615,58 @@ export default function LoginPageClient({
       setResetError("Tarmoq xatosi: " + err.message);
     } finally {
       setResetLoading(false);
+    }
+  };
+
+  const handleVerifyEmailSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setVerifyError(null);
+    setVerifyLoading(true);
+    try {
+      const res = await fetch("/api/auth/verify-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: verifyEmail.trim().toLowerCase(),
+          code: verifyCode.trim(),
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setVerifyError(typeof data.detail === "string" ? data.detail : "Tasdiqlash kodi noto'g'ri");
+        setVerifyLoading(false);
+        return;
+      }
+      setVerifyInfo(t.verifySuccessNotice);
+      setTimeout(() => {
+        window.location.href = resolvePostLoginDestination(data);
+      }, 600);
+    } catch (err: any) {
+      setVerifyError("Tarmoq xatosi: " + err.message);
+      setVerifyLoading(false);
+    }
+  };
+
+  const handleResendVerificationCode = async () => {
+    if (!verifyEmail.trim()) return;
+    setVerifyResending(true);
+    setVerifyError(null);
+    try {
+      const res = await fetch("/api/auth/resend-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: verifyEmail.trim().toLowerCase() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setVerifyError(data.detail || "Kod yuborishda xatolik yuz berdi");
+        return;
+      }
+      setVerifyInfo(t.verifyResentNotice);
+    } catch (err: any) {
+      setVerifyError("Tarmoq xatosi: " + err.message);
+    } finally {
+      setVerifyResending(false);
     }
   };
 
@@ -1136,6 +1253,82 @@ export default function LoginPageClient({
                 </div>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Email Verification OTP Modal */}
+      {verifyModalOpen && (
+        <div className="selloi-modal-backdrop" onClick={() => setVerifyModalOpen(false)}>
+          <div className="selloi-modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="selloi-modal-icon">
+              <IconMail size={32} color="#10b981" />
+            </div>
+            <h3 className="selloi-modal-title">{t.verifyModalTitle}</h3>
+            <p className="selloi-modal-desc">
+              {t.verifyModalDesc} <strong>{verifyEmail}</strong>
+            </p>
+
+            {verifyError && (
+              <div className="selloi-alert selloi-alert-error" role="alert" style={{ marginBottom: "14px" }}>
+                <IconAlertCircle size={16} />
+                <span>{verifyError}</span>
+              </div>
+            )}
+            {verifyInfo && (
+              <div className="selloi-alert selloi-alert-info" role="status" style={{ marginBottom: "14px" }}>
+                <IconCheck size={16} />
+                <span>{verifyInfo}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleVerifyEmailSubmit} className="selloi-auth-form">
+              <div className="selloi-form-group">
+                <label className="selloi-form-label">{t.verifyCodeLabel}</label>
+                <div className="selloi-input-wrapper">
+                  <IconShieldCheck size={16} className="selloi-input-icon" />
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    className="selloi-input"
+                    placeholder={t.resetCodePlaceholder}
+                    value={verifyCode}
+                    onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, ""))}
+                    required
+                    autoFocus
+                  />
+                </div>
+              </div>
+
+              <div className="d-flex justify-content-end">
+                <button
+                  type="button"
+                  disabled={verifyResending}
+                  className="selloi-forgot-link"
+                  onClick={handleResendVerificationCode}
+                >
+                  {verifyResending ? t.resetSending : t.verifyResendBtn}
+                </button>
+              </div>
+
+              <div className="selloi-modal-btn-row">
+                <button
+                  type="button"
+                  className="selloi-modal-btn-cancel"
+                  onClick={() => setVerifyModalOpen(false)}
+                >
+                  {t.telegramCancel}
+                </button>
+                <button
+                  type="submit"
+                  disabled={verifyLoading || verifyCode.trim().length !== 6}
+                  className="selloi-modal-btn-confirm"
+                >
+                  {verifyLoading ? t.verifySubmitting : t.verifySubmitBtn}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

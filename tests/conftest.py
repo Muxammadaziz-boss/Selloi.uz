@@ -26,6 +26,13 @@ async def _setup_test_schema():
                 "ALTER TABLE telegram_outbox ADD COLUMN IF NOT EXISTS lease_token VARCHAR(64)",
                 "ALTER TABLE telegram_outbox ADD COLUMN IF NOT EXISTS lease_expires_at TIMESTAMPTZ",
                 "ALTER TABLE telegram_outbox ADD COLUMN IF NOT EXISTS fencing_generation INTEGER DEFAULT 1",
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_platform_admin BOOLEAN NOT NULL DEFAULT FALSE",
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT FALSE",
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified_at TIMESTAMPTZ",
+                "ALTER TABLE store_payment_configs ADD COLUMN IF NOT EXISTS click_secret_key TEXT",
+                "ALTER TABLE store_payment_configs ADD COLUMN IF NOT EXISTS payme_secret_key TEXT",
+                "ALTER TABLE store_order_payments ADD COLUMN IF NOT EXISTS provider_transaction_id VARCHAR(128)",
+                "ALTER TABLE store_order_payments ADD COLUMN IF NOT EXISTS payment_meta JSONB DEFAULT '{}'::jsonb",
             ]
             for stmt in migrations:
                 try:

@@ -60,6 +60,10 @@ export async function POST(request: NextRequest) {
     });
 
     if (!backendRes.ok) {
+      if (backendRes.status === 403) {
+        const errData = await backendRes.json().catch(() => ({}));
+        return NextResponse.json(errData, { status: 403 });
+      }
       return NextResponse.json({ detail: "Email yoki parol noto'g'ri" }, { status: 401 });
     }
 

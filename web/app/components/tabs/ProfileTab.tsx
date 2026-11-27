@@ -1,7 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useLanguage } from "../../lib/i18n";
+import { api } from "../../lib/dashboardApi";
 import {
   IconUser,
   IconShieldCheck,
@@ -12,6 +13,7 @@ import {
   IconTypography,
   IconSparkles,
   IconLock,
+  IconMail,
 } from "@tabler/icons-react";
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
 import { Badge } from "../ui/Badge";
@@ -108,6 +110,78 @@ export function ProfileTab({
   const { language, setLanguage, t } = useLanguage();
   const isOwner = currentAdmin?.role === "platform_owner" || currentAdmin?.role === "owner" || Boolean(currentAdmin?.isPlatformOwner);
   const isSiteAdmin = currentAdmin?.role === "platform_admin" || Boolean(currentAdmin?.isPlatformAdmin);
+  const [authProfile, setAuthProfile] = useState<{
+    email?: string;
+    email_verified?: boolean;
+    smtp_configured?: boolean;
+  } | null>(null);
+  const [verifyOpen, setVerifyOpen] = useState(false);
+  const [verifyCode, setVerifyCode] = useState("");
+  const [verifyBusy, setVerifyBusy] = useState(false);
+  const [verifyFeedback, setVerifyFeedback] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    api<{ email?: string; email_verified?: boolean; smtp_configured?: boolean }>("/api/v1/auth/me")
+      .then((res) => {
+        if (active && res) setAuthProfile(res);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const displayEmail = authProfile?.email || currentAdmin?.email || "";
+  const isEmailVerified = Boolean(authProfile?.email_verified);
+  const canVerifyViaSmtp = Boolean(authProfile?.smtp_configured && displayEmail && !displayEmail.endsWith("@telegram.selloi.uz"));
+
+  const handleSendVerifyCode = async () => {
+    if (!displayEmail) return;
+    setVerifyBusy(true);
+    setVerifyFeedback(null);
+    try {
+      const res = await fetch("/api/auth/resend-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: displayEmail }),
+      });
+      const data = await res.json().catch(() => ({}));
+      setVerifyFeedback(data.detail || "Tasdiqlash kodi yuborildi");
+      setVerifyOpen(true);
+    } catch {
+      setVerifyFeedback("Kod yuborishda xatolik");
+    } finally {
+      setVerifyBusy(false);
+    }
+  };
+
+  const handleConfirmProfileEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!displayEmail || verifyCode.trim().length !== 6) return;
+    setVerifyBusy(true);
+    setVerifyFeedback(null);
+    try {
+      const res = await fetch("/api/auth/verify-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: displayEmail, code: verifyCode.trim() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setVerifyFeedback(typeof data.detail === "string" ? data.detail : "Kod noto'g'ri");
+        return;
+      }
+      setAuthProfile((prev) => ({ ...(prev || {}), email_verified: true }));
+      setVerifyOpen(false);
+      setVerifyCode("");
+      setVerifyFeedback("Email muvaffaqiyatli tasdiqlandi!");
+    } catch {
+      setVerifyFeedback("Tarmoq xatosi");
+    } finally {
+      setVerifyBusy(false);
+    }
+  };
 
   return (
     <div>
@@ -190,6 +264,23 @@ export function ProfileTab({
 
                 {/* Account Details Box */}
                 <div className="w-100 p-3 rounded-2 text-start small d-flex flex-column gap-2" style={{ backgroundColor: "var(--bg-surface-elevated)", border: "1px solid var(--border-subtle)" }}>
+                  {displayEmail && (
+                    <div className="d-flex justify-content-between align-items-center gap-2">
+                      <span className="text-secondary d-flex align-items-center gap-1">
+                        <IconMail size={13} /> Email:
+                      </span>
+                      <div className="d-flex align-items-center gap-1.5 flex-wrap justify-content-end">
+                        <span className="font-monospace text-primary fw-medium" style={{ fontSize: "0.75rem" }}>
+                          {displayEmail}
+                        </span>
+                        {authProfile && (
+                          <Badge variant={isEmailVerified ? "success" : "warning"}>
+                            {isEmailVerified ? "Tasdiqlangan" : "Tasdiqlanmagan"}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  )}
                   <div className="d-flex justify-content-between">
                     <span className="text-secondary">Telegram ID:</span>
                     <span className="font-monospace text-primary fw-medium">{activeAdminTelegramId > 0 ? activeAdminTelegramId : (currentAdmin?.telegram_user_id || "-")}</span>
@@ -205,6 +296,43 @@ export function ProfileTab({
                     </span>
                   </div>
                 </div>
+
+                {authProfile && !isEmailVerified && canVerifyViaSmtp && (
+                  <div className="w-100 p-2.5 rounded-2 text-start small" style={{ backgroundColor: "var(--bg-surface-elevated)", border: "1px solid var(--border-subtle)" }}>
+                    {!verifyOpen ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="xs"
+                        className="w-100"
+                        loading={verifyBusy}
+                        onClick={handleSendVerifyCode}
+                        icon={<IconMail size={13} />}
+                      >
+                        Email manzilni tasdiqlash
+                      </Button>
+                    ) : (
+                      <form onSubmit={handleConfirmProfileEmail} className="d-flex gap-1.5">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={6}
+                          value={verifyCode}
+                          onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, ""))}
+                          placeholder="6 xonali kod"
+                          className="linear-input font-monospace flex-grow-1"
+                        />
+                        <Button type="submit" variant="primary" size="xs" loading={verifyBusy} disabled={verifyCode.trim().length !== 6}>
+                          Tasdiqlash
+                        </Button>
+                      </form>
+                    )}
+                    {verifyFeedback && <div className="text-secondary mt-1.5" style={{ fontSize: "0.72rem" }}>{verifyFeedback}</div>}
+                  </div>
+                )}
+                {isEmailVerified && verifyFeedback && (
+                  <div className="small text-success">{verifyFeedback}</div>
+                )}
 
                 {onReturnToAdmin && (
                   <Button

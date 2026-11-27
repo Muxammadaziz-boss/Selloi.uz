@@ -228,6 +228,8 @@ async def lifespan(application: FastAPI):
         "ALTER TABLE store_payment_configs ADD COLUMN IF NOT EXISTS payme_secret_key TEXT",
         "ALTER TABLE store_order_payments ADD COLUMN IF NOT EXISTS provider_transaction_id VARCHAR(128)",
         "ALTER TABLE store_order_payments ADD COLUMN IF NOT EXISTS payment_meta JSONB DEFAULT '{}'::jsonb",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT FALSE",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified_at TIMESTAMPTZ",
     ]
 
     legacy_tables = [

@@ -48,6 +48,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (data.verification_required || !data.access_token) {
+      return NextResponse.json({
+        ok: true,
+        verification_required: true,
+        email: data.email || email,
+        detail: data.detail || "Email manzilingizga 6 xonali tasdiqlash kodi yuborildi.",
+      });
+    }
+
     const { payload, defaultRedirect } = await buildVerifiedSessionPayload({
       backendUrl,
       backendToken: data.access_token,

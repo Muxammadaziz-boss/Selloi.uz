@@ -601,3 +601,121 @@ async def test_smtp_email_password_reset_and_team_email_invite_flow(tmp_path, mo
         app.dependency_overrides.clear()
         app.dependency_overrides.update(prev)
         await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_email_verification_signup_login_and_lockout(tmp_path, monkeypatch):
+    engine, SessionFactory = await _make_isolated_session_maker(tmp_path / "email_verify.db")
+    sent_emails = []
+
+    async def _fake_send_email(*, to_email: str, subject: str, text_body: str, html_body: str | None = None) -> bool:
+        sent_emails.append({"to": to_email, "subject": subject, "text": text_body})
+        return True
+
+    smtp_enabled = {"value": False}
+    monkeypatch.setattr(email_service, "is_smtp_configured", lambda: smtp_enabled["value"])
+    monkeypatch.setattr(email_service, "send_email", _fake_send_email)
+
+    async def _override_db():
+        async with SessionFactory() as s:
+            yield s
+
+    prev = dict(app.dependency_overrides)
+    app.dependency_overrides[get_db] = _override_db
+    for key in (
+        "register:nosmtp@example.uz",
+        "register:verifyme@example.uz",
+        "login:verifyme@example.uz",
+        "verify_email:verifyme@example.uz",
+        "resend_verify:verifyme@example.uz",
+    ):
+        reset_rate_limit(key)
+
+    try:
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+            # 1. Without SMTP configured -> signup immediately returns access_token (backward compatible)
+            r_no_smtp = await client.post(
+                "/api/v1/auth/register",
+                json={"email": "nosmtp@example.uz", "password": "Password123", "full_name": "No SMTP"},
+            )
+            assert r_no_smtp.status_code == 200
+            assert r_no_smtp.json()["verification_required"] is False
+            assert r_no_smtp.json()["access_token"]
+
+            # 2. With SMTP configured -> signup requires 6-digit OTP verification and sends email
+            smtp_enabled["value"] = True
+            r_reg = await client.post(
+                "/api/v1/auth/register",
+                json={"email": "verifyme@example.uz", "password": "Password123", "full_name": "Verify User"},
+            )
+            assert r_reg.status_code == 200
+            reg_data = r_reg.json()
+            assert reg_data["verification_required"] is True
+            assert reg_data["access_token"] == ""
+            assert len(sent_emails) == 1
+
+            # 3. Unverified login rejected with 403 EMAIL_NOT_VERIFIED and issues fresh OTP
+            r_login_blocked = await client.post(
+                "/api/v1/auth/login",
+                json={"email": "verifyme@example.uz", "password": "Password123"},
+            )
+            assert r_login_blocked.status_code == 403
+            assert r_login_blocked.json()["detail"]["error"] == "EMAIL_NOT_VERIFIED"
+            assert len(sent_emails) == 2
+
+            # 4. Five wrong OTP guesses trigger lockout (429)
+            for _ in range(4):
+                r_bad = await client.post(
+                    "/api/v1/auth/verify-email",
+                    json={"email": "verifyme@example.uz", "code": "000000"},
+                )
+                assert r_bad.status_code == 400
+            r_lock = await client.post(
+                "/api/v1/auth/verify-email",
+                json={"email": "verifyme@example.uz", "code": "000000"},
+            )
+            assert r_lock.status_code == 429
+
+            # 5. Resend fresh OTP and verify successfully -> returns active JWT & marks email_verified=True
+            r_resend = await client.post(
+                "/api/v1/auth/resend-verification",
+                json={"email": "verifyme@example.uz"},
+            )
+            assert r_resend.status_code == 200
+            assert len(sent_emails) == 3
+
+            import re
+            code = re.search(r"\b(\d{6})\b", sent_emails[-1]["text"]).group(1)
+            r_verify = await client.post(
+                "/api/v1/auth/verify-email",
+                json={"email": "verifyme@example.uz", "code": code},
+            )
+            assert r_verify.status_code == 200
+            v_data = r_verify.json()
+            assert v_data["email_verified"] is True
+            assert v_data["access_token"]
+
+            # 6. Login now succeeds and /auth/me reports email_verified=True
+            r_login_ok = await client.post(
+                "/api/v1/auth/login",
+                json={"email": "verifyme@example.uz", "password": "Password123"},
+            )
+            assert r_login_ok.status_code == 200
+            me_res = await client.get(
+                "/api/v1/auth/me",
+                headers={"Authorization": f"Bearer {r_login_ok.json()['access_token']}"},
+            )
+            assert me_res.status_code == 200
+            assert me_res.json()["email_verified"] is True
+
+            # 7. Google OAuth auto-verifies email
+            r_google = await client.post(
+                "/api/v1/auth/google",
+                json={"email": "google_auto@example.uz", "full_name": "Google User", "google_id": "g_123"},
+            )
+            assert r_google.status_code == 200
+            assert r_google.json()["email_verified"] is True
+    finally:
+        app.dependency_overrides.clear()
+        app.dependency_overrides.update(prev)
+        await engine.dispose()

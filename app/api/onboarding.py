@@ -31,7 +31,15 @@ from app.core.security import (
 )
 from app.dependencies.auth import create_access_token, decode_access_token, get_current_user, security
 from app.core.permissions import ROLE_DEFAULTS
-from app.models import AuditLog, Organization, OrganizationInvite, OrganizationMember, PasswordResetToken, User
+from app.models import (
+    AuditLog,
+    EmailVerificationToken,
+    Organization,
+    OrganizationInvite,
+    OrganizationMember,
+    PasswordResetToken,
+    User,
+)
 from app.schemas import (
     ForgotPasswordRequest,
     GoogleAuthRequest,
@@ -39,15 +47,18 @@ from app.schemas import (
     OrganizationOut,
     OrganizationUpdate,
     RegisterRequest,
+    ResendVerificationRequest,
     ResetPasswordRequest,
     TelegramAuthRequest,
     TokenRequest,
     TokenResponse,
+    VerifyEmailRequest,
 )
 
 router = APIRouter(prefix="/api/v1", tags=["onboarding"])
 logger = logging.getLogger(__name__)
 PASSWORD_RESET_TTL_MINUTES = 10
+EMAIL_VERIFY_TTL_MINUTES = 15
 
 
 def _hash_password_reset_code(user_id: int, code: str) -> str:
@@ -55,6 +66,97 @@ def _hash_password_reset_code(user_id: int, code: str) -> str:
     secret = (get_settings().jwt_secret or "selloi-pwreset-dev-fallback").encode("utf-8")
     msg = f"pwreset:{user_id}:{code.strip()}".encode("utf-8")
     return hmac.new(secret, msg, hashlib.sha256).hexdigest()
+
+
+def _hash_email_verification_code(user_id: int, email: str, code: str) -> str:
+    """Compute keyed HMAC-SHA256 digest for an email verification OTP."""
+    secret = (get_settings().jwt_secret or "selloi-pwreset-dev-fallback").encode("utf-8")
+    msg = f"emailverify:{user_id}:{email.strip().lower()}:{code.strip()}".encode("utf-8")
+    return hmac.new(secret, msg, hashlib.sha256).hexdigest()
+
+
+async def _verify_and_consume_otp_row(
+    db: AsyncSession,
+    *,
+    row: PasswordResetToken | EmailVerificationToken | None,
+    expected_hash: str,
+    rate_key: str,
+) -> datetime:
+    """Validate OTP expiry, attempt lockouts, and constant-time hash match; consumes row on success."""
+    if row is None:
+        record_attempt(rate_key)
+        raise HTTPException(status_code=400, detail="Tasdiqlash kodi noto'g'ri yoki muddati tugagan")
+
+    now = datetime.now(timezone.utc)
+    expires_at = row.expires_at if row.expires_at.tzinfo is not None else row.expires_at.replace(tzinfo=timezone.utc)
+    if expires_at <= now:
+        row.used_at = now
+        await db.commit()
+        raise HTTPException(status_code=400, detail="Tasdiqlash kodi muddati tugagan. Yangi kod so'rang.")
+
+    if row.attempts >= row.max_attempts:
+        row.used_at = now
+        await db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Urinishlar soni tugadi. Yangi tasdiqlash kodi so'rang.",
+        )
+
+    if not hmac.compare_digest(row.code_hash, expected_hash):
+        row.attempts += 1
+        exhausted = row.attempts >= row.max_attempts
+        if exhausted:
+            row.used_at = now
+        record_attempt(rate_key)
+        await db.commit()
+        if exhausted:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Urinishlar soni tugadi. Yangi tasdiqlash kodi so'rang.",
+            )
+        raise HTTPException(status_code=400, detail="Tasdiqlash kodi noto'g'ri")
+
+    row.used_at = now
+    return now
+
+
+async def _issue_email_verification_otp(db: AsyncSession, user: User) -> tuple[EmailVerificationToken, bool]:
+    """Create a 6-digit email verification token (hashed) and email it via SMTP."""
+    from app.services import email_service
+
+    now = datetime.now(timezone.utc)
+    clean_email = user.email.strip().lower()
+    await db.execute(
+        update(EmailVerificationToken)
+        .where(
+            EmailVerificationToken.user_id == user.id,
+            EmailVerificationToken.used_at.is_(None),
+        )
+        .values(used_at=now)
+    )
+    code = f"{secrets.randbelow(900000) + 100000}"
+    token_row = EmailVerificationToken(
+        user_id=user.id,
+        email=clean_email,
+        code_hash=_hash_email_verification_code(user.id, clean_email, code),
+        expires_at=now + timedelta(minutes=EMAIL_VERIFY_TTL_MINUTES),
+    )
+    db.add(token_row)
+    db.add(
+        AuditLog(
+            user_id=user.id,
+            action="email_verification_requested",
+            resource="user",
+            resource_id=str(user.id),
+            metadata_json={"email": clean_email},
+        )
+    )
+    await db.flush()
+
+    sent = await email_service.send_email_verification_code(clean_email, code, user.full_name or "")
+    if not sent:
+        token_row.used_at = now
+    return token_row, sent
 
 
 def _is_configured_admin_email(email: str) -> bool:
@@ -124,7 +226,9 @@ def _org_to_out(org: Organization) -> dict:
 
 @router.post("/auth/register", response_model=TokenResponse)
 async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db)):
-    """Register a new platform user."""
+    """Register a new platform user. Requires 6-digit email verification when SMTP is configured."""
+    from app.services import email_service
+
     clean_email = payload.email.strip().lower()
 
     rate_key = f"register:{clean_email}"
@@ -143,8 +247,36 @@ async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db))
         email=clean_email,
         hashed_password=hash_password(payload.password),
         full_name=payload.full_name.strip(),
+        email_verified=False,
     )
     db.add(user)
+    await db.flush()
+
+    should_verify = (
+        email_service.is_smtp_configured()
+        and email_service.is_deliverable_email(clean_email)
+        and not _is_configured_admin_email(clean_email)
+    )
+    if should_verify:
+        _row, sent = await _issue_email_verification_otp(db, user)
+        if not sent:
+            await db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="Tasdiqlash xatini yuborib bo'lmadi. Keyinroq qayta urinib ko'ring.",
+            )
+        await db.commit()
+        return TokenResponse(
+            access_token="",
+            user_id=user.id,
+            email=user.email,
+            full_name=user.full_name,
+            telegram_user_id=user.telegram_user_id,
+            email_verified=False,
+            verification_required=True,
+            detail="Email manzilingizga 6 xonali tasdiqlash kodi yuborildi.",
+        )
+
     await db.commit()
     await db.refresh(user)
 
@@ -155,12 +287,16 @@ async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db))
         email=user.email,
         full_name=user.full_name,
         telegram_user_id=user.telegram_user_id,
+        email_verified=bool(getattr(user, "email_verified", False)),
+        verification_required=False,
     )
 
 
 @router.post("/auth/login", response_model=TokenResponse)
 async def login(payload: TokenRequest, db: AsyncSession = Depends(get_db)):
     """Authenticate with email & password to receive a JWT access token."""
+    from app.services import email_service
+
     clean_email = payload.email.strip().lower()
 
     rate_key = f"login:{clean_email}"
@@ -180,10 +316,30 @@ async def login(payload: TokenRequest, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=403, detail="Foydalanuvchi faol emas")
 
     reset_rate_limit(rate_key)
-    if _is_configured_admin_email(clean_email) and not user.is_platform_owner:
+    if _is_configured_admin_email(clean_email) and (not user.is_platform_owner or not user.email_verified):
         user.is_platform_owner = True
+        user.email_verified = True
+        user.email_verified_at = datetime.now(timezone.utc)
         await db.commit()
         await db.refresh(user)
+
+    if (
+        email_service.is_smtp_configured()
+        and not getattr(user, "email_verified", False)
+        and email_service.is_deliverable_email(clean_email)
+        and not user.is_platform_owner
+    ):
+        _row, sent = await _issue_email_verification_otp(db, user)
+        await db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error": "EMAIL_NOT_VERIFIED",
+                "email": user.email,
+                "sent": sent,
+                "message": "Email manzilingiz hali tasdiqlanmagan. Pochtangizga 6 xonali tasdiqlash kodi yuborildi.",
+            },
+        )
 
     token = create_access_token(user.id, user.email, token_version=getattr(user, "token_version", 1) or 1)
     return TokenResponse(
@@ -192,6 +348,8 @@ async def login(payload: TokenRequest, db: AsyncSession = Depends(get_db)):
         email=user.email,
         full_name=user.full_name,
         telegram_user_id=user.telegram_user_id,
+        email_verified=bool(getattr(user, "email_verified", False)),
+        verification_required=False,
     )
 
 
@@ -242,6 +400,8 @@ async def google_auth(
             email=clean_email,
             full_name=display_name,
             hashed_password="",
+            email_verified=True,
+            email_verified_at=datetime.now(timezone.utc),
             is_platform_owner=is_owner_email,
             is_active=True,
         )
@@ -252,6 +412,10 @@ async def google_auth(
         if not user.is_active:
             raise HTTPException(status_code=403, detail="Foydalanuvchi hisobi faol emas")
         dirty = False
+        if not getattr(user, "email_verified", False):
+            user.email_verified = True
+            user.email_verified_at = datetime.now(timezone.utc)
+            dirty = True
         if is_owner_email and not user.is_platform_owner:
             user.is_platform_owner = True
             dirty = True
@@ -269,6 +433,8 @@ async def google_auth(
         email=user.email,
         full_name=user.full_name,
         telegram_user_id=user.telegram_user_id,
+        email_verified=True,
+        verification_required=False,
     )
 
 
@@ -321,6 +487,8 @@ async def telegram_auth_poll(payload: dict, db: AsyncSession = Depends(get_db)):
             full_name=full_name or (f"@{clean_username}" if clean_username else f"User {clean_id}"),
             telegram_user_id=clean_id,
             hashed_password="",
+            email_verified=True,
+            email_verified_at=datetime.now(timezone.utc),
             is_platform_owner=is_owner_tg,
             is_active=True,
         )
@@ -331,6 +499,9 @@ async def telegram_auth_poll(payload: dict, db: AsyncSession = Depends(get_db)):
         if not user.is_active:
             raise HTTPException(status_code=403, detail="Foydalanuvchi hisobi faol emas")
         user.telegram_user_id = clean_id
+        if not getattr(user, "email_verified", False):
+            user.email_verified = True
+            user.email_verified_at = datetime.now(timezone.utc)
         if is_owner_tg and not user.is_platform_owner:
             user.is_platform_owner = True
         if full_name:
@@ -362,6 +533,8 @@ async def telegram_auth(payload: TelegramAuthRequest, db: AsyncSession = Depends
 @router.get("/auth/me")
 async def get_current_user_profile(current_user: User = Depends(get_current_user)):
     """Get profile of current logged-in user."""
+    from app.services import email_service
+
     is_owner = bool(current_user.is_platform_owner)
     is_site_admin = bool(getattr(current_user, "is_platform_admin", False))
     return {
@@ -369,6 +542,8 @@ async def get_current_user_profile(current_user: User = Depends(get_current_user
         "email": current_user.email,
         "full_name": current_user.full_name,
         "telegram_user_id": current_user.telegram_user_id,
+        "email_verified": bool(getattr(current_user, "email_verified", False)),
+        "smtp_configured": email_service.is_smtp_configured(),
         "is_platform_owner": is_owner,
         "is_platform_admin": is_site_admin,
         "has_platform_access": is_owner or is_site_admin,
@@ -588,44 +763,17 @@ async def reset_password(payload: ResetPasswordRequest, db: AsyncSession = Depen
         record_attempt(rate_key)
         raise HTTPException(status_code=400, detail="Tasdiqlash kodi noto'g'ri yoki muddati tugagan")
 
-    now = datetime.now(timezone.utc)
-    expires_at = (
-        reset_row.expires_at
-        if reset_row.expires_at.tzinfo is not None
-        else reset_row.expires_at.replace(tzinfo=timezone.utc)
-    )
-    if expires_at <= now:
-        reset_row.used_at = now
-        await db.commit()
-        raise HTTPException(status_code=400, detail="Tasdiqlash kodi muddati tugagan. Yangi kod so'rang.")
-
-    if reset_row.attempts >= reset_row.max_attempts:
-        reset_row.used_at = now
-        await db.commit()
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Urinishlar soni tugadi. Yangi tasdiqlash kodi so'rang.",
-        )
-
     expected_hash = _hash_password_reset_code(user.id, clean_code)
-    if not hmac.compare_digest(reset_row.code_hash, expected_hash):
-        reset_row.attempts += 1
-        exhausted = reset_row.attempts >= reset_row.max_attempts
-        if exhausted:
-            reset_row.used_at = now
-        record_attempt(rate_key)
-        await db.commit()
-        if exhausted:
-            raise HTTPException(
-                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="Urinishlar soni tugadi. Yangi tasdiqlash kodi so'rang.",
-            )
-        raise HTTPException(status_code=400, detail="Tasdiqlash kodi noto'g'ri")
+    now = await _verify_and_consume_otp_row(
+        db,
+        row=reset_row,
+        expected_hash=expected_hash,
+        rate_key=rate_key,
+    )
 
     user.hashed_password = hash_password(payload.new_password)
     user.token_version = (getattr(user, "token_version", 1) or 1) + 1
     user.updated_at = now
-    reset_row.used_at = now
     await db.execute(
         update(PasswordResetToken)
         .where(
@@ -654,6 +802,134 @@ async def reset_password(payload: ResetPasswordRequest, db: AsyncSession = Depen
         "ok": True,
         "detail": "Parol muvaffaqiyatli yangilandi. Endi yangi parol bilan tizimga kirishingiz mumkin.",
     }
+
+
+@router.post("/auth/resend-verification")
+async def resend_email_verification(payload: ResendVerificationRequest, db: AsyncSession = Depends(get_db)):
+    """Send or resend a 6-digit email verification code via SMTP (non-enumerating)."""
+    from app.services import email_service
+
+    clean_email = payload.email.strip().lower()
+    if not clean_email or "@" not in clean_email:
+        raise HTTPException(status_code=400, detail="Noto'g'ri email manzil")
+
+    rate_key = f"resend_verify:{clean_email}"
+    if is_rate_limited(rate_key, max_attempts=5, window_seconds=300):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Juda ko'p so'rov yuborildi. 5 daqiqadan so'ng qayta urinib ko'ring.",
+        )
+    record_attempt(rate_key)
+
+    user = (
+        await db.execute(select(User).where(User.email == clean_email, User.is_active.is_(True)))
+    ).scalar_one_or_none()
+    if (
+        user is not None
+        and not getattr(user, "email_verified", False)
+        and email_service.is_smtp_configured()
+        and email_service.is_deliverable_email(clean_email)
+    ):
+        _row, _sent = await _issue_email_verification_otp(db, user)
+        await db.commit()
+
+    return {
+        "ok": True,
+        "detail": "Agar hisobingiz mavjud va tasdiqlanmagan bo'lsa, 6 xonali tasdiqlash kodi emailingizga yuborildi.",
+    }
+
+
+@router.post("/auth/verify-email", response_model=TokenResponse)
+async def verify_email_otp(payload: VerifyEmailRequest, db: AsyncSession = Depends(get_db)):
+    """Verify a user's email address with a 6-digit OTP and issue an active JWT."""
+    clean_email = payload.email.strip().lower()
+    clean_code = payload.code.strip()
+
+    if not clean_email or "@" not in clean_email:
+        raise HTTPException(status_code=400, detail="Noto'g'ri email manzil")
+
+    rate_key = f"verify_email:{clean_email}"
+    if is_rate_limited(rate_key, max_attempts=10, window_seconds=300):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Juda ko'p urinishlar qilindi. 5 daqiqadan so'ng qayta urinib ko'ring.",
+        )
+
+    if not (clean_code.isdigit() and len(clean_code) == 6):
+        record_attempt(rate_key)
+        raise HTTPException(status_code=400, detail="Tasdiqlash kodi 6 xonali raqam bo'lishi kerak")
+
+    user = (
+        await db.execute(select(User).where(User.email == clean_email, User.is_active.is_(True)))
+    ).scalar_one_or_none()
+    if user is None:
+        record_attempt(rate_key)
+        raise HTTPException(status_code=400, detail="Tasdiqlash kodi noto'g'ri yoki muddati tugagan")
+
+    token_row = (
+        await db.execute(
+            select(EmailVerificationToken)
+            .where(
+                EmailVerificationToken.user_id == user.id,
+                EmailVerificationToken.email == clean_email,
+                EmailVerificationToken.used_at.is_(None),
+            )
+            .order_by(EmailVerificationToken.id.desc())
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+
+    expected_hash = _hash_email_verification_code(user.id, clean_email, clean_code)
+    now = await _verify_and_consume_otp_row(
+        db,
+        row=token_row,
+        expected_hash=expected_hash,
+        rate_key=rate_key,
+    )
+
+    user.email_verified = True
+    user.email_verified_at = now
+    user.updated_at = now
+    await db.execute(
+        update(EmailVerificationToken)
+        .where(
+            EmailVerificationToken.user_id == user.id,
+            EmailVerificationToken.used_at.is_(None),
+            EmailVerificationToken.id != token_row.id,
+        )
+        .values(used_at=now)
+    )
+    db.add(
+        AuditLog(
+            user_id=user.id,
+            action="email_verified",
+            resource="user",
+            resource_id=str(user.id),
+            metadata_json={"email": clean_email},
+        )
+    )
+    await db.commit()
+    await db.refresh(user)
+
+    reset_rate_limit(rate_key)
+    reset_rate_limit(f"resend_verify:{clean_email}")
+    reset_rate_limit(f"login:{clean_email}")
+
+    access_token = create_access_token(
+        user.id,
+        user.email,
+        token_version=getattr(user, "token_version", 1) or 1,
+    )
+    return TokenResponse(
+        access_token=access_token,
+        user_id=user.id,
+        email=user.email,
+        full_name=user.full_name,
+        telegram_user_id=user.telegram_user_id,
+        email_verified=True,
+        verification_required=False,
+        detail="Email manzilingiz muvaffaqiyatli tasdiqlandi!",
+    )
 
 
 def _hash_invite_token(raw_token: str) -> str:
@@ -731,6 +1007,8 @@ async def accept_team_invite(payload: AcceptInviteRequest, db: AsyncSession = De
             email=clean_email,
             hashed_password=hash_password(pwd),
             full_name=(payload.full_name or clean_email.split("@")[0]).strip()[:120],
+            email_verified=True,
+            email_verified_at=now,
             is_active=True,
         )
         db.add(user)
@@ -740,6 +1018,8 @@ async def accept_team_invite(payload: AcceptInviteRequest, db: AsyncSession = De
             if not verify_password(payload.password, user.hashed_password):
                 raise HTTPException(status_code=401, detail="Bu email uchun kiritilgan parol noto'g'ri")
         user.is_active = True
+        user.email_verified = True
+        user.email_verified_at = user.email_verified_at or now
         if payload.full_name and payload.full_name.strip():
             user.full_name = payload.full_name.strip()[:120]
 

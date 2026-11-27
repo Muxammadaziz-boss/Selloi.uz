@@ -128,12 +128,26 @@ class TokenRequest(BaseModel):
 
 
 class TokenResponse(BaseModel):
-    access_token: str
+    access_token: str = ""
     token_type: str = "bearer"
     user_id: int
     email: str
     full_name: str | None = None
     telegram_user_id: int | None = None
+    email_verified: bool = False
+    verification_required: bool = False
+    detail: str | None = None
+
+
+class VerifyEmailRequest(BaseModel):
+    """Schema for confirming a 6-digit email verification OTP."""
+    email: str = Field(min_length=1, max_length=255)
+    code: str = Field(min_length=6, max_length=12)
+
+
+class ResendVerificationRequest(BaseModel):
+    """Schema for requesting/resending a 6-digit email verification OTP."""
+    email: str = Field(min_length=1, max_length=255)
 
 
 class RegisterRequest(BaseModel):
