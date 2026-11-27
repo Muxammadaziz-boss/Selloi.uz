@@ -297,9 +297,41 @@ function buildMockProxyPayload(apiPath) {
           full_name: "Platform Owner",
           is_platform_owner: true,
           is_platform_admin: true,
+          fully_verified: true,
           is_active: true,
         },
+        {
+          id: 2,
+          email: "unverified_e2e@gmail.com",
+          full_name: "Unverified Test",
+          email_verified: false,
+          has_real_email: true,
+          fully_verified: false,
+          verification_status: "pending_telegram",
+          is_platform_owner: false,
+          is_platform_admin: false,
+          is_active: true,
+          organizations_count: 0,
+          organization_names: [],
+        },
       ],
+    };
+  }
+  if (apiPath.startsWith("/api/v1/auth/me")) {
+    return {
+      id: 101,
+      email: "store@selloi.uz",
+      full_name: "TechHub Store Owner",
+      telegram_user_id: 777101,
+      email_verified: true,
+      has_real_email: true,
+      fully_verified: true,
+      missing_steps: [],
+      smtp_configured: true,
+      bot_username: "Selloi_ai_bot",
+      has_password: false,
+      is_platform_owner: false,
+      is_platform_admin: false,
     };
   }
   if (apiPath.startsWith("/api/platform/system-health")) {
@@ -551,9 +583,10 @@ async function runSuite() {
       ]);
       const gatePage = await unverifiedCtx.newPage();
       await gatePage.goto(`${baseUrl}/dashboard`, { waitUntil: "domcontentloaded" });
-      if (!gatePage.url().includes("/login") || !gatePage.url().includes("step=complete")) {
-        throw new Error(`Expected unverified user to be redirected to /login?step=complete, got ${gatePage.url()}`);
-      }
+      await gatePage.waitForURL(
+        (url) => url.pathname === "/login" && url.searchParams.get("step") === "complete",
+        { timeout: 10000 }
+      );
       await gatePage.locator(".selloi-gate-checklist").waitFor({ state: "visible", timeout: 5000 });
       await unverifiedCtx.close();
 
@@ -607,6 +640,14 @@ async function runSuite() {
       }
       await page.goto(`${baseUrl}/dashboard#billing`, { waitUntil: "domcontentloaded" });
       await page.getByText("TC-DEMO-1001").waitFor({ state: "visible", timeout: 5000 });
+
+      // Step 3 check: #profile shows "Xavfsizlik va Parol" & global session revoke confirm modal
+      await page.goto(`${baseUrl}/dashboard#profile`, { waitUntil: "domcontentloaded" });
+      await page.getByText("Xavfsizlik va Parol").waitFor({ state: "visible", timeout: 5000 });
+      await page.getByRole("button", { name: /Parol o'rnatish/i }).waitFor({ state: "visible", timeout: 5000 });
+      await page.getByRole("button", { name: /Barcha sessiyalardan chiqish/i }).click();
+      await page.getByRole("button", { name: /Ha, hammasidan chiqish/i }).waitFor({ state: "visible", timeout: 5000 });
+      await page.getByRole("button", { name: /Bekor qilish/i }).click();
 
       await assertNoHorizontalOverflow(page, "Dashboard desktop");
       const dashA11y = await assertNoCriticalA11yViolations(page, "Dashboard desktop");
@@ -670,9 +711,7 @@ async function runSuite() {
       // Platform Owner visiting /dashboard must be strictly redirected to /admin
       await page.setViewportSize({ width: 1440, height: 900 });
       await page.goto(`${baseUrl}/dashboard`, { waitUntil: "domcontentloaded" });
-      if (!new URL(page.url()).pathname.startsWith("/admin")) {
-        throw new Error(`Expected Platform Owner on /dashboard to redirect to /admin, got ${page.url()}`);
-      }
+      await page.waitForURL((url) => url.pathname.startsWith("/admin"), { timeout: 10000 });
 
       // Platform Owner visiting a store via /t/[slug] has NO yellow reminder banner and HAS "Admin panelga qaytish" in Profile menu
       await page.goto(`${baseUrl}/t/techhub-toshkent`, { waitUntil: "domcontentloaded" });
@@ -689,6 +728,13 @@ async function runSuite() {
       if (!new URL(page.url()).pathname.startsWith("/admin")) {
         throw new Error(`Expected returning from profile menu to navigate to /admin, got ${page.url()}`);
       }
+
+      // Step 3 check: Owner users tab shows unverified delete action & confirmation modal
+      await page.getByRole("button", { name: /Foydalanuvchilar/i }).first().click();
+      await page.getByText("unverified_e2e@gmail.com").waitFor({ state: "visible", timeout: 5000 });
+      await page.getByRole("button", { name: "Foydalanuvchini o'chirish" }).first().click();
+      await page.getByRole("button", { name: /Ha, o'chirish/i }).waitFor({ state: "visible", timeout: 5000 });
+      await page.getByRole("button", { name: /Bekor qilish/i }).click();
 
       if (pageErrors.length > 0) throw new Error(`/admin JS errors: ${pageErrors.join(" | ")}`);
       report.push(`PASS /admin redirect + /t/[slug] profile return flow (0 critical a11y, ${adminA11y} minor/moderate)`);
