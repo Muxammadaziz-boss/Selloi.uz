@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useLanguage } from "../../lib/i18n";
 import {
   IconSearch,
@@ -81,6 +81,11 @@ export function Topbar({
   const [showOrgMenu, setShowOrgMenu] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [avatarFailed, setAvatarFailed] = useState(false);
+
+  useEffect(() => {
+    setAvatarFailed(false);
+  }, [adminAvatarUrl]);
 
   const currentOrg = organizations.find((o) => o.id === activeOrgId) || {
     id: activeOrgId,
@@ -421,27 +426,27 @@ export function Topbar({
             }}
           >
             <div
-              className="rounded-circle overflow-hidden d-flex align-items-center justify-content-center"
+              className="rounded-circle overflow-hidden d-flex align-items-center justify-content-center flex-shrink-0"
               style={{
                 width: "24px",
                 height: "24px",
-                backgroundColor: "var(--accent-subtle)",
-                color: "var(--accent-text)",
+                background: "linear-gradient(135deg, #7C3AED 0%, #4C1D95 100%)",
+                color: "#FFFFFF",
                 fontSize: "0.75rem",
-                fontWeight: 600,
+                fontWeight: 700,
+                lineHeight: 1,
+                boxShadow: "0 1px 4px rgba(124, 58, 237, 0.35)",
               }}
             >
-              {adminAvatarUrl ? (
+              {adminAvatarUrl && !avatarFailed ? (
                 <img
                   src={adminAvatarUrl}
                   alt={adminName}
                   style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).style.display = "none";
-                  }}
+                  onError={() => setAvatarFailed(true)}
                 />
               ) : (
-                adminName.charAt(0).toUpperCase()
+                (adminName || "U").trim().charAt(0).toUpperCase()
               )}
             </div>
             <span

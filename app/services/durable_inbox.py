@@ -928,9 +928,9 @@ async def dispatch_outbox_batch(
     dispatched_count = 0
 
     for item_id, lease_token, event_type, payload, org_id, attempts, fencing_gen in claimed_events:
-        # Determine telegram service instance
+        # Determine telegram service instance (keep global shared bot for ?start=shop_<slug> replies)
         org = await db.get(Organization, org_id) if org_id else None
-        bot_token = org.decrypted_bot_token if org else None
+        bot_token = None if payload.get("use_shared_bot") else (org.decrypted_bot_token if org else None)
         try:
             tg_svc = get_telegram_service(bot_token) if bot_token else telegram
         except Exception:

@@ -2139,6 +2139,8 @@ function DashboardContent({
 
             {tab === "settings" && (
               <SettingsTab
+                planCode={subscriptionData?.plan_code || subscriptionData?.plan?.code || "start"}
+                onUpgradePlan={() => setTab("billing")}
                 aiModel={aiModel}
                 setAiModel={setAiModel}
                 aiTemperature={aiTemperature}

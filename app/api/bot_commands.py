@@ -158,6 +158,45 @@ async def handle_private_command(message: dict, db: AsyncSession) -> bool:
             is_link_flow = lower_param.startswith("link_") or lower_param.startswith("link-")
             is_auth_flow = lower_param.startswith("auth_") or lower_param.startswith("auth-")
             is_demo_flow = lower_param.startswith("demo_") or lower_param.startswith("demo-")
+            is_shop_flow = lower_param.startswith("shop_") or lower_param.startswith("shop-")
+            if is_shop_flow:
+                import html as _html
+                from app.services.shared_bot_routing import bind_customer_to_shop
+
+                shop_key = raw_param[5:].strip()
+                first_name = sender.get("first_name", "")
+                last_name = sender.get("last_name", "")
+                full_name = f"{first_name} {last_name}".strip() or "Mijoz"
+                org = await bind_customer_to_shop(
+                    db,
+                    chat_id=chat_id,
+                    shop_key=shop_key,
+                    customer_name=full_name,
+                    username=sender.get("username"),
+                )
+                if org is not None:
+                    safe_shop = _html.escape(org.name)
+                    await telegram.call(
+                        "sendMessage",
+                        {
+                            "chat_id": chat_id,
+                            "text": (
+                                f"🛍 <b>{safe_shop}</b> do'koniga xush kelibsiz!\n\n"
+                                "Mahsulotlar, narxlar yoki buyurtma berish bo'yicha istalgan savolingizni yozing — "
+                                "AI sotuvchi darhol javob beradi."
+                            ),
+                            "parse_mode": "HTML",
+                        },
+                    )
+                else:
+                    await telegram.call(
+                        "sendMessage",
+                        {
+                            "chat_id": chat_id,
+                            "text": "⚠️ Kechirasiz, ushbu do'kon topilmadi yoki hozircha faol emas.",
+                        },
+                    )
+                return True
             if is_demo_flow:
                 import html as _html
                 from app.services.demo_service import bind_telegram_chat_to_demo

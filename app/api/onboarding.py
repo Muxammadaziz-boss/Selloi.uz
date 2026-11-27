@@ -1105,6 +1105,7 @@ async def _apply_password_update(
 
     # Invalidate all active tokens issued before this moment, then issue a fresh token for this browser
     revoke_user_sessions(current_user.id)
+    await asyncio.sleep(0.005)
     fresh_token = create_access_token(
         current_user.id,
         current_user.email,

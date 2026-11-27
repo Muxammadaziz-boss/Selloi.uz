@@ -140,7 +140,7 @@ const TRANSLATIONS: Record<Language, TranslationText> = {
     termsAgreement: "Ro'yxatdan o'tish orqali siz Selloi",
     termsLink: "Foydalanish shartlariga rozilik bildirasiz.",
     backToHome: "Bosh sahifa",
-    sslSecure: "256-bit SSL xavfsiz shifrlash orqali himoyalangan",
+    sslSecure: "🔒 Ma’lumotlaringiz xavfsiz himoyalangan",
     telegramModalTitle: "Telegram orqali xavfsiz kirish",
     telegramModalDesc: "Telegram hisobingiz orqali tizimga kirish uchun @Selloi_ai_bot botimizni oching va pastdagi 'Boshlash' (/start) tugmasini bosing:",
     telegramOpenBot: "@Selloi_ai_bot da tasdiqlash",
@@ -210,7 +210,7 @@ const TRANSLATIONS: Record<Language, TranslationText> = {
     termsAgreement: "Регистрируясь, вы принимаете",
     termsLink: "Условия использования Selloi.",
     backToHome: "На главную",
-    sslSecure: "Защищено 256-битным SSL шифрованием",
+    sslSecure: "🔒 Ваши данные надёжно защищены",
     telegramModalTitle: "Безопасный вход через Telegram",
     telegramModalDesc: "Чтобы войти через свой аккаунт Telegram, откройте нашего бота @Selloi_ai_bot и нажмите кнопку «Запустить» (/start):",
     telegramOpenBot: "Подтвердить в @Selloi_ai_bot",
@@ -280,7 +280,7 @@ const TRANSLATIONS: Record<Language, TranslationText> = {
     termsAgreement: "By signing up you agree to Selloi's",
     termsLink: "Terms of Service and Privacy Policy.",
     backToHome: "Back to Home",
-    sslSecure: "Protected by 256-bit SSL encryption",
+    sslSecure: "🔒 Your data is fully encrypted & secure",
     telegramModalTitle: "Secure Telegram Login",
     telegramModalDesc: "To sign in with your Telegram account, open our bot @Selloi_ai_bot and tap 'Start':",
     telegramOpenBot: "Confirm in @Selloi_ai_bot",
@@ -1136,17 +1136,17 @@ export default function LoginPageClient({
             <div style={{ textAlign: "center", marginBottom: "14px" }}>
               <h2 className="selloi-modal-title" style={{ marginBottom: "6px" }}>
                 {lang === "ru"
-                  ? "Подтверждение аккаунта"
+                  ? "Почти готово! Последний шаг ✨"
                   : lang === "en"
-                    ? "Complete Account Verification"
-                    : "Hisobni to'liq tasdiqlash"}
+                    ? "Almost there! One last step ✨"
+                    : "Deyarli tayyor! So‘nggi qadam ✨"}
               </h2>
               <p className="selloi-modal-desc" style={{ marginBottom: 0 }}>
                 {lang === "ru"
-                  ? "Для полного доступа подтвердите Email и Telegram (1 Telegram ↔ 1 Email)."
+                  ? "Подключите Telegram, чтобы активировать вашего AI-продавца и получать уведомления о заказах."
                   : lang === "en"
-                    ? "Verify both Email and Telegram for full access (1 Telegram ↔ 1 Email)."
-                    : "To'liq kirish uchun Email va Telegram hisobingizni tasdiqlang (1 Telegram ↔ 1 Email)."}
+                    ? "Connect Telegram to activate your AI sales assistant and receive real-time order alerts."
+                    : "AI sotuvchingizni faollashtirish va yangi buyurtmalarni qabul qilish uchun Telegram hisobingizni ulang."}
               </p>
             </div>
 
@@ -1162,11 +1162,15 @@ export default function LoginPageClient({
                   <IconClock size={15} />
                 )}
                 <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  <div style={{ fontWeight: 700, fontSize: "0.75rem" }}>1. Email / Gmail</div>
+                  <div style={{ fontWeight: 700, fontSize: "0.75rem" }}>
+                    {completionState.emailVerified && completionState.hasRealEmail
+                      ? (lang === "ru" ? "Email подключен" : lang === "en" ? "Email linked" : "Email ulandi")
+                      : (lang === "ru" ? "1. Email адрес" : lang === "en" ? "1. Email address" : "1. Email manzil")}
+                  </div>
                   <div style={{ fontSize: "0.7rem", opacity: 0.85, overflow: "hidden", textOverflow: "ellipsis" }}>
                     {completionState.emailVerified && completionState.hasRealEmail
                       ? completionState.email
-                      : "Tasdiqlanmagan"}
+                      : (lang === "ru" ? "Требуется подтверждение" : lang === "en" ? "Action required" : "Ulash kerak")}
                   </div>
                 </div>
               </div>
@@ -1178,9 +1182,15 @@ export default function LoginPageClient({
               >
                 {completionState.telegramUserId ? <IconCheck size={15} /> : <IconClock size={15} />}
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: "0.75rem" }}>2. Telegram Bot</div>
+                  <div style={{ fontWeight: 700, fontSize: "0.75rem" }}>
+                    {completionState.telegramUserId
+                      ? (lang === "ru" ? "Telegram подключен" : lang === "en" ? "Telegram linked" : "Telegram ulandi")
+                      : (lang === "ru" ? "2. Telegram" : lang === "en" ? "2. Telegram" : "2. Telegram")}
+                  </div>
                   <div style={{ fontSize: "0.7rem", opacity: 0.85 }}>
-                    {completionState.telegramUserId ? `ID: ${completionState.telegramUserId}` : "Ulanmagan"}
+                    {completionState.telegramUserId
+                      ? (lang === "ru" ? "Активен" : lang === "en" ? "Active" : "Faol")
+                      : (lang === "ru" ? "Ожидает подключения" : lang === "en" ? "Pending setup" : "Ulanishi kutilmoqda")}
                   </div>
                 </div>
               </div>
@@ -1203,14 +1213,18 @@ export default function LoginPageClient({
             {!(completionState.emailVerified && completionState.hasRealEmail) ? (
               <div className="selloi-gate-box">
                 <h3 className="selloi-gate-title">
-                  {lang === "ru" ? "Привяжите Gmail / Email" : lang === "en" ? "Verify Email / Gmail" : "Email / Gmail manzilingizni tasdiqlang"}
+                  {lang === "ru"
+                    ? "Привяжите Email для безопасности"
+                    : lang === "en"
+                      ? "Link Your Email for Security"
+                      : "Email manzilingizni ulang"}
                 </h3>
                 <p className="selloi-gate-desc">
                   {lang === "ru"
-                    ? "Подключите свой Gmail в один клик или подтвердите любой email 6-значным OTP кодом."
+                    ? "Подключите свой Gmail в один клик или введите email для получения отчетов и защиты аккаунта."
                     : lang === "en"
-                      ? "Connect your Gmail in one click or verify any email via 6-digit OTP."
-                      : "Gmail hisobingizni 1 bosishda ulang yoki email kiritib 6 xonali OTP orqali tasdiqlang."}
+                      ? "Connect your Gmail in one click or enter your email to receive store reports and secure your account."
+                      : "Hisobingizni himoyalash va do‘kon hisobotlarini qabul qilish uchun Gmail yoki email manzilingizni ulang."}
                 </p>
 
                 <a
@@ -1353,13 +1367,17 @@ export default function LoginPageClient({
               <div className="selloi-gate-box">
                 <h3 className="selloi-gate-title">
                   {lang === "ru"
-                    ? "Подтвердите Telegram аккаунт"
+                    ? "Подключите Telegram за 5 секунд"
                     : lang === "en"
-                      ? "Verify Telegram Account"
-                      : "Telegram hisobingizni tasdiqlang"}
+                      ? "Connect Telegram in 5 seconds"
+                      : "Telegram'ni 5 soniyada ulang"}
                 </h3>
                 <p className="selloi-gate-desc">
-                  @{gateTgBotUsername} botida &laquo;Start&raquo; tugmasini bosing — Telegram hisobingiz emailingiz bilan birlashtiriladi.
+                  {lang === "ru"
+                    ? `Нажмите кнопку ниже, перейдите в @${gateTgBotUsername} и нажмите «Запустить» (Start). Бот автоматически завершит вход.`
+                    : lang === "en"
+                      ? `Tap the button below to open @${gateTgBotUsername} and press 'Start'. You will be redirected automatically.`
+                      : `Pastdagi tugma orqali @${gateTgBotUsername} botiga o‘ting va «Boshlash» (Start) tugmasini bosing. Tizim sizni avtomatik taniydi.`}
                 </p>
 
                 {gateTgUrl ? (
@@ -1371,11 +1389,23 @@ export default function LoginPageClient({
                       className="selloi-btn-primary text-decoration-none"
                     >
                       <IconSend size={18} />
-                      <span>@{gateTgBotUsername} da tasdiqlash</span>
+                      <span>
+                        {lang === "ru"
+                          ? "Открыть Telegram и запустить →"
+                          : lang === "en"
+                            ? "Open Telegram & Start →"
+                            : "Telegram'ni ochish va boshlash →"}
+                      </span>
                     </a>
                     <div className="d-flex align-items-center justify-content-center gap-2 py-2 text-secondary small">
                       {gateTgPolling && <IconLoader2 size={16} className="spin text-primary" />}
-                      <span>{t.telegramWaiting}</span>
+                      <span>
+                        {lang === "ru"
+                          ? "Ожидаем нажатия «Start» в боте..."
+                          : lang === "en"
+                            ? "Waiting for you to tap 'Start' in the bot..."
+                            : "Botda «Start» tugmasi bosilishini kutmoqdamiz..."}
+                      </span>
                     </div>
                   </div>
                 ) : (
@@ -1386,19 +1416,27 @@ export default function LoginPageClient({
                     className="selloi-btn-primary"
                   >
                     <IconSend size={18} />
-                    <span>{gateTgBusy ? t.resetSending : t.telegramOpenBot}</span>
+                    <span>
+                      {gateTgBusy
+                        ? (lang === "ru" ? "Подготовка..." : lang === "en" ? "Preparing..." : "Tayyorlanmoqda...")
+                        : (lang === "ru" ? "Подключить Telegram →" : lang === "en" ? "Connect Telegram →" : "Telegram orqali ulash →")}
+                    </span>
                   </button>
                 )}
               </div>
             )}
 
-            <div className="text-center" style={{ marginTop: "8px" }}>
+            <div className="text-center" style={{ marginTop: "12px" }}>
               <button
                 type="button"
                 onClick={handleGateLogout}
                 className="selloi-forgot-link"
               >
-                Boshqa hisob bilan kirish (Chiqish)
+                {lang === "ru"
+                  ? "Войти с другого аккаунта"
+                  : lang === "en"
+                    ? "Sign in with a different account"
+                    : "Boshqa hisobdan kirish"}
               </button>
             </div>
           </div>
@@ -1707,11 +1745,21 @@ export default function LoginPageClient({
 
         {/* Legal links for compliance */}
         <div style={{ marginTop: "14px", fontSize: "0.78rem", color: "#8E8E93", textAlign: "center", lineHeight: "1.5" }}>
-          <span>Davom etish orqali siz Selloi'ning </span>
-          <Link href="/terms" style={{ color: "#FF4C63", textDecoration: "none", fontWeight: 600 }}>Foydalanish shartlari</Link>
-          <span> va </span>
-          <Link href="/privacy" style={{ color: "#FF4C63", textDecoration: "none", fontWeight: 600 }}>Maxfiylik siyosati</Link>
-          <span>ga rozilik bildirasiz.</span>
+          <span>
+            {lang === "ru"
+              ? "Продолжая, вы принимаете "
+              : lang === "en"
+                ? "By continuing, you agree to our "
+                : "Davom etish orqali siz Selloi'ning "}
+          </span>
+          <Link href="/terms" style={{ color: "#FF4C63", textDecoration: "none", fontWeight: 600 }}>
+            {lang === "ru" ? "Условия сервиса" : lang === "en" ? "Terms of Service" : "Foydalanish shartlari"}
+          </Link>
+          <span>{lang === "ru" ? " и " : lang === "en" ? " and " : " va "}</span>
+          <Link href="/privacy" style={{ color: "#FF4C63", textDecoration: "none", fontWeight: 600 }}>
+            {lang === "ru" ? "Политику конфиденциальности" : lang === "en" ? "Privacy Policy" : "Maxfiylik siyosati"}
+          </Link>
+          {lang === "uz" && <span>ga rozilik bildirasiz.</span>}
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useLanguage } from "../../lib/i18n";
 import {
   IconCpu,
@@ -18,6 +18,10 @@ import {
   IconMessageDots,
   IconInfoCircle,
   IconSparkles,
+  IconLock,
+  IconAlertTriangle,
+  IconCopy,
+  IconExternalLink,
 } from "@tabler/icons-react";
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
 import { Badge } from "../ui/Badge";
@@ -46,6 +50,8 @@ import {
 } from "../settings/DailyReportSettingsCard";
 
 export interface SettingsTabProps {
+  planCode?: string;
+  onUpgradePlan?: () => void;
   aiModel: string;
   setAiModel: (m: string) => void;
   aiTemperature: number;
@@ -111,6 +117,8 @@ export interface SettingsTabProps {
 }
 
 export function SettingsTab({
+  planCode = "start",
+  onUpgradePlan,
   aiModel,
   setAiModel,
   aiTemperature,
@@ -169,6 +177,33 @@ export function SettingsTab({
   onSendReportNow,
 }: SettingsTabProps) {
   const { language, t } = useLanguage();
+  const [copiedShopLink, setCopiedShopLink] = useState(false);
+  const [ultraChoice, setUltraChoice] = useState<"bot" | "userchat">("bot");
+
+  const normalizedPlan = (planCode || "start").toLowerCase();
+  const isStartPlan = normalizedPlan === "start";
+  const isProPlan = normalizedPlan === "pro";
+  const isUltraPlan = normalizedPlan === "ultra";
+  const canUseCustomBot = isProPlan || isUltraPlan;
+  const canUseUserChat = isUltraPlan;
+
+  useEffect(() => {
+    if (currentOrgDetails?.telegram_api_hash_set && !currentOrgDetails?.telegram_bot_token_set) {
+      setUltraChoice("userchat");
+    }
+  }, [currentOrgDetails?.telegram_api_hash_set, currentOrgDetails?.telegram_bot_token_set]);
+
+  const sharedBotUsername = currentOrgDetails?.shared_bot_username || "Selloi_ai_bot";
+  const shopSlug = currentOrgDetails?.slug || String(activeOrgId);
+  const sharedShopLink = `https://t.me/${sharedBotUsername}?start=shop_${shopSlug}`;
+
+  const copySharedLink = () => {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(sharedShopLink);
+      setCopiedShopLink(true);
+      setTimeout(() => setCopiedShopLink(false), 2500);
+    }
+  };
   return (
     <div>
       <PageHeader
@@ -299,222 +334,403 @@ export function SettingsTab({
             </CardContent>
           </Card>
 
-          {/* Telegram Bot & Webhook Card */}
+          {/* Telegram Integration Card (Tiered: START -> PRO -> ULTRA) */}
           <Card>
             <CardHeader
               actions={
-                currentOrgDetails?.telegram_bot_token_set ? (
-                  <Badge variant="success" dot>Bot Ulangan</Badge>
-                ) : (
-                  <Badge variant="warning" dot>Bot Ulanmagan</Badge>
-                )
+                <div className="d-flex align-items-center gap-2">
+                  {isStartPlan ? (
+                    <Badge variant="default">START Tarif</Badge>
+                  ) : isProPlan ? (
+                    <Badge variant="accent">PRO Tarif</Badge>
+                  ) : (
+                    <Badge variant="accent" style={{ background: "linear-gradient(135deg, #7C3AED 0%, #EC4899 100%)", color: "#fff", border: "none" }}>
+                      ULTRA Tarif
+                    </Badge>
+                  )}
+                  {currentOrgDetails?.telegram_bot_token_set || (isUltraPlan && ultraChoice === "userchat" && currentOrgDetails?.telegram_api_hash_set) ? (
+                    <Badge variant="success" dot>Ulangan</Badge>
+                  ) : (
+                    <Badge variant="warning" dot>Ulanmagan</Badge>
+                  )}
+                </div>
               }
             >
-              <CardTitle>Telegram Bot va Webhook Integratsiyasi</CardTitle>
+              <CardTitle>Telegram Integratsiyasi (Do'kon va AI Sotuvchi)</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="d-flex flex-column gap-3">
-                {/* Bot Token Input */}
-                <div>
-                  <label className="fw-medium text-primary small d-block mb-1">
-                    Telegram Bot Token (BotFather'dan olingan)
-                  </label>
-                  <div className="d-flex gap-2">
-                    <input
-                      type={showBotToken ? "text" : "password"}
-                      aria-label="Telegram Bot Token"
-                      placeholder={currentOrgDetails?.telegram_bot_token_set ? "••••••••••••••••••••••••••••••••" : "Masalan: 123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ"}
-                      value={botTokenInput}
-                      onChange={(e) => setBotTokenInput(e.target.value)}
-                      className="linear-input font-monospace flex-grow-1"
-                    />
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      aria-label={showBotToken ? "Tokenni yashirish" : "Tokenni ko'rsatish"}
-                      onClick={() => setShowBotToken(!showBotToken)}
-                      icon={showBotToken ? <IconEyeOff size={15} /> : <IconEye size={15} />}
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={onVerifyBotToken}
-                      disabled={botTokenVerifying || !botTokenInput.trim()}
-                      loading={botTokenVerifying}
-                      icon={<IconCheck size={14} />}
-                    >
-                      Tekshirish
-                    </Button>
+              <div className="d-flex flex-column gap-4">
+                
+                {/* 1. BOSQICH: Rasmiy @Selloi_ai_bot (Universal - Barcha tariflar uchun) */}
+                <div className="p-3 rounded-2 border" style={{ backgroundColor: "var(--bg-surface-elevated)", borderColor: "var(--border-default)" }}>
+                  <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                    <span className="fw-semibold text-primary small d-flex align-items-center gap-1.5">
+                      <IconBrandTelegram size={18} className="text-accent" />
+                      1. Rasmiy @Selloi_ai_bot orqali ulanish
+                    </span>
+                    <Badge variant="accent">0 sozlama • Barcha tariflar</Badge>
                   </div>
-                  <div className="text-secondary small mt-1" style={{ fontSize: "0.72rem" }}>
-                    Token shifrlangan holda (AES-128 Fernet) saqlanadi va xavfsiz Telegram Webhook orqali ishlaydi.
+                  <p className="text-secondary small mb-2.5" style={{ fontSize: "0.8rem", lineHeight: 1.5 }}>
+                    Hech qanday bot yaratish yoki server sozlash shart emas! Mijozlaringiz ushbu havola orqali botga kirgan zahoti, AI sizning tovarlaringiz, narxlaringiz va qoidalaringiz asosida mustaqil xizmat ko'rsatadi. Har bir do'konning ma'lumotlar bazasi to'liq ajratilgan va himoyalangan.
+                  </p>
+
+                  <div className="p-2.5 rounded-2 border d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2" style={{ backgroundColor: "var(--bg-surface)", borderColor: "var(--border-subtle)" }}>
+                    <div className="d-flex align-items-center gap-2 overflow-hidden">
+                      <span className="font-monospace text-accent text-truncate small" style={{ wordBreak: "break-all" }}>
+                        {sharedShopLink}
+                      </span>
+                    </div>
+                    <div className="d-flex align-items-center gap-2 flex-shrink-0">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={copySharedLink}
+                        icon={<IconCopy size={14} />}
+                      >
+                        {copiedShopLink ? "Nusxalandi!" : "Nusxalash"}
+                      </Button>
+                      <a
+                        href={sharedShopLink}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="btn btn-sm btn-outline d-inline-flex align-items-center gap-1.5 text-decoration-none"
+                        style={{
+                          borderColor: "var(--border-default)",
+                          color: "var(--text-primary)",
+                          fontSize: "0.82rem",
+                          padding: "4px 10px",
+                          borderRadius: "6px",
+                        }}
+                      >
+                        <IconExternalLink size={14} />
+                        <span>Botda ochish</span>
+                      </a>
+                    </div>
                   </div>
+
+                  {isStartPlan && (
+                    <div className="mt-2.5 p-2.5 rounded-2 border d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2" style={{ backgroundColor: "rgba(124, 58, 237, 0.05)", borderColor: "rgba(124, 58, 237, 0.2)" }}>
+                      <div className="small text-secondary" style={{ fontSize: "0.78rem" }}>
+                        <span className="text-primary fw-medium">Siz START tarifidasiz.</span> Shaxsiy brendingizdagi bot (@sizning_bot) yoki to'g'ridan-to'g'ri Telegram akkaunt ulash uchun PRO yoki ULTRA ga o'ting.
+                      </div>
+                      {onUpgradePlan && (
+                        <Button variant="primary" size="sm" onClick={onUpgradePlan} className="flex-shrink-0">
+                          PRO ga o'tish
+                        </Button>
+                      )}
+                    </div>
+                  )}
                 </div>
 
-                {/* Verification Result */}
-                {botTokenResult && (
-                  <div
-                    className={`p-2.5 rounded-2 d-flex align-items-center gap-2 border ${
-                      botTokenResult.valid ? "border-success text-success" : "border-danger text-danger"
-                    }`}
-                    style={{ backgroundColor: "var(--bg-surface-elevated)" }}
-                  >
-                    {botTokenResult.valid ? <IconCheck size={18} /> : <IconAlertCircle size={18} />}
-                    <div className="small">
-                      {botTokenResult.valid ? (
-                        <>
-                          <strong>Bot tasdiqlandi:</strong> @{botTokenResult.bot_username} ({botTokenResult.bot_name})
-                        </>
-                      ) : (
-                        <>
-                          <strong>Xatolik:</strong> {botTokenResult.error}
-                        </>
+                {/* 2. BOSQICH: Shaxsiy Brendli Bot (@your_brand_bot) — PRO & ULTRA */}
+                {!canUseCustomBot ? (
+                  <div className="p-3 rounded-2 border position-relative overflow-hidden" style={{ backgroundColor: "var(--bg-surface-elevated)", borderColor: "var(--border-subtle)" }}>
+                    <div className="d-flex align-items-center justify-content-between mb-2">
+                      <span className="fw-semibold text-primary small d-flex align-items-center gap-1.5">
+                        <IconLock size={16} className="text-secondary" />
+                        2. Shaxsiy Brendli Bot (@sizning_botingiz)
+                      </span>
+                      <Badge variant="default">PRO & ULTRA</Badge>
+                    </div>
+                    <p className="text-secondary small mb-3" style={{ fontSize: "0.8rem", maxWidth: "620px" }}>
+                      BotFather orqali yaratilgan o'z brendingizdagi botni ulang. Mijozlaringiz @Selloi_ai_bot o'rniga aynan sizning logotip va nomingizdagi bot bilan muloqot qiladi.
+                    </p>
+                    {onUpgradePlan && (
+                      <Button variant="outline" size="sm" onClick={onUpgradePlan} icon={<IconSparkles size={14} />}>
+                        PRO tarifga o'tish va BotFather ulash
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-3 rounded-2 border" style={{ backgroundColor: "var(--bg-surface-elevated)", borderColor: "var(--border-default)" }}>
+                    <div className="d-flex align-items-center justify-content-between mb-2">
+                      <span className="fw-semibold text-primary small d-flex align-items-center gap-1.5">
+                        <IconBrandTelegram size={16} className="text-accent" />
+                        2. Shaxsiy Brendli Bot Tokeni (BotFather)
+                      </span>
+                      <Badge variant="accent">PRO & ULTRA</Badge>
+                    </div>
+
+                    <div className="d-flex flex-column gap-3">
+                      <div>
+                        <label className="fw-medium text-primary small d-block mb-1">
+                          Telegram Bot Token (BotFather'dan olingan)
+                        </label>
+                        <div className="d-flex gap-2">
+                          <input
+                            type={showBotToken ? "text" : "password"}
+                            aria-label="Telegram Bot Token"
+                            placeholder={currentOrgDetails?.telegram_bot_token_set ? "••••••••••••••••••••••••••••••••" : "Masalan: 123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ"}
+                            value={botTokenInput}
+                            onChange={(e) => setBotTokenInput(e.target.value)}
+                            className="linear-input font-monospace flex-grow-1"
+                          />
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            aria-label={showBotToken ? "Tokenni yashirish" : "Tokenni ko'rsatish"}
+                            onClick={() => setShowBotToken(!showBotToken)}
+                            icon={showBotToken ? <IconEyeOff size={15} /> : <IconEye size={15} />}
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={onVerifyBotToken}
+                            disabled={botTokenVerifying || !botTokenInput.trim()}
+                            loading={botTokenVerifying}
+                            icon={<IconCheck size={14} />}
+                          >
+                            Tekshirish
+                          </Button>
+                        </div>
+                        <div className="text-secondary small mt-1" style={{ fontSize: "0.72rem" }}>
+                          Token shifrlangan holda (AES-128 Fernet) saqlanadi va xavfsiz Telegram Webhook orqali ishlaydi.
+                        </div>
+                      </div>
+
+                      {botTokenResult && (
+                        <div
+                          className={`p-2.5 rounded-2 d-flex align-items-center gap-2 border ${
+                            botTokenResult.valid ? "border-success text-success" : "border-danger text-danger"
+                          }`}
+                          style={{ backgroundColor: "var(--bg-surface)" }}
+                        >
+                          {botTokenResult.valid ? <IconCheck size={18} /> : <IconAlertCircle size={18} />}
+                          <div className="small">
+                            {botTokenResult.valid ? (
+                              <>
+                                <strong>Bot tasdiqlandi:</strong> @{botTokenResult.bot_username} ({botTokenResult.bot_name})
+                              </>
+                            ) : (
+                              <>
+                                <strong>Xatolik:</strong> {botTokenResult.error}
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      <div>
+                        <label className="fw-medium text-primary small d-block mb-1">
+                          Webhook Havolasi
+                        </label>
+                        <div className="p-2 rounded-2 border d-flex align-items-center justify-content-between font-monospace small" style={{ backgroundColor: "var(--bg-surface)", borderColor: "var(--border-default)" }}>
+                          <span className="text-accent text-truncate">
+                            {currentOrgDetails?.webhook_url || `/telegram/webhook/${currentOrgDetails?.slug || activeOrgId}`}
+                          </span>
+                          <Badge variant="accent">POST</Badge>
+                        </div>
+                      </div>
+
+                      <div className="d-flex flex-wrap gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={onSetWebhook}
+                          disabled={webhookSetting || !currentOrgDetails?.telegram_bot_token_set}
+                          loading={webhookSetting}
+                          icon={<IconRefresh size={14} />}
+                        >
+                          setWebhook Yangilash
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={onCheckWebhookStatus}
+                          disabled={webhookStatusChecking || !currentOrgDetails?.telegram_bot_token_set}
+                          loading={webhookStatusChecking}
+                          icon={<IconActivity size={14} />}
+                        >
+                          Webhook Holatini Tekshirish
+                        </Button>
+                      </div>
+
+                      {webhookInfo && (
+                        <div className="p-3 rounded-2 border border-subtle small" style={{ backgroundColor: "var(--bg-surface)" }}>
+                          <div className="d-flex align-items-center justify-content-between fw-medium mb-2">
+                            <span className="text-primary">Telegram Webhook Statusi:</span>
+                            <Badge variant={webhookInfo.webhook_info?.url ? "success" : "warning"}>
+                              {webhookInfo.webhook_info?.url ? "Faol (O'rnatilgan)" : "O'rnatilmagan"}
+                            </Badge>
+                          </div>
+                          <div className="text-secondary d-flex flex-column gap-1">
+                            <div><strong>URL:</strong> <span className="font-monospace text-primary">{webhookInfo.webhook_info?.url || "Mavjud emas"}</span></div>
+                            <div><strong>Kutilayotgan xabarlar:</strong> {webhookInfo.webhook_info?.pending_update_count ?? 0}</div>
+                          </div>
+                        </div>
                       )}
                     </div>
                   </div>
                 )}
 
-                {/* Webhook Endpoint */}
-                <div>
-                  <label className="fw-medium text-primary small d-block mb-1">
-                    Webhook Havolasi
-                  </label>
-                  <div className="p-2 rounded-2 border d-flex align-items-center justify-content-between font-monospace small" style={{ backgroundColor: "var(--bg-surface-elevated)", borderColor: "var(--border-default)" }}>
-                    <span className="text-accent text-truncate">
-                      {currentOrgDetails?.webhook_url || `/telegram/webhook/${currentOrgDetails?.slug || activeOrgId}`}
-                    </span>
-                    <Badge variant="accent">POST</Badge>
-                  </div>
-                </div>
-
-                {/* Webhook Action Buttons */}
-                <div className="d-flex flex-wrap gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={onSetWebhook}
-                    disabled={webhookSetting || !currentOrgDetails?.telegram_bot_token_set}
-                    loading={webhookSetting}
-                    icon={<IconRefresh size={14} />}
-                  >
-                    setWebhook Yangilash
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={onCheckWebhookStatus}
-                    disabled={webhookStatusChecking || !currentOrgDetails?.telegram_bot_token_set}
-                    loading={webhookStatusChecking}
-                    icon={<IconActivity size={14} />}
-                  >
-                    Webhook Holatini Tekshirish
-                  </Button>
-                </div>
-
-                {/* Webhook Info Display */}
-                {webhookInfo && (
-                  <div className="p-3 rounded-2 border border-subtle small" style={{ backgroundColor: "var(--bg-surface-elevated)" }}>
-                    <div className="d-flex align-items-center justify-content-between fw-medium mb-2">
-                      <span className="text-primary">Telegram Webhook Statusi:</span>
-                      <Badge variant={webhookInfo.webhook_info?.url ? "success" : "warning"}>
-                        {webhookInfo.webhook_info?.url ? "Faol (O'rnatilgan)" : "O'rnatilmagan"}
+                {/* 3. BOSQICH: Telegram User Chat (MTProto / Shaxsiy Akkaunt) — ULTRA Eksklyuziv */}
+                {!canUseUserChat ? (
+                  <div className="p-3 rounded-2 border position-relative overflow-hidden" style={{ backgroundColor: "var(--bg-surface-elevated)", borderColor: "var(--border-subtle)" }}>
+                    <div className="d-flex align-items-center justify-content-between mb-2">
+                      <span className="fw-semibold text-primary small d-flex align-items-center gap-1.5">
+                        <IconLock size={16} className="text-secondary" />
+                        3. To'g'ridan-to'g'ri Telegram Chat (User Session / MTProto)
+                      </span>
+                      <Badge variant="accent" style={{ background: "linear-gradient(135deg, #7C3AED 0%, #EC4899 100%)", color: "#fff", border: "none" }}>
+                        ULTRA Eksklyuziv
                       </Badge>
                     </div>
-                    <div className="text-secondary d-flex flex-column gap-1">
-                      <div><strong>URL:</strong> <span className="font-monospace text-primary">{webhookInfo.webhook_info?.url || "Mavjud emas"}</span></div>
-                      <div><strong>Kutilayotgan xabarlar:</strong> {webhookInfo.webhook_info?.pending_update_count ?? 0}</div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Telegram MTProto / User Client & Chat Settings */}
-                <div className="pt-2 border-top" style={{ borderColor: "var(--border-subtle)" }}>
-                  <div className="d-flex align-items-center justify-content-between mb-2">
-                    <span className="fw-semibold text-primary small d-flex align-items-center gap-1.5">
-                      <IconId size={16} className="text-accent" />
-                      Telegram API & Foydalanuvchi Sozlamalari (my.telegram.org)
-                    </span>
-                    {currentOrgDetails?.telegram_api_hash_set && (
-                      <Badge variant="success" dot>API Hash O&apos;rnatilgan</Badge>
+                    <p className="text-secondary small mb-3" style={{ fontSize: "0.8rem", maxWidth: "620px" }}>
+                      Mijozlar bot bilan emas, to'g'ridan-to'g'ri sizning shaxsiy Telegram akkauntingizga (chatga) yozishadi va AI sizning nomingizdan insondek muloqot olib boradi.
+                    </p>
+                    {onUpgradePlan && (
+                      <Button variant="outline" size="sm" onClick={onUpgradePlan} icon={<IconSparkles size={14} />}>
+                        ULTRA tarifiga o'tish
+                      </Button>
                     )}
                   </div>
-
-                  <div className="row g-2 mb-2">
-                    <div className="col-12 col-md-6">
-                      <label className="text-secondary small d-block mb-1" style={{ fontSize: "0.78rem" }}>
-                        Telegram API ID (App api_id)
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Masalan: 20400123"
-                        value={telegramApiIdInput}
-                        onChange={(e) => setTelegramApiIdInput(e.target.value.replace(/[^0-9]/g, ""))}
-                        className="linear-input font-monospace w-100"
-                        style={{ fontSize: "0.82rem" }}
-                      />
-                    </div>
-                    <div className="col-12 col-md-6">
-                      <label className="text-secondary small d-block mb-1" style={{ fontSize: "0.78rem" }}>
-                        Telegram API HASH (App api_hash)
-                      </label>
-                      <div className="d-flex gap-1.5">
-                        <input
-                          type={showApiHash ? "text" : "password"}
-                          placeholder={currentOrgDetails?.telegram_api_hash_set ? "••••••••••••••••••••••••••••••••" : "0123456789abcdef0123456789abcdef"}
-                          value={telegramApiHashInput}
-                          onChange={(e) => setTelegramApiHashInput(e.target.value)}
-                          className="linear-input font-monospace flex-grow-1"
-                          style={{ fontSize: "0.82rem" }}
-                        />
-                        <Button
+                ) : (
+                  <div className="p-3 rounded-2 border" style={{ backgroundColor: "var(--bg-surface-elevated)", borderColor: "var(--border-default)" }}>
+                    <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                      <div>
+                        <div className="fw-semibold text-primary small d-flex align-items-center gap-1.5">
+                          <IconId size={16} className="text-accent" />
+                          3. ULTRA Tanlovi: Muloqot Rejimi
+                        </div>
+                        <div className="text-secondary small" style={{ fontSize: "0.75rem" }}>
+                          Bot orqali yoki to'g'ridan-to'g'ri shaxsiy akkaunt chatida ishlashni tanlang.
+                        </div>
+                      </div>
+                      <div className="d-flex gap-1 p-1 rounded-2 border" style={{ backgroundColor: "var(--bg-surface)", borderColor: "var(--border-subtle)" }}>
+                        <button
                           type="button"
-                          variant="secondary"
-                          size="sm"
-                          aria-label={showApiHash ? "API Hash ni yashirish" : "API Hash ni ko'rsatish"}
-                          onClick={() => setShowApiHash(!showApiHash)}
-                          icon={showApiHash ? <IconEyeOff size={14} /> : <IconEye size={14} />}
-                        />
+                          className={`btn btn-sm ${ultraChoice === "bot" ? "btn-primary" : "btn-ghost text-secondary"}`}
+                          style={{ fontSize: "0.78rem", padding: "4px 10px" }}
+                          onClick={() => setUltraChoice("bot")}
+                        >
+                          Telegram Bot rejimi
+                        </button>
+                        <button
+                          type="button"
+                          className={`btn btn-sm ${ultraChoice === "userchat" ? "btn-primary" : "btn-ghost text-secondary"}`}
+                          style={{ fontSize: "0.78rem", padding: "4px 10px" }}
+                          onClick={() => setUltraChoice("userchat")}
+                        >
+                          User Chat rejimi (Shaxsiy akkaunt)
+                        </button>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="row g-2">
-                    <div className="col-12 col-md-6">
-                      <label className="text-secondary small d-block mb-1" style={{ fontSize: "0.78rem" }}>
-                        Bog&apos;langan Telefon Raqam (User session)
-                      </label>
-                      <input
-                        type="tel"
-                        placeholder="+998901234567"
-                        value={telegramPhoneInput}
-                        onChange={(e) => setTelegramPhoneInput(e.target.value)}
-                        className="linear-input font-monospace w-100"
-                        style={{ fontSize: "0.82rem" }}
-                      />
-                    </div>
-                    <div className="col-12 col-md-6">
-                      <label className="text-secondary small d-block mb-1" style={{ fontSize: "0.78rem" }}>
-                        Admin Chat ID (Xabarnoma & Buyurtmalar)
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Masalan: 5544332211"
-                        value={adminChatIdInput}
-                        onChange={(e) => setAdminChatIdInput(e.target.value.replace(/[^0-9-]/g, ""))}
-                        className="linear-input font-monospace w-100"
-                        style={{ fontSize: "0.82rem" }}
-                      />
-                    </div>
+                    {ultraChoice === "bot" ? (
+                      <div className="p-2.5 rounded-2 border border-subtle small text-secondary" style={{ backgroundColor: "var(--bg-surface)" }}>
+                        Siz <strong>Telegram Bot rejimi</strong>ni tanladingiz. Yuqoridagi 2-bo'limda BotFather tokeningizni kiriting va Webhookni faollashtiring.
+                      </div>
+                    ) : (
+                      <div className="d-flex flex-column gap-3">
+                        {/* HIGH PRIORITY WARNING BANNER: Katta qulaylik — Katta tavakkal */}
+                        <div
+                          className="p-3 rounded-2 border"
+                          style={{
+                            backgroundColor: "rgba(234, 88, 12, 0.08)",
+                            borderColor: "rgba(234, 88, 12, 0.4)",
+                            color: "var(--text-primary)",
+                          }}
+                        >
+                          <div className="d-flex align-items-center gap-2 mb-1.5 text-warning fw-semibold">
+                            <IconAlertTriangle size={18} className="flex-shrink-0" />
+                            <span style={{ fontSize: "0.9rem" }}>Katta qulaylik — Katta tavakkal!</span>
+                          </div>
+                          <div className="small text-secondary mb-2" style={{ lineHeight: 1.5, fontSize: "0.8rem" }}>
+                            Mijozlar bilan shaxsiy akkaunt nomidan yozishish ishonch va savdoni keskin oshiradi. Biroq <strong>asosiy shaxsiy yoki oilaviy Telegram profilingizni ulash xavfli</strong> (shaxsiy chatlar daxlsizligi va Telegram spam filtrlari tomonidan akkaunt cheklanishi xavfi bor).
+                          </div>
+                          <div
+                            className="p-2 rounded-2 small fw-medium text-warning d-flex align-items-start gap-2"
+                            style={{ backgroundColor: "rgba(234, 88, 12, 0.12)", fontSize: "0.78rem" }}
+                          >
+                            <span>💡</span>
+                            <span>
+                              <strong>TAVSIYA:</strong> Ikkala tomonga ham eng xavfsiz va qulay bo'lishi uchun, do'koningiz savdosi uchun <strong>alohida yangi SIM-karta va yangi Telegram akkaunt</strong> ochib, faqat shuni ulashingizni qat'iy tavsiya qilamiz!
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* MTProto Inputs */}
+                        <div className="row g-2">
+                          <div className="col-12 col-md-6">
+                            <label className="text-secondary small d-block mb-1" style={{ fontSize: "0.78rem" }}>
+                              Telegram API ID (App api_id)
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="Masalan: 20400123"
+                              value={telegramApiIdInput}
+                              onChange={(e) => setTelegramApiIdInput(e.target.value.replace(/[^0-9]/g, ""))}
+                              className="linear-input font-monospace w-100"
+                              style={{ fontSize: "0.82rem" }}
+                            />
+                          </div>
+                          <div className="col-12 col-md-6">
+                            <label className="text-secondary small d-block mb-1" style={{ fontSize: "0.78rem" }}>
+                              Telegram API HASH (App api_hash)
+                            </label>
+                            <div className="d-flex gap-1.5">
+                              <input
+                                type={showApiHash ? "text" : "password"}
+                                placeholder={currentOrgDetails?.telegram_api_hash_set ? "••••••••••••••••••••••••••••••••" : "0123456789abcdef0123456789abcdef"}
+                                value={telegramApiHashInput}
+                                onChange={(e) => setTelegramApiHashInput(e.target.value)}
+                                className="linear-input font-monospace flex-grow-1"
+                                style={{ fontSize: "0.82rem" }}
+                              />
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                aria-label={showApiHash ? "API Hash ni yashirish" : "API Hash ni ko'rsatish"}
+                                onClick={() => setShowApiHash(!showApiHash)}
+                                icon={showApiHash ? <IconEyeOff size={14} /> : <IconEye size={14} />}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="row g-2">
+                          <div className="col-12 col-md-6">
+                            <label className="text-secondary small d-block mb-1" style={{ fontSize: "0.78rem" }}>
+                              Bog'langan Telefon Raqam (Yangi akkaunt raqami)
+                            </label>
+                            <input
+                              type="tel"
+                              placeholder="+998901234567"
+                              value={telegramPhoneInput}
+                              onChange={(e) => setTelegramPhoneInput(e.target.value)}
+                              className="linear-input font-monospace w-100"
+                              style={{ fontSize: "0.82rem" }}
+                            />
+                          </div>
+                          <div className="col-12 col-md-6">
+                            <label className="text-secondary small d-block mb-1" style={{ fontSize: "0.78rem" }}>
+                              Admin Chat ID (Xabarnoma & Buyurtmalar)
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="Masalan: 5544332211"
+                              value={adminChatIdInput}
+                              onChange={(e) => setAdminChatIdInput(e.target.value.replace(/[^0-9-]/g, ""))}
+                              className="linear-input font-monospace w-100"
+                              style={{ fontSize: "0.82rem" }}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="text-secondary small mt-1 d-flex align-items-center gap-1.5" style={{ fontSize: "0.74rem" }}>
+                          <IconInfoCircle size={14} className="text-secondary flex-shrink-0" />
+                          <span>
+                            API ID va Hash: <a href="https://my.telegram.org" target="_blank" rel="noreferrer" className="text-primary text-decoration-underline">my.telegram.org</a> saytidan olinadi. Admin Chat ID: Telegram'da <code>@userinfobot</code> orqali bilib olinadi.
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <div className="text-secondary small mt-1.5 d-flex align-items-center gap-1.5" style={{ fontSize: "0.74rem" }}>
-                    <IconInfoCircle size={14} className="text-secondary flex-shrink-0" />
-                    <span>
-                      API ID/Hash: <a href="https://my.telegram.org" target="_blank" rel="noreferrer" className="text-primary text-decoration-underline">my.telegram.org</a> saytidan olinadi. Admin Chat ID: Telegram&apos;da <code>@userinfobot</code> orqali bilib olinadi.
-                    </span>
-                  </div>
-                </div>
+                )}
 
                 {/* System Prompt Textarea */}
                 <div>

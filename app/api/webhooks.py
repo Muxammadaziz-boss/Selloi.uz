@@ -948,9 +948,16 @@ async def _handle_direct_bot_message(message: dict, db: AsyncSession, organizati
     last_name = sender.get("last_name", "")
     customer_name = f"{first_name} {last_name}".strip() or "Mijoz"
 
-    effective_org_id = int(organization_id) if organization_id else 1
+    is_shared_bot = organization_id is None
+    if is_shared_bot:
+        from app.services.shared_bot_routing import resolve_customer_shared_bot_org_id
+        resolved_org_id = await resolve_customer_shared_bot_org_id(db, int(chat_id))
+        effective_org_id = resolved_org_id or 1
+    else:
+        effective_org_id = int(organization_id)
+
     org = await db.get(Organization, effective_org_id)
-    org_token = org.decrypted_bot_token if org else None
+    org_token = None if is_shared_bot else (org.decrypted_bot_token if org else None)
 
     chat_id_int = int(chat_id)
     tg_svc = None
@@ -1042,6 +1049,7 @@ async def _handle_direct_bot_message(message: dict, db: AsyncSession, organizati
                     "chat_id": chat_id,
                     "photo": selected_post.photo_file_id,
                     "caption": decision["reply"][:1024],
+                    "use_shared_bot": is_shared_bot,
                 },
                 organization_id=effective_org_id,
             )
@@ -1060,6 +1068,7 @@ async def _handle_direct_bot_message(message: dict, db: AsyncSession, organizati
             payload={
                 "chat_id": chat_id,
                 "text": decision["reply"],
+                "use_shared_bot": is_shared_bot,
             },
             organization_id=effective_org_id,
         )

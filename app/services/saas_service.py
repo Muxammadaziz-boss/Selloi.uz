@@ -587,12 +587,19 @@ async def get_organization_details(db: AsyncSession, organization_id: int) -> di
     row = sub_res.first()
     sub, plan = row if row else (None, None)
 
+    if settings.is_testing:
+        shared_bot_username = "Selloi_ai_bot"
+    else:
+        from app.services.telegram_auth import get_bot_username
+        shared_bot_username = await get_bot_username()
+
     return {
         "id": org.id,
         "name": org.name,
         "slug": org.slug,
         "category": org.category,
         "status": org.status,
+        "shared_bot_username": shared_bot_username,
         "ai_language": org.ai_language,
         "ai_personality": org.ai_personality,
         "custom_system_prompt": org.custom_system_prompt,
