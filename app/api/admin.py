@@ -1,6 +1,9 @@
 import asyncio
-from datetime import datetime, timezone
+import base64
+from datetime import datetime, timedelta, timezone
+import hashlib
 import hmac
+import secrets
 from typing import Optional
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
 from fastapi.responses import Response, StreamingResponse
@@ -25,6 +28,7 @@ from app.models import (
     Message,
     Order,
     Organization,
+    OrganizationInvite,
     OrganizationMember,
     Product,
     StoreFollowupConfig,
@@ -67,6 +71,42 @@ def require_permission(perm: str):
 
 async def require_admin(current_admin: Admin = Depends(get_current_admin)) -> Admin:
     return current_admin
+
+
+def _is_platform_owner_admin(current_admin: Admin | None) -> bool:
+    return bool(getattr(current_admin, "_is_platform_owner", False))
+
+
+async def _enforce_limit_unless_owner(
+    db: AsyncSession,
+    org_id: int,
+    metric: str,
+    amount: int = 1,
+    *,
+    current_admin: Admin | None = None,
+) -> None:
+    if _is_platform_owner_admin(current_admin):
+        return
+    from app.services.usage_service import require_limit
+    await require_limit(db, org_id, metric, amount)
+
+
+async def _enforce_feature_if_plan_seeded(
+    db: AsyncSession,
+    org_id: int,
+    feature_key: str,
+    *,
+    current_admin: Admin | None = None,
+) -> None:
+    if _is_platform_owner_admin(current_admin):
+        return
+    from app.services.entitlement_service import (
+        get_organization_plan_and_subscription,
+        require_feature,
+    )
+    _org, plan, _sub = await get_organization_plan_and_subscription(db, org_id)
+    if plan is not None:
+        await require_feature(db, org_id, feature_key)
 
 
 @router.get("/me")
@@ -427,6 +467,18 @@ async def knowledge_posts(
     } for row in rows]
 
 
+class KnowledgeManualCreate(BaseModel):
+    title: str = "Do'kon ma'lumoti"
+    content: str
+    category: str = "faq"
+
+
+class KnowledgeUploadRequest(BaseModel):
+    filename: str = "document.txt"
+    content_text: str | None = None
+    content_base64: str | None = None
+
+
 @router.delete("/knowledge/{post_id}", dependencies=[Depends(require_permission("can_manage_knowledge"))])
 async def delete_knowledge_post(
     post_id: int,
@@ -439,6 +491,132 @@ async def delete_knowledge_post(
     await db.delete(row)
     await db.commit()
     return {"ok": True, "deleted_id": post_id}
+
+
+@router.post("/knowledge", dependencies=[Depends(require_permission("can_manage_knowledge"))])
+async def create_manual_knowledge(
+    payload: KnowledgeManualCreate,
+    db: AsyncSession = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin),
+    org_id: int = Depends(get_admin_tenant_id),
+):
+    """Manually add FAQ, store policy, or text knowledge chunked into RAG embeddings."""
+    from app.services.knowledge import chunk_text, knowledge
+
+    cleaned = (payload.content or "").strip()
+    if len(cleaned) < 5:
+        raise HTTPException(status_code=400, detail="Matn kamida 5 ta belgidan iborat bo'lishi kerak")
+
+    chunks = chunk_text(cleaned, max_chars=900, overlap=120)
+    await _enforce_limit_unless_owner(db, org_id, "knowledge_posts", len(chunks), current_admin=current_admin)
+
+    posts = await knowledge.ingest_manual_document(
+        db,
+        organization_id=org_id,
+        title=payload.title,
+        text=cleaned,
+        source_tag=payload.category or "faq",
+    )
+    await db.commit()
+    return {
+        "ok": True,
+        "chunks_created": len(posts),
+        "posts": [
+            {
+                "id": p.id,
+                "channel_username": p.channel_username,
+                "telegram_message_id": p.telegram_message_id,
+                "text": p.text[:300],
+            }
+            for p in posts
+        ],
+    }
+
+
+@router.post("/knowledge/upload", dependencies=[Depends(require_permission("can_manage_knowledge"))])
+async def upload_knowledge_document(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin),
+    org_id: int = Depends(get_admin_tenant_id),
+):
+    """Upload TXT, MD, CSV, JSON, or PDF document (multipart or JSON base64) into RAG knowledge base."""
+    from app.services.knowledge import chunk_text, extract_text_from_uploaded_file, knowledge
+
+    max_bytes = 5 * 1024 * 1024
+    content_type = (request.headers.get("content-type") or "").lower()
+    filename = "document.txt"
+    raw_bytes = b""
+
+    if "multipart/form-data" in content_type:
+        form = await request.form()
+        upload_file = form.get("file")
+        if upload_file is None or not hasattr(upload_file, "read"):
+            raise HTTPException(status_code=400, detail="Yuklash uchun fayl tanlanmadi")
+        filename = getattr(upload_file, "filename", None) or "document.txt"
+        raw_bytes = await upload_file.read()
+    else:
+        try:
+            body = await request.json()
+            req_model = KnowledgeUploadRequest(**body)
+        except Exception:
+            raise HTTPException(status_code=400, detail="Noto'g'ri fayl yuklash so'rovi")
+        filename = req_model.filename or "document.txt"
+        if req_model.content_base64:
+            b64 = req_model.content_base64.split(",", 1)[-1].strip()
+            try:
+                raw_bytes = base64.b64decode(b64, validate=True)
+            except Exception:
+                raise HTTPException(status_code=400, detail="Base64 fayl formati noto'g'ri")
+        elif req_model.content_text is not None:
+            raw_bytes = req_model.content_text.encode("utf-8")
+        else:
+            raise HTTPException(status_code=400, detail="Fayl tarkibi bo'sh")
+
+    if not raw_bytes:
+        raise HTTPException(status_code=400, detail="Bo'sh fayl yuklab bo'lmaydi")
+    if len(raw_bytes) > max_bytes:
+        raise HTTPException(status_code=400, detail="Fayl hajmi 5 MB dan oshmasligi kerak")
+
+    try:
+        extracted_text, csv_rows = extract_text_from_uploaded_file(filename, raw_bytes)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    if len(extracted_text.strip()) < 5:
+        raise HTTPException(
+            status_code=400,
+            detail="Fayldan o'qiladigan matn topilmadi (skanerlangan rasm-PDF qo'llab-quvvatlanmaydi).",
+        )
+
+    chunks = chunk_text(extracted_text, max_chars=900, overlap=120)
+    await _enforce_limit_unless_owner(db, org_id, "knowledge_posts", len(chunks), current_admin=current_admin)
+
+    stem = filename.rsplit(".", 1)[0] if "." in filename else filename
+    posts = await knowledge.ingest_manual_document(
+        db,
+        organization_id=org_id,
+        title=filename,
+        text=extracted_text,
+        source_tag=f"doc_{stem}",
+    )
+    await db.commit()
+    return {
+        "ok": True,
+        "filename": filename,
+        "char_count": len(extracted_text),
+        "chunks_created": len(posts),
+        "csv_products_detected": len(csv_rows),
+        "posts": [
+            {
+                "id": p.id,
+                "channel_username": p.channel_username,
+                "telegram_message_id": p.telegram_message_id,
+                "text": p.text[:300],
+            }
+            for p in posts
+        ],
+    }
 
 
 @router.get("/channels", dependencies=[Depends(require_permission("can_view_knowledge"))])
@@ -466,6 +644,16 @@ async def add_channel(
     current_admin: Admin = Depends(get_current_admin),
     org_id: int = Depends(get_admin_tenant_id),
 ):
+    await _enforce_limit_unless_owner(db, org_id, "telegram_channels", 1, current_admin=current_admin)
+    existing_channels = await db.scalar(
+        select(func.count(ConnectedChannel.id)).where(
+            ConnectedChannel.organization_id == org_id,
+            ConnectedChannel.is_active.is_(True),
+        )
+    ) or 0
+    if existing_channels >= 1:
+        await _enforce_feature_if_plan_seeded(db, org_id, "multiple_channels", current_admin=current_admin)
+
     try:
         from app.services.knowledge import knowledge
         ch = await settings_service.add_channel(
@@ -734,8 +922,10 @@ async def get_products(
 async def create_product(
     payload: ProductCreate,
     db: AsyncSession = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin),
     org_id: int = Depends(get_admin_tenant_id),
 ):
+    await _enforce_limit_unless_owner(db, org_id, "products", 1, current_admin=current_admin)
     code = payload.code or payload.id or f"PRD-{int(datetime.now().timestamp()) % 10000:04d}"
     product = Product(
         organization_id=org_id,
@@ -760,6 +950,103 @@ async def create_product(
         "price": product.price,
         "stock": product.stock,
         "warranty": product.warranty,
+    }
+
+
+class ProductBulkImportRequest(BaseModel):
+    csv_text: str | None = None
+    items: list[ProductCreate] | None = None
+
+
+@router.post("/products/import", dependencies=[Depends(require_permission("can_manage_products"))])
+async def bulk_import_products(
+    payload: ProductBulkImportRequest,
+    db: AsyncSession = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin),
+    org_id: int = Depends(get_admin_tenant_id),
+):
+    """Bulk import or update store products from CSV text or structured JSON items."""
+    from app.services.knowledge import parse_csv_product_rows
+
+    parsed_rows: list[dict[str, str]] = []
+    if payload.csv_text and payload.csv_text.strip():
+        parsed_rows.extend(parse_csv_product_rows(payload.csv_text))
+    if payload.items:
+        for item in payload.items:
+            if item.name and item.name.strip():
+                parsed_rows.append(
+                    {
+                        "code": (item.code or item.id or "").strip(),
+                        "name": item.name.strip()[:255],
+                        "category": (item.category or "General").strip()[:120],
+                        "specs": (item.specs or "").strip()[:2000],
+                        "price": (item.price or "$0").strip()[:64],
+                        "stock": (item.stock or "In Stock").strip()[:64],
+                        "warranty": (item.warranty or "Mavjud").strip()[:120],
+                    }
+                )
+
+    if not parsed_rows:
+        raise HTTPException(
+            status_code=400,
+            detail="Import qilish uchun kamida bitta to'g'ri mahsulot qatori (nomi bilan) bo'lishi kerak",
+        )
+
+    await _enforce_limit_unless_owner(db, org_id, "products", len(parsed_rows), current_admin=current_admin)
+
+    imported: list[Product] = []
+    base_ts = int(datetime.now().timestamp()) % 100000
+    for idx, row in enumerate(parsed_rows[:500]):
+        code = row.get("code") or f"PRD-IMP-{base_ts}-{idx + 1}"
+        existing = (
+            await db.execute(
+                select(Product).where(Product.organization_id == org_id, Product.code == code)
+            )
+        ).scalar_one_or_none()
+        if existing is not None:
+            existing.name = row["name"]
+            existing.category = row["category"]
+            existing.specs = row["specs"]
+            existing.price = row["price"]
+            existing.stock = row["stock"]
+            existing.warranty = row["warranty"]
+            existing.is_active = True
+            imported.append(existing)
+        else:
+            prod = Product(
+                organization_id=org_id,
+                code=code,
+                name=row["name"],
+                category=row["category"],
+                specs=row["specs"],
+                price=row["price"],
+                stock=row["stock"],
+                warranty=row["warranty"],
+                is_active=True,
+            )
+            db.add(prod)
+            imported.append(prod)
+
+    await db.commit()
+    for p in imported:
+        await db.refresh(p)
+
+    return {
+        "ok": True,
+        "imported_count": len(imported),
+        "products": [
+            {
+                "id": p.code,
+                "db_id": p.id,
+                "name": p.name,
+                "category": p.category,
+                "specs": p.specs,
+                "price": p.price,
+                "stock": p.stock,
+                "warranty": p.warranty,
+            }
+            for p in imported
+        ],
     }
 
 
@@ -812,9 +1099,11 @@ async def update_product(
 @router.post("/products/extract-from-posts")
 async def extract_products_from_posts_endpoint(
     db: AsyncSession = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin),
     org_id: int = Depends(get_admin_tenant_id),
 ):
     """Automatically detect and extract products from channel posts."""
+    await _enforce_limit_unless_owner(db, org_id, "products", 1, current_admin=current_admin)
     from app.services.knowledge import knowledge
     extracted = await knowledge.extract_products_from_channel_posts(db, org_id)
     return {
@@ -933,8 +1222,10 @@ async def get_orders(
 async def create_order(
     payload: OrderCreate,
     db: AsyncSession = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin),
     org_id: int = Depends(get_admin_tenant_id),
 ):
+    await _enforce_limit_unless_owner(db, org_id, "monthly_orders", 1, current_admin=current_admin)
     order = Order(
         organization_id=org_id,
         customer_name=payload.customer_name,
@@ -946,6 +1237,8 @@ async def create_order(
         notes=payload.notes,
     )
     db.add(order)
+    from app.services.usage_service import increment_usage
+    await increment_usage(db, org_id, "monthly_orders", 1)
     await db.commit()
     await db.refresh(order)
     await publish_event(
@@ -1083,8 +1376,10 @@ async def get_customers(
 async def create_customer(
     payload: CustomerCreate,
     db: AsyncSession = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin),
     org_id: int = Depends(get_admin_tenant_id),
 ):
+    await _enforce_limit_unless_owner(db, org_id, "customers", 1, current_admin=current_admin)
     cust = Customer(
         organization_id=org_id,
         name=payload.name,
@@ -1158,6 +1453,7 @@ async def create_admin(
     org_id: int = Depends(get_admin_tenant_id),
     db: AsyncSession = Depends(get_db),
 ):
+    await _enforce_limit_unless_owner(db, org_id, "team_members", 1, current_admin=current_admin)
     try:
         new_admin = await admin_service.add_admin(
             db,
@@ -1252,6 +1548,197 @@ async def update_admin_role(
         return {"ok": True, "role": updated.role, "permissions": updated.permissions}
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+
+
+class TeamInviteCreate(BaseModel):
+    email: str
+    role: str = "operator"
+
+
+@router.get("/team/invites", dependencies=[Depends(require_permission("can_manage_admins"))])
+async def list_team_invites_and_members(
+    db: AsyncSession = Depends(get_db),
+    org_id: int = Depends(get_admin_tenant_id),
+):
+    """List active web OrganizationMembers and email team invitations for the active store."""
+    from app.services.email_service import is_smtp_configured
+
+    members_rows = (
+        await db.execute(
+            select(OrganizationMember, User)
+            .join(User, User.id == OrganizationMember.user_id)
+            .where(OrganizationMember.organization_id == org_id, OrganizationMember.is_active.is_(True))
+            .order_by(OrganizationMember.created_at.asc())
+        )
+    ).all()
+    invites_rows = (
+        await db.execute(
+            select(OrganizationInvite)
+            .where(OrganizationInvite.organization_id == org_id)
+            .order_by(OrganizationInvite.created_at.desc())
+            .limit(50)
+        )
+    ).scalars().all()
+
+    return {
+        "smtp_configured": is_smtp_configured(),
+        "members": [
+            {
+                "id": m.id,
+                "user_id": u.id,
+                "email": u.email,
+                "full_name": u.full_name,
+                "role": m.role,
+                "is_active": m.is_active,
+                "created_at": m.created_at.isoformat() if m.created_at else None,
+            }
+            for m, u in members_rows
+        ],
+        "invites": [
+            {
+                "id": inv.id,
+                "email": inv.email,
+                "role": inv.role,
+                "status": inv.status,
+                "expires_at": inv.expires_at.isoformat() if inv.expires_at else None,
+                "created_at": inv.created_at.isoformat() if inv.created_at else None,
+            }
+            for inv in invites_rows
+        ],
+    }
+
+
+@router.post("/team/invites", dependencies=[Depends(require_permission("can_manage_admins"))])
+async def create_team_invite(
+    payload: TeamInviteCreate,
+    db: AsyncSession = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin),
+    org_id: int = Depends(get_admin_tenant_id),
+):
+    """Create an email-based workspace team invite and send SMTP email if configured."""
+    from app.services import email_service
+
+    clean_email = (payload.email or "").strip().lower()
+    if not clean_email or "@" not in clean_email or "." not in clean_email.split("@", 1)[-1]:
+        raise HTTPException(status_code=400, detail="To'g'ri email manzil kiriting")
+
+    role = (payload.role or "operator").strip().lower()
+    if role not in ("admin", "manager", "operator", "moderator", "viewer"):
+        raise HTTPException(status_code=400, detail="Noto'g'ri jamoa roli")
+
+    await _enforce_limit_unless_owner(db, org_id, "team_members", 1, current_admin=current_admin)
+
+    existing_member = (
+        await db.execute(
+            select(OrganizationMember)
+            .join(User, User.id == OrganizationMember.user_id)
+            .where(
+                OrganizationMember.organization_id == org_id,
+                User.email == clean_email,
+                OrganizationMember.is_active.is_(True),
+            )
+        )
+    ).scalar_one_or_none()
+    if existing_member is not None:
+        raise HTTPException(status_code=400, detail="Bu email egasi allaqachon do'kon jamoasida mavjud")
+
+    raw_token = secrets.token_urlsafe(24)
+    token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+    now = datetime.now(timezone.utc)
+    expires_at = now + timedelta(days=7)
+    inviter_user: User | None = getattr(current_admin, "_user", None)
+    org = await db.get(Organization, org_id)
+
+    # Mark older pending invites to same email in this org as revoked so latest link wins
+    old_invites = (
+        await db.execute(
+            select(OrganizationInvite).where(
+                OrganizationInvite.organization_id == org_id,
+                OrganizationInvite.email == clean_email,
+                OrganizationInvite.status == "pending",
+            )
+        )
+    ).scalars().all()
+    for old_inv in old_invites:
+        old_inv.status = "revoked"
+
+    invite = OrganizationInvite(
+        organization_id=org_id,
+        email=clean_email,
+        role=role,
+        permissions=dict(ROLE_DEFAULTS.get(role, ROLE_DEFAULTS["operator"])),
+        token_hash=token_hash,
+        invited_by_user_id=inviter_user.id if inviter_user else None,
+        status="pending",
+        expires_at=expires_at,
+    )
+    db.add(invite)
+    await db.flush()
+
+    invite_url = f"{settings.base_url.rstrip('/')}/invite?token={raw_token}"
+    email_sent = await email_service.send_team_invite_email(
+        to_email=clean_email,
+        org_name=org.name if org else "Selloi Do'kon",
+        inviter_name=current_admin.name or "Admin",
+        role=role,
+        invite_url=invite_url,
+    )
+    db.add(
+        AuditLog(
+            organization_id=org_id,
+            user_id=inviter_user.id if inviter_user else None,
+            action="team.invite_created",
+            resource="organization_invite",
+            resource_id=str(invite.id),
+            metadata_json={"email": clean_email, "role": role, "email_sent": email_sent},
+        )
+    )
+    await db.commit()
+    return {
+        "ok": True,
+        "email_sent": email_sent,
+        "invite_url": invite_url,
+        "invite": {
+            "id": invite.id,
+            "email": invite.email,
+            "role": invite.role,
+            "status": invite.status,
+            "expires_at": invite.expires_at.isoformat(),
+            "created_at": invite.created_at.isoformat() if invite.created_at else None,
+        },
+    }
+
+
+@router.delete("/team/invites/{invite_id}", dependencies=[Depends(require_permission("can_manage_admins"))])
+async def revoke_team_invite(
+    invite_id: int,
+    db: AsyncSession = Depends(get_db),
+    org_id: int = Depends(get_admin_tenant_id),
+):
+    """Revoke a pending team invitation."""
+    invite = await db.get(OrganizationInvite, invite_id)
+    if invite is None or invite.organization_id != org_id:
+        raise HTTPException(status_code=404, detail="Taklifnoma topilmadi")
+    invite.status = "revoked"
+    await db.commit()
+    return {"ok": True, "deleted_id": invite_id}
+
+
+@router.delete("/team/members/{member_id}", dependencies=[Depends(require_permission("can_manage_admins"))])
+async def remove_team_member(
+    member_id: int,
+    db: AsyncSession = Depends(get_db),
+    org_id: int = Depends(get_admin_tenant_id),
+):
+    """Deactivate a non-owner web OrganizationMember from the store."""
+    member = await db.get(OrganizationMember, member_id)
+    if member is None or member.organization_id != org_id:
+        raise HTTPException(status_code=404, detail="Jamoa a'zosi topilmadi")
+    if member.role == "owner":
+        raise HTTPException(status_code=400, detail="Do'kon egasini o'chirib bo'lmaydi")
+    member.is_active = False
+    await db.commit()
+    return {"ok": True, "removed_id": member_id}
 
 
 @router.get("/logs")
@@ -1499,7 +1986,9 @@ class StorePaymentConfigUpdate(BaseModel):
     tezcheck_cash_desk_code: str | None = None
     click_service_id: str | None = None
     click_merchant_id: str | None = None
+    click_secret_key: str | None = None
     payme_merchant_id: str | None = None
+    payme_secret_key: str | None = None
     card_number: str | None = None
     card_holder: str | None = None
 
@@ -1591,6 +2080,7 @@ async def send_conversation_payment_link(
     conversation_id: int,
     payload: ConversationPaymentSendRequest,
     db: AsyncSession = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin),
     org_id: int = Depends(get_admin_tenant_id),
 ):
     from app.services.store_payment_service import create_and_send_order_payment, format_uzs
@@ -1606,6 +2096,7 @@ async def send_conversation_payment_link(
             raise HTTPException(status_code=404, detail="Buyurtma topilmadi")
 
     if order is None:
+        await _enforce_limit_unless_owner(db, org_id, "monthly_orders", 1, current_admin=current_admin)
         order = Order(
             organization_id=org_id,
             conversation_id=conv.id,
@@ -1617,6 +2108,8 @@ async def send_conversation_payment_link(
             notes=f"Inbox chatidan to'lov so'rovi (@{conv.username or conv.chat_id})",
         )
         db.add(order)
+        from app.services.usage_service import increment_usage
+        await increment_usage(db, org_id, "monthly_orders", 1)
         await db.flush()
 
     try:
@@ -1916,8 +2409,10 @@ async def send_store_report_now(
 async def export_store_csv(
     entity: str,
     db: AsyncSession = Depends(get_db),
+    current_admin: Admin = Depends(get_current_admin),
     org_id: int = Depends(get_admin_tenant_id),
 ):
+    await _enforce_feature_if_plan_seeded(db, org_id, "data_export", current_admin=current_admin)
     from app.services.report_service import build_store_csv_export
 
     try:

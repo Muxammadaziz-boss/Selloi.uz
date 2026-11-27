@@ -14,10 +14,15 @@ import {
   IconSearch,
   IconCheck,
   IconAlertCircle,
+  IconUpload,
+  IconFileText,
 } from "@tabler/icons-react";
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
+import { Modal } from "../ui/Modal";
+import { Input, Textarea } from "../ui/Input";
+import { Select } from "../ui/Select";
 import { PageHeader } from "../layout/PageHeader";
 
 export interface ConnectedChannelItem {
@@ -50,6 +55,8 @@ export interface KnowledgeTabProps {
   onDeleteChannel: (username: string) => void;
   onDeletePost: (id: number, messageId: number) => void;
   onExtractProducts: () => void;
+  onAddManualKnowledge?: (payload: { title: string; content: string; category?: string }) => Promise<boolean>;
+  onUploadKnowledgeFile?: (payload: { filename: string; content_base64: string }) => Promise<boolean>;
   onOpenPlayground?: () => void;
   busy: boolean;
 }
@@ -66,11 +73,19 @@ export function KnowledgeTab({
   onDeleteChannel,
   onDeletePost,
   onExtractProducts,
+  onAddManualKnowledge,
+  onUploadKnowledgeFile,
   onOpenPlayground,
   busy,
 }: KnowledgeTabProps) {
   const { language, t } = useLanguage();
   const [verifying, setVerifying] = useState(false);
+  const [showFaqModal, setShowFaqModal] = useState(false);
+  const [faqTitle, setFaqTitle] = useState("");
+  const [faqCategory, setFaqCategory] = useState("faq");
+  const [faqContent, setFaqContent] = useState("");
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [verificationResult, setVerificationResult] = useState<{
     valid?: boolean;
     title?: string;
@@ -128,6 +143,28 @@ export function KnowledgeTab({
         }}
         actions={
           <div className="d-flex align-items-center flex-wrap gap-2">
+            {onAddManualKnowledge && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowFaqModal(true)}
+                disabled={busy}
+                icon={<IconFileText size={14} />}
+              >
+                {t("knowledge.btn_add_faq")}
+              </Button>
+            )}
+            {onUploadKnowledgeFile && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowUploadModal(true)}
+                disabled={busy}
+                icon={<IconUpload size={14} />}
+              >
+                {t("knowledge.btn_upload_doc")}
+              </Button>
+            )}
             {onOpenPlayground && (
               <Button
                 variant="outline"
@@ -434,6 +471,156 @@ export function KnowledgeTab({
           </div>
         </CardContent>
       </Card>
+
+      {/* Manual FAQ / Policy Entry Modal */}
+      {showFaqModal && (
+        <Modal
+          isOpen={true}
+          onClose={() => setShowFaqModal(false)}
+          title={t("knowledge.modal_faq_title")}
+          size="md"
+          footer={
+            <div className="d-flex justify-content-end gap-2">
+              <Button variant="secondary" size="sm" onClick={() => setShowFaqModal(false)}>
+                {t("payments.close")}
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                loading={busy}
+                disabled={!faqContent.trim()}
+                onClick={async () => {
+                  if (!onAddManualKnowledge) return;
+                  const ok = await onAddManualKnowledge({
+                    title: faqTitle.trim() || "Do'kon FAQ",
+                    content: faqContent,
+                    category: faqCategory,
+                  });
+                  if (ok) {
+                    setFaqTitle("");
+                    setFaqContent("");
+                    setShowFaqModal(false);
+                  }
+                }}
+              >
+                {t("knowledge.btn_save_faq")}
+              </Button>
+            </div>
+          }
+        >
+          <div className="d-flex flex-column gap-3">
+            <div className="row g-2">
+              <div className="col-12 col-sm-7">
+                <Input
+                  label="Sarlavha"
+                  value={faqTitle}
+                  onChange={(e) => setFaqTitle(e.target.value)}
+                  placeholder="Masalan: Yetkazib berish va kafolat shartlari"
+                />
+              </div>
+              <div className="col-12 col-sm-5">
+                <Select
+                  label="Kategoriya"
+                  value={faqCategory}
+                  onChange={(e) => setFaqCategory(e.target.value)}
+                  options={[
+                    { value: "faq", label: "FAQ / Savol-javob" },
+                    { value: "delivery", label: "Yetkazib berish" },
+                    { value: "warranty", label: "Kafolat / Qaytarish" },
+                    { value: "rules", label: "Do'kon qoidalari" },
+                  ]}
+                />
+              </div>
+            </div>
+            <Textarea
+              label="Matn / Qoida / Narxlar ro'yxati"
+              rows={7}
+              value={faqContent}
+              onChange={(e) => setFaqContent(e.target.value)}
+              placeholder="Masalan: Toshkent shahri bo'ylab yetkazib berish 2 soatda bepul. Viloyatlarga BTS pochta orqali 1-2 kunda yetkazamiz..."
+            />
+            <div className="small text-secondary">
+              Uzoq matn avtomatik ravishda RAG bo'laklarga ajratiladi va vektor qidiruvga indekslanadi.
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Document Upload Modal */}
+      {showUploadModal && (
+        <Modal
+          isOpen={true}
+          onClose={() => {
+            setShowUploadModal(false);
+            setSelectedFile(null);
+          }}
+          title={t("knowledge.modal_upload_title")}
+          size="md"
+          footer={
+            <div className="d-flex justify-content-end gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setShowUploadModal(false);
+                  setSelectedFile(null);
+                }}
+              >
+                {t("payments.close")}
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                loading={busy}
+                disabled={!selectedFile}
+                onClick={async () => {
+                  if (!selectedFile || !onUploadKnowledgeFile) return;
+                  const b64 = await new Promise<string>((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(String(reader.result || ""));
+                    reader.onerror = () => reject(new Error("Faylni o'qib bo'lmadi"));
+                    reader.readAsDataURL(selectedFile);
+                  });
+                  const ok = await onUploadKnowledgeFile({
+                    filename: selectedFile.name,
+                    content_base64: b64,
+                  });
+                  if (ok) {
+                    setSelectedFile(null);
+                    setShowUploadModal(false);
+                  }
+                }}
+              >
+                {t("knowledge.btn_upload_submit")}
+              </Button>
+            </div>
+          }
+        >
+          <div className="d-flex flex-column gap-3">
+            <div
+              className="p-4 rounded-2 text-center"
+              style={{
+                border: "1px dashed var(--border-subtle)",
+                backgroundColor: "var(--bg-surface-elevated)",
+              }}
+            >
+              <IconUpload size={28} className="mb-2" style={{ color: "var(--accent)" }} />
+              <div className="small fw-medium text-primary mb-2">
+                {selectedFile ? selectedFile.name : "TXT, MD, CSV, JSON yoki matnli PDF fayl tanlang"}
+              </div>
+              <input
+                type="file"
+                accept=".txt,.md,.csv,.json,.pdf"
+                onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                className="linear-input"
+              />
+            </div>
+            <div className="small text-secondary">
+              Maksimal hajm: 5 MB. Barcha hujjatlar avtomatik bo'laklanib AI xotirasiga yuklanadi.
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

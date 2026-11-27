@@ -311,3 +311,107 @@ async def test_configured_admin_email_grants_owner_on_google_and_login(tmp_path,
     finally:
         app.dependency_overrides.clear()
         await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_google_auth_enforces_bff_signature_and_fail_closed_in_prod(tmp_path, monkeypatch):
+    import hashlib
+    import hmac
+    import time
+
+    engine, SessionFactory = await _make_isolated_session_maker(tmp_path / "google_sig_guard.db")
+    cfg = get_settings()
+    monkeypatch.setattr(cfg, "jwt_secret", "test_jwt_secret_key_for_hmac_verification_32chars")
+    monkeypatch.setattr(cfg, "admin_email", "boss@selloi.uz")
+
+    async def _override_get_db():
+        async with SessionFactory() as session:
+            yield session
+
+    try:
+        app.dependency_overrides[get_db] = _override_get_db
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+            # 1. Invalid signature header must ALWAYS fail with 401
+            bad_sig = await client.post(
+                "/api/v1/auth/google",
+                headers={"X-Internal-Google-Auth": f"{int(time.time())}.forged_signature"},
+                json={"email": "boss@selloi.uz", "full_name": "Attacker", "google_id": "g-x"},
+            )
+            assert bad_sig.status_code == 401
+
+            # 2. Missing signature in production mode must fail closed with 401
+            monkeypatch.setattr(cfg, "app_env", "production")
+            unauth_prod = await client.post(
+                "/api/v1/auth/google",
+                json={"email": "boss@selloi.uz", "full_name": "Attacker", "google_id": "g-x"},
+            )
+            assert unauth_prod.status_code == 401
+
+            # 3. Valid BFF HMAC signature succeeds even in production mode
+            ts = int(time.time())
+            msg = f"google-auth:{ts}:boss@selloi.uz:g-boss".encode("utf-8")
+            sig = hmac.new(cfg.jwt_secret.encode("utf-8"), msg, hashlib.sha256).hexdigest()
+            valid_prod = await client.post(
+                "/api/v1/auth/google",
+                headers={"X-Internal-Google-Auth": f"{ts}.{sig}"},
+                json={"email": "boss@selloi.uz", "full_name": "Site Boss", "google_id": "g-boss"},
+            )
+            assert valid_prod.status_code == 200
+            assert "access_token" in valid_prod.json()
+    finally:
+        app.dependency_overrides.clear()
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_direct_bot_message_uses_target_organization_not_hardcoded_one(tmp_path, monkeypatch):
+    from app.api.webhooks import _handle_direct_bot_message
+    from app.services import ai as ai_module, knowledge as knowledge_module
+
+    engine, SessionFactory = await _make_isolated_session_maker(tmp_path / "direct_bot_tenant.db")
+    seen_org_ids: dict[str, list[int | None]] = {"search": [], "search_products": [], "answer": []}
+
+    async def _fake_search(db, query, limit=6, organization_id=None):
+        seen_org_ids["search"].append(organization_id)
+        return []
+
+    async def _fake_search_products(db, query, limit=5, organization_id=None):
+        seen_org_ids["search_products"].append(organization_id)
+        return []
+
+    async def _fake_answer(customer_text, context, history, organization_id=None, db=None, **kwargs):
+        seen_org_ids["answer"].append(organization_id)
+        return {
+            "reply": "Salom do'kon #2 dan!",
+            "handoff": False,
+            "reason": None,
+            "intent": "product_question",
+            "order_created": False,
+            "order_data": None,
+            "attach_photo": False,
+            "source_post_id": None,
+        }
+
+    monkeypatch.setattr(knowledge_module.knowledge, "search", _fake_search)
+    monkeypatch.setattr(knowledge_module.knowledge, "search_products", _fake_search_products)
+    monkeypatch.setattr(ai_module.sales_ai, "answer", _fake_answer)
+
+    try:
+        async with SessionFactory() as db:
+            org1 = Organization(id=1, name="Store 1", slug="store-1", status="active")
+            org2 = Organization(id=2, name="Store 2", slug="store-2", status="active")
+            db.add_all([org1, org2])
+            await db.commit()
+
+            msg = {
+                "message_id": 501,
+                "chat": {"id": 777123, "type": "private"},
+                "from": {"id": 777123, "first_name": "Dilshod"},
+                "text": "iPhone 16 Pro narxi qancha?",
+            }
+            await _handle_direct_bot_message(msg, db, organization_id=2)
+            assert seen_org_ids["search"] == [2]
+            assert seen_org_ids["search_products"] == [2]
+            assert seen_org_ids["answer"] == [2]
+    finally:
+        await engine.dispose()

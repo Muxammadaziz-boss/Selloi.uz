@@ -11,6 +11,7 @@ import {
   IconTrash,
   IconFilter,
   IconDownload,
+  IconUpload,
 } from "@tabler/icons-react";
 import { downloadCsvExport } from "../../lib/csvExport";
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
@@ -45,6 +46,7 @@ export interface ProductsTabProps {
   onSaveProduct: () => void;
   onDeleteProduct: (p: any) => void;
   onExtractProducts: () => void;
+  onBulkImportProducts?: (csvText: string) => Promise<boolean>;
   busy: boolean;
 }
 
@@ -61,10 +63,13 @@ export function ProductsTab({
   onSaveProduct,
   onDeleteProduct,
   onExtractProducts,
+  onBulkImportProducts,
   busy,
 }: ProductsTabProps) {
   const { language, t } = useLanguage();
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [showCsvImport, setShowCsvImport] = useState(false);
+  const [csvImportText, setCsvImportText] = useState("");
 
   const categories = Array.from(new Set(products.map((p) => p.category))).filter(Boolean);
 
@@ -115,6 +120,17 @@ export function ProductsTab({
             >
               CSV Eksport
             </Button>
+            {onBulkImportProducts && (
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={busy}
+                onClick={() => setShowCsvImport(true)}
+                icon={<IconUpload size={14} />}
+              >
+                {t("products.btn_csv_import")}
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
@@ -463,6 +479,64 @@ export function ProductsTab({
               </div>
             </div>
           )}
+        </Modal>
+      )}
+
+      {/* CSV Bulk Import Modal */}
+      {showCsvImport && (
+        <Modal
+          isOpen={true}
+          onClose={() => setShowCsvImport(false)}
+          title={t("products.modal_import_title")}
+          size="md"
+          footer={
+            <div className="d-flex justify-content-end gap-2">
+              <Button variant="secondary" size="sm" onClick={() => setShowCsvImport(false)}>
+                {t("payments.close")}
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                loading={busy}
+                disabled={!csvImportText.trim()}
+                onClick={async () => {
+                  if (!onBulkImportProducts) return;
+                  const ok = await onBulkImportProducts(csvImportText);
+                  if (ok) {
+                    setCsvImportText("");
+                    setShowCsvImport(false);
+                  }
+                }}
+              >
+                {t("products.btn_import_submit")}
+              </Button>
+            </div>
+          }
+        >
+          <div className="d-flex flex-column gap-3">
+            <div>
+              <label className="small text-secondary d-block mb-1">
+                CSV fayl tanlang (ustunlar: <code className="text-primary">name,category,price,specs,stock,warranty</code>)
+              </label>
+              <input
+                type="file"
+                accept=".csv,.txt"
+                className="linear-input"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  setCsvImportText(await file.text());
+                }}
+              />
+            </div>
+            <Textarea
+              label="Yoki CSV matnni bu yerga joylang"
+              rows={6}
+              value={csvImportText}
+              onChange={(e) => setCsvImportText(e.target.value)}
+              placeholder={"name,category,price,specs,stock,warranty\niPhone 16 Pro,Smartphones,14500000 so'm,256GB Desert Titanium,In Stock,1 yil"}
+            />
+          </div>
         </Modal>
       )}
     </div>

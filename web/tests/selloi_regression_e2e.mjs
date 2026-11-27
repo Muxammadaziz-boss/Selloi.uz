@@ -191,13 +191,40 @@ function buildMockProxyPayload(apiPath) {
   if (apiPath.startsWith("/admin/reports/config")) {
     return { config: { is_enabled: true, send_hour: 21, timezone: "Asia/Tashkent" }, history: [] };
   }
+  if (apiPath.startsWith("/api/billing/invoices")) {
+    return {
+      invoices: [
+        {
+          id: "1",
+          bill_id: "TC-DEMO-1001",
+          plan_code: "pro",
+          billing_cycle: "monthly",
+          amount: 49900000,
+          amount_uzs: 499000,
+          currency: "UZS",
+          status: "paid",
+          created_at: new Date().toISOString(),
+        },
+      ],
+    };
+  }
   if (apiPath.startsWith("/api/subscription")) {
     return {
-      plan: { code: "pro", name: "PRO", price_usd: 49 },
-      status: "active",
+      organization_id: 1,
+      subscription_id: 1,
+      plan_code: "pro",
+      plan_name: "PRO",
+      plan: { code: "pro", name: "PRO", price_usd: 39 },
+      status: "subscription_active",
       is_active: true,
       billing_cycle: "monthly",
+      mega_discount_used: false,
+      mega_discount_eligible: true,
+      current_period_start: new Date().toISOString(),
+      current_period_end: new Date(Date.now() + 20 * 86400 * 1000).toISOString(),
+      days_remaining: 20,
       trial_days_remaining: 0,
+      plan_prices: { monthly_uzs: 49900000, yearly_uzs: 499000000, monthly_usd: 39, yearly_usd: 390 },
     };
   }
   if (apiPath.startsWith("/api/usage")) {
@@ -208,9 +235,9 @@ function buildMockProxyPayload(apiPath) {
   if (apiPath.startsWith("/api/plans")) {
     return {
       plans: [
-        { code: "start", name: "START", price_usd: 19 },
-        { code: "pro", name: "PRO", price_usd: 49 },
-        { code: "ultra", name: "ULTRA", price_usd: 99 },
+        { code: "start", name: "START", price_monthly_uzs: 24400000, price_yearly_uzs: 244000000, price_promo_uzs: 1300000 },
+        { code: "pro", name: "PRO", price_monthly_uzs: 49900000, price_yearly_uzs: 499000000, price_promo_uzs: 2600000, is_featured: true },
+        { code: "ultra", name: "ULTRA", price_monthly_uzs: 99900000, price_yearly_uzs: 999000000, price_promo_uzs: 3900000 },
       ],
     };
   }
@@ -479,10 +506,16 @@ async function runSuite() {
       }
 
       await page.getByText("TechHub Toshkent").first().waitFor({ timeout: 10000 });
-      for (const tabName of ["orders", "products", "settings"]) {
+      const rawKeyLeak = await page.getByText("overview.view_all").count();
+      if (rawKeyLeak > 0) {
+        throw new Error("Raw translation key overview.view_all leaked on OverviewTab");
+      }
+      for (const tabName of ["orders", "products", "settings", "billing", "pricing"]) {
         await page.goto(`${baseUrl}/dashboard#${tabName}`, { waitUntil: "domcontentloaded" });
         await page.waitForTimeout(250);
       }
+      await page.goto(`${baseUrl}/dashboard#billing`, { waitUntil: "domcontentloaded" });
+      await page.getByText("TC-DEMO-1001").waitFor({ state: "visible", timeout: 5000 });
 
       await assertNoHorizontalOverflow(page, "Dashboard desktop");
       const dashA11y = await assertNoCriticalA11yViolations(page, "Dashboard desktop");

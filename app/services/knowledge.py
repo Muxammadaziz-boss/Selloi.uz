@@ -1,7 +1,12 @@
 import base64
+import csv
 from datetime import datetime
+import io
+import json
 from pathlib import Path
 import re
+import secrets
+import zlib
 import httpx
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -283,7 +288,12 @@ class KnowledgeService:
             target.write_bytes(photo_bytes)
             image_path = str(target)
             try:
-                image_description = await self.describe_image(photo_bytes, photo_mime_type)
+                image_description = await self.describe_image(
+                    photo_bytes,
+                    photo_mime_type,
+                    organization_id=organization_id,
+                    db=db,
+                )
             except Exception:
                 logger.exception("Rasm tavsifini yaratishda xatolik: msg_id=%s", telegram_message_id)
                 image_description = ""
@@ -352,7 +362,7 @@ class KnowledgeService:
         stmt = select(Product).where(Product.is_active == True)  # noqa: E712
         if organization_id is not None:
             stmt = stmt.where(Product.organization_id == organization_id)
-        rows = list((await db.execute(stmt.limit(100))).scalars().all())
+        rows = list((await db.execute(stmt.limit(1000))).scalars().all())
         if not rows:
             return []
 
@@ -505,6 +515,195 @@ class KnowledgeService:
             for p in created_products:
                 await db.refresh(p)
         return created_products
+
+    async def ingest_manual_document(
+        self,
+        db: AsyncSession,
+        *,
+        organization_id: int,
+        title: str,
+        text: str,
+        source_tag: str = "faq",
+        source_url: str | None = None,
+        max_chars: int = 900,
+        overlap: int = 120,
+    ) -> list[ChannelPost]:
+        """Chunk manual FAQ / document text with semantic overlap and persist with embeddings."""
+        cleaned = (text or "").strip()
+        if not cleaned:
+            return []
+        clean_title = (title or "Qo'llanma").strip()[:160]
+        clean_tag = re.sub(r"[^a-zA-Z0-9_-]+", "_", (source_tag or "faq").strip().lower()).strip("_") or "faq"
+        channel_key = f"kb_{organization_id}_{clean_tag}"[:250]
+
+        chunks = chunk_text(cleaned, max_chars=max_chars, overlap=overlap)
+        base_msg_id = int(datetime.now().timestamp() * 1000) * 100 + secrets.randbelow(90) + 10
+        created_posts: list[ChannelPost] = []
+        now = datetime.now()
+
+        for idx, chunk_body in enumerate(chunks):
+            prefix = f"[{clean_title} #{idx + 1}/{len(chunks)}]\n" if len(chunks) > 1 else f"[{clean_title}]\n"
+            full_text = f"{prefix}{chunk_body}"
+            post = await self.upsert_post(
+                db,
+                organization_id=organization_id,
+                channel_username=channel_key,
+                telegram_message_id=base_msg_id + idx,
+                text=full_text,
+                posted_at=now,
+                source_url=source_url,
+            )
+            created_posts.append(post)
+
+        return created_posts
+
+
+def _decode_bytes_with_fallback(raw_bytes: bytes) -> str:
+    for enc in ("utf-8-sig", "utf-8", "cp1251", "latin-1"):
+        try:
+            return raw_bytes.decode(enc)
+        except UnicodeDecodeError:
+            continue
+    return raw_bytes.decode("utf-8", errors="replace")
+
+
+def extract_text_from_pdf_bytes(raw_bytes: bytes) -> str:
+    """Extract readable text from standard PDFs using pypdf if installed or zlib stream fallback."""
+    try:
+        import pypdf  # type: ignore
+
+        reader = pypdf.PdfReader(io.BytesIO(raw_bytes))
+        pages = [page.extract_text() or "" for page in reader.pages]
+        joined = "\n\n".join(p.strip() for p in pages if p and p.strip())
+        if joined.strip():
+            return joined.strip()
+    except Exception:
+        pass
+
+    chunks: list[str] = []
+    # Decompress FlateDecode / uncompressed PDF content streams and extract parenthesized text runs
+    stream_re = re.compile(rb"stream\r?\n(.*?)\r?\n?endstream", re.DOTALL)
+    literal_re = re.compile(rb"\(([^()\\]*(?:\\.[^()\\]*)*)\)")
+    for match in stream_re.finditer(raw_bytes):
+        raw_stream = match.group(1)
+        data = raw_stream
+        for wbits in (zlib.MAX_WBITS, -zlib.MAX_WBITS):
+            try:
+                data = zlib.decompress(raw_stream, wbits)
+                break
+            except Exception:
+                continue
+        for lit in literal_re.finditer(data):
+            text_piece = _decode_bytes_with_fallback(lit.group(1))
+            text_piece = (
+                text_piece.replace(r"\n", "\n")
+                .replace(r"\r", " ")
+                .replace(r"\t", " ")
+                .replace(r"\(", "(")
+                .replace(r"\)", ")")
+                .replace(r"\\", "\\")
+            )
+            cleaned = re.sub(r"[\x00-\x08\x0b-\x1f\x7f]+", " ", text_piece).strip()
+            if len(cleaned) >= 2 and re.search(r"[A-Za-zА-Яа-яЁё0-9]", cleaned):
+                chunks.append(cleaned)
+
+    return " ".join(chunks).strip()
+
+
+def parse_csv_product_rows(csv_text: str) -> list[dict[str, str]]:
+    """Parse flexible UTF-8/BOM CSV text into normalized product dictionaries."""
+    cleaned_csv = (csv_text or "").lstrip("\ufeff").strip()
+    if not cleaned_csv:
+        return []
+
+    try:
+        dialect = csv.Sniffer().sniff(cleaned_csv[:2048], delimiters=",;\t")
+    except Exception:
+        dialect = csv.excel
+
+    reader = csv.DictReader(io.StringIO(cleaned_csv), dialect=dialect)
+    if not reader.fieldnames:
+        return []
+
+    def _pick(row_norm: dict[str, str], keys: tuple[str, ...], default: str = "") -> str:
+        for k in keys:
+            val = row_norm.get(k)
+            if val is not None and str(val).strip():
+                return str(val).strip()
+        return default
+
+    items: list[dict[str, str]] = []
+    for raw_row in reader:
+        if not raw_row:
+            continue
+        row_norm = {
+            (k or "").strip().lower(): (v or "").strip()
+            for k, v in raw_row.items()
+            if k is not None
+        }
+        name = _pick(row_norm, ("name", "nomi", "mahsulot", "product", "title", "товар", "название"))
+        if not name:
+            continue
+        price = _pick(row_norm, ("price", "narx", "narxi", "цена", "cost"), "$0")
+        category = _pick(row_norm, ("category", "kategoriya", "turkum", "категория"), "General")
+        specs = _pick(row_norm, ("specs", "xususiyat", "xususiyatlar", "description", "tavsif", "описание"), "")
+        stock_raw = _pick(row_norm, ("stock", "holat", "holati", "mavjud", "остаток"), "In Stock")
+        warranty = _pick(row_norm, ("warranty", "kafolat", "гарантия"), "Mavjud")
+        code = _pick(row_norm, ("code", "sku", "id", "kod", "артикул"), "")
+
+        sl = stock_raw.lower()
+        if "low" in sl or "kam" in sl:
+            stock = "Low Stock"
+        elif "pre" in sl or "buyurtma" in sl or "order" in sl:
+            stock = "Pre-order"
+        else:
+            stock = "In Stock"
+
+        items.append(
+            {
+                "code": code,
+                "name": name[:255],
+                "category": category[:120],
+                "specs": specs[:2000],
+                "price": price[:64],
+                "stock": stock,
+                "warranty": warranty[:120],
+            }
+        )
+    return items
+
+
+def extract_text_from_uploaded_file(filename: str, raw_bytes: bytes) -> tuple[str, list[dict[str, str]]]:
+    """Extract RAG text and optional structured CSV product rows from uploaded documents."""
+    ext = Path(filename or "document.txt").suffix.lower()
+    csv_rows: list[dict[str, str]] = []
+
+    if ext in (".txt", ".md", ".markdown", ".log"):
+        return _decode_bytes_with_fallback(raw_bytes).strip(), csv_rows
+
+    if ext == ".csv":
+        decoded = _decode_bytes_with_fallback(raw_bytes)
+        csv_rows = parse_csv_product_rows(decoded)
+        if csv_rows:
+            lines = [
+                f"{r['name']} | Kategoriya: {r['category']} | Narxi: {r['price']} | Holat: {r['stock']} | Kafolat: {r['warranty']} | {r['specs']}".strip()
+                for r in csv_rows
+            ]
+            return "\n".join(lines), csv_rows
+        return decoded.strip(), []
+
+    if ext == ".json":
+        decoded = _decode_bytes_with_fallback(raw_bytes)
+        try:
+            parsed = json.loads(decoded)
+            return json.dumps(parsed, ensure_ascii=False, indent=2), []
+        except Exception:
+            return decoded.strip(), []
+
+    if ext == ".pdf":
+        return extract_text_from_pdf_bytes(raw_bytes), []
+
+    raise ValueError("Qo'llab-quvvatlanadigan formatlar: .txt, .md, .csv, .json, .pdf")
 
 
 knowledge = KnowledgeService()

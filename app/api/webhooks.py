@@ -948,20 +948,31 @@ async def _handle_direct_bot_message(message: dict, db: AsyncSession, organizati
     last_name = sender.get("last_name", "")
     customer_name = f"{first_name} {last_name}".strip() or "Mijoz"
 
+    effective_org_id = int(organization_id) if organization_id else 1
+    org = await db.get(Organization, effective_org_id)
+    org_token = org.decrypted_bot_token if org else None
+
     chat_id_int = int(chat_id)
-    tg_svc = telegram
-    try:
-        if not tg_svc:
-            tg_svc = get_telegram_service()
-    except Exception:
-        tg_svc = None
+    tg_svc = None
+    if org_token:
+        try:
+            tg_svc = get_telegram_service(org_token)
+        except Exception:
+            tg_svc = None
+    if tg_svc is None:
+        tg_svc = telegram
+        try:
+            if not tg_svc:
+                tg_svc = get_telegram_service()
+        except Exception:
+            tg_svc = None
 
     visual_search_query = ""
     if _has_image_attachment(message):
         vis_text, vis_query = await _extract_visual_search_context(
             message,
             tg_svc=tg_svc,
-            org_id=organization_id,
+            org_id=effective_org_id,
             db=db,
         )
         if vis_text:
@@ -971,7 +982,7 @@ async def _handle_direct_bot_message(message: dict, db: AsyncSession, organizati
         text = await _extract_voice_transcript(
             message,
             tg_svc=tg_svc,
-            org_id=organization_id,
+            org_id=effective_org_id,
             db=db,
         )
     if not text:
@@ -983,10 +994,10 @@ async def _handle_direct_bot_message(message: dict, db: AsyncSession, organizati
         query_for_catalog = visual_search_query or text
         if not visual_search_query and sales_ai.is_greeting(text):
             evidence = []
-            decision = await sales_ai.answer(text, evidence, [], organization_id=1, db=db)
+            decision = await sales_ai.answer(text, evidence, [], organization_id=effective_org_id, db=db)
         else:
-            evidence = await knowledge.search(db, query_for_catalog, limit=6, organization_id=1)
-            matched_products = await knowledge.search_products(db, query_for_catalog, limit=5, organization_id=1)
+            evidence = await knowledge.search(db, query_for_catalog, limit=6, organization_id=effective_org_id)
+            matched_products = await knowledge.search_products(db, query_for_catalog, limit=5, organization_id=effective_org_id)
             answer_kwargs: dict = {}
             if matched_products:
                 answer_kwargs["extra_products"] = [
@@ -1001,7 +1012,7 @@ async def _handle_direct_bot_message(message: dict, db: AsyncSession, organizati
                     }
                     for p in matched_products
                 ]
-            decision = await sales_ai.answer(text, evidence, [], organization_id=1, db=db, **answer_kwargs)
+            decision = await sales_ai.answer(text, evidence, [], organization_id=effective_org_id, db=db, **answer_kwargs)
     finally:
         stop_typing.set()
         typing_task.cancel()
@@ -1020,7 +1031,7 @@ async def _handle_direct_bot_message(message: dict, db: AsyncSession, organizati
         if selected_post and selected_post.photo_file_id:
             photo_key = generate_outbox_idempotency_key(
                 event_type="send_photo",
-                organization_id=organization_id,
+                organization_id=effective_org_id,
                 entity_id=f"direct_photo_{chat_id_int}_{message.get('message_id', 0)}",
             )
             await stage_outbox_event(
@@ -1032,14 +1043,14 @@ async def _handle_direct_bot_message(message: dict, db: AsyncSession, organizati
                     "photo": selected_post.photo_file_id,
                     "caption": decision["reply"][:1024],
                 },
-                organization_id=organization_id,
+                organization_id=effective_org_id,
             )
             photo_staged = True
 
     if not photo_staged:
         msg_key = generate_outbox_idempotency_key(
             event_type="send_message",
-            organization_id=organization_id,
+            organization_id=effective_org_id,
             entity_id=f"direct_text_{chat_id_int}_{message.get('message_id', 0)}",
         )
         await stage_outbox_event(
@@ -1050,7 +1061,7 @@ async def _handle_direct_bot_message(message: dict, db: AsyncSession, organizati
                 "chat_id": chat_id,
                 "text": decision["reply"],
             },
-            organization_id=organization_id,
+            organization_id=effective_org_id,
         )
 
     # If order was created in direct bot chat, notify admin via transactional outbox
@@ -1059,7 +1070,7 @@ async def _handle_direct_bot_message(message: dict, db: AsyncSession, organizati
         direct_msg_id = message.get("message_id", 0)
         order_idempotency_key = generate_order_idempotency_key(
             source="direct",
-            organization_id=organization_id,
+            organization_id=effective_org_id,
             bot_id="direct",
             chat_id=chat_id,
             message_id=direct_msg_id,
@@ -1067,7 +1078,7 @@ async def _handle_direct_bot_message(message: dict, db: AsyncSession, organizati
         new_order, created = await get_or_create_idempotent_order(
             db,
             idempotency_key=order_idempotency_key,
-            organization_id=organization_id,
+            organization_id=effective_org_id,
             customer_name=order_info.get("customer_name") or customer_name,
             phone=order_info.get("phone") or "",
             product_summary=order_info.get("product_summary") or "",
@@ -1086,19 +1097,19 @@ async def _handle_direct_bot_message(message: dict, db: AsyncSession, organizati
                 "Iltimos, admin mijoz bilan bog'laning!"
             )
             outbox_key = generate_outbox_idempotency_key(
-                event_type="notify_admin",
-                organization_id=organization_id,
+                event_type="notify_organization_admins",
+                organization_id=effective_org_id,
                 entity_id=new_order.id or order_idempotency_key,
             )
             await stage_outbox_event(
                 db,
                 idempotency_key=outbox_key,
-                event_type="notify_admin",
+                event_type="notify_organization_admins",
                 payload={"text": order_notification},
-                organization_id=organization_id,
+                organization_id=effective_org_id,
             )
             await publish_event(
-                organization_id,
+                effective_org_id,
                 "order.created",
                 {
                     "order_id": new_order.id,

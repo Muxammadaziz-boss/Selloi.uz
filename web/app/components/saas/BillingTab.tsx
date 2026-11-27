@@ -1,22 +1,19 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   IconAlertCircle,
-  IconArrowRight,
-  IconCalendar,
   IconCheck,
-  IconClock,
   IconCreditCard,
-  IconDownload,
   IconExternalLink,
   IconFlame,
+  IconReceipt,
   IconRefresh,
   IconShieldCheck,
   IconSparkles,
-  IconX,
 } from "@tabler/icons-react";
 import { Skeleton } from "../ui/Skeleton";
+import { api } from "../../lib/dashboardApi";
 
 interface SubscriptionOverview {
   organization_id: number;
@@ -32,6 +29,7 @@ interface SubscriptionOverview {
   is_commercial_access_active: boolean;
   mega_discount_used: boolean;
   mega_discount_eligible: boolean;
+  cancel_at_period_end?: boolean;
   notification: string | null;
   plan_prices: {
     monthly_uzs: number;
@@ -41,8 +39,25 @@ interface SubscriptionOverview {
   };
 }
 
+interface BillingInvoiceItem {
+  id: string;
+  bill_id: string;
+  order_id?: string;
+  plan_code?: string;
+  billing_cycle?: string;
+  amount: number;
+  amount_uzs?: number;
+  currency: string;
+  status: string;
+  paid_at?: string | null;
+  created_at?: string;
+  checkout_url?: string | null;
+  provider?: string;
+}
+
 interface BillingTabProps {
   subscription: SubscriptionOverview | null;
+  plans?: any[];
   loading: boolean;
   onRefresh: () => void;
   onUpgradeClick: () => void;
@@ -51,8 +66,67 @@ interface BillingTabProps {
   initialPlan?: string | null;
 }
 
+interface ResolvedTierCard {
+  code: string;
+  name: string;
+  promoUzs: number;
+  promoUsdLabel: string;
+  monthlyUzs: number;
+  yearlyUzs: number;
+  monthlyUsdLabel: string;
+  yearlyUsdLabel: string;
+  promoHighlights: string[];
+  subHighlights: string[];
+  isPopular?: boolean;
+}
+
+const CANONICAL_TIERS: ResolvedTierCard[] = [
+  {
+    code: "start",
+    name: "START",
+    promoUzs: 13000,
+    promoUsdLabel: "$1",
+    monthlyUzs: 244000,
+    yearlyUzs: 2440000,
+    monthlyUsdLabel: "$19 / oy",
+    yearlyUsdLabel: "$190 / yil",
+    promoHighlights: ["AI avtomatik javoblar", "Telegram integratsiyasi", "2 operator o'rni"],
+    subHighlights: ["AI Avtomatik javoblar", "Operator takeover", "Jonli chatlar paneli", "2 ta operator o'rni"],
+  },
+  {
+    code: "pro",
+    name: "PRO",
+    promoUzs: 26000,
+    promoUsdLabel: "$2",
+    monthlyUzs: 499000,
+    yearlyUzs: 4990000,
+    monthlyUsdLabel: "$39 / oy",
+    yearlyUsdLabel: "$390 / yil",
+    promoHighlights: ["AI Vision + RAG bilim bazasi", "3 ta bot va 5 ta kanal", "Click/Payme & 10 operator"],
+    subHighlights: ["Barcha START imkoniyatlar", "AI Vision rasmdan tovar tanish", "Vektorli RAG qidiruvi", "Click va Payme to'lovlari"],
+    isPopular: true,
+  },
+  {
+    code: "ultra",
+    name: "ULTRA",
+    promoUzs: 39000,
+    promoUsdLabel: "$3",
+    monthlyUzs: 999000,
+    yearlyUzs: 9990000,
+    monthlyUsdLabel: "$79 / oy",
+    yearlyUsdLabel: "$790 / yil",
+    promoHighlights: ["Barcha PRO imkoniyatlar", "Yuqori yuklama & ustuvorlik", "24/7 shaxsiy qo'llab-quvvatlash"],
+    subHighlights: ["Barcha PRO imkoniyatlari", "Kengaytirilgan limitlar", "Ko'p kanalli tarmoq do'konlar", "50 tagacha operator"],
+  },
+];
+
+function formatWholeUzs(uzsAmount: number): string {
+  return `${Math.round(uzsAmount).toLocaleString("ru-RU")} so'm`;
+}
+
 export function BillingTab({
   subscription,
+  plans = [],
   loading,
   onRefresh,
   onUpgradeClick,
@@ -60,27 +134,70 @@ export function BillingTab({
   onResumeSubscription,
   initialPlan,
 }: BillingTabProps) {
-  const normalizePlan = (p: string | null | undefined) => {
+  const normalizePlan = useCallback((p: string | null | undefined) => {
     if (!p) return "pro";
-    const lower = p.toLowerCase();
-    if (lower === "standart") return "standard";
-    if (["start", "standard", "pro", "ultra"].includes(lower)) return lower;
+    const lower = p.toLowerCase().trim();
+    if (lower === "standard" || lower === "standart") return "pro";
+    if (["start", "pro", "ultra"].includes(lower)) return lower;
     return "pro";
-  };
+  }, []);
 
   const [actionBusy, setActionBusy] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
-  const [selectedPlanForSub, setSelectedPlanForSub] = useState<string>(normalizePlan(initialPlan));
+  const [selectedPlanForSub, setSelectedPlanForSub] = useState<string>(normalizePlan(initialPlan || subscription?.plan_code));
   const [selectedCycleForSub, setSelectedCycleForSub] = useState<"monthly" | "yearly">("monthly");
   const [renewalConsentChecked, setRenewalConsentChecked] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [invoices, setInvoices] = useState<BillingInvoiceItem[]>([]);
+  const [invoicesLoading, setInvoicesLoading] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (initialPlan) {
       setSelectedPlanForSub(normalizePlan(initialPlan));
     }
-  }, [initialPlan]);
+  }, [initialPlan, normalizePlan]);
+
+  const loadInvoices = useCallback(async () => {
+    setInvoicesLoading(true);
+    try {
+      const res = await api<{ invoices?: BillingInvoiceItem[] }>("/api/billing/invoices");
+      setInvoices(Array.isArray(res?.invoices) ? res.invoices : []);
+    } catch {
+      // Non-critical if invoices haven't been created yet
+    } finally {
+      setInvoicesLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadInvoices();
+  }, [loadInvoices, subscription?.organization_id]);
+
+  // Merge authoritative backend plan catalog with canonical defaults
+  const resolvedTiers = useMemo<ResolvedTierCard[]>(() => {
+    if (!plans || plans.length === 0) return CANONICAL_TIERS;
+    return CANONICAL_TIERS.map((base) => {
+      const match = plans.find((p) => String(p.code || "").toLowerCase() === base.code);
+      if (!match) return base;
+      const promoUzs = match.price_promo_uzs ? Math.round(match.price_promo_uzs / 100) : base.promoUzs;
+      const monthlyUzs = match.price_monthly_uzs ? Math.round(match.price_monthly_uzs / 100) : base.monthlyUzs;
+      const yearlyUzs = match.price_yearly_uzs ? Math.round(match.price_yearly_uzs / 100) : base.yearlyUzs;
+      return {
+        ...base,
+        name: match.name || base.name,
+        promoUzs,
+        monthlyUzs,
+        yearlyUzs,
+        isPopular: Boolean(match.is_featured ?? base.isPopular),
+      };
+    });
+  }, [plans]);
+
+  const selectedTier = useMemo(
+    () => resolvedTiers.find((t) => t.code === selectedPlanForSub) || resolvedTiers[1] || CANONICAL_TIERS[1],
+    [resolvedTiers, selectedPlanForSub]
+  );
 
   if (!subscription && loading) {
     return (
@@ -112,9 +229,9 @@ export function BillingTab({
   const isMegaDiscountActive = subscription?.status === "mega_discount_active";
   const isMegaDiscountExpired = subscription?.status === "mega_discount_expired";
   const isSubscriptionActive = subscription?.status === "subscription_active";
-  const isRenewalDue = subscription?.status === "renewal_due" || subscription?.status === "renewal_pending";
-  const isExpired = subscription?.status === "subscription_expired";
   const isCancelled = subscription?.status === "cancelled";
+  const isExpired = subscription?.status === "subscription_expired";
+  const isRenewalPendingCancel = Boolean(subscription?.cancel_at_period_end || isCancelled);
 
   const formatDate = (isoStr: string | null | undefined) => {
     if (!isoStr) return "-";
@@ -132,31 +249,22 @@ export function BillingTab({
     }
   };
 
-  const formatUzs = (tiyinAmount: number | undefined) => {
-    if (!tiyinAmount) return "0 so'm";
-    const sums = Math.round(tiyinAmount / 100);
-    return sums.toLocaleString("uz-UZ") + " so'm";
-  };
-
   const handleStartMegaDiscount = async (planCode: string) => {
     setCheckoutLoading(true);
     setCheckoutError(null);
     try {
-      const resp = await fetch("/api/billing/mega-discount/checkout", {
+      const data = await api<any>("/api/billing/mega-discount/checkout", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan_code: planCode, return_url: window.location.href }),
+        body: JSON.stringify({ plan_code: normalizePlan(planCode), return_url: window.location.href }),
       });
-      const data = await resp.json();
-      if (!resp.ok) {
-        setCheckoutError(data.detail || "To'lov hisobini yaratishda xatolik yuz berdi");
-        return;
-      }
-      if (data.checkout_url) {
+      await loadInvoices();
+      if (data?.checkout_url) {
         window.location.href = data.checkout_url;
+      } else {
+        setCheckoutError("To'lov havolasi olinmadi. Iltimos qayta urinib ko'ring.");
       }
     } catch (err: any) {
-      setCheckoutError("Xatolik: " + err.message);
+      setCheckoutError(err?.message || "To'lov hisobini yaratishda xatolik yuz berdi");
     } finally {
       setCheckoutLoading(false);
     }
@@ -171,41 +279,69 @@ export function BillingTab({
     setCheckoutLoading(true);
     setCheckoutError(null);
     try {
-      // 1. Record explicit user consent
-      await fetch("/api/billing/subscription/consent", {
+      const agreedAmountUzs = selectedCycleForSub === "yearly" ? selectedTier.yearlyUzs : selectedTier.monthlyUzs;
+
+      // 1. Record explicit user consent through authenticated proxy
+      await api("/api/billing/subscription/consent", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           billing_cycle: selectedCycleForSub,
-          agreed_amount: selectedCycleForSub === "yearly" ? subscription?.plan_prices.yearly_uzs : subscription?.plan_prices.monthly_uzs,
-          accepted_terms_version: "v1.0"
+          agreed_amount: Math.round(agreedAmountUzs * 100),
+          accepted_terms_version: "v1.0",
         }),
       });
 
-      // 2. Create subscription checkout
-      const resp = await fetch("/api/billing/subscription/checkout", {
+      // 2. Create subscription checkout through authenticated proxy
+      const data = await api<any>("/api/billing/subscription/checkout", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          plan_code: selectedPlanForSub,
+          plan_code: selectedTier.code,
           billing_cycle: selectedCycleForSub,
-          return_url: window.location.href
+          return_url: window.location.href,
         }),
       });
-      const data = await resp.json();
-      if (!resp.ok) {
-        setCheckoutError(data.detail || "To'lov hisobini yaratishda xatolik yuz berdi");
-        return;
-      }
-      if (data.checkout_url) {
+      await loadInvoices();
+      if (data?.checkout_url) {
         window.location.href = data.checkout_url;
+      } else {
+        setCheckoutError("TezCheck to'lov havolasi olinmadi.");
       }
     } catch (err: any) {
-      setCheckoutError("Xatolik: " + err.message);
+      setCheckoutError(err?.message || "To'lov hisobini yaratishda xatolik yuz berdi");
     } finally {
       setCheckoutLoading(false);
     }
   };
+
+  const handleCancelClick = async () => {
+    setActionBusy(true);
+    setCheckoutError(null);
+    try {
+      await onCancelSubscription();
+      setConfirmCancel(false);
+    } catch (err: any) {
+      setCheckoutError(err?.message || "Obunani bekor qilishda xatolik");
+    } finally {
+      setActionBusy(false);
+    }
+  };
+
+  const handleResumeClick = async () => {
+    setActionBusy(true);
+    setCheckoutError(null);
+    try {
+      await onResumeSubscription();
+    } catch (err: any) {
+      setCheckoutError(err?.message || "Obunani qayta tiklashda xatolik");
+    } finally {
+      setActionBusy(false);
+    }
+  };
+
+  const selectedAmountLabel =
+    selectedCycleForSub === "yearly"
+      ? `${formatWholeUzs(selectedTier.yearlyUzs)} (${selectedTier.yearlyUsdLabel})`
+      : `${formatWholeUzs(selectedTier.monthlyUzs)} (${selectedTier.monthlyUsdLabel})`;
 
   return (
     <div className="space-y-4">
@@ -219,6 +355,7 @@ export function BillingTab({
           <button type="button" className="btn-close" onClick={() => setCheckoutError(null)} aria-label="Yopish" />
         </div>
       )}
+
       {/* 1. Mega Discount Active Countdown Banner */}
       {isMegaDiscountActive && (
         <div
@@ -248,7 +385,7 @@ export function BillingTab({
         </div>
       )}
 
-      {/* 2. Mega Discount Expired Banner (Official Notification Requirement) */}
+      {/* 2. Mega Discount Expired Banner */}
       {isMegaDiscountExpired && (
         <div
           className="alert alert-warning d-flex align-items-center justify-content-between p-3.5 rounded-3 shadow-sm"
@@ -258,10 +395,8 @@ export function BillingTab({
           <div className="d-flex align-items-center gap-3">
             <IconAlertCircle size={30} className="text-warning flex-shrink-0" />
             <div>
-              <h4 className="alert-title text-warning mb-1 fw-bold fs-4">
-                MEGA CHEGIRMA MUDDATI YAKUNLANDI
-              </h4>
-              <div className="text-dark small fw-medium">
+              <h4 className="alert-title text-warning mb-1 fw-bold fs-4">MEGA CHEGIRMA MUDDATI YAKUNLANDI</h4>
+              <div className="text-primary small fw-medium">
                 Selloi xizmatidan foydalanishni davom ettirish uchun oylik yoki yillik obunani tanlang.
               </div>
               <div className="text-secondary small mt-0.5">
@@ -272,10 +407,7 @@ export function BillingTab({
           <button
             type="button"
             className="btn btn-warning btn-sm d-flex align-items-center gap-1.5 px-3.5 py-2 flex-shrink-0 fw-bold"
-            onClick={() => {
-              const el = document.getElementById("subscription-selection-section");
-              if (el) el.scrollIntoView({ behavior: "smooth" });
-            }}
+            onClick={() => document.getElementById("subscription-selection-section")?.scrollIntoView({ behavior: "smooth" })}
           >
             <IconSparkles size={16} />
             <span>Obunani tanlash</span>
@@ -285,10 +417,7 @@ export function BillingTab({
 
       {/* 3. Subscription Expired Notice */}
       {isExpired && (
-        <div
-          className="alert alert-danger d-flex align-items-center justify-content-between p-3.5 rounded-3 shadow-sm"
-          role="alert"
-        >
+        <div className="alert alert-danger d-flex align-items-center justify-content-between p-3.5 rounded-3 shadow-sm" role="alert">
           <div className="d-flex align-items-center gap-3">
             <IconAlertCircle size={28} className="text-danger flex-shrink-0" />
             <div>
@@ -301,10 +430,7 @@ export function BillingTab({
           <button
             type="button"
             className="btn btn-danger btn-sm d-flex align-items-center gap-1.5 px-3 py-2 flex-shrink-0"
-            onClick={() => {
-              const el = document.getElementById("subscription-selection-section");
-              if (el) el.scrollIntoView({ behavior: "smooth" });
-            }}
+            onClick={() => document.getElementById("subscription-selection-section")?.scrollIntoView({ behavior: "smooth" })}
           >
             <IconSparkles size={16} />
             <span>Obunani Yangilash</span>
@@ -331,102 +457,45 @@ export function BillingTab({
             </p>
 
             <div className="row g-3">
-              {/* START Mega Discount */}
-              <div className="col-md-3 col-sm-6">
-                <div className="p-3.5 rounded border border-secondary border-opacity-20 bg-white h-100 d-flex flex-column justify-content-between">
-                  <div>
-                    <div className="badge bg-blue-lt text-blue mb-2">START TARIF</div>
-                    <div className="fs-1 fw-bold text-primary font-monospace">$1 <span className="fs-5 fw-normal text-secondary">(13 000 so'm)</span></div>
-                    <div className="text-secondary small mb-3">7 kunlik to'liq kirish huquqi</div>
-                    <ul className="list-unstyled small space-y-1.5 text-secondary">
-                      <li><IconCheck size={14} className="text-success me-1" /> AI avtomatik javoblar</li>
-                      <li><IconCheck size={14} className="text-success me-1" /> Telegram integratsiyasi</li>
-                      <li><IconCheck size={14} className="text-success me-1" /> 2 operator o'rni</li>
-                    </ul>
-                  </div>
-                  <button
-                    type="button"
-                    className="btn btn-outline-primary btn-sm w-100 mt-3"
-                    disabled={checkoutLoading}
-                    onClick={() => handleStartMegaDiscount("start")}
+              {resolvedTiers.map((tier) => (
+                <div key={`promo-${tier.code}`} className="col-md-4">
+                  <div
+                    className={`p-3.5 rounded border h-100 d-flex flex-column justify-content-between position-relative ${
+                      tier.isPopular
+                        ? "border-success border-opacity-50 shadow-sm"
+                        : "border-secondary border-opacity-20"
+                    }`}
+                    style={{ backgroundColor: "var(--bg-surface-elevated)" }}
                   >
-                    START $1 Boshlash
-                  </button>
-                </div>
-              </div>
-
-              {/* STANDART Mega Discount */}
-              <div className="col-md-3 col-sm-6">
-                <div className="p-3.5 rounded border border-info border-opacity-30 bg-white h-100 d-flex flex-column justify-content-between">
-                  <div>
-                    <div className="badge bg-cyan-lt text-cyan mb-2">STANDART TARIF</div>
-                    <div className="fs-1 fw-bold text-primary font-monospace">$1.5 <span className="fs-5 fw-normal text-secondary">(20 000 so'm)</span></div>
-                    <div className="text-secondary small mb-3">7 kunlik to'liq kirish huquqi</div>
-                    <ul className="list-unstyled small space-y-1.5 text-secondary">
-                      <li><IconCheck size={14} className="text-success me-1" /> AI Vision rasmdan aniqlash</li>
-                      <li><IconCheck size={14} className="text-success me-1" /> 3 ta kanal / bot</li>
-                      <li><IconCheck size={14} className="text-success me-1" /> 5 operator o'rni</li>
-                    </ul>
+                    {tier.isPopular && (
+                      <span className="badge bg-success position-absolute top-0 end-0 m-2">Eng Tavsiya Etilgan</span>
+                    )}
+                    <div>
+                      <div className="badge bg-primary-lt text-primary mb-2">{tier.name} TARIF</div>
+                      <div className="fs-2 fw-bold text-primary font-monospace">
+                        {tier.promoUsdLabel}{" "}
+                        <span className="fs-6 fw-normal text-secondary">({formatWholeUzs(tier.promoUzs)})</span>
+                      </div>
+                      <div className="text-secondary small mb-3">7 kunlik to'liq kirish huquqi</div>
+                      <ul className="list-unstyled small space-y-1.5 text-secondary">
+                        {tier.promoHighlights.map((item, idx) => (
+                          <li key={idx}>
+                            <IconCheck size={14} className="text-success me-1" /> {item}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <button
+                      type="button"
+                      className={`btn btn-sm w-100 mt-3 ${tier.isPopular ? "btn-success fw-bold" : "btn-outline-primary"}`}
+                      disabled={checkoutLoading}
+                      onClick={() => handleStartMegaDiscount(tier.code)}
+                    >
+                      {tier.name} {tier.promoUsdLabel} Boshlash
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    className="btn btn-outline-info btn-sm w-100 mt-3"
-                    disabled={checkoutLoading}
-                    onClick={() => handleStartMegaDiscount("standard")}
-                  >
-                    STANDART $1.5 Boshlash
-                  </button>
                 </div>
-              </div>
-
-              {/* PRO Mega Discount */}
-              <div className="col-md-3 col-sm-6">
-                <div className="p-3.5 rounded border border-success border-opacity-40 bg-white h-100 d-flex flex-column justify-content-between shadow-sm position-relative">
-                  <span className="badge bg-success position-absolute top-0 end-0 m-2">Eng Tavsiya Etilgan</span>
-                  <div>
-                    <div className="badge bg-green-lt text-green mb-2">PRO TARIF</div>
-                    <div className="fs-1 fw-bold text-success font-monospace">$2 <span className="fs-5 fw-normal text-secondary">(26 000 so'm)</span></div>
-                    <div className="text-secondary small mb-3">7 kunlik to'liq kirish huquqi</div>
-                    <ul className="list-unstyled small space-y-1.5 text-secondary">
-                      <li><IconCheck size={14} className="text-success me-1" /> Barcha STANDART imkoniyatlar</li>
-                      <li><IconCheck size={14} className="text-success me-1" /> RAG bilimlar bazasi</li>
-                      <li><IconCheck size={14} className="text-success me-1" /> 10 operator o'rni</li>
-                    </ul>
-                  </div>
-                  <button
-                    type="button"
-                    className="btn btn-success btn-sm w-100 mt-3 fw-bold"
-                    disabled={checkoutLoading}
-                    onClick={() => handleStartMegaDiscount("pro")}
-                  >
-                    PRO $2 Boshlash
-                  </button>
-                </div>
-              </div>
-
-              {/* ULTRA Mega Discount */}
-              <div className="col-md-3 col-sm-6">
-                <div className="p-3.5 rounded border border-secondary border-opacity-20 bg-white h-100 d-flex flex-column justify-content-between">
-                  <div>
-                    <div className="badge bg-purple-lt text-purple mb-2">ULTRA TARIF</div>
-                    <div className="fs-1 fw-bold text-primary font-monospace">$3 <span className="fs-5 fw-normal text-secondary">(39 000 so'm)</span></div>
-                    <div className="text-secondary small mb-3">7 kunlik to'liq kirish huquqi</div>
-                    <ul className="list-unstyled small space-y-1.5 text-secondary">
-                      <li><IconCheck size={14} className="text-success me-1" /> Barcha PRO imkoniyatlar</li>
-                      <li><IconCheck size={14} className="text-success me-1" /> Cheksiz quvvat & ustuvorlik</li>
-                      <li><IconCheck size={14} className="text-success me-1" /> Maxsus AI vositalari</li>
-                    </ul>
-                  </div>
-                  <button
-                    type="button"
-                    className="btn btn-outline-primary btn-sm w-100 mt-3"
-                    disabled={checkoutLoading}
-                    onClick={() => handleStartMegaDiscount("ultra")}
-                  >
-                    ULTRA $3 Boshlash
-                  </button>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </div>
@@ -453,11 +522,15 @@ export function BillingTab({
                 }`}
               >
                 {isSubscriptionActive
-                  ? "Faol Obuna"
+                  ? isRenewalPendingCancel
+                    ? "Bekor qilinish jarayonida"
+                    : "Faol Obuna"
                   : isMegaDiscountActive
                   ? "Mega Chegirma (7 kun)"
                   : isMegaDiscountExpired
                   ? "Mega Chegirma Yakunlangan"
+                  : isCancelled
+                  ? "Bekor Qilingan"
                   : "To'lov Kutilmoqda"}
               </span>
             </div>
@@ -491,31 +564,71 @@ export function BillingTab({
                 <div className="col-sm-6">
                   <div className="p-3 rounded bg-body-tertiary border border-secondary border-opacity-10">
                     <div className="text-secondary small mb-1">Faollashgan vaqt</div>
-                    <div className="fw-semibold text-primary small">
-                      {formatDate(subscription?.current_period_start)}
-                    </div>
+                    <div className="fw-semibold text-primary small">{formatDate(subscription?.current_period_start)}</div>
                   </div>
                 </div>
                 <div className="col-sm-6">
                   <div className="p-3 rounded bg-body-tertiary border border-secondary border-opacity-10">
                     <div className="text-secondary small mb-1">Amal qilish muddati (Tugash sanasi)</div>
-                    <div className="fw-semibold text-primary small">
-                      {formatDate(subscription?.current_period_end)}
-                    </div>
+                    <div className="fw-semibold text-primary small">{formatDate(subscription?.current_period_end)}</div>
                   </div>
                 </div>
               </div>
 
-              <div className="d-flex align-items-center gap-2">
+              <div className="d-flex flex-wrap align-items-center gap-2">
                 <button
                   type="button"
                   className="btn btn-outline-secondary d-flex align-items-center gap-1.5"
-                  onClick={onRefresh}
-                  disabled={loading}
+                  onClick={() => {
+                    onRefresh();
+                    void loadInvoices();
+                  }}
+                  disabled={loading || invoicesLoading}
                 >
-                  <IconRefresh size={15} className={loading ? "spin" : ""} />
+                  <IconRefresh size={15} className={loading || invoicesLoading ? "spin" : ""} />
                   <span>Ma'lumotlarni Yangilash</span>
                 </button>
+
+                {isRenewalPendingCancel ? (
+                  <button
+                    type="button"
+                    className="btn btn-outline-success"
+                    disabled={actionBusy}
+                    onClick={handleResumeClick}
+                  >
+                    Obunani Qayta Tiklash
+                  </button>
+                ) : isSubscriptionActive ? (
+                  confirmCancel ? (
+                    <div className="d-flex align-items-center gap-2">
+                      <button
+                        type="button"
+                        className="btn btn-danger btn-sm"
+                        disabled={actionBusy}
+                        onClick={handleCancelClick}
+                      >
+                        Ha, bekor qilinsin
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-outline-secondary btn-sm"
+                        disabled={actionBusy}
+                        onClick={() => setConfirmCancel(false)}
+                      >
+                        Yo'q
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn btn-outline-danger btn-sm"
+                      disabled={actionBusy}
+                      onClick={() => setConfirmCancel(true)}
+                    >
+                      Obunani Bekor Qilish
+                    </button>
+                  )
+                ) : null}
               </div>
             </div>
           </div>
@@ -556,7 +669,7 @@ export function BillingTab({
 
       {/* 6. Regular Monthly and Yearly Subscription Selection Section */}
       <div className="card shadow-sm border border-secondary border-opacity-15" id="subscription-selection-section">
-        <div className="card-header py-3 px-4 d-flex align-items-center justify-content-between">
+        <div className="card-header py-3 px-4 d-flex flex-wrap align-items-center justify-content-between gap-2">
           <div>
             <h3 className="card-title fw-bold mb-0">Doimiy Obunani Tanlash (Oylik va Yillik)</h3>
             <span className="text-secondary small">Haftalik obuna yo'q. Faqat 30 kunlik oylik va 365 kunlik yillik rejalar.</span>
@@ -581,113 +694,43 @@ export function BillingTab({
 
         <div className="card-body p-4">
           <div className="row g-3 mb-4">
-            {/* START Plan */}
-            <div className="col-xl-3 col-md-6">
-              <div
-                className={`p-3.5 rounded border cursor-pointer h-100 ${
-                  selectedPlanForSub === "start" ? "border-primary bg-primary-lt" : "border-secondary border-opacity-20"
-                }`}
-                onClick={() => setSelectedPlanForSub("start")}
-              >
-                <div className="d-flex align-items-center justify-content-between mb-2">
-                  <span className="fw-bold fs-4">START</span>
-                  {selectedPlanForSub === "start" && <IconCheck size={20} className="text-primary" />}
-                </div>
-                <div className="fs-2 fw-bold font-monospace text-primary mb-1">
-                  {selectedCycleForSub === "yearly" ? "2 440 000 so'm" : "244 000 so'm"}
-                </div>
-                <div className="text-secondary small mb-3">
-                  ${selectedCycleForSub === "yearly" ? "190 / yil" : "19 / oy"}
-                </div>
-                <ul className="list-unstyled small space-y-1 text-secondary">
-                  <li>AI Avtomatik javoblar</li>
-                  <li>Operator takeover</li>
-                  <li>Jonli chatlar paneli</li>
-                  <li>2 ta operator o'rni</li>
-                </ul>
-              </div>
-            </div>
+            {resolvedTiers.map((tier) => {
+              const isSelected = selectedPlanForSub === tier.code;
+              const uzsPrice = selectedCycleForSub === "yearly" ? tier.yearlyUzs : tier.monthlyUzs;
+              const usdPriceLabel = selectedCycleForSub === "yearly" ? tier.yearlyUsdLabel : tier.monthlyUsdLabel;
 
-            {/* STANDART Plan */}
-            <div className="col-xl-3 col-md-6">
-              <div
-                className={`p-3.5 rounded border cursor-pointer h-100 ${
-                  selectedPlanForSub === "standard" ? "border-info bg-cyan-lt" : "border-secondary border-opacity-20"
-                }`}
-                onClick={() => setSelectedPlanForSub("standard")}
-              >
-                <div className="d-flex align-items-center justify-content-between mb-2">
-                  <span className="fw-bold fs-4">STANDART</span>
-                  {selectedPlanForSub === "standard" && <IconCheck size={20} className="text-info" />}
+              return (
+                <div key={tier.code} className="col-md-4">
+                  <div
+                    className={`p-3.5 rounded border cursor-pointer h-100 position-relative ${
+                      isSelected
+                        ? tier.isPopular
+                          ? "border-success bg-green-lt shadow-sm"
+                          : "border-primary bg-primary-lt shadow-sm"
+                        : "border-secondary border-opacity-20"
+                    }`}
+                    onClick={() => setSelectedPlanForSub(tier.code)}
+                  >
+                    <div className="d-flex align-items-center justify-content-between mb-2">
+                      <span className="fw-bold fs-4">{tier.name}</span>
+                      <div className="d-flex align-items-center gap-1.5">
+                        {tier.isPopular && <span className="badge bg-success text-white">Eng Ommabop</span>}
+                        {isSelected && <IconCheck size={20} className={tier.isPopular ? "text-success" : "text-primary"} />}
+                      </div>
+                    </div>
+                    <div className={`fs-2 fw-bold font-monospace mb-1 ${tier.isPopular ? "text-success" : "text-primary"}`}>
+                      {formatWholeUzs(uzsPrice)}
+                    </div>
+                    <div className="text-secondary small mb-3">{usdPriceLabel}</div>
+                    <ul className="list-unstyled small space-y-1 text-secondary">
+                      {tier.subHighlights.map((hl, idx) => (
+                        <li key={idx}>{hl}</li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
-                <div className="fs-2 fw-bold font-monospace text-primary mb-1">
-                  {selectedCycleForSub === "yearly" ? "4 990 000 so'm" : "499 000 so'm"}
-                </div>
-                <div className="text-secondary small mb-3">
-                  ${selectedCycleForSub === "yearly" ? "390 / yil" : "39 / oy"}
-                </div>
-                <ul className="list-unstyled small space-y-1 text-secondary">
-                  <li>AI Vision rasmdan tovar tanish</li>
-                  <li>Click va Payme to'lovlari</li>
-                  <li>3 ta kanal / bot</li>
-                  <li>5 ta operator o'rni</li>
-                </ul>
-              </div>
-            </div>
-
-            {/* PRO Plan */}
-            <div className="col-xl-3 col-md-6">
-              <div
-                className={`p-3.5 rounded border cursor-pointer h-100 position-relative ${
-                  selectedPlanForSub === "pro" ? "border-success bg-green-lt shadow-sm" : "border-secondary border-opacity-20"
-                }`}
-                onClick={() => setSelectedPlanForSub("pro")}
-              >
-                <div className="d-flex align-items-center justify-content-between mb-2">
-                  <span className="fw-bold fs-4">PRO</span>
-                  <span className="badge bg-success text-white">Eng Ommabop</span>
-                </div>
-                <div className="fs-2 fw-bold font-monospace text-success mb-1">
-                  {selectedCycleForSub === "yearly" ? "7 580 000 so'm" : "758 000 so'm"}
-                </div>
-                <div className="text-secondary small mb-3">
-                  ${selectedCycleForSub === "yearly" ? "590 / yil" : "59 / oy"}
-                </div>
-                <ul className="list-unstyled small space-y-1 text-secondary">
-                  <li>Barcha STANDART imkoniyatlar</li>
-                  <li>Vektorli RAG qidiruvi</li>
-                  <li>Ko'p kanalli integratsiya</li>
-                  <li>10 ta operator o'rni</li>
-                </ul>
-              </div>
-            </div>
-
-            {/* ULTRA Plan */}
-            <div className="col-xl-3 col-md-6">
-              <div
-                className={`p-3.5 rounded border cursor-pointer h-100 ${
-                  selectedPlanForSub === "ultra" ? "border-purple bg-purple-lt" : "border-secondary border-opacity-20"
-                }`}
-                onClick={() => setSelectedPlanForSub("ultra")}
-              >
-                <div className="d-flex align-items-center justify-content-between mb-2">
-                  <span className="fw-bold fs-4">ULTRA</span>
-                  {selectedPlanForSub === "ultra" && <IconCheck size={20} className="text-purple" />}
-                </div>
-                <div className="fs-2 fw-bold font-monospace text-primary mb-1">
-                  {selectedCycleForSub === "yearly" ? "19 140 000 so'm" : "1 914 000 so'm"}
-                </div>
-                <div className="text-secondary small mb-3">
-                  ${selectedCycleForSub === "yearly" ? "1490 / yil" : "149 / oy"}
-                </div>
-                <ul className="list-unstyled small space-y-1 text-secondary">
-                  <li>Barcha PRO imkoniyatlari</li>
-                  <li>Cheksiz xabarlar & ustuvorlik</li>
-                  <li>Maxsus AI vositalari</li>
-                  <li>50 ta operator o'rni</li>
-                </ul>
-              </div>
-            </div>
+              );
+            })}
           </div>
 
           {/* 7. Explicit User Consent Box (NEVER PRECHECKED) */}
@@ -695,17 +738,10 @@ export function BillingTab({
             <h4 className="fw-bold mb-2">Avtomatik Yangilanish va Obuna Shartlari</h4>
             <div className="text-secondary small mb-3">
               <p className="mb-1">
-                <strong>Reja:</strong> {selectedPlanForSub.toUpperCase()} ({selectedCycleForSub === "yearly" ? "Yillik: 365 kun" : "Oylik: 30 kun"}).
+                <strong>Reja:</strong> {selectedTier.name} ({selectedCycleForSub === "yearly" ? "Yillik: 365 kun" : "Oylik: 30 kun"}).
               </p>
               <p className="mb-1">
-                <strong>To'lov miqdori:</strong>{" "}
-                {selectedPlanForSub === "start"
-                  ? selectedCycleForSub === "yearly" ? "2 440 000 so'm ($190)" : "244 000 so'm ($19)"
-                  : selectedPlanForSub === "standard" || selectedPlanForSub === "standart"
-                  ? selectedCycleForSub === "yearly" ? "4 990 000 so'm ($390)" : "499 000 so'm ($39)"
-                  : selectedPlanForSub === "pro"
-                  ? selectedCycleForSub === "yearly" ? "7 580 000 so'm ($590)" : "758 000 so'm ($59)"
-                  : selectedCycleForSub === "yearly" ? "19 140 000 so'm ($1490)" : "1 914 000 so'm ($149)"}
+                <strong>To'lov miqdori:</strong> {selectedAmountLabel}
               </p>
               <p className="mb-1">
                 <strong>Yangilanish tartibi:</strong> TezCheck to'lov tizimida kartani avtomatik yechib olish mavjud emas. Obunangiz tugash arafasida yangilash uchun hisob-faktura yuboriladi va siz to'lovni tasdiqlashingiz kerak bo'ladi. Obunani istalgan vaqtda shaxsiy kabinet orqali bekor qilishingiz mumkin.
@@ -720,7 +756,7 @@ export function BillingTab({
                 checked={renewalConsentChecked}
                 onChange={(e) => setRenewalConsentChecked(e.target.checked)}
               />
-              <label className="form-check-label fw-semibold text-dark small" htmlFor="renewalConsentCheckbox">
+              <label className="form-check-label fw-semibold small" htmlFor="renewalConsentCheckbox">
                 Men obunamning belgilangan muddatlarda avtomatik yangilanishiga roziman.
               </label>
             </div>
@@ -734,9 +770,100 @@ export function BillingTab({
               onClick={handleStartSubscription}
             >
               <IconSparkles size={18} />
-              <span>TezCheck Orqali To'lovga O'tish</span>
+              <span>{checkoutLoading ? "Hisob yaratilmoqda..." : "TezCheck Orqali To'lovga O'tish"}</span>
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* 8. Billing Invoices History */}
+      <div className="card shadow-sm border border-secondary border-opacity-15">
+        <div className="card-header py-3 px-4 d-flex align-items-center justify-content-between">
+          <div className="d-flex align-items-center gap-2">
+            <IconReceipt size={18} className="text-primary" />
+            <h3 className="card-title fw-bold mb-0">To'lov Hisob-Fakturalari ({invoices.length})</h3>
+          </div>
+          <button
+            type="button"
+            className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1"
+            onClick={() => void loadInvoices()}
+            disabled={invoicesLoading}
+          >
+            <IconRefresh size={14} className={invoicesLoading ? "spin" : ""} />
+            <span>Yangilash</span>
+          </button>
+        </div>
+        <div className="card-body p-0">
+          {invoices.length === 0 ? (
+            <div className="p-4 text-center text-secondary small">
+              Hozircha to'lov hisob-fakturalari mavjud emas.
+            </div>
+          ) : (
+            <div className="table-responsive">
+              <table className="linear-table mb-0">
+                <thead>
+                  <tr>
+                    <th>Hisob ID</th>
+                    <th>Tarif</th>
+                    <th>Sikl</th>
+                    <th>Summa</th>
+                    <th>Holat</th>
+                    <th>Sana</th>
+                    <th style={{ textAlign: "right" }}>Havola</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {invoices.map((inv) => {
+                    const st = String(inv.status || "pending").toLowerCase();
+                    const uzsVal = inv.amount_uzs ?? Math.round((inv.amount || 0) / 100);
+                    return (
+                      <tr key={inv.bill_id || inv.id}>
+                        <td className="font-monospace small text-secondary">{inv.bill_id || inv.id}</td>
+                        <td className="fw-semibold small">{(inv.plan_code || "-").toUpperCase()}</td>
+                        <td className="small text-secondary">
+                          {inv.billing_cycle === "yearly"
+                            ? "Yillik"
+                            : inv.billing_cycle === "mega_discount"
+                            ? "7 kunlik Chegirma"
+                            : "Oylik"}
+                        </td>
+                        <td className="font-monospace fw-semibold small">{formatWholeUzs(uzsVal)}</td>
+                        <td>
+                          <span
+                            className={`badge ${
+                              st === "paid" || st === "completed"
+                                ? "bg-green-lt text-green"
+                                : st === "expired" || st === "failed"
+                                ? "bg-danger-lt text-danger"
+                                : "bg-warning-lt text-warning"
+                            }`}
+                          >
+                            {st === "paid" || st === "completed" ? "To'langan" : st === "expired" ? "Muddati o'tgan" : "Kutilmoqda"}
+                          </span>
+                        </td>
+                        <td className="small text-secondary">{formatDate(inv.paid_at || inv.created_at)}</td>
+                        <td style={{ textAlign: "right" }}>
+                          {inv.checkout_url && st !== "paid" && st !== "completed" ? (
+                            <a
+                              href={inv.checkout_url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="btn btn-xs btn-primary d-inline-flex align-items-center gap-1"
+                            >
+                              <span>To'lash</span>
+                              <IconExternalLink size={12} />
+                            </a>
+                          ) : (
+                            <span className="text-secondary small">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -5,16 +5,14 @@ behind an HTTPS webhook (production) or via long-polling (local dev / VPS withou
 """
 
 import asyncio
-from typing import Dict, Any, Optional
+from typing import Dict, Optional
 import httpx
 from sqlalchemy import select
 from app.core.config import settings
 from app.core.db import SessionLocal
 from app.core.logging import get_logger
-from app.models import Organization, ConnectedChannel, Order
+from app.models import Organization
 from app.services.telegram import get_telegram_service, TelegramService
-from app.services.ai import sales_ai
-from app.services.knowledge import knowledge
 
 logger = get_logger(__name__)
 
@@ -36,7 +34,7 @@ class TenantBotManager:
     async def stop(self) -> None:
         """Gracefully cancel all running bot polling tasks."""
         self._running = False
-        for org_id, task in list(self._tasks.items()):
+        for _org_id, task in list(self._tasks.items()):
             task.cancel()
         self._tasks.clear()
         self._invalid_org_ids.clear()
@@ -105,13 +103,15 @@ class TenantBotManager:
         # 1. Check if public HTTPS webhook is active
         try:
             webhook_info = await tg_svc.get_webhook_info()
-            if not webhook_info.get("ok"):
-                desc = webhook_info.get("description", "")
-                if "Unauthorized" in desc or webhook_info.get("error_code") == 401:
-                    logger.info("Bot token yaroqsiz (Unauthorized), polling to'xtatildi: org=%s", org_slug)
-                    self._invalid_org_ids.add(org_id)
-                    return
-            webhook_url = webhook_info.get("result", {}).get("url", "")
+            webhook_url = webhook_info.get("url", "") if isinstance(webhook_info, dict) else ""
+            if isinstance(webhook_info, dict) and "result" in webhook_info:
+                if not webhook_info.get("ok"):
+                    desc = webhook_info.get("description", "")
+                    if "Unauthorized" in desc or webhook_info.get("error_code") == 401:
+                        logger.info("Bot token yaroqsiz (Unauthorized), polling to'xtatildi: org=%s", org_slug)
+                        self._invalid_org_ids.add(org_id)
+                        return
+                webhook_url = webhook_info.get("result", {}).get("url", "")
             if webhook_url.startswith("https://"):
                 logger.info(
                     "Bot HTTPS webhook orqali ishlamoqda: org=%s, url=%s (polling o'chirildi)",
@@ -120,7 +120,6 @@ class TenantBotManager:
                 )
                 return
             elif webhook_url:
-                # Remove stale or invalid (e.g. http://localhost) webhook so polling can work
                 logger.info("Eski/yaroqsiz webhook o'chirildi: %s (org=%s)", webhook_url, org_slug)
                 await tg_svc.delete_webhook(drop_pending_updates=False)
         except Exception as exc:
@@ -140,7 +139,7 @@ class TenantBotManager:
                 if updates is None:  # Unauthorized or fatal
                     self._invalid_org_ids.add(org_id)
                     break
-                backoff = 2  # reset backoff on success
+                backoff = 2
 
                 for update in updates:
                     update_id = update.get("update_id", 0)
@@ -162,17 +161,19 @@ class TenantBotManager:
     async def _fetch_updates(self, token: str, offset: int, timeout: int = 10) -> Optional[list[dict]]:
         """Fetch pending updates via Telegram getUpdates API."""
         async with httpx.AsyncClient(timeout=timeout + 5) as client:
-            resp = await client.get(
+            resp = await client.post(
                 f"https://api.telegram.org/bot{token}/getUpdates",
-                params={
+                json={
                     "offset": offset,
                     "timeout": timeout,
                     "allowed_updates": [
                         "message",
                         "callback_query",
                         "business_message",
+                        "edited_business_message",
                         "business_connection",
                         "channel_post",
+                        "edited_channel_post",
                     ],
                 },
             )
@@ -184,30 +185,20 @@ class TenantBotManager:
             return data.get("result", [])
 
     async def _process_update(self, update: dict, org_id: int, org_name: str, tg_svc: TelegramService) -> None:
-        """Process a single incoming Telegram update for this store."""
+        """Process a single incoming Telegram update through the unified multi-tenant pipeline."""
         msg = update.get("message")
-        if not msg:
-            return
+        if msg and msg.get("chat", {}).get("type") == "private":
+            chat_id = msg.get("chat", {}).get("id")
+            sender = msg.get("from") or {}
+            first_name = sender.get("first_name", "")
+            text = (msg.get("text") or msg.get("caption") or "").strip()
 
-        chat = msg.get("chat", {})
-        chat_id = chat.get("id")
-        if not chat_id:
-            return
-
-        sender = msg.get("from") or {}
-        first_name = sender.get("first_name", "")
-        last_name = sender.get("last_name", "")
-        customer_name = f"{first_name} {last_name}".strip() or "Mijoz"
-        text = (msg.get("text") or msg.get("caption") or "").strip()
-
-        # Handle Private Chat Messages
-        if chat.get("type") == "private":
-            if text == "/start":
+            if text == "/start" and org_id != 1 and chat_id:
                 welcome_text = (
-                    f"Assalomu alaykum, {first_name}! 👋\n\n"
+                    f"Assalomu alaykum, {first_name or 'mijoz'}! 👋\n\n"
                     f"**{org_name}** do'konining rasmiy savdo botiga xush kelibsiz!\n\n"
                     "Men sun'iy intellekt asosida ishlovchi savdo assistentiman. "
-                    "Do'konimizdagi barcha mahsulotlar, narxlar va buyurtma berish haqida har qanday savolingizga javob bera olaman.\n\n"
+                    "Do'konimizdagi barcha mahsulotlar, narxlar va buyurtma berish haqida savolingizga javob bera olaman.\n\n"
                     "💡 Savolingiz yoki qiziqtirgan mahsulotingizni bemalol yozing!"
                 )
                 await tg_svc.call("sendMessage", {
@@ -217,13 +208,12 @@ class TenantBotManager:
                 })
                 return
 
-            if text in ("/help", "/yordam"):
+            if text in ("/help", "/yordam") and org_id != 1 and chat_id:
                 help_text = (
                     f"🤖 **{org_name} Savdo Assistentidan foydalanish:**\n\n"
                     "• Qiziqtirgan mahsulotingiz nomini yozing (masalan: *narxi qancha?*, *yetkazib berish bormi?*)\n"
                     "• AI mahsulot ma'lumotlarini rasmlari bilan taqdim etadi.\n"
-                    "• Buyurtma bermoqchi bo'lsangiz, ismingiz, telefon raqamingiz va manzilingizni qoldiring.\n\n"
-                    "Assistent 24/7 rejimida xizmatingizda!"
+                    "• Buyurtma bermoqchi bo'lsangiz, ismingiz, telefon raqamingiz va manzilingizni qoldiring."
                 )
                 await tg_svc.call("sendMessage", {
                     "chat_id": chat_id,
@@ -232,114 +222,26 @@ class TenantBotManager:
                 })
                 return
 
-            if not text:
-                return
+        update_id = update.get("update_id")
+        if isinstance(update_id, int):
+            from app.services.durable_inbox import process_single_inbox_job, record_inbox_update
 
-            # Show typing action while AI processes
-            try:
-                await tg_svc.call("sendChatAction", {"chat_id": chat_id, "action": "typing"})
-            except Exception:
-                pass
-
-            # Search knowledge base for this organization
             async with SessionLocal() as db:
-                org = await db.get(Organization, org_id)
-                ai_lang = org.ai_language if org else "uz"
-                ai_persona = org.ai_personality if org else None
-
-                evidence = []
-                if not sales_ai.is_greeting(text):
-                    evidence = await knowledge.search(db, text, limit=6, organization_id=org_id)
-
-                decision = await sales_ai.answer(
-                    text,
-                    evidence,
-                    [],
-                    store_name=org_name,
-                    language=ai_lang,
+                inbox_item, is_dup = await record_inbox_update(
+                    db,
+                    bot_id=f"org_{org_id}",
+                    update_id=update_id,
+                    payload=update,
                     organization_id=org_id,
-                    db=db,
                 )
+            if is_dup:
+                return
+            if inbox_item and not getattr(settings, "run_background_workers", False):
+                await process_single_inbox_job(inbox_item.id)
+            return
 
-            # Reply to customer with photo if available
-            reply_text = decision.get("reply", "Kechirasiz, tizimda vaqtinchalik xatolik yuz berdi.")
-            sent = False
-            if decision.get("attach_photo") and decision.get("source_post_id") is not None:
-                selected_post = next((p for p in evidence if p.telegram_message_id == decision["source_post_id"]), None)
-                if selected_post and selected_post.photo_file_id:
-                    try:
-                        await tg_svc.call("sendPhoto", {
-                            "chat_id": chat_id,
-                            "photo": selected_post.photo_file_id,
-                            "caption": reply_text[:1024],
-                        })
-                        sent = True
-                    except Exception:
-                        sent = False
-
-            if not sent:
-                await tg_svc.call("sendMessage", {
-                    "chat_id": chat_id,
-                    "text": reply_text,
-                })
-
-            # Check if order was created or handoff needed -> notify admin via durable outbox
-            if decision.get("order_created") and decision.get("order_data"):
-                from app.services.durable_inbox import (
-                    generate_order_idempotency_key,
-                    generate_outbox_idempotency_key,
-                    get_or_create_idempotent_order,
-                    stage_outbox_event,
-                )
-                order_info = decision["order_data"]
-                direct_msg_id = message.get("message_id", 0)
-                bot_identifier = bot_row.id if bot_row else "manager"
-                order_idempotency_key = generate_order_idempotency_key(
-                    source="botmgr",
-                    organization_id=org_id,
-                    bot_id=str(bot_identifier),
-                    chat_id=chat_id,
-                    message_id=direct_msg_id,
-                )
-                async with SessionLocal() as db:
-                    new_order, created = await get_or_create_idempotent_order(
-                        db,
-                        idempotency_key=order_idempotency_key,
-                        organization_id=org_id,
-                        customer_name=order_info.get("customer_name") or customer_name,
-                        phone=order_info.get("phone") or "",
-                        product_summary=order_info.get("product_summary") or "",
-                        delivery_address=order_info.get("delivery_address") or "",
-                        status="new",
-                        notes=f"Telegram bot chatidan (@{sender.get('username') or ''}, ID: {chat_id})",
-                    )
-                    if created and org and org.admin_chat_id:
-                        alert_text = (
-                            f"🛒 **Yangi Buyurtma! (#{new_order.id})**\n\n"
-                            f"👤 **Mijoz:** {new_order.customer_name}\n"
-                            f"📞 **Telefon:** {new_order.phone or 'Kiritilmagan'}\n"
-                            f"📦 **Mahsulot:** {new_order.product_summary}\n"
-                            f"📍 **Manzil:** {new_order.delivery_address or 'Kiritilmagan'}\n"
-                            f"💬 **Telegram:** @{sender.get('username') or 'Mavjud emas'}"
-                        )
-                        outbox_key = generate_outbox_idempotency_key(
-                            event_type="send_message",
-                            organization_id=org_id,
-                            entity_id=new_order.id or order_idempotency_key,
-                            action="admin_alert",
-                        )
-                        await stage_outbox_event(
-                            db,
-                            idempotency_key=outbox_key,
-                            event_type="send_message",
-                            payload={
-                                "chat_id": org.admin_chat_id,
-                                "text": alert_text,
-                                "parse_mode": "Markdown",
-                            },
-                            organization_id=org_id,
-                        )
-                    await db.commit()
+        from app.api.webhooks import execute_update_payload
+        await execute_update_payload(update, organization_id=org_id)
 
 
 # Global singleton instance

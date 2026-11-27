@@ -362,7 +362,7 @@ async def create_organization_as_owner(
     await db.refresh(org)
 
     # 7. Configure Telegram webhook if token and base URL are present
-    webhook_url = f"{settings.public_webhook_url.rstrip('/')}/api/webhooks/telegram/{org.slug}" if settings.public_webhook_url else None
+    webhook_url = f"{settings.public_webhook_url.rstrip('/')}/telegram/webhook/{org.slug}" if settings.public_webhook_url else None
     if clean_token and webhook_url:
         try:
             async with httpx.AsyncClient(timeout=8.0) as client:

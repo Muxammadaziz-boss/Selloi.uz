@@ -131,6 +131,23 @@ class OrganizationMember(Base):
     user: Mapped[User] = relationship(back_populates="memberships")
 
 
+class OrganizationInvite(Base):
+    """Email-based workspace team invitation with role and single-use signed token hash."""
+    __tablename__ = "organization_invites"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True, nullable=False)
+    email: Mapped[str] = mapped_column(String(255), index=True, nullable=False)
+    role: Mapped[str] = mapped_column(String(32), default="operator", nullable=False)
+    permissions: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
+    invited_by_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    status: Mapped[str] = mapped_column(String(32), default="pending", index=True, nullable=False)  # pending, accepted, revoked, expired
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
 class Plan(Base):
     """Commercial pricing tiers: START, PRO, ULTRA."""
     __tablename__ = "plans"
@@ -674,25 +691,36 @@ class StorePaymentConfig(Base):
     tezcheck_cash_desk_code: Mapped[str | None] = mapped_column(String(128), nullable=True)
     click_service_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
     click_merchant_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    click_secret_key: Mapped[str | None] = mapped_column(Text, nullable=True)  # Fernet encrypted
     payme_merchant_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    payme_secret_key: Mapped[str | None] = mapped_column(Text, nullable=True)  # Fernet encrypted
     card_number: Mapped[str | None] = mapped_column(String(64), nullable=True)
     card_holder: Mapped[str | None] = mapped_column(String(128), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
-    @property
-    def decrypted_tezcheck_api_key(self) -> str | None:
-        if not self.tezcheck_api_key:
+    @staticmethod
+    def _decrypt_optional(encrypted_value: str | None) -> str | None:
+        if not encrypted_value:
             return None
         from app.core.security import decrypt_secret
-        return decrypt_secret(self.tezcheck_api_key)
+        return decrypt_secret(encrypted_value)
+
+    @property
+    def decrypted_tezcheck_api_key(self) -> str | None:
+        return self._decrypt_optional(self.tezcheck_api_key)
 
     @property
     def decrypted_tezcheck_secret_key(self) -> str | None:
-        if not self.tezcheck_secret_key:
-            return None
-        from app.core.security import decrypt_secret
-        return decrypt_secret(self.tezcheck_secret_key)
+        return self._decrypt_optional(self.tezcheck_secret_key)
+
+    @property
+    def decrypted_click_secret_key(self) -> str | None:
+        return self._decrypt_optional(self.click_secret_key)
+
+    @property
+    def decrypted_payme_secret_key(self) -> str | None:
+        return self._decrypt_optional(self.payme_secret_key)
 
 
 class StoreOrderPayment(Base):
@@ -706,10 +734,12 @@ class StoreOrderPayment(Base):
     provider: Mapped[str] = mapped_column(String(32), nullable=False)
     bill_id: Mapped[str] = mapped_column(String(128), unique=True, index=True, nullable=False)
     external_reference: Mapped[str] = mapped_column(String(128), unique=True, index=True, nullable=False)
+    provider_transaction_id: Mapped[str | None] = mapped_column(String(128), index=True, nullable=True)
     amount_uzs: Mapped[int] = mapped_column(BigInteger, nullable=False)
     payment_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
     status: Mapped[str] = mapped_column(String(32), default="pending", index=True, nullable=False)  # pending, paid, cancelled, failed
     description: Mapped[str] = mapped_column(String(255), default="", nullable=False)
+    payment_meta: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
     paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { buildVerifiedSessionPayload, attachSessionCookie } from "@/lib/authSession";
+import { buildInternalGoogleAuthSignature, buildVerifiedSessionPayload, attachSessionCookie } from "@/lib/authSession";
 
 function getBaseUrl(request: NextRequest): string {
   const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || "selloi.uz";
@@ -70,9 +70,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ detail: "Google hisobida email topilmadi" }, { status: 400 });
     }
 
+    const internalSig = buildInternalGoogleAuthSignature(email, googleId);
+    const backendHeaders: Record<string, string> = { "Content-Type": "application/json" };
+    if (internalSig) {
+      backendHeaders["X-Internal-Google-Auth"] = internalSig;
+    }
+
     const backendRes = await fetch(`${backendUrl.replace(/\/$/, "")}/api/v1/auth/google`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: backendHeaders,
       body: JSON.stringify({
         email,
         full_name: fullName,

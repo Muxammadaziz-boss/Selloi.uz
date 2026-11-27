@@ -3,7 +3,7 @@
 import asyncio
 from datetime import datetime, timezone
 import secrets
-from typing import Optional
+from typing import Any, Optional
 import httpx
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
 from pydantic import BaseModel, Field
@@ -1270,5 +1270,106 @@ async def store_tezcheck_webhook(
     event_record.processed_at = datetime.now(timezone.utc)
     await db.commit()
     return {"ok": True, "type": "store_order_payment", "result": settled}
+
+
+async def _parse_click_params(request: Request) -> dict[str, Any]:
+    """Extract Click SHOP API parameters from form-urlencoded, query, or JSON body."""
+    from urllib.parse import parse_qsl
+
+    params: dict[str, Any] = dict(request.query_params)
+    content_type = (request.headers.get("content-type") or "").lower()
+    if "application/json" in content_type:
+        try:
+            body_json = await request.json()
+            if isinstance(body_json, dict):
+                params.update(body_json)
+        except Exception:
+            pass
+    elif "application/x-www-form-urlencoded" in content_type or not content_type:
+        try:
+            raw_body = (await request.body()).decode("utf-8", errors="replace")
+            for key, val in parse_qsl(raw_body, keep_blank_values=True):
+                params[key] = val
+        except Exception:
+            pass
+    else:
+        try:
+            form_data = await request.form()
+            for key, val in form_data.items():
+                params[key] = val
+        except Exception:
+            pass
+    return params
+
+
+@router.post("/store-payments/click/webhook/{organization_id}")
+async def store_click_webhook(
+    organization_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """Unified Click Merchant Prepare/Complete webhook for per-store order payments."""
+    from app.services.store_payment_service import handle_click_webhook
+
+    params = await _parse_click_params(request)
+    return await handle_click_webhook(db, organization_id=organization_id, params=params)
+
+
+@router.post("/store-payments/click/prepare/{organization_id}")
+async def store_click_prepare_webhook(
+    organization_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """Click Merchant Prepare endpoint (action=0) for per-store order payments."""
+    from app.services.store_payment_service import handle_click_webhook
+
+    params = await _parse_click_params(request)
+    return await handle_click_webhook(db, organization_id=organization_id, params=params, expected_action=0)
+
+
+@router.post("/store-payments/click/complete/{organization_id}")
+async def store_click_complete_webhook(
+    organization_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """Click Merchant Complete endpoint (action=1) for per-store order payments."""
+    from app.services.store_payment_service import handle_click_webhook
+
+    params = await _parse_click_params(request)
+    return await handle_click_webhook(db, organization_id=organization_id, params=params, expected_action=1)
+
+
+@router.post("/store-payments/payme/webhook/{organization_id}")
+async def store_payme_webhook(
+    organization_id: int,
+    request: Request,
+    authorization: str | None = Header(default=None),
+    db: AsyncSession = Depends(get_db),
+):
+    """Payme Merchant JSON-RPC 2.0 endpoint for per-store order payments."""
+    from app.services.store_payment_service import handle_payme_jsonrpc
+
+    try:
+        payload = await request.json()
+    except Exception:
+        return {
+            "jsonrpc": "2.0",
+            "id": None,
+            "error": {"code": -32700, "message": "Invalid JSON payload"},
+        }
+    if not isinstance(payload, dict):
+        return {
+            "jsonrpc": "2.0",
+            "id": None,
+            "error": {"code": -32600, "message": "Invalid Request"},
+        }
+    return await handle_payme_jsonrpc(
+        db,
+        organization_id=organization_id,
+        authorization_header=authorization,
+        payload=payload,
+    )
 
 

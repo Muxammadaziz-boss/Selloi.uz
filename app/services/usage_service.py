@@ -210,13 +210,20 @@ async def get_actual_entity_count(db: AsyncSession, organization_id: int, metric
         )
         return res or 0
     elif metric == "team_members":
-        res = await db.scalar(
+        from app.models import Admin
+        member_cnt = await db.scalar(
             select(func.count(OrganizationMember.id)).where(
                 OrganizationMember.organization_id == organization_id,
                 OrganizationMember.is_active.is_(True),
             )
-        )
-        return res or 0
+        ) or 0
+        admin_cnt = await db.scalar(
+            select(func.count(Admin.id)).where(
+                Admin.organization_id == organization_id,
+                Admin.is_active.is_(True),
+            )
+        ) or 0
+        return max(member_cnt, admin_cnt)
     elif metric == "telegram_channels":
         res = await db.scalar(
             select(func.count(ConnectedChannel.id)).where(

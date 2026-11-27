@@ -2,6 +2,7 @@
 # ==============================================================================
 # Telegram AI Seller — Server Environment & Docker Setup Script
 # Run directly on VPS: bash deploy/setup_server.sh
+# IMPORTANT: Replace all <CHANGE_ME_...> placeholders after generating files.
 # ==============================================================================
 
 set -e
@@ -36,53 +37,54 @@ else
     echo "✅ Docker allaqachon o'rnatilgan: $(docker --version)"
 fi
 
-# 3. .env va web/.env fayllarini yaratish
-echo "⚙️ [4/5] .env va maxfiy kalitlar sozlanmoqda..."
+# 3. .env va web/.env shablonlarini yaratish (mavjud bo'lmasa)
+echo "⚙️ [4/5] .env shablonlari tekshirilmoqda..."
+if [ ! -f ".env" ]; then
 cat << 'EOF' > .env
 APP_ENV=production
 APP_NAME=AI Sales Assistant
 API_HOST=0.0.0.0
 API_PORT=8000
-DATABASE_URL=postgresql+asyncpg://postgres.ganlawuubihxinuwjvez:mux%40mm%40d%40z1z@aws-1-eu-west-3.pooler.supabase.com:5432/postgres
+POSTGRES_PASSWORD=<CHANGE_ME_STRONG_DB_PASSWORD>
+DATABASE_URL=postgresql+asyncpg://sales:<CHANGE_ME_STRONG_DB_PASSWORD>@db:5432/aisales
 REDIS_URL=redis://redis:6379/0
-TELEGRAM_BOT_TOKEN=8205996263:AAFc5amoaLK-2dONqekWNoiRIISXPAQ5K2k
-TELEGRAM_WEBHOOK_SECRET=tg_secret_webhook_token_2026_xyz
-PUBLIC_WEBHOOK_URL=http://129.146.163.171:8000
+TELEGRAM_BOT_TOKEN=<CHANGE_ME_TELEGRAM_BOT_TOKEN>
+TELEGRAM_WEBHOOK_SECRET=<CHANGE_ME_OPENSSL_RAND_HEX_24>
+PUBLIC_WEBHOOK_URL=https://selloi.uz
 TELEGRAM_PUBLIC_CHANNEL=
-TELEGRAM_ADMIN_CHAT_ID=6990611858
-ADMIN_TELEGRAM_ID=6990611858
-ALLOWED_ORIGINS=*
+TELEGRAM_ADMIN_CHAT_ID=<CHANGE_ME_ADMIN_CHAT_ID>
+ADMIN_TELEGRAM_ID=<CHANGE_ME_ADMIN_TELEGRAM_ID>
+ADMIN_EMAIL=<CHANGE_ME_OWNER_EMAIL>
+ALLOWED_ORIGINS=https://selloi.uz
 AI_PROVIDER=gemini
-GEMINI_API_KEY=AQ.Ab8RN6JN9MfTFrGnAB0sQuE3F0vsPTjFx8xl03NU3t7xMyDCrw
+GEMINI_API_KEY=<CHANGE_ME_GEMINI_API_KEY>
 GEMINI_MODEL=gemini-3.1-flash-lite
 GEMINI_EMBEDDING_MODEL=gemini-embedding-001
-ADMIN_API_TOKEN=super_secret_admin_token_2026_xyz
-INTERNAL_INGEST_TOKEN=internal_ingest_token_secret_2026_abc
-TELEGRAM_API_ID=21888757
-TELEGRAM_API_HASH=5b839954e8ac566c8598ad56aaae9cc4
-TELEGRAM_PHONE=+998917914881
+ADMIN_API_TOKEN=<CHANGE_ME_OPENSSL_RAND_HEX_32>
+INTERNAL_INGEST_TOKEN=<CHANGE_ME_OPENSSL_RAND_HEX_32>
+ENCRYPTION_KEY=<CHANGE_ME_32_BYTE_FERNET_KEY>
 STORAGE_DIR=./storage
-JWT_SECRET=super_secret_jwt_key_change_in_production_2026
+JWT_SECRET=<CHANGE_ME_OPENSSL_RAND_HEX_32>
 JWT_ALGORITHM=HS256
 JWT_EXPIRE_MINUTES=1440
 EOF
+fi
 
+if [ ! -f "web/.env" ]; then
 cat << 'EOF' > web/.env
-BACKEND_URL=http://localhost:8000
-ADMIN_API_TOKEN=super_secret_admin_token_2026_xyz
-DASHBOARD_PASSWORD=mux@mm@d@z1z
-SESSION_SECRET=session_signing_secret_key_random_2026_abc
-JWT_SECRET=super_secret_jwt_key_change_in_production_2026
+BACKEND_URL=http://api:8000
+SESSION_SECRET=<CHANGE_ME_OPENSSL_RAND_HEX_32>
+JWT_SECRET=<CHANGE_ME_SAME_JWT_SECRET_AS_BACKEND>
 EOF
+fi
 
-cp web/.env 4-admin-dashboard/.env
-chmod 600 .env web/.env 4-admin-dashboard/.env
+chmod 600 .env web/.env
 mkdir -p storage/channel_images data logs
 
 echo "✅ [5/5] Tizim tekshiruvi:"
 free -m
 echo ""
 echo "=================================================================="
-echo "🎉 SERVER TO'LIQ TAYYOR! Endi loyihani ishga tushirish mumkin:"
-echo "   docker compose up -d --build"
+echo "🎉 SERVER TAYYOR! .env va web/.env ichidagi <CHANGE_ME_...> qiymatlarni to'ldirib,"
+echo "   so'ng ishga tushiring: docker compose up -d --build"
 echo "=================================================================="

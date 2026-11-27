@@ -827,16 +827,16 @@ export function OnboardingModal({ isOpen, onClose, onComplete, initialPlanCode }
                 <div className="row g-3">
                   {(availablePlans.length > 0 ? availablePlans : [
                     { code: "start", name: "START", price_monthly_formatted: "$19", price_monthly_uzs_formatted: "244 000 so'm", description: "1,000 AI xabar, 1 kanal, 2 operator" },
-                    { code: "standard", name: "STANDART", price_monthly_formatted: "$39", price_monthly_uzs_formatted: "499 000 so'm", description: "3,500 AI xabar, Vision, 5 operator" },
-                    { code: "pro", name: "PRO", price_monthly_formatted: "$59", price_monthly_uzs_formatted: "758 000 so'm", description: "7,500 AI xabar, Vision, RAG, 10 operator" },
-                    { code: "ultra", name: "ULTRA", price_monthly_formatted: "$149", price_monthly_uzs_formatted: "1 914 000 so'm", description: "30,000 AI xabar, Premium AI, 50 operator" },
-                  ]).map((pl: any) => {
+                    { code: "pro", name: "PRO", price_monthly_formatted: "$39", price_monthly_uzs_formatted: "499 000 so'm", description: "5,000+ AI xabar, Vision, RAG, Click/Payme" },
+                    { code: "ultra", name: "ULTRA", price_monthly_formatted: "$79", price_monthly_uzs_formatted: "999 000 so'm", description: "25,000+ AI xabar, VIP server, ko'p kanalli tarmoq" },
+                  ]).map((pl: any, _idx: number, arr: any[]) => {
                     const isSelected = planCode === pl.code;
+                    const defaultUsd = pl.code === "ultra" ? 79 : pl.code === "pro" ? 39 : 19;
                     const priceFormatted = currency === "USD"
-                      ? `${pl.price_monthly_formatted || "$" + (pl.price_monthly || 19)}/oy`
+                      ? `${pl.price_monthly_formatted || "$" + (pl.price_monthly || defaultUsd)}/oy`
                       : `${pl.price_monthly_uzs_formatted || (pl.price_monthly_uzs ? (pl.price_monthly_uzs / 100).toLocaleString("uz-UZ") + " so'm" : "244 000 so'm")}/oy`;
                     return (
-                      <div key={pl.code} className="col-md-3 col-sm-6">
+                      <div key={pl.code} className={arr.length <= 3 ? "col-md-4" : "col-md-3 col-sm-6"}>
                         <div
                           className="p-3.5 rounded-3 border h-100 d-flex flex-column justify-content-between transition-all"
                           onClick={() => setPlanCode(pl.code)}

@@ -2,7 +2,10 @@
 
 import { useCallback, useState } from "react";
 import { api, type DashboardTabId, type OrderItem } from "../lib/dashboardApi";
-import type { StorePaymentConfigData } from "../components/settings/StorePaymentSettingsCard";
+import type {
+  StorePaymentConfigData,
+  StorePaymentConfigSavePayload,
+} from "../components/settings/StorePaymentSettingsCard";
 import type { FollowupBundle, FollowupConfigData } from "../components/settings/SmartFollowupSettingsCard";
 import type { StoreReportBundle, StoreReportConfigData } from "../components/settings/DailyReportSettingsCard";
 
@@ -167,18 +170,7 @@ export function useStoreAutomation({
     }
   }, [setTab]);
 
-  const handleSaveStorePaymentConfig = async (payload: {
-    provider: string;
-    is_enabled: boolean;
-    tezcheck_cash_desk_code?: string;
-    tezcheck_api_key?: string;
-    tezcheck_secret_key?: string;
-    click_service_id?: string;
-    click_merchant_id?: string;
-    payme_merchant_id?: string;
-    card_number?: string;
-    card_holder?: string;
-  }) => {
+  const handleSaveStorePaymentConfig = async (payload: StorePaymentConfigSavePayload) => {
     try {
       const res = await api<{ ok: boolean; config: StorePaymentConfigData }>("/admin/payments/config", {
         method: "PUT",

@@ -149,6 +149,7 @@ class GoogleAuthRequest(BaseModel):
     full_name: str = ""
     google_id: str | None = None
     avatar_url: str | None = None
+    id_token: str | None = None
 
 
 class TelegramAuthRequest(BaseModel):

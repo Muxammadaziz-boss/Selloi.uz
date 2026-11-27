@@ -787,6 +787,10 @@ function DashboardContent({
     handleUpdateOrderStatus,
     handleDeleteOrder,
     handleDeleteProduct,
+    handleBulkImportProducts,
+    handleAddManualKnowledge,
+    handleUploadKnowledgeFile,
+    handleCreateOrder,
     handleSyncKnowledge,
     handleConnectChannel,
     handleSyncChannel,
@@ -1459,11 +1463,23 @@ function DashboardContent({
   const handleUpgradePlan = async (planCode: string, billingCycle: "monthly" | "yearly" = "monthly") => {
     setBusy(true);
     try {
-      await api("/api/subscription/upgrade", {
+      const normalized = ["standard", "standart"].includes(planCode.toLowerCase()) ? "pro" : planCode.toLowerCase();
+      const res = await api<any>("/api/subscription/upgrade", {
         method: "POST",
-        body: JSON.stringify({ new_plan_code: planCode, billing_cycle: billingCycle }),
+        body: JSON.stringify({
+          new_plan_code: normalized,
+          billing_cycle: billingCycle,
+          return_url: typeof window !== "undefined" ? window.location.href : "/settings/billing",
+        }),
       });
-      setSuccess(`${planCode.toUpperCase()} tarif rejasiga muvaffaqiyatli o'tildi!`);
+      if (res?.checkout_url) {
+        setSuccess(`${normalized.toUpperCase()} tarifi uchun TezCheck to'lov sahifasiga yo'naltirilmoqda...`);
+        if (typeof window !== "undefined") {
+          window.location.href = res.checkout_url;
+        }
+        return;
+      }
+      setSuccess(`${normalized.toUpperCase()} tarif rejasiga muvaffaqiyatli o'tildi!`);
       await loadSaaSData(activeOrgId);
     } catch (err: any) {
       setError(err.message || "Tarifni o'zgartirishda xatolik");
@@ -2058,6 +2074,8 @@ function DashboardContent({
                 onDeleteChannel={handleDeleteChannel}
                 onDeletePost={handleDeletePost}
                 onExtractProducts={handleExtractProductsFromPosts}
+                onAddManualKnowledge={handleAddManualKnowledge}
+                onUploadKnowledgeFile={handleUploadKnowledgeFile}
                 onOpenPlayground={handleOpenPlayground}
                 busy={busy}
               />
@@ -2080,6 +2098,7 @@ function DashboardContent({
                 }}
                 onDeleteProduct={handleDeleteProduct}
                 onExtractProducts={handleExtractProductsFromPosts}
+                onBulkImportProducts={handleBulkImportProducts}
                 busy={busy}
               />
             )}
@@ -2091,6 +2110,7 @@ function DashboardContent({
                 setOrderSearch={setOrderSearch}
                 onUpdateOrderStatus={handleUpdateOrderStatus}
                 onDeleteOrder={handleDeleteOrder}
+                onCreateOrder={handleCreateOrder}
                 onSendOrderPayment={handleSendOrderPayment}
                 onMarkOrderPaid={handleMarkOrderPaid}
                 onCheckOrderPayment={handleCheckOrderPayment}
@@ -2236,6 +2256,7 @@ function DashboardContent({
             {tab === "billing" && (
               <BillingTab
                 subscription={subscriptionData}
+                plans={plansList}
                 loading={loading}
                 onRefresh={() => loadSaaSData(activeOrgId)}
                 onUpgradeClick={() => setTab("pricing")}
@@ -2248,7 +2269,7 @@ function DashboardContent({
             {tab === "pricing" && (
               <PricingTab
                 plans={plansList}
-                currentPlanCode={subscriptionData?.plan?.code || "pro"}
+                currentPlanCode={subscriptionData?.plan_code || subscriptionData?.plan?.code || "start"}
                 onSelectPlan={handleUpgradePlan}
                 loading={busy}
               />
@@ -2374,6 +2395,7 @@ function DashboardContent({
         featureName={upgradeModalConfig.featureName}
         requiredPlan={upgradeModalConfig.requiredPlan}
         message={upgradeModalConfig.message}
+        plans={plansList}
         onUpgradeToPlan={(planCode) => handleUpgradePlan(planCode, "monthly")}
       />
       </div>

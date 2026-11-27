@@ -195,6 +195,12 @@ async def get_or_create_idempotent_order(
             )
             db.add(new_order)
             await db.flush()
+        if organization_id:
+            try:
+                from app.services.usage_service import increment_usage
+                await increment_usage(db, organization_id, "monthly_orders", 1)
+            except Exception:
+                pass
         return new_order, True
     except IntegrityError:
         # Concurrent race: another worker committed the same idempotency key

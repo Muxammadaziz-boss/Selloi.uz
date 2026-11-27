@@ -13,12 +13,16 @@ import {
   IconRefresh,
   IconX,
   IconDownload,
+  IconPlus,
 } from "@tabler/icons-react";
 import { downloadCsvExport } from "../../lib/csvExport";
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { EmptyState } from "../ui/EmptyState";
+import { Modal } from "../ui/Modal";
+import { Input, Textarea } from "../ui/Input";
+import { Select } from "../ui/Select";
 import { PageHeader } from "../layout/PageHeader";
 
 export interface OrderPaymentSummary {
@@ -50,6 +54,15 @@ export interface OrdersTabProps {
   setOrderSearch: (val: string) => void;
   onUpdateOrderStatus: (orderId: string, status: string) => void;
   onDeleteOrder: (orderId: string) => void;
+  onCreateOrder?: (payload: {
+    customer_name: string;
+    phone: string;
+    product_summary: string;
+    amount: string;
+    delivery_address?: string;
+    status?: string;
+    notes?: string;
+  }) => Promise<boolean>;
   onSendOrderPayment?: (orderId: string, amountUzs: number, description?: string) => Promise<any>;
   onMarkOrderPaid?: (orderId: string) => Promise<void>;
   onCheckOrderPayment?: (orderId: string) => Promise<void>;
@@ -62,6 +75,7 @@ export function OrdersTab({
   setOrderSearch,
   onUpdateOrderStatus,
   onDeleteOrder,
+  onCreateOrder,
   onSendOrderPayment,
   onMarkOrderPaid,
   onCheckOrderPayment,
@@ -69,6 +83,13 @@ export function OrdersTab({
 }: OrdersTabProps) {
   const { language, t } = useLanguage();
   const [statusFilter, setStatusFilter] = useState("all");
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newCustomer, setNewCustomer] = useState("");
+  const [newPhone, setNewPhone] = useState("");
+  const [newProductSummary, setNewProductSummary] = useState("");
+  const [newAmount, setNewAmount] = useState("");
+  const [newAddress, setNewAddress] = useState("");
+  const [newNotes, setNewNotes] = useState("");
   const [payModalOrder, setPayModalOrder] = useState<OrderItem | null>(null);
   const [payAmountInput, setPayAmountInput] = useState("");
   const [payDescInput, setPayDescInput] = useState("");
@@ -130,6 +151,18 @@ export function OrdersTab({
           text: language === "uz" ? `${orders.length} ta jami buyurtma` : `${orders.length} total orders`,
           variant: "success",
         }}
+        actions={
+          onCreateOrder ? (
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => setShowCreateModal(true)}
+              icon={<IconPlus size={15} />}
+            >
+              {t("orders.btn_add")}
+            </Button>
+          ) : undefined
+        }
       />
 
       <Card>
@@ -478,6 +511,106 @@ export function OrdersTab({
             </form>
           </div>
         </div>
+      )}
+
+      {/* Manual Create Order Modal */}
+      {showCreateModal && (
+        <Modal
+          isOpen={true}
+          onClose={() => setShowCreateModal(false)}
+          title={t("orders.modal_add_title")}
+          size="md"
+          footer={
+            <div className="d-flex justify-content-end gap-2">
+              <Button variant="secondary" size="sm" onClick={() => setShowCreateModal(false)}>
+                {t("payments.close")}
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                loading={busy}
+                disabled={!newCustomer.trim() || !newProductSummary.trim()}
+                onClick={async () => {
+                  if (!onCreateOrder) return;
+                  const ok = await onCreateOrder({
+                    customer_name: newCustomer.trim(),
+                    phone: newPhone.trim(),
+                    product_summary: newProductSummary.trim(),
+                    amount: newAmount.trim() || "0 so'm",
+                    delivery_address: newAddress.trim(),
+                    notes: newNotes.trim(),
+                    status: "new",
+                  });
+                  if (ok) {
+                    setNewCustomer("");
+                    setNewPhone("");
+                    setNewProductSummary("");
+                    setNewAmount("");
+                    setNewAddress("");
+                    setNewNotes("");
+                    setShowCreateModal(false);
+                  }
+                }}
+              >
+                {t("orders.btn_save")}
+              </Button>
+            </div>
+          }
+        >
+          <div className="d-flex flex-column gap-3">
+            <div className="row g-2">
+              <div className="col-12 col-sm-6">
+                <Input
+                  label="Mijoz F.I.Sh."
+                  value={newCustomer}
+                  onChange={(e) => setNewCustomer(e.target.value)}
+                  placeholder="Masalan: Jasur Alimov"
+                  required
+                />
+              </div>
+              <div className="col-12 col-sm-6">
+                <Input
+                  label="Telefon raqami"
+                  value={newPhone}
+                  onChange={(e) => setNewPhone(e.target.value)}
+                  placeholder="+998 90 123 45 67"
+                />
+              </div>
+            </div>
+            <div className="row g-2">
+              <div className="col-12 col-sm-7">
+                <Input
+                  label="Mahsulot / Xizmat"
+                  value={newProductSummary}
+                  onChange={(e) => setNewProductSummary(e.target.value)}
+                  placeholder="Masalan: Lenovo IdeaPad 5"
+                  required
+                />
+              </div>
+              <div className="col-12 col-sm-5">
+                <Input
+                  label="Summa"
+                  value={newAmount}
+                  onChange={(e) => setNewAmount(e.target.value)}
+                  placeholder="5 200 000 so'm"
+                />
+              </div>
+            </div>
+            <Input
+              label="Yetkazib berish manzili"
+              value={newAddress}
+              onChange={(e) => setNewAddress(e.target.value)}
+              placeholder="Toshkent sh., Yunusobod"
+            />
+            <Textarea
+              label="Izoh"
+              rows={2}
+              value={newNotes}
+              onChange={(e) => setNewNotes(e.target.value)}
+              placeholder="Qo'shimcha izoh..."
+            />
+          </div>
+        </Modal>
       )}
     </div>
   );

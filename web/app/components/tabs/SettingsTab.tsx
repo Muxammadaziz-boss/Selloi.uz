@@ -27,7 +27,11 @@ import { Select } from "../ui/Select";
 import { Tooltip } from "../ui/Tooltip";
 import { PageHeader } from "../layout/PageHeader";
 import { AiPlaygroundPanel, type PlaygroundApiResponse } from "../ai/AiPlaygroundPanel";
-import { StorePaymentSettingsCard, type StorePaymentConfigData } from "../settings/StorePaymentSettingsCard";
+import {
+  StorePaymentSettingsCard,
+  type StorePaymentConfigData,
+  type StorePaymentConfigSavePayload,
+} from "../settings/StorePaymentSettingsCard";
 import {
   SmartFollowupSettingsCard,
   type FollowupBundle,
@@ -95,18 +99,7 @@ export interface SettingsTabProps {
     ai_model?: string;
   }) => Promise<PlaygroundApiResponse>;
   storePaymentConfig?: StorePaymentConfigData | null;
-  onSaveStorePaymentConfig?: (payload: {
-    provider: string;
-    is_enabled: boolean;
-    tezcheck_cash_desk_code?: string;
-    tezcheck_api_key?: string;
-    tezcheck_secret_key?: string;
-    click_service_id?: string;
-    click_merchant_id?: string;
-    payme_merchant_id?: string;
-    card_number?: string;
-    card_holder?: string;
-  }) => Promise<void>;
+  onSaveStorePaymentConfig?: (payload: StorePaymentConfigSavePayload) => Promise<void>;
   followupBundle?: FollowupBundle | null;
   onSaveFollowupConfig?: (payload: Partial<FollowupConfigData>) => Promise<void>;
   onPreviewFollowup?: () => Promise<{ candidates_count: number; items: FollowupPreviewItem[] }>;

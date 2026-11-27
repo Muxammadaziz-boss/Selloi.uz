@@ -21,8 +21,11 @@ interface PlanItem {
   code: string;
   name: string;
   description: string;
-  price_monthly: number;
-  price_yearly: number;
+  price_monthly?: number;
+  price_yearly?: number;
+  price_monthly_uzs?: number;
+  price_yearly_uzs?: number;
+  price_promo_uzs?: number;
   currency: string;
   is_featured: boolean;
   features: Record<string, any>;
@@ -193,22 +196,22 @@ export function PricingTab({
           let catalogPriceFormatted = quote?.catalog_base_price_formatted;
 
           if (!effectivePriceFormatted) {
-            const canonicalUzsPrices: Record<string, { monthly: number; yearly: number }> = {
-              start: { monthly: 244000, yearly: 2440000 },
-              pro: { monthly: 499000, yearly: 4990000 },
-              ultra: { monthly: 999000, yearly: 9990000 },
+            const canonicalPrices: Record<string, { monthly: number; yearly: number; usdMonthly: number; usdYearly: number }> = {
+              start: { monthly: 244000, yearly: 2440000, usdMonthly: 19, usdYearly: 190 },
+              pro: { monthly: 499000, yearly: 4990000, usdMonthly: 39, usdYearly: 390 },
+              ultra: { monthly: 999000, yearly: 9990000, usdMonthly: 79, usdYearly: 790 },
             };
-            const canonical = canonicalUzsPrices[p.code.toLowerCase()] || { monthly: 244000, yearly: 2440000 };
+            const normCode = p.code.toLowerCase() === "standard" || p.code.toLowerCase() === "standart" ? "pro" : p.code.toLowerCase();
+            const canonical = canonicalPrices[normCode] || canonicalPrices.start;
             if (currency === "USD") {
-              effectivePriceFormatted =
-                billingCycle === "yearly"
-                  ? `$${p.price_yearly}`
-                  : `$${p.price_monthly}`;
+              const usdVal = billingCycle === "yearly" ? (p.price_yearly || canonical.usdYearly) : (p.price_monthly || canonical.usdMonthly);
+              effectivePriceFormatted = `$${usdVal}`;
             } else {
-              effectivePriceFormatted =
+              const uzsVal =
                 billingCycle === "yearly"
-                  ? `${canonical.yearly.toLocaleString("uz-UZ")} so'm`
-                  : `${canonical.monthly.toLocaleString("uz-UZ")} so'm`;
+                  ? (p.price_yearly_uzs ? Math.round(p.price_yearly_uzs / 100) : canonical.yearly)
+                  : (p.price_monthly_uzs ? Math.round(p.price_monthly_uzs / 100) : canonical.monthly);
+              effectivePriceFormatted = `${uzsVal.toLocaleString("ru-RU")} so'm`;
             }
           }
 

@@ -1,7 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useLanguage } from "../../lib/i18n";
+import { api } from "../../lib/dashboardApi";
 import {
   IconShieldLock,
   IconPlus,
@@ -11,6 +12,9 @@ import {
   IconAdjustments,
   IconLock,
   IconTrash,
+  IconMail,
+  IconCopy,
+  IconCheck,
 } from "@tabler/icons-react";
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
 import { Badge } from "../ui/Badge";
@@ -73,6 +77,80 @@ export function AdminsTab({
 }: AdminsTabProps) {
   const { language, t } = useLanguage();
   const totalPermissionsCount = Object.keys(permissionLabels).length;
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState("operator");
+  const [inviteBusy, setInviteBusy] = useState(false);
+  const [inviteMsg, setInviteMsg] = useState("");
+  const [inviteErr, setInviteErr] = useState("");
+  const [latestInviteUrl, setLatestInviteUrl] = useState("");
+  const [copiedInvite, setCopiedInvite] = useState(false);
+  const [webMembers, setWebMembers] = useState<any[]>([]);
+  const [pendingInvites, setPendingInvites] = useState<any[]>([]);
+  const [smtpConfigured, setSmtpConfigured] = useState(false);
+
+  const loadTeamInvites = useCallback(async () => {
+    try {
+      const res = await api<{
+        smtp_configured: boolean;
+        members: any[];
+        invites: any[];
+      }>("/admin/team/invites");
+      setSmtpConfigured(Boolean(res?.smtp_configured));
+      setWebMembers(res?.members || []);
+      setPendingInvites(res?.invites || []);
+    } catch {
+      // Permission-restricted operators/moderators skip silently
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadTeamInvites();
+  }, [loadTeamInvites]);
+
+  const handleSendEmailInvite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inviteEmail.trim()) return;
+    setInviteBusy(true);
+    setInviteErr("");
+    setInviteMsg("");
+    setLatestInviteUrl("");
+    try {
+      const res = await api<{ ok: boolean; email_sent: boolean; invite_url: string }>("/admin/team/invites", {
+        method: "POST",
+        body: JSON.stringify({ email: inviteEmail.trim(), role: inviteRole }),
+      });
+      setLatestInviteUrl(res.invite_url || "");
+      setInviteMsg(
+        res.email_sent
+          ? `Taklifnoma ${inviteEmail.trim()} manziliga yuborildi!`
+          : `Taklif havolasi yaratildi! Havolani nusxalab xodimga yuboring.`
+      );
+      setInviteEmail("");
+      await loadTeamInvites();
+    } catch (err: any) {
+      setInviteErr(err?.message || "Taklifnoma yaratishda xatolik");
+    } finally {
+      setInviteBusy(false);
+    }
+  };
+
+  const handleRevokeInvite = async (id: number) => {
+    try {
+      await api(`/admin/team/invites/${id}`, { method: "DELETE" });
+      await loadTeamInvites();
+    } catch (err: any) {
+      setInviteErr(err?.message || "Bekor qilishda xatolik");
+    }
+  };
+
+  const handleRemoveWebMember = async (id: number) => {
+    try {
+      await api(`/admin/team/members/${id}`, { method: "DELETE" });
+      await loadTeamInvites();
+    } catch (err: any) {
+      setInviteErr(err?.message || "A'zoni o'chirishda xatolik");
+    }
+  };
 
   return (
     <div>
@@ -263,6 +341,157 @@ export function AdminsTab({
                 >
                   Admin Qo'shish
                 </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Email Team Invites & Web Panel Access */}
+      <div className="row g-3 mt-1">
+        <div className="col-12 col-lg-7">
+          <Card>
+            <CardHeader>
+              <CardTitle className="d-flex align-items-center gap-2">
+                <IconMail size={16} style={{ color: "var(--accent)" }} />
+                <span>{t("admins.web_members_title")}</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="table-responsive">
+                <table className="linear-table">
+                  <thead>
+                    <tr>
+                      <th>Foydalanuvchi / Email</th>
+                      <th>Rol / Holat</th>
+                      <th style={{ textAlign: "right" }}>Amal</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {webMembers.map((m) => (
+                      <tr key={`mem-${m.id}`}>
+                        <td>
+                          <div className="fw-medium text-primary small">{m.full_name || m.email}</div>
+                          <div className="text-secondary" style={{ fontSize: "0.72rem" }}>{m.email}</div>
+                        </td>
+                        <td>
+                          <Badge variant={m.role === "owner" ? "accent" : "success"}>{m.role}</Badge>
+                        </td>
+                        <td style={{ textAlign: "right" }}>
+                          {m.role !== "owner" ? (
+                            <Button
+                              variant="danger"
+                              size="xs"
+                              onClick={() => void handleRemoveWebMember(m.id)}
+                              icon={<IconTrash size={12} />}
+                            />
+                          ) : (
+                            <span className="small text-secondary"><IconLock size={12} /></span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                    {pendingInvites
+                      .filter((inv) => inv.status === "pending")
+                      .map((inv) => (
+                        <tr key={`inv-${inv.id}`}>
+                          <td>
+                            <div className="fw-medium text-primary small">{inv.email}</div>
+                            <div className="text-secondary" style={{ fontSize: "0.7rem" }}>Kutilayotgan taklifnoma</div>
+                          </td>
+                          <td>
+                            <Badge variant="warning">{inv.role} (kutilmoqda)</Badge>
+                          </td>
+                          <td style={{ textAlign: "right" }}>
+                            <Button
+                              variant="danger"
+                              size="xs"
+                              onClick={() => void handleRevokeInvite(inv.id)}
+                              icon={<IconTrash size={12} />}
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                    {webMembers.length === 0 && pendingInvites.filter((i) => i.status === "pending").length === 0 && (
+                      <tr>
+                        <td colSpan={3} className="text-center py-4 text-secondary small">
+                          Hali email orqali taklif qilingan web jamoa a&apos;zolari yo&apos;q.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="col-12 col-lg-5">
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("admins.invite_card_title")}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSendEmailInvite} className="d-flex flex-column gap-3">
+                <Input
+                  label="Xodim email manzili"
+                  type="email"
+                  placeholder="operator@store.uz"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  required
+                />
+                <Select
+                  label="Jamoa Roli"
+                  value={inviteRole}
+                  onChange={(e) => setInviteRole(e.target.value)}
+                  options={[
+                    { value: "operator", label: "Operator (Suhbat & Buyurtmalar)" },
+                    { value: "manager", label: "Manager (Katalog & Tahlil)" },
+                    { value: "admin", label: "Admin (To'liq boshqaruv)" },
+                    { value: "viewer", label: "Viewer (Faqat ko'rish)" },
+                  ]}
+                />
+                <Button
+                  type="submit"
+                  variant="primary"
+                  loading={inviteBusy}
+                  disabled={inviteBusy || !inviteEmail.trim()}
+                  icon={<IconMail size={15} />}
+                >
+                  {t("admins.invite_btn")}
+                </Button>
+                {!smtpConfigured && (
+                  <div className="text-secondary" style={{ fontSize: "0.72rem" }}>
+                    SMTP sozlanmagan bo&apos;lsa ham bir martalik xavfsiz taklif havolasi yaratiladi.
+                  </div>
+                )}
+                {inviteMsg && <div className="small text-success">{inviteMsg}</div>}
+                {inviteErr && <div className="small text-danger">{inviteErr}</div>}
+                {latestInviteUrl && (
+                  <div className="d-flex gap-1.5">
+                    <input
+                      type="text"
+                      readOnly
+                      value={latestInviteUrl}
+                      className="linear-input font-monospace flex-grow-1"
+                      style={{ fontSize: "0.74rem" }}
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      icon={copiedInvite ? <IconCheck size={13} /> : <IconCopy size={13} />}
+                      onClick={() => {
+                        navigator.clipboard?.writeText(latestInviteUrl);
+                        setCopiedInvite(true);
+                        setTimeout(() => setCopiedInvite(false), 2000);
+                      }}
+                    >
+                      {copiedInvite ? t("payments.copied") : t("payments.copy")}
+                    </Button>
+                  </div>
+                )}
               </form>
             </CardContent>
           </Card>

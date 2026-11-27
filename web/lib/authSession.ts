@@ -1,3 +1,4 @@
+import { createHmac } from "node:crypto";
 import { NextResponse } from "next/server";
 import {
   createSessionToken,
@@ -150,4 +151,19 @@ export async function resolveEffectiveSessionClaims(session: SessionPayload): Pr
   } finally {
     clearTimeout(timer);
   }
+}
+
+/**
+ * Create a short-lived HMAC-SHA256 header proving a Google OAuth user exchange
+ * was verified by the Next.js BFF before calling the backend `/api/v1/auth/google`.
+ */
+export function buildInternalGoogleAuthSignature(email: string, googleId: string): string | null {
+  const jwtSecret = process.env.JWT_SECRET || process.env.ADMIN_JWT_SECRET || "";
+  if (!jwtSecret) return null;
+  const ts = Math.floor(Date.now() / 1000);
+  const cleanEmail = email.trim().toLowerCase();
+  const cleanGoogleId = (googleId || "").trim();
+  const message = `google-auth:${ts}:${cleanEmail}:${cleanGoogleId}`;
+  const sig = createHmac("sha256", jwtSecret).update(message).digest("hex");
+  return `${ts}.${sig}`;
 }

@@ -224,6 +224,10 @@ async def lifespan(application: FastAPI):
         "ALTER TABLE telegram_outbox ADD COLUMN IF NOT EXISTS lease_expires_at TIMESTAMPTZ",
         "ALTER TABLE telegram_outbox ADD COLUMN IF NOT EXISTS fencing_generation INTEGER DEFAULT 1",
         "CREATE INDEX IF NOT EXISTS ix_telegram_outbox_lease_expires_at ON telegram_outbox(lease_expires_at)",
+        "ALTER TABLE store_payment_configs ADD COLUMN IF NOT EXISTS click_secret_key TEXT",
+        "ALTER TABLE store_payment_configs ADD COLUMN IF NOT EXISTS payme_secret_key TEXT",
+        "ALTER TABLE store_order_payments ADD COLUMN IF NOT EXISTS provider_transaction_id VARCHAR(128)",
+        "ALTER TABLE store_order_payments ADD COLUMN IF NOT EXISTS payment_meta JSONB DEFAULT '{}'::jsonb",
     ]
 
     legacy_tables = [
@@ -358,7 +362,14 @@ async def lifespan(application: FastAPI):
     logger.info("Application shut down")
 
 
-app = FastAPI(title=settings.app_name, version="0.1.0", lifespan=lifespan)
+app = FastAPI(
+    title=settings.app_name,
+    version="0.1.0",
+    lifespan=lifespan,
+    docs_url=None if settings.is_production else "/docs",
+    redoc_url=None if settings.is_production else "/redoc",
+    openapi_url=None if settings.is_production else "/openapi.json",
+)
 
 cors_origins = [orig.strip() for orig in settings.allowed_origins.split(",") if orig.strip()]
 if not cors_origins:

@@ -95,11 +95,18 @@ async function proxy(request: NextRequest) {
   const forwardedFor = request.headers.get("x-forwarded-for");
   const realIp = request.headers.get("x-real-ip") || (forwardedFor ? forwardedFor.split(",")[0].trim() : "127.0.0.1");
 
+  const reqContentType = request.headers.get("content-type") || "";
+  const isMultipart = reqContentType.toLowerCase().includes("multipart/form-data");
+
   const headers: Record<string, string> = {
-    "Content-Type": "application/json",
     "X-Real-IP": realIp,
     "X-Forwarded-For": realIp,
   };
+  if (isMultipart) {
+    headers["Content-Type"] = reqContentType;
+  } else {
+    headers["Content-Type"] = reqContentType || "application/json";
+  }
 
   // Attach identity: Forward cryptographically signed JWT with token_version (tv)
   if (sessionData && jwtSecret) {
@@ -130,7 +137,7 @@ async function proxy(request: NextRequest) {
   };
 
   if (request.method !== "GET" && request.method !== "HEAD") {
-    init.body = await request.text();
+    init.body = isMultipart ? await request.arrayBuffer() : await request.text();
   }
 
   try {

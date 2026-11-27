@@ -188,6 +188,113 @@ export function useChatAndCatalogActions({
     }
   };
 
+  const handleBulkImportProducts = async (csvText: string): Promise<boolean> => {
+    if (!csvText.trim()) {
+      setError("Iltimos, CSV ma'lumotlarini kiriting yoki fayl yuklang");
+      return false;
+    }
+    setBusy(true);
+    setError("");
+    setSuccess("");
+    try {
+      const res = await api<{ ok: boolean; imported_count: number }>("/admin/products/import", {
+        method: "POST",
+        body: JSON.stringify({ csv_text: csvText }),
+      });
+      const updated = await api<ProductItem[]>("/admin/products");
+      setProducts(updated || []);
+      setSuccess(`${res.imported_count} ta mahsulot CSV orqali katalogga import qilindi!`);
+      return true;
+    } catch (e: any) {
+      setError(e.message || "CSV importda xatolik yuz berdi");
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleAddManualKnowledge = async (payload: {
+    title: string;
+    content: string;
+    category?: string;
+  }): Promise<boolean> => {
+    if (!payload.content.trim()) {
+      setError("Iltimos, matn yoki savol-javob mazmunini kiriting");
+      return false;
+    }
+    setBusy(true);
+    setError("");
+    setSuccess("");
+    try {
+      const res = await api<{ ok: boolean; chunks_created: number }>("/admin/knowledge", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      setSuccess(`Bilim bazasiga ${res.chunks_created} ta bo'lak (chunk) saqlandi!`);
+      await load();
+      return true;
+    } catch (e: any) {
+      setError(e.message || "Bilim bazasiga saqlashda xatolik");
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleUploadKnowledgeFile = async (payload: {
+    filename: string;
+    content_base64: string;
+  }): Promise<boolean> => {
+    setBusy(true);
+    setError("");
+    setSuccess("");
+    try {
+      const res = await api<{ ok: boolean; filename: string; chunks_created: number }>(
+        "/admin/knowledge/upload",
+        {
+          method: "POST",
+          body: JSON.stringify(payload),
+        }
+      );
+      setSuccess(`"${res.filename}" fayli tahlil qilinib, ${res.chunks_created} ta RAG bo'lak indekslandi!`);
+      await load();
+      return true;
+    } catch (e: any) {
+      setError(e.message || "Faylni yuklashda xatolik yuz berdi");
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleCreateOrder = async (payload: {
+    customer_name: string;
+    phone: string;
+    product_summary: string;
+    amount: string;
+    delivery_address?: string;
+    status?: string;
+    notes?: string;
+  }): Promise<boolean> => {
+    setBusy(true);
+    setError("");
+    setSuccess("");
+    try {
+      await api("/admin/orders", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      setSuccess("Yangi buyurtma muvaffaqiyatli yaratildi!");
+      await load();
+      return true;
+    } catch (e: any) {
+      setError(e.message || "Buyurtma yaratishda xatolik yuz berdi");
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const handleExtractProductsFromPosts = async () => {
     setBusy(true);
     try {
@@ -322,6 +429,10 @@ export function useChatAndCatalogActions({
     handleDeletePost,
     handleSaveProductEdit,
     handleCreateProduct,
+    handleBulkImportProducts,
+    handleAddManualKnowledge,
+    handleUploadKnowledgeFile,
+    handleCreateOrder,
     handleExtractProductsFromPosts,
     handleUpdateOrderStatus,
     handleDeleteOrder,

@@ -4,12 +4,15 @@ from __future__ import annotations
 
 import base64
 from datetime import datetime, timezone
+import hashlib
+import hmac
 import re
 import secrets
+import time
 from typing import Any
 from urllib.parse import urlencode
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logging import get_logger
@@ -122,10 +125,15 @@ def serialize_store_payment_config(cfg: StorePaymentConfig, organization_id: int
         "tezcheck_secret_key_set": bool(cfg.tezcheck_secret_key),
         "click_service_id": cfg.click_service_id or "",
         "click_merchant_id": cfg.click_merchant_id or "",
+        "click_secret_key_set": bool(cfg.click_secret_key),
         "payme_merchant_id": cfg.payme_merchant_id or "",
+        "payme_secret_key_set": bool(cfg.payme_secret_key),
         "card_number": card,
         "card_holder": cfg.card_holder or "",
         "webhook_url": f"https://selloi.uz/api/store-payments/tezcheck/webhook/{organization_id}",
+        "click_prepare_url": f"https://selloi.uz/api/store-payments/click/prepare/{organization_id}",
+        "click_complete_url": f"https://selloi.uz/api/store-payments/click/complete/{organization_id}",
+        "payme_webhook_url": f"https://selloi.uz/api/store-payments/payme/webhook/{organization_id}",
         "updated_at": cfg.updated_at.isoformat() if cfg.updated_at else None,
     }
 
@@ -152,8 +160,12 @@ async def upsert_store_payment_config(
         cfg.click_service_id = str(payload["click_service_id"]).strip() or None
     if "click_merchant_id" in payload and payload["click_merchant_id"] is not None:
         cfg.click_merchant_id = str(payload["click_merchant_id"]).strip() or None
+    if payload.get("click_secret_key"):
+        cfg.click_secret_key = encrypt_secret(str(payload["click_secret_key"]).strip())
     if "payme_merchant_id" in payload and payload["payme_merchant_id"] is not None:
         cfg.payme_merchant_id = str(payload["payme_merchant_id"]).strip() or None
+    if payload.get("payme_secret_key"):
+        cfg.payme_secret_key = encrypt_secret(str(payload["payme_secret_key"]).strip())
     if "card_number" in payload and payload["card_number"] is not None:
         cfg.card_number = str(payload["card_number"]).strip() or None
     if "card_holder" in payload and payload["card_holder"] is not None:
@@ -442,3 +454,448 @@ async def confirm_store_order_payment(
         "bill_id": payment_record.bill_id,
         "status": "paid",
     }
+
+
+async def _find_store_payment_by_ref(
+    db: AsyncSession,
+    organization_id: int,
+    ref: str,
+) -> StoreOrderPayment | None:
+    clean_ref = str(ref or "").strip()
+    if not clean_ref:
+        return None
+    return (
+        await db.execute(
+            select(StoreOrderPayment).where(
+                StoreOrderPayment.organization_id == organization_id,
+                or_(
+                    StoreOrderPayment.external_reference == clean_ref,
+                    StoreOrderPayment.bill_id == clean_ref,
+                ),
+            )
+        )
+    ).scalar_one_or_none()
+
+
+async def _find_store_payment_by_tx_id(
+    db: AsyncSession,
+    organization_id: int,
+    provider: str,
+    tx_id: str,
+) -> StoreOrderPayment | None:
+    clean_tx = str(tx_id or "").strip()
+    if not clean_tx:
+        return None
+    return (
+        await db.execute(
+            select(StoreOrderPayment).where(
+                StoreOrderPayment.organization_id == organization_id,
+                StoreOrderPayment.provider == provider,
+                StoreOrderPayment.provider_transaction_id == clean_tx,
+            )
+        )
+    ).scalar_one_or_none()
+
+
+def _safe_int(val: Any, default: int | None = None) -> int | None:
+    if val is None or val == "":
+        return default
+    try:
+        return int(val)
+    except (TypeError, ValueError):
+        return default
+
+
+def _click_expected_signature(
+    *,
+    click_trans_id: str,
+    service_id: str,
+    secret_key: str,
+    merchant_trans_id: str,
+    merchant_prepare_id: str,
+    amount_raw: str,
+    action_raw: str,
+    sign_time: str,
+) -> str:
+    """Compute MD5 signature per official Click Merchant SHOP API spec."""
+    if str(action_raw) == "1":
+        raw = f"{click_trans_id}{service_id}{secret_key}{merchant_trans_id}{merchant_prepare_id}{amount_raw}{action_raw}{sign_time}"
+    else:
+        raw = f"{click_trans_id}{service_id}{secret_key}{merchant_trans_id}{amount_raw}{action_raw}{sign_time}"
+    return hashlib.md5(raw.encode("utf-8")).hexdigest().lower()
+
+
+def _click_error(click_trans_id: str, merchant_trans_id: str, code: int, note: str) -> dict[str, Any]:
+    return {
+        "click_trans_id": click_trans_id,
+        "merchant_trans_id": merchant_trans_id,
+        "error": code,
+        "error_note": note,
+    }
+
+
+async def handle_click_webhook(
+    db: AsyncSession,
+    *,
+    organization_id: int,
+    params: dict[str, Any],
+    expected_action: int | None = None,
+) -> dict[str, Any]:
+    """Verify Click SHOP API Prepare/Complete signature and settle store order payments."""
+    click_trans_id = str(params.get("click_trans_id") or "")
+    service_id = str(params.get("service_id") or "")
+    click_paydoc_id = str(params.get("click_paydoc_id") or "")
+    merchant_trans_id = str(params.get("merchant_trans_id") or "")
+    merchant_prepare_id = str(params.get("merchant_prepare_id") or "")
+    amount_raw = str(params.get("amount") or "")
+    action_raw = str(params.get("action") if params.get("action") is not None else "")
+    error_val = _safe_int(params.get("error"), 0)
+    sign_time = str(params.get("sign_time") or "")
+    sign_string = str(params.get("sign_string") or "").strip().lower()
+
+    action = _safe_int(action_raw)
+    if action not in (0, 1) or (expected_action is not None and action != expected_action):
+        return _click_error(click_trans_id, merchant_trans_id, -3, "Action not found")
+
+    cfg = await get_or_create_store_payment_config(db, organization_id)
+    secret_key = (cfg.decrypted_click_secret_key or "").strip()
+    if not secret_key:
+        return _click_error(click_trans_id, merchant_trans_id, -1, "SIGN CHECK FAILED!")
+    if cfg.click_service_id and service_id and str(cfg.click_service_id).strip() != service_id.strip():
+        return _click_error(click_trans_id, merchant_trans_id, -1, "SIGN CHECK FAILED!")
+
+    expected_sig = _click_expected_signature(
+        click_trans_id=click_trans_id,
+        service_id=service_id,
+        secret_key=secret_key,
+        merchant_trans_id=merchant_trans_id,
+        merchant_prepare_id=merchant_prepare_id,
+        amount_raw=amount_raw,
+        action_raw=str(action),
+        sign_time=sign_time,
+    )
+    if not sign_string or not hmac.compare_digest(expected_sig, sign_string):
+        return _click_error(click_trans_id, merchant_trans_id, -1, "SIGN CHECK FAILED!")
+
+    payment = await _find_store_payment_by_ref(db, organization_id, merchant_trans_id)
+    if payment is None:
+        return _click_error(click_trans_id, merchant_trans_id, -5, "Order does not exist")
+
+    try:
+        paid_uzs = int(round(float(amount_raw)))
+    except (TypeError, ValueError):
+        return _click_error(click_trans_id, merchant_trans_id, -2, "Incorrect parameter amount")
+
+    if paid_uzs != int(payment.amount_uzs):
+        return _click_error(click_trans_id, merchant_trans_id, -2, "Incorrect parameter amount")
+
+    if payment.status == "cancelled":
+        return _click_error(click_trans_id, merchant_trans_id, -9, "Transaction cancelled")
+
+    if action == 0:
+        if payment.status == "paid":
+            return _click_error(click_trans_id, merchant_trans_id, -4, "Already paid")
+        payment.provider = "click"
+        payment.provider_transaction_id = click_trans_id or payment.provider_transaction_id
+        meta = dict(payment.payment_meta or {})
+        meta["click"] = {
+            "click_trans_id": click_trans_id,
+            "click_paydoc_id": click_paydoc_id,
+            "sign_time": sign_time,
+            "prepared_at": datetime.now(timezone.utc).isoformat(),
+        }
+        payment.payment_meta = meta
+        await db.commit()
+        return {
+            "click_trans_id": click_trans_id,
+            "merchant_trans_id": merchant_trans_id,
+            "merchant_prepare_id": payment.id,
+            "error": 0,
+            "error_note": "Success",
+        }
+
+    # action == 1 (Complete)
+    if merchant_prepare_id and str(payment.id) != str(merchant_prepare_id).strip():
+        return _click_error(click_trans_id, merchant_trans_id, -6, "Transaction does not exist")
+
+    if error_val is not None and error_val < 0:
+        payment.status = "cancelled"
+        meta = dict(payment.payment_meta or {})
+        meta["click"] = {**(meta.get("click") or {}), "cancelled_error": error_val}
+        payment.payment_meta = meta
+        await db.commit()
+        return _click_error(click_trans_id, merchant_trans_id, -9, "Transaction cancelled")
+
+    if payment.status == "paid":
+        return _click_error(click_trans_id, merchant_trans_id, -4, "Already paid")
+
+    payment.provider = "click"
+    payment.provider_transaction_id = click_trans_id or payment.provider_transaction_id
+    meta = dict(payment.payment_meta or {})
+    meta["click"] = {
+        **(meta.get("click") or {}),
+        "click_trans_id": click_trans_id,
+        "click_paydoc_id": click_paydoc_id,
+        "completed_at": datetime.now(timezone.utc).isoformat(),
+    }
+    payment.payment_meta = meta
+    await confirm_store_order_payment(db, payment_record=payment, notify_customer=True)
+    return {
+        "click_trans_id": click_trans_id,
+        "merchant_trans_id": merchant_trans_id,
+        "merchant_confirm_id": payment.id,
+        "error": 0,
+        "error_note": "Success",
+    }
+
+
+def _payme_error(rpc_id: Any, code: int, message: str, data: str | None = None) -> dict[str, Any]:
+    err: dict[str, Any] = {
+        "code": code,
+        "message": {"uz": message, "ru": message, "en": message},
+    }
+    if data:
+        err["data"] = data
+    return {"jsonrpc": "2.0", "id": rpc_id, "error": err}
+
+
+def _payme_ok(rpc_id: Any, result: dict[str, Any]) -> dict[str, Any]:
+    return {"jsonrpc": "2.0", "id": rpc_id, "result": result}
+
+
+def _verify_payme_basic_auth(auth_header: str | None, expected_secret: str | None) -> bool:
+    if not auth_header or not expected_secret:
+        return False
+    parts = auth_header.strip().split(" ", 1)
+    if len(parts) != 2 or parts[0].lower() != "basic":
+        return False
+    try:
+        decoded = base64.b64decode(parts[1].strip()).decode("utf-8")
+    except Exception:
+        return False
+    if ":" not in decoded:
+        return False
+    username, password = decoded.split(":", 1)
+    return username == "Paycom" and hmac.compare_digest(password, expected_secret)
+
+
+def _extract_payme_order_ref(params: dict[str, Any]) -> str:
+    account = params.get("account")
+    if not isinstance(account, dict):
+        return ""
+    for key in ("order_id", "order", "reference", "bill_id"):
+        val = account.get(key)
+        if val is not None and str(val).strip():
+            return str(val).strip()
+    return ""
+
+
+async def handle_payme_jsonrpc(
+    db: AsyncSession,
+    *,
+    organization_id: int,
+    authorization_header: str | None,
+    payload: dict[str, Any],
+) -> dict[str, Any]:
+    """Handle Payme Merchant API JSON-RPC 2.0 protocol for store order payments."""
+    rpc_id = payload.get("id")
+    method = str(payload.get("method") or "").strip()
+    params = payload.get("params") or {}
+    if not isinstance(params, dict):
+        return _payme_error(rpc_id, -32602, "Invalid params")
+
+    cfg = await get_or_create_store_payment_config(db, organization_id)
+    if not _verify_payme_basic_auth(authorization_header, cfg.decrypted_payme_secret_key):
+        return _payme_error(rpc_id, -32504, "Insufficient privilege to perform this method")
+
+    now_ms = int(time.time() * 1000)
+
+    if method == "CheckPerformTransaction":
+        order_ref = _extract_payme_order_ref(params)
+        payment = await _find_store_payment_by_ref(db, organization_id, order_ref)
+        if payment is None:
+            return _payme_error(rpc_id, -31050, "Buyurtma topilmadi", data="order_id")
+        if payment.status == "paid":
+            return _payme_error(rpc_id, -31051, "Buyurtma allaqachon to'langan", data="order_id")
+        if payment.status == "cancelled":
+            return _payme_error(rpc_id, -31008, "Tranzaksiya bekor qilingan")
+        req_amount = _safe_int(params.get("amount"), -1)
+        if req_amount != int(payment.amount_uzs) * 100:
+            return _payme_error(rpc_id, -31001, "To'lov summasi mos kelmadi", data="amount")
+        return _payme_ok(rpc_id, {"allow": True})
+
+    if method == "CreateTransaction":
+        tx_id = str(params.get("id") or "").strip()
+        order_ref = _extract_payme_order_ref(params)
+        if not tx_id or not order_ref:
+            return _payme_error(rpc_id, -31050, "Buyurtma yoki tranzaksiya ID ko'rsatilmagan")
+
+        payment = await _find_store_payment_by_ref(db, organization_id, order_ref)
+        if payment is None:
+            return _payme_error(rpc_id, -31050, "Buyurtma topilmadi", data="order_id")
+
+        req_amount = _safe_int(params.get("amount"), -1)
+        if req_amount != int(payment.amount_uzs) * 100:
+            return _payme_error(rpc_id, -31001, "To'lov summasi mos kelmadi", data="amount")
+
+        payme_meta = dict((payment.payment_meta or {}).get("payme") or {})
+        existing_tx = payment.provider_transaction_id
+        if existing_tx == tx_id and payme_meta.get("state") == 1:
+            return _payme_ok(
+                rpc_id,
+                {
+                    "create_time": int(payme_meta.get("create_time") or now_ms),
+                    "transaction": str(payment.id),
+                    "state": 1,
+                },
+            )
+        if payment.status == "paid" or (existing_tx and existing_tx != tx_id and payme_meta.get("state") == 1):
+            return _payme_error(rpc_id, -31008, "Tranzaksiya holati bu amalni bajara olmaydi")
+
+        create_time = _safe_int(params.get("time"), now_ms) or now_ms
+        payment.provider = "payme"
+        payment.provider_transaction_id = tx_id
+        meta = dict(payment.payment_meta or {})
+        meta["payme"] = {
+            "id": tx_id,
+            "create_time": create_time,
+            "perform_time": 0,
+            "cancel_time": 0,
+            "transaction": str(payment.id),
+            "state": 1,
+            "reason": None,
+        }
+        payment.payment_meta = meta
+        await db.commit()
+        return _payme_ok(
+            rpc_id,
+            {
+                "create_time": create_time,
+                "transaction": str(payment.id),
+                "state": 1,
+            },
+        )
+
+    if method == "PerformTransaction":
+        tx_id = str(params.get("id") or "").strip()
+        payment = await _find_store_payment_by_tx_id(db, organization_id, "payme", tx_id)
+        if payment is None:
+            return _payme_error(rpc_id, -31003, "Tranzaksiya topilmadi")
+        meta = dict(payment.payment_meta or {})
+        payme_meta = dict(meta.get("payme") or {})
+        state = payme_meta.get("state")
+        if state == 2 or payment.status == "paid":
+            return _payme_ok(
+                rpc_id,
+                {
+                    "transaction": str(payment.id),
+                    "perform_time": int(payme_meta.get("perform_time") or now_ms),
+                    "state": 2,
+                },
+            )
+        if state != 1 or payment.status == "cancelled":
+            return _payme_error(rpc_id, -31008, "Tranzaksiya holati yakunlashga mos emas")
+
+        perform_time = now_ms
+        payme_meta.update({"state": 2, "perform_time": perform_time})
+        meta["payme"] = payme_meta
+        payment.payment_meta = meta
+        await confirm_store_order_payment(db, payment_record=payment, notify_customer=True)
+        return _payme_ok(
+            rpc_id,
+            {
+                "transaction": str(payment.id),
+                "perform_time": perform_time,
+                "state": 2,
+            },
+        )
+
+    if method == "CancelTransaction":
+        tx_id = str(params.get("id") or "").strip()
+        reason = _safe_int(params.get("reason"), 1)
+        payment = await _find_store_payment_by_tx_id(db, organization_id, "payme", tx_id)
+        if payment is None:
+            return _payme_error(rpc_id, -31003, "Tranzaksiya topilmadi")
+        meta = dict(payment.payment_meta or {})
+        payme_meta = dict(meta.get("payme") or {})
+        current_state = payme_meta.get("state")
+        if current_state in (-1, -2):
+            return _payme_ok(
+                rpc_id,
+                {
+                    "transaction": str(payment.id),
+                    "cancel_time": int(payme_meta.get("cancel_time") or now_ms),
+                    "state": current_state,
+                },
+            )
+        cancel_state = -2 if (current_state == 2 or payment.status == "paid") else -1
+        cancel_time = now_ms
+        payme_meta.update({"state": cancel_state, "cancel_time": cancel_time, "reason": reason})
+        meta["payme"] = payme_meta
+        payment.payment_meta = meta
+        payment.status = "cancelled"
+        order = await db.get(Order, payment.order_id)
+        if order and order.organization_id == organization_id and (order.status or "").lower() != "completed":
+            order.status = "Cancelled"
+        await db.commit()
+        return _payme_ok(
+            rpc_id,
+            {
+                "transaction": str(payment.id),
+                "cancel_time": cancel_time,
+                "state": cancel_state,
+            },
+        )
+
+    if method == "CheckTransaction":
+        tx_id = str(params.get("id") or "").strip()
+        payment = await _find_store_payment_by_tx_id(db, organization_id, "payme", tx_id)
+        if payment is None:
+            return _payme_error(rpc_id, -31003, "Tranzaksiya topilmadi")
+        payme_meta = dict((payment.payment_meta or {}).get("payme") or {})
+        return _payme_ok(
+            rpc_id,
+            {
+                "create_time": int(payme_meta.get("create_time") or 0),
+                "perform_time": int(payme_meta.get("perform_time") or 0),
+                "cancel_time": int(payme_meta.get("cancel_time") or 0),
+                "transaction": str(payment.id),
+                "state": int(payme_meta.get("state") or 1),
+                "reason": payme_meta.get("reason"),
+            },
+        )
+
+    if method == "GetStatement":
+        from_ms = _safe_int(params.get("from"), 0) or 0
+        to_ms = _safe_int(params.get("to"), now_ms) or now_ms
+        rows = (
+            await db.execute(
+                select(StoreOrderPayment).where(
+                    StoreOrderPayment.organization_id == organization_id,
+                    StoreOrderPayment.provider == "payme",
+                    StoreOrderPayment.provider_transaction_id.isnot(None),
+                )
+            )
+        ).scalars().all()
+        txs = []
+        for p in rows:
+            pm = (p.payment_meta or {}).get("payme") or {}
+            ctime = int(pm.get("create_time") or 0)
+            if from_ms <= ctime <= to_ms:
+                txs.append(
+                    {
+                        "id": p.provider_transaction_id,
+                        "time": ctime,
+                        "amount": int(p.amount_uzs) * 100,
+                        "account": {"order_id": p.external_reference},
+                        "create_time": ctime,
+                        "perform_time": int(pm.get("perform_time") or 0),
+                        "cancel_time": int(pm.get("cancel_time") or 0),
+                        "transaction": str(p.id),
+                        "state": int(pm.get("state") or 1),
+                        "reason": pm.get("reason"),
+                    }
+                )
+        return _payme_ok(rpc_id, {"transactions": txs})
+
+    return _payme_error(rpc_id, -32601, f"Method not found: {method}")

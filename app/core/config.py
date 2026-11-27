@@ -66,6 +66,15 @@ class Settings(BaseSettings):
     telegram_api_hash: str = ""
     telegram_phone: str = ""
 
+    # Optional SMTP Email Delivery (password reset fallback & team invites)
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_password: str = ""
+    smtp_from_email: str = ""
+    smtp_use_tls: bool = True
+    smtp_use_ssl: bool = False
+
     storage_dir: str = "./storage"
     allowed_origins: str = "http://localhost:3000"  # Comma-separated for multiple
     trusted_proxies: str = "127.0.0.1,::1"  # Comma-separated IP addresses or CIDR blocks
@@ -87,6 +96,10 @@ class Settings(BaseSettings):
     @property
     def base_url(self) -> str:
         return self.public_webhook_url or f"http://{self.api_host}:{self.api_port}"
+
+    @property
+    def smtp_configured(self) -> bool:
+        return bool(self.smtp_host.strip())
 
     @model_validator(mode="after")
     def validate_security_settings(self) -> "Settings":
