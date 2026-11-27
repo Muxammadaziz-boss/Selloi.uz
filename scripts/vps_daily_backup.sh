@@ -59,7 +59,7 @@ log "Dumping PostgreSQL '${DB_NAME}'..."
 docker exec "${DB_CONTAINER}" pg_dump -U "${DB_USER}" -d "${DB_NAME}" | gzip > "${DB_BACKUP_FILE}"
 chmod 600 "${DB_BACKUP_FILE}"
 
-if gzip -t "${DB_BACKUP_FILE}" && zcat "${DB_BACKUP_FILE}" | head -n 25 | grep -q "PostgreSQL database dump" && [[ "$(stat -c%s "${DB_BACKUP_FILE}")" -gt 1024 ]]; then
+if gzip -t "${DB_BACKUP_FILE}" && [[ "$(stat -c%s "${DB_BACKUP_FILE}")" -gt 1024 ]] && ( set +o pipefail; gzip -dc "${DB_BACKUP_FILE}" | head -n 30 | grep -q "PostgreSQL database dump" ); then
     log "Database backup verified: ${DB_BACKUP_FILE} ($(du -h "${DB_BACKUP_FILE}" | cut -f1))"
 else
     rm -f "${DB_BACKUP_FILE}"
