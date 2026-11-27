@@ -73,7 +73,13 @@ async def test_products_catalog_crud():
     ts = int(datetime.now().timestamp() * 1000)
     async with core_db.SessionLocal() as db:
         org = Organization(name=f"Prod Org {ts}", slug=f"prod-org-{ts}")
-        user = User(email=f"prod_user_{ts}@test.com", full_name="Prod Admin", is_active=True)
+        user = User(
+            email=f"prod_user_{ts}@test.com",
+            full_name="Prod Admin",
+            email_verified=True,
+            telegram_user_id=930000000 + (ts % 90000000),
+            is_active=True,
+        )
         db.add_all([org, user])
         await db.flush()
 

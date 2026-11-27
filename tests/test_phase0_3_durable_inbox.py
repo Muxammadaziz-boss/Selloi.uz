@@ -451,21 +451,27 @@ async def test_e2_outbox_batch_dispatcher_execution():
     key = f"outbox:dispatch:{uuid.uuid4().hex}"
 
     async with core_db.SessionLocal() as db:
-        await stage_outbox_event(
+        staged_row = await stage_outbox_event(
             db,
             idempotency_key=key,
             event_type="send_message",
             payload={"chat_id": 999888, "text": "Outbox test notification"},
         )
         await db.commit()
+        staged_id = staged_row.id
 
     dispatched_events = []
     async def mock_sender(event_type, payload, org_id):
         dispatched_events.append((event_type, payload))
 
-    # Dispatch batch with safe mock sender
+    # Dispatch batch with safe mock sender scoped to our staged event
     async with core_db.SessionLocal() as db:
-        dispatched = await dispatch_outbox_batch(db, batch_size=10, sender_func=mock_sender)
+        dispatched = await dispatch_outbox_batch(
+            db,
+            batch_size=10,
+            sender_func=mock_sender,
+            outbox_id=staged_id,
+        )
         assert dispatched >= 1
 
         row = (await db.execute(

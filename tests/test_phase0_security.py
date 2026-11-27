@@ -116,6 +116,8 @@ async def multi_tenant_fixture():
         user_a = User(
             email=f"user_a_{ts}@tenant-test.com",
             full_name="User A",
+            email_verified=True,
+            telegram_user_id=940000000 + (ts % 1000000) * 10 + 1,
             is_active=True,
             is_platform_owner=False,
         )
@@ -139,6 +141,8 @@ async def multi_tenant_fixture():
         user_b = User(
             email=f"user_b_{ts}@tenant-test.com",
             full_name="User B",
+            email_verified=True,
+            telegram_user_id=940000000 + (ts % 1000000) * 10 + 2,
             is_active=True,
             is_platform_owner=False,
         )
@@ -310,6 +314,8 @@ async def test_user_without_membership_cannot_access_organization():
         orphan_user = User(
             email=f"orphan_{ts}@tenant-test.com",
             full_name="Orphan User",
+            email_verified=True,
+            telegram_user_id=940000000 + (ts % 1000000) * 10 + 3,
             is_active=True,
             is_platform_owner=False,
         )

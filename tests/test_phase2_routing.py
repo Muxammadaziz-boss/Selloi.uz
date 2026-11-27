@@ -41,6 +41,8 @@ async def test_platform_owner_can_impersonate_store_and_logs_audit():
             email=f"platform_boss_{pid}@ai-sales.uz",
             full_name="Platform Chief",
             hashed_password=hash_password("SuperSecret123!"),
+            email_verified=True,
+            telegram_user_id=950000000 + (pid % 100000) * 10 + 1,
             is_platform_owner=True,
         )
         session.add(platform_owner)
@@ -96,6 +98,8 @@ async def test_tenant_owner_cannot_impersonate_stores():
             email=f"regular_tenant_{pid}@test.com",
             full_name="Regular Merchant",
             hashed_password=hash_password("password123"),
+            email_verified=True,
+            telegram_user_id=950000000 + (pid % 100000) * 10 + 2,
             is_platform_owner=False,
         )
         session.add(regular_user)
@@ -139,12 +143,16 @@ async def test_platform_users_list_accessible_only_to_platform_owner():
             email=f"owner_users_{pid}@platform.com",
             full_name="Platform Admin",
             hashed_password=hash_password("password"),
+            email_verified=True,
+            telegram_user_id=950000000 + (pid % 100000) * 10 + 3,
             is_platform_owner=True,
         )
         user = User(
             email=f"client_users_{pid}@client.com",
             full_name="Client User",
             hashed_password=hash_password("password"),
+            email_verified=True,
+            telegram_user_id=950000000 + (pid % 100000) * 10 + 4,
             is_platform_owner=False,
         )
         session.add_all([owner, user])
@@ -189,6 +197,8 @@ async def test_platform_system_health():
             email=f"health_owner_{pid}@platform.com",
             full_name="Health Check Owner",
             hashed_password=hash_password("password"),
+            email_verified=True,
+            telegram_user_id=950000000 + (pid % 100000) * 10 + 5,
             is_platform_owner=True,
         )
         session.add(owner)
@@ -224,6 +234,8 @@ async def test_platform_audit_logs_listing():
             email=f"audit_owner_{pid}@platform.com",
             full_name="Audit Owner",
             hashed_password=hash_password("password"),
+            email_verified=True,
+            telegram_user_id=950000000 + (pid % 100000) * 10 + 6,
             is_platform_owner=True,
         )
         session.add(owner)

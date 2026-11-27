@@ -222,26 +222,17 @@ jobs:
           curl -s -f -o /dev/null http://127.0.0.1:3000/ || exit 1
 
       - name: Run Entitlement Integration Suite (Auth, Downgrades, UI Logout)
-        run: node web/tests/entitlement_integration_suite.mjs
+        run: TEST_BASE_URL=http://127.0.0.1:3000 node web/tests/entitlement_integration_suite.mjs
 
-      - name: Run Playwright E2E Suite (16 tabs, auth, visual fidelity, modals)
-        run: node web/tests/playwright_e2e_suite.mjs
+      - name: Run Selloi Regression E2E, Responsive & Axe-Core WCAG Suite
+        run: TEST_BASE_URL=http://127.0.0.1:3000 node web/tests/selloi_regression_e2e.mjs
 
-      - name: Run Responsive Viewport Suite (5 viewports)
-        run: node web/tests/responsive_suite.mjs
-
-      - name: Run Axe-Core WCAG 2.1 AA Suite (16 tabs x 3 designs x 2 themes)
-        run: node web/tests/a11y_axe_suite.mjs
-
-      - name: Upload Test Results, Evidence & Screenshots
+      - name: Upload Test Results & Screenshots
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: e2e-and-a11y-test-evidence
           path: |
             web/tests/entitlement_integration_results.json
-            web/tests/playwright_e2e_results.json
-            web/tests/responsive_test_results.json
-            web/tests/a11y_axe_results.json
             web/tests/screenshots/**/*.png
           if-no-files-found: ignore

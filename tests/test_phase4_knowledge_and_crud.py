@@ -55,13 +55,25 @@ async def test_knowledge_posts_tenant_isolation():
         # Org A
         org_a = Organization(name="Shop Alpha", slug=f"shop-alpha-{pid}")
         session.add(org_a)
-        user_a = User(email=f"alpha_user_{pid}@ai-sales.uz", full_name="Alpha User", hashed_password=hash_password("Pass123!"))
+        user_a = User(
+            email=f"alpha_user_{pid}@ai-sales.uz",
+            full_name="Alpha User",
+            hashed_password=hash_password("Pass123!"),
+            email_verified=True,
+            telegram_user_id=960000000 + (pid % 100000) * 10 + 1,
+        )
         session.add(user_a)
 
         # Org B
         org_b = Organization(name="Shop Beta", slug=f"shop-beta-{pid}")
         session.add(org_b)
-        user_b = User(email=f"beta_user_{pid}@ai-sales.uz", full_name="Beta User", hashed_password=hash_password("Pass123!"))
+        user_b = User(
+            email=f"beta_user_{pid}@ai-sales.uz",
+            full_name="Beta User",
+            hashed_password=hash_password("Pass123!"),
+            email_verified=True,
+            telegram_user_id=960000000 + (pid % 100000) * 10 + 2,
+        )
         session.add(user_b)
 
         await session.commit()
@@ -121,7 +133,13 @@ async def test_extract_products_from_channel_posts_endpoint():
     async with core_db.SessionLocal() as session:
         org = Organization(name="Electronics Hub", slug=f"electro-hub-{pid}")
         session.add(org)
-        user = User(email=f"electro_{pid}@ai-sales.uz", full_name="Electro Boss", hashed_password=hash_password("Pass123!"))
+        user = User(
+            email=f"electro_{pid}@ai-sales.uz",
+            full_name="Electro Boss",
+            hashed_password=hash_password("Pass123!"),
+            email_verified=True,
+            telegram_user_id=960000000 + (pid % 100000) * 10 + 3,
+        )
         session.add(user)
         await session.commit()
         await session.refresh(org)
@@ -178,12 +196,24 @@ async def test_products_crud_and_isolation():
     async with core_db.SessionLocal() as session:
         org_a = Organization(name="Auto Parts", slug=f"auto-parts-{pid}")
         session.add(org_a)
-        user_a = User(email=f"auto_{pid}@ai-sales.uz", full_name="Auto User", hashed_password=hash_password("Pass123!"))
+        user_a = User(
+            email=f"auto_{pid}@ai-sales.uz",
+            full_name="Auto User",
+            hashed_password=hash_password("Pass123!"),
+            email_verified=True,
+            telegram_user_id=960000000 + (pid % 100000) * 10 + 4,
+        )
         session.add(user_a)
 
         org_b = Organization(name="Cosmetics Store", slug=f"cosmetics-{pid}")
         session.add(org_b)
-        user_b = User(email=f"cosm_{pid}@ai-sales.uz", full_name="Cosm User", hashed_password=hash_password("Pass123!"))
+        user_b = User(
+            email=f"cosm_{pid}@ai-sales.uz",
+            full_name="Cosm User",
+            hashed_password=hash_password("Pass123!"),
+            email_verified=True,
+            telegram_user_id=960000000 + (pid % 100000) * 10 + 5,
+        )
         session.add(user_b)
 
         await session.commit()
@@ -265,12 +295,24 @@ async def test_orders_crud_and_isolation():
     async with core_db.SessionLocal() as session:
         org_a = Organization(name="Boutique A", slug=f"boutique-a-{pid}")
         session.add(org_a)
-        user_a = User(email=f"boutique_a_{pid}@ai-sales.uz", full_name="Boutique Owner", hashed_password=hash_password("Pass123!"))
+        user_a = User(
+            email=f"boutique_a_{pid}@ai-sales.uz",
+            full_name="Boutique Owner",
+            hashed_password=hash_password("Pass123!"),
+            email_verified=True,
+            telegram_user_id=960000000 + (pid % 100000) * 10 + 6,
+        )
         session.add(user_a)
 
         org_b = Organization(name="Boutique B", slug=f"boutique-b-{pid}")
         session.add(org_b)
-        user_b = User(email=f"boutique_b_{pid}@ai-sales.uz", full_name="Boutique Rival", hashed_password=hash_password("Pass123!"))
+        user_b = User(
+            email=f"boutique_b_{pid}@ai-sales.uz",
+            full_name="Boutique Rival",
+            hashed_password=hash_password("Pass123!"),
+            email_verified=True,
+            telegram_user_id=960000000 + (pid % 100000) * 10 + 7,
+        )
         session.add(user_b)
 
         await session.commit()

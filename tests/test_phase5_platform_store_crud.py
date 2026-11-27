@@ -30,6 +30,8 @@ async def test_platform_owner_can_create_store_with_all_entities():
             email=f"powner_{uid}@saas.uz",
             full_name="Platform Super Owner",
             hashed_password=hash_password("OwnerPassword123!"),
+            email_verified=True,
+            telegram_user_id=100000000 + (uuid.uuid4().int % 800000000),
             is_platform_owner=True,
         )
         session.add(owner)
@@ -113,6 +115,8 @@ async def test_platform_owner_can_suspend_and_reactivate_store():
             email=f"owner_susp_{uid}@saas.uz",
             full_name="Boss",
             hashed_password=hash_password("Pwd123!"),
+            email_verified=True,
+            telegram_user_id=100000000 + (uuid.uuid4().int % 800000000),
             is_platform_owner=True,
         )
         session.add_all([org, owner])
@@ -162,6 +166,8 @@ async def test_platform_owner_can_delete_store():
             email=f"owner_del_{uid}@saas.uz",
             full_name="Boss",
             hashed_password=hash_password("Pwd123!"),
+            email_verified=True,
+            telegram_user_id=100000000 + (uuid.uuid4().int % 800000000),
             is_platform_owner=True,
         )
         session.add_all([org, owner])
@@ -195,6 +201,8 @@ async def test_cannot_delete_central_organization_id_1():
             email=f"owner_root_{uid}@saas.uz",
             full_name="Boss",
             hashed_password=hash_password("Pwd123!"),
+            email_verified=True,
+            telegram_user_id=100000000 + (uuid.uuid4().int % 800000000),
             is_platform_owner=True,
         )
         session.add(owner)
@@ -228,6 +236,8 @@ async def test_regular_store_owner_cannot_access_platform_crud():
             email=f"merchant_{uid}@market.uz",
             full_name="Merchant Guy",
             hashed_password=hash_password("Pwd123!"),
+            email_verified=True,
+            telegram_user_id=100000000 + (uuid.uuid4().int % 800000000),
             is_platform_owner=False,  # NOT platform owner
         )
         session.add(merchant)

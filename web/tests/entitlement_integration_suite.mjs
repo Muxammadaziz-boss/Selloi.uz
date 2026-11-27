@@ -102,8 +102,13 @@ async function runEntitlementIntegration() {
   async function setTenantSession(orgId = 2) {
     const token = createSignedSessionToken({
       userId: 42,
+      telegramUserId: 777042,
       email: "tenant_admin@shop.uz",
       role: "owner", // Tenant organization owner, NOT platform owner
+      emailVerified: true,
+      hasRealEmail: true,
+      fullyVerified: true,
+      missingSteps: [],
       isPlatformOwner: false,
       organizationId: orgId,
     });
@@ -124,9 +129,15 @@ async function runEntitlementIntegration() {
   async function setPlatformOwnerSession() {
     const token = createSignedSessionToken({
       userId: 1,
+      telegramUserId: 777001,
       email: "owner@aisales.uz",
       role: "owner",
+      emailVerified: true,
+      hasRealEmail: true,
+      fullyVerified: true,
+      missingSteps: [],
       isPlatformOwner: true,
+      isPlatformAdmin: true,
       organizationId: 1,
     });
     const parsedUrl = new URL(BASE_URL);
@@ -344,7 +355,7 @@ async function runEntitlementIntegration() {
     await setPlatformOwnerSession();
     await mockSubscription("start");
 
-    await page.reload();
+    await page.goto(`${BASE_URL}/admin#profile`);
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(600);
 
@@ -367,7 +378,7 @@ async function runEntitlementIntegration() {
 
     // Tenant user injects "premium" into localStorage while on START plan
     await page.evaluate(() => localStorage.setItem("ai_sales_design_system", "premium"));
-    await page.reload();
+    await page.goto(`${BASE_URL}/dashboard#profile`);
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(600);
 
@@ -382,7 +393,7 @@ async function runEntitlementIntegration() {
     console.log("\n[9] Testing Actual UI Logout & Elevated Design Revocation...");
     // Set Platform Owner session and active premium design
     await setPlatformOwnerSession();
-    await page.goto(`${BASE_URL}/dashboard#profile`);
+    await page.goto(`${BASE_URL}/admin#profile`);
     await page.waitForLoadState("networkidle");
     await page.evaluate(() => {
       localStorage.setItem("ai_sales_design_system", "premium");
