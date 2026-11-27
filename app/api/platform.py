@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
 import httpx
 from pydantic import BaseModel, EmailStr, Field
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -17,20 +17,26 @@ from app.dependencies.auth import get_missing_verification_steps, is_real_email,
 from app.core.config import settings
 from app.core.db import get_db
 from app.core.logging import get_logger
-from app.core.security import encrypt_secret, hash_password
+from app.core.security import encrypt_secret, hash_password, revoke_user_sessions
 from app.models import (
     Admin,
+    AdminPaymentTest,
     AuditLog,
     Conversation,
     CustomerPricing,
+    EmailVerificationToken,
     Message,
     Order,
     Organization,
+    OrganizationInvite,
     OrganizationMember,
+    PasswordResetToken,
+    PaymentBill,
     Plan,
     PlanPriceHistory,
     Product,
     Subscription,
+    SubscriptionConsent,
     SystemSetting,
     User,
 )
@@ -1431,6 +1437,109 @@ async def toggle_user_active_status(
             "created_at": target.created_at.isoformat() if target.created_at else None,
         },
     }
+
+
+@router.delete("/users/{user_id}")
+async def delete_platform_user(
+    user_id: int,
+    owner: Admin = Depends(require_strict_owner),
+    db: AsyncSession = Depends(get_db),
+):
+    """Owner-only: Permanently delete a stale/unverified or suspended non-owner user."""
+    target = await db.get(User, user_id)
+    if target is None:
+        raise HTTPException(status_code=404, detail="Foydalanuvchi topilmadi")
+
+    owner_user = await _resolve_request_user(owner, db)
+    if target.is_platform_owner or (owner_user and target.id == owner_user.id):
+        raise HTTPException(status_code=400, detail="Sayt egasini (Owner) o'chirib bo'lmaydi")
+    if getattr(target, "is_platform_admin", False):
+        raise HTTPException(
+            status_code=400,
+            detail="Sayt Adminini o'chirishdan avval uning adminlik huquqini olib tashlang",
+        )
+
+    # Prevent leaving any active store without an owner
+    owned_res = await db.execute(
+        select(OrganizationMember.organization_id)
+        .where(
+            OrganizationMember.user_id == user_id,
+            OrganizationMember.role == "owner",
+            OrganizationMember.is_active.is_(True),
+        )
+    )
+    for (org_id,) in owned_res.all():
+        other_owner = (
+            await db.execute(
+                select(OrganizationMember.id)
+                .where(
+                    OrganizationMember.organization_id == org_id,
+                    OrganizationMember.role == "owner",
+                    OrganizationMember.is_active.is_(True),
+                    OrganizationMember.user_id != user_id,
+                )
+                .limit(1)
+            )
+        ).scalar_one_or_none()
+        if other_owner is None:
+            raise HTTPException(
+                status_code=400,
+                detail="Foydalanuvchi do'kon(lar)ning yagona egasi hisoblanadi. Avval do'konni o'chiring yoki boshqa ega tayinlang.",
+            )
+
+    pricing_ref = (
+        await db.execute(
+            select(CustomerPricing.id).where(CustomerPricing.created_by_id == user_id).limit(1)
+        )
+    ).scalar_one_or_none()
+    if pricing_ref is not None:
+        raise HTTPException(
+            status_code=400,
+            detail="Foydalanuvchi individual narx takliflariga bog'langan, uni faqat bloklash mumkin",
+        )
+
+    target_email = target.email
+    target_tg = target.telegram_user_id
+    was_verified = is_user_fully_verified(target)
+
+    revoke_user_sessions(user_id)
+
+    # Nullify optional audit/history references and clear cascade dependents (safe for SQLite & PG)
+    await db.execute(update(AuditLog).where(AuditLog.user_id == user_id).values(user_id=None))
+    await db.execute(update(PaymentBill).where(PaymentBill.user_id == user_id).values(user_id=None))
+    await db.execute(update(AdminPaymentTest).where(AdminPaymentTest.admin_id == user_id).values(admin_id=None))
+    await db.execute(update(PlanPriceHistory).where(PlanPriceHistory.created_by_id == user_id).values(created_by_id=None))
+    await db.execute(
+        update(OrganizationInvite)
+        .where(OrganizationInvite.invited_by_user_id == user_id)
+        .values(invited_by_user_id=None)
+    )
+
+    for dep_model in (
+        PasswordResetToken,
+        EmailVerificationToken,
+        SubscriptionConsent,
+        OrganizationMember,
+    ):
+        await db.execute(delete(dep_model).where(dep_model.user_id == user_id))
+
+    await db.delete(target)
+    db.add(
+        AuditLog(
+            organization_id=None,
+            user_id=owner_user.id if owner_user else None,
+            action="DELETE_USER",
+            resource="user",
+            resource_id=str(user_id),
+            metadata_json={
+                "email": target_email,
+                "telegram_user_id": target_tg,
+                "was_verified": was_verified,
+            },
+        )
+    )
+    await db.commit()
+    return {"ok": True, "deleted_user_id": user_id, "email": target_email}
 
 
 @router.get("/system-health")

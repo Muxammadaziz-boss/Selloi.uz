@@ -185,6 +185,22 @@ export function usePlatformData({
     }
   };
 
+  const handleDeleteUser = async (userId: number) => {
+    setBusy(true);
+    try {
+      await api(`/api/platform/users/${userId}`, {
+        method: "DELETE",
+      });
+      setSuccess("Foydalanuvchi tizimdan o'chirildi.");
+      await loadPlatformData();
+    } catch (err: any) {
+      setError(err.message || "Foydalanuvchini o'chirishda xatolik");
+      throw err;
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const handleCreateStore = async (payload: any) => {
     setBusy(true);
     try {
@@ -323,6 +339,7 @@ export function usePlatformData({
     handleAppointSiteAdmin,
     handleToggleSiteAdmin,
     handleToggleUserStatus,
+    handleDeleteUser,
     handleCreateStore,
     handleUpdateStoreStatus,
     handleDeleteStore,

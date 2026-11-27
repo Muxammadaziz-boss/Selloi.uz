@@ -1031,8 +1031,96 @@ async def update_profile(
 
 
 class ChangePasswordRequest(BaseModel):
-    current_password: str
-    new_password: str = Field(min_length=6)
+    current_password: str = ""
+    new_password: str = Field(min_length=6, max_length=128)
+
+
+async def _invalidate_user_sessions_db(
+    raw_token: str | None,
+    user: User,
+    db: AsyncSession,
+    *,
+    audit_action: str | None = None,
+) -> None:
+    """Revoke current token (if supplied) and bump token_version for durable session revocation."""
+    if raw_token:
+        try:
+            payload = decode_access_token(raw_token)
+            jti = payload.get("jti")
+            if jti:
+                revoke_token(jti)
+        except Exception:
+            pass
+        revoke_token(raw_token[-32:])
+
+    user.token_version = (getattr(user, "token_version", 1) or 1) + 1
+    user.updated_at = datetime.now(timezone.utc)
+    if audit_action:
+        db.add(
+            AuditLog(
+                user_id=user.id,
+                action=audit_action,
+                resource="user",
+                resource_id=str(user.id),
+            )
+        )
+    await db.commit()
+    revoke_user_sessions(user.id)
+
+
+async def _apply_password_update(
+    payload: ChangePasswordRequest,
+    db: AsyncSession,
+    current_user: User,
+) -> dict:
+    """Set initial password (for OAuth/Telegram users) or change existing password and rotate session."""
+    clean_new = payload.new_password.strip()
+    if len(clean_new) < 6:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Yangi parol kamida 6 ta belgidan iborat bo'lishi kerak",
+        )
+
+    has_existing_password = bool((current_user.hashed_password or "").strip())
+    if has_existing_password and not verify_password(payload.current_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Hozirgi parol noto'g'ri",
+        )
+
+    current_user.hashed_password = hash_password(payload.new_password)
+    current_user.token_version = (getattr(current_user, "token_version", 1) or 1) + 1
+    current_user.updated_at = datetime.now(timezone.utc)
+    db.add(
+        AuditLog(
+            user_id=current_user.id,
+            action="PASSWORD_CHANGED" if has_existing_password else "PASSWORD_SET",
+            resource="user",
+            resource_id=str(current_user.id),
+            metadata_json={"had_password": has_existing_password},
+        )
+    )
+    await db.commit()
+    await db.refresh(current_user)
+
+    # Invalidate all active tokens issued before this moment, then issue a fresh token for this browser
+    revoke_user_sessions(current_user.id)
+    fresh_token = create_access_token(
+        current_user.id,
+        current_user.email,
+        token_version=current_user.token_version,
+    )
+    return {
+        "ok": True,
+        "has_password": True,
+        "token_version": current_user.token_version,
+        "access_token": fresh_token,
+        "detail": (
+            "Parol muvaffaqiyatli o'zgartirildi va barcha eski sessiyalar bekor qilindi"
+            if has_existing_password
+            else "Parol muvaffaqiyatli o'rnatildi va eski sessiyalar yangilandi"
+        ),
+    }
 
 
 @router.post("/auth/logout")
@@ -1042,22 +1130,24 @@ async def logout(
     db: AsyncSession = Depends(get_db),
 ):
     """Revoke current JWT access token and invalidate user session durably."""
-    raw_token = credentials.credentials
-    try:
-        payload = decode_access_token(raw_token)
-        jti = payload.get("jti")
-        if jti:
-            revoke_token(jti)
-    except Exception:
-        pass
-    revoke_token(raw_token[-32:])
-
-    # Durable database-backed invalidation across all processes and restarts via token_version
-    current_user.token_version = (getattr(current_user, "token_version", 1) or 1) + 1
-    current_user.updated_at = datetime.now(timezone.utc)
-    await db.commit()
-    revoke_user_sessions(current_user.id)
+    await _invalidate_user_sessions_db(credentials.credentials, current_user, db)
     return {"ok": True, "detail": "Sessiya muvaffaqiyatli yakunlandi"}
+
+
+@router.post("/auth/revoke-sessions")
+async def revoke_all_sessions(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Revoke all active JWT/browser sessions across every device for the current user."""
+    await _invalidate_user_sessions_db(
+        credentials.credentials,
+        current_user,
+        db,
+        audit_action="SESSIONS_REVOKED_ALL",
+    )
+    return {"ok": True, "detail": "Barcha qurilmalardagi faol sessiyalar bekor qilindi"}
 
 
 @router.post("/auth/change-password")
@@ -1066,21 +1156,18 @@ async def change_password(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Change user password, automatically revoking all previous active sessions."""
-    if not verify_password(payload.current_password, current_user.hashed_password):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Hozirgi parol noto'g'ri",
-        )
+    """Set initial password or change existing password, revoking all previous active sessions."""
+    return await _apply_password_update(payload, db, current_user)
 
-    current_user.hashed_password = hash_password(payload.new_password)
-    current_user.token_version = (getattr(current_user, "token_version", 1) or 1) + 1
-    current_user.updated_at = datetime.now(timezone.utc)
-    await db.commit()
 
-    # Invalidate all active tokens issued before this moment
-    revoke_user_sessions(current_user.id)
-    return {"ok": True, "detail": "Parol muvaffaqiyatli o'zgartirildi va barcha eski sessiyalar bekor qilindi"}
+@router.post("/auth/set-password")
+async def set_password(
+    payload: ChangePasswordRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Alias for setting or updating account password from the Profile security panel."""
+    return await _apply_password_update(payload, db, current_user)
 
 
 @router.post("/auth/forgot-password")

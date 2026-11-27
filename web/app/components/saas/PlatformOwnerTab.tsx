@@ -39,6 +39,7 @@ import {
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
+import { ConfirmModal } from "../ui/ConfirmModal";
 import { ActivityBarsChart, DonutChart } from "../ui/Charts";
 import { EmptyState } from "../ui/EmptyState";
 import { downloadCsvExport } from "../../lib/csvExport";
@@ -144,6 +145,7 @@ interface PlatformOwnerTabProps {
   onAppointSiteAdmin?: (email: string, fullName?: string) => Promise<void>;
   onToggleSiteAdmin?: (userId: number, makeAdmin: boolean) => Promise<void>;
   onToggleUserStatus?: (userId: number, isActive: boolean) => Promise<void>;
+  onDeleteUser?: (userId: number) => Promise<void>;
   onInspectStore?: (storeId: number) => Promise<any>;
   onUpdateStoreSubscription?: (
     storeId: number,
@@ -185,6 +187,7 @@ export function PlatformOwnerTab({
   onAppointSiteAdmin,
   onToggleSiteAdmin,
   onToggleUserStatus,
+  onDeleteUser,
   onInspectStore,
   onUpdateStoreSubscription,
   onSendDailyReport,
@@ -202,6 +205,7 @@ export function PlatformOwnerTab({
   const [newAdminEmail, setNewAdminEmail] = useState("");
   const [newAdminName, setNewAdminName] = useState("");
   const [adminActionBusy, setAdminActionBusy] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<PlatformUser | null>(null);
 
   // Create store modal state
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -1563,6 +1567,18 @@ export function PlatformOwnerTab({
                                   )}
                                 </button>
                               )}
+                              {onDeleteUser && !u.is_platform_admin && (
+                                <button
+                                  type="button"
+                                  className="linear-btn linear-btn-danger py-1 px-2"
+                                  disabled={adminActionBusy}
+                                  title="Foydalanuvchini tizimdan o'chirish"
+                                  aria-label="Foydalanuvchini o'chirish"
+                                  onClick={() => setUserToDelete(u)}
+                                >
+                                  <IconTrash size={14} />
+                                </button>
+                              )}
                             </div>
                           ) : (
                             <span className="text-secondary small">-</span>
@@ -2633,6 +2649,34 @@ export function PlatformOwnerTab({
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={Boolean(userToDelete)}
+        onClose={() => setUserToDelete(null)}
+        loading={adminActionBusy}
+        variant="danger"
+        title="Foydalanuvchini o'chirish"
+        confirmText="Ha, o'chirish"
+        message={
+          userToDelete
+            ? `"${userToDelete.full_name || userToDelete.email}" (${userToDelete.email}) akkauntini tizimdan butunlay o'chirmoqchimisiz?${
+                userToDelete.fully_verified === false ? " Ushbu hisob hali to'liq tasdiqlanmagan." : ""
+              } Bu amalni ortga qaytarib bo'lmaydi.`
+            : ""
+        }
+        onConfirm={async () => {
+          if (!userToDelete || !onDeleteUser) return;
+          setAdminActionBusy(true);
+          try {
+            await onDeleteUser(userToDelete.id);
+            setUserToDelete(null);
+          } catch {
+            // Error toast handled by parent hook
+          } finally {
+            setAdminActionBusy(false);
+          }
+        }}
+      />
     </div>
   );
 }

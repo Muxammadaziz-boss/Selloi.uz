@@ -840,6 +840,7 @@ function DashboardContent({
     handleAppointSiteAdmin,
     handleToggleSiteAdmin,
     handleToggleUserStatus,
+    handleDeleteUser,
     handleCreateStore,
     handleUpdateStoreStatus,
     handleDeleteStore,
@@ -1995,6 +1996,7 @@ function DashboardContent({
             onAppointSiteAdmin={handleAppointSiteAdmin}
             onToggleSiteAdmin={handleToggleSiteAdmin}
             onToggleUserStatus={handleToggleUserStatus}
+            onDeleteUser={handleDeleteUser}
             onInspectStore={handleInspectStore}
             onUpdateStoreSubscription={handleUpdateStoreSubscription}
             onSendDailyReport={handleSendPlatformDailyReport}

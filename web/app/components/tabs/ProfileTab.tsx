@@ -17,10 +17,15 @@ import {
   IconBrandTelegram,
   IconSend,
   IconLoader2,
+  IconKey,
+  IconEye,
+  IconEyeOff,
+  IconShieldLock,
 } from "@tabler/icons-react";
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
+import { ConfirmModal } from "../ui/ConfirmModal";
 import { PageHeader } from "../layout/PageHeader";
 import { DesignSelector } from "../design/DesignSelector";
 
@@ -133,6 +138,15 @@ export function ProfileTab({
   const [tgLinkPolling, setTgLinkPolling] = useState(false);
   const [tgLinkError, setTgLinkError] = useState<string | null>(null);
   const [tgLinkFeedback, setTgLinkFeedback] = useState<string | null>(null);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPasswords, setShowPasswords] = useState(false);
+  const [passwordBusy, setPasswordBusy] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordFeedback, setPasswordFeedback] = useState<string | null>(null);
+  const [revokeModalOpen, setRevokeModalOpen] = useState(false);
+  const [revokeBusy, setRevokeBusy] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -292,6 +306,62 @@ export function ProfileTab({
       setVerifyFeedback("Tarmoq xatosi");
     } finally {
       setVerifyBusy(false);
+    }
+  };
+
+  const handleSavePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError(null);
+    setPasswordFeedback(null);
+
+    if (authProfile?.has_password && !currentPassword) {
+      setPasswordError("Hozirgi parolingizni kiriting.");
+      return;
+    }
+    if (newPassword.trim().length < 6) {
+      setPasswordError("Yangi parol kamida 6 ta belgidan iborat bo'lishi kerak.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError("Yangi parol va tasdiqlash maydoni mos kelmadi.");
+      return;
+    }
+
+    setPasswordBusy(true);
+    try {
+      const res = await fetch("/api/auth/password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          current_password: currentPassword,
+          new_password: newPassword,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setPasswordError(typeof data.detail === "string" ? data.detail : "Parolni saqlashda xatolik");
+        return;
+      }
+      setAuthProfile((prev) => ({ ...(prev || {}), has_password: true }));
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setPasswordFeedback(data.detail || "Parol muvaffaqiyatli saqlandi!");
+    } catch {
+      setPasswordError("Server bilan bog'lanishda xatolik");
+    } finally {
+      setPasswordBusy(false);
+    }
+  };
+
+  const handleRevokeAllSessions = async () => {
+    setRevokeBusy(true);
+    try {
+      await fetch("/api/auth/revoke-sessions", { method: "POST" });
+      setRevokeModalOpen(false);
+      window.location.href = "/login";
+    } finally {
+      setRevokeBusy(false);
     }
   };
 
@@ -557,8 +627,125 @@ export function ProfileTab({
           </Card>
         </div>
 
-        {/* Right Column: Design Systems, Theme & Custom Fonts */}
+        {/* Right Column: Security, Design Systems, Theme & Custom Fonts */}
         <div className="col-12 col-lg-7 d-flex flex-column gap-4">
+          {/* Account Security: Password Setup / Change & Global Session Revocation */}
+          <Card>
+            <CardHeader
+              actions={
+                <Badge variant={authProfile?.has_password ? "success" : "info"}>
+                  {authProfile?.has_password ? "Parol o'rnatilgan" : "Parol o'rnatilmagan"}
+                </Badge>
+              }
+            >
+              <CardTitle className="d-flex align-items-center gap-2">
+                <IconShieldLock size={17} style={{ color: "var(--accent)" }} />
+                <span>Xavfsizlik va Parol</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSavePassword} className="d-flex flex-column gap-2.5">
+                {!authProfile?.has_password && (
+                  <p className="text-secondary small mb-1">
+                    Siz Google yoki Telegram orqali kirgansiz. Email + parol orqali kirish uchun parol o&apos;rnating.
+                  </p>
+                )}
+
+                {authProfile?.has_password && (
+                  <div>
+                    <label className="form-label text-secondary small mb-1">Hozirgi parol</label>
+                    <input
+                      type={showPasswords ? "text" : "password"}
+                      className="linear-input"
+                      placeholder="Hozirgi parolingiz"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      autoComplete="current-password"
+                    />
+                  </div>
+                )}
+
+                <div className="row g-2">
+                  <div className="col-12 col-sm-6">
+                    <label className="form-label text-secondary small mb-1">
+                      {authProfile?.has_password ? "Yangi parol" : "Parol (kamida 6 belgi)"}
+                    </label>
+                    <input
+                      type={showPasswords ? "text" : "password"}
+                      className="linear-input"
+                      placeholder="Kamida 6 ta belgi"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      autoComplete="new-password"
+                      minLength={6}
+                    />
+                  </div>
+                  <div className="col-12 col-sm-6">
+                    <label className="form-label text-secondary small mb-1">Parolni tasdiqlang</label>
+                    <input
+                      type={showPasswords ? "text" : "password"}
+                      className="linear-input"
+                      placeholder="Parolni qayta kiriting"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      autoComplete="new-password"
+                      minLength={6}
+                    />
+                  </div>
+                </div>
+
+                {passwordError && (
+                  <div className="small text-danger">{passwordError}</div>
+                )}
+                {passwordFeedback && (
+                  <div className="small text-success">{passwordFeedback}</div>
+                )}
+
+                <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 pt-1">
+                  <button
+                    type="button"
+                    className="btn btn-link btn-sm p-0 text-secondary text-decoration-none d-inline-flex align-items-center gap-1"
+                    style={{ fontSize: "0.78rem" }}
+                    onClick={() => setShowPasswords((v) => !v)}
+                  >
+                    {showPasswords ? <IconEyeOff size={14} /> : <IconEye size={14} />}
+                    <span>{showPasswords ? "Parollarni yashirish" : "Parollarni ko'rsatish"}</span>
+                  </button>
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    size="sm"
+                    loading={passwordBusy}
+                    icon={<IconKey size={14} />}
+                  >
+                    {authProfile?.has_password ? "Parolni yangilash" : "Parol o'rnatish"}
+                  </Button>
+                </div>
+              </form>
+
+              <div
+                className="mt-3 pt-3 border-top d-flex flex-wrap align-items-center justify-content-between gap-2"
+                style={{ borderColor: "var(--border-subtle)" }}
+              >
+                <div>
+                  <div className="fw-semibold text-primary small">Barcha qurilmalardagi sessiyalar</div>
+                  <div className="text-secondary" style={{ fontSize: "0.75rem" }}>
+                    Barcha brauzer va qurilmalardagi faol kirishlarni bir zumda yoping.
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="danger"
+                  size="sm"
+                  onClick={() => setRevokeModalOpen(true)}
+                  icon={<IconLogout size={14} />}
+                >
+                  Barcha sessiyalardan chiqish
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Visual Design Systems (Phase 4: Premium, iOS, Classic) */}
           <Card>
             <CardHeader
@@ -858,6 +1045,17 @@ export function ProfileTab({
           </Card>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={revokeModalOpen}
+        onClose={() => setRevokeModalOpen(false)}
+        onConfirm={handleRevokeAllSessions}
+        loading={revokeBusy}
+        variant="danger"
+        title="Barcha sessiyalardan chiqish"
+        confirmText="Ha, hammasidan chiqish"
+        message="Barcha qurilma va brauzerlardagi faol sessiyalaringiz darhol bekor qilinadi hamda tizimga qaytadan kirishingiz kerak bo'ladi."
+      />
     </div>
   );
 }
