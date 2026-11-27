@@ -419,7 +419,7 @@ export default function LoginPageClient({
           setVerifyEmail((errPayload.email || email).trim().toLowerCase());
           setVerifyCode("");
           setVerifyError(null);
-          setVerifyInfo(errPayload.message || t.verifyModalDesc);
+          setVerifyInfo(null);
           setVerifyModalOpen(true);
           setLoading(false);
           return;
@@ -479,7 +479,7 @@ export default function LoginPageClient({
         setVerifyEmail((data.email || email).trim().toLowerCase());
         setVerifyCode("");
         setVerifyError(null);
-        setVerifyInfo(data.detail || t.verifyModalDesc);
+        setVerifyInfo(null);
         setVerifyModalOpen(true);
         setLoading(false);
         return;
@@ -1106,7 +1106,7 @@ export default function LoginPageClient({
                 className="selloi-modal-btn-cancel w-100"
                 onClick={() => setTelegramModalOpen(false)}
               >
-                {t.telegramCancel}
+                <span>{t.telegramCancel}</span>
               </button>
             </div>
           </div>
@@ -1117,6 +1117,9 @@ export default function LoginPageClient({
       {resetModalOpen && (
         <div className="selloi-modal-backdrop" onClick={() => setResetModalOpen(false)}>
           <div className="selloi-modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "430px" }}>
+            <div className="selloi-modal-emblem">
+              <IconLock size={22} />
+            </div>
             <h3 className="selloi-modal-title">{t.resetModalTitle}</h3>
             <p className="selloi-modal-desc">
               {resetStep === 1 ? t.resetStep1Desc : t.resetStep2Desc}
@@ -1160,14 +1163,14 @@ export default function LoginPageClient({
                     className="selloi-modal-btn-cancel"
                     onClick={() => setResetModalOpen(false)}
                   >
-                    {t.telegramCancel}
+                    <span>{t.telegramCancel}</span>
                   </button>
                   <button
                     type="submit"
                     disabled={resetLoading}
                     className="selloi-modal-btn-confirm"
                   >
-                    {resetLoading ? t.resetSending : t.resetSendCodeBtn}
+                    <span>{resetLoading ? t.resetSending : t.resetSendCodeBtn}</span>
                   </button>
                 </div>
               </form>
@@ -1241,14 +1244,14 @@ export default function LoginPageClient({
                     className="selloi-modal-btn-cancel"
                     onClick={() => setResetModalOpen(false)}
                   >
-                    {t.telegramCancel}
+                    <span>{t.telegramCancel}</span>
                   </button>
                   <button
                     type="submit"
                     disabled={resetLoading}
                     className="selloi-modal-btn-confirm"
                   >
-                    {resetLoading ? t.resetSubmitting : t.resetSubmitBtn}
+                    <span>{resetLoading ? t.resetSubmitting : t.resetSubmitBtn}</span>
                   </button>
                 </div>
               </form>
@@ -1261,34 +1264,53 @@ export default function LoginPageClient({
       {verifyModalOpen && (
         <div className="selloi-modal-backdrop" onClick={() => setVerifyModalOpen(false)}>
           <div className="selloi-modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "430px" }}>
+            <div className="selloi-modal-emblem">
+              <IconMail size={22} />
+            </div>
             <h3 className="selloi-modal-title">{t.verifyModalTitle}</h3>
             <p className="selloi-modal-desc">
-              {t.verifyModalDesc} <strong>{verifyEmail}</strong>
+              {t.verifyModalDesc}
+              {verifyEmail && (
+                <>
+                  <br />
+                  <span className="selloi-email-pill">{verifyEmail}</span>
+                </>
+              )}
             </p>
 
             {verifyError && (
               <div className="selloi-alert selloi-alert-danger" role="alert" style={{ marginBottom: "14px" }}>
-                <IconAlertCircle size={16} />
+                <IconAlertCircle size={16} className="flex-shrink-0" />
                 <span>{verifyError}</span>
               </div>
             )}
             {verifyInfo && (
               <div className="selloi-alert selloi-alert-info" role="status" style={{ marginBottom: "14px" }}>
-                <IconCheck size={16} />
+                <IconCheck size={16} className="flex-shrink-0" />
                 <span>{verifyInfo}</span>
               </div>
             )}
 
             <form onSubmit={handleVerifyEmailSubmit} className="selloi-auth-form">
               <div className="selloi-form-group">
-                <label className="selloi-form-label">{t.verifyCodeLabel}</label>
+                <div className="selloi-label-row">
+                  <label className="selloi-form-label">{t.verifyCodeLabel}</label>
+                  <button
+                    type="button"
+                    disabled={verifyResending}
+                    className="selloi-forgot-link"
+                    onClick={handleResendVerificationCode}
+                  >
+                    {verifyResending ? t.resetSending : t.verifyResendBtn}
+                  </button>
+                </div>
                 <div className="selloi-input-wrapper">
                   <IconShieldCheck size={16} className="selloi-input-icon" />
                   <input
                     type="text"
                     inputMode="numeric"
                     maxLength={6}
-                    className="selloi-input"
+                    className="selloi-input selloi-otp-input"
                     placeholder={t.resetCodePlaceholder}
                     value={verifyCode}
                     onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, ""))}
@@ -1298,31 +1320,20 @@ export default function LoginPageClient({
                 </div>
               </div>
 
-              <div className="d-flex justify-content-end">
-                <button
-                  type="button"
-                  disabled={verifyResending}
-                  className="selloi-forgot-link"
-                  onClick={handleResendVerificationCode}
-                >
-                  {verifyResending ? t.resetSending : t.verifyResendBtn}
-                </button>
-              </div>
-
               <div className="selloi-modal-btn-row">
                 <button
                   type="button"
                   className="selloi-modal-btn-cancel"
                   onClick={() => setVerifyModalOpen(false)}
                 >
-                  {t.telegramCancel}
+                  <span>{t.telegramCancel}</span>
                 </button>
                 <button
                   type="submit"
                   disabled={verifyLoading || verifyCode.trim().length !== 6}
                   className="selloi-modal-btn-confirm"
                 >
-                  {verifyLoading ? t.verifySubmitting : t.verifySubmitBtn}
+                  <span>{verifyLoading ? t.verifySubmitting : t.verifySubmitBtn}</span>
                 </button>
               </div>
             </form>
