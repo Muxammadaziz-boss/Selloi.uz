@@ -391,7 +391,8 @@ app.include_router(admin_router)
 app.include_router(internal_router)
 app.include_router(saas_router)
 app.include_router(platform_router)
-app.include_router(demo_router)
+app.include_router(demo_router, prefix="/api/v1/demo")
+app.include_router(demo_router, prefix="/api/demo")
 
 
 

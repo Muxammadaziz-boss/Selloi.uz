@@ -18,7 +18,7 @@ from app.services.demo_service import (
 )
 from app.services.telegram_auth import get_bot_username
 
-router = APIRouter(prefix="/api/v1/demo", tags=["demo"])
+router = APIRouter(tags=["demo"])
 
 
 def _client_key(request: Request, prefix: str, sid: str = "") -> str:
@@ -68,6 +68,11 @@ async def init_demo_session(payload: DemoSessionRequest):
     )
 
 
+@router.get("/session")
+async def fetch_demo_session_query(session_id: str, after_seq: int = 0):
+    return await fetch_demo_session(session_id=session_id, after_seq=after_seq)
+
+
 @router.get("/session/{session_id}")
 async def fetch_demo_session(session_id: str, after_seq: int = 0):
     session = get_demo_session(session_id)
@@ -75,6 +80,11 @@ async def fetch_demo_session(session_id: str, after_seq: int = 0):
         raise HTTPException(status_code=404, detail="Demo sessiyasi topilmadi")
     bot_username = await get_bot_username()
     return _public_session_payload(session, bot_username, after_seq=after_seq)
+
+
+@router.get("/events")
+async def stream_demo_events_query(session_id: str):
+    return await stream_demo_events(session_id=session_id)
 
 
 @router.get("/events/{session_id}")

@@ -144,10 +144,12 @@ async def test_live_demo_chat_order_and_bot_two_way_replay(monkeypatch):
                 )
             assert handled_reply is True
 
-        # 8. Delta sync returns both the Telegram callback update and owner Telegram reply
+        # 8. Delta sync works via both /api/v1/demo/... and Nginx /api/demo/... paths
         sync_resp = await client.get(f"/api/v1/demo/session/{sid}?after_seq=1")
         assert sync_resp.status_code == 200
-        sync_data = sync_resp.json()
+        alias_resp = await client.get(f"/api/demo/session?session_id={sid}&after_seq=1")
+        assert alias_resp.status_code == 200
+        sync_data = alias_resp.json()
         assert sync_data["telegram_linked"] is True
         texts = "\n".join(m["text"] for m in sync_data["messages"])
         assert order_code in texts
