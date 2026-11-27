@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from app.api.admin import router as admin_router
+from app.api.demo import router as demo_router
 from app.api.internal import router as internal_router
 from app.api.onboarding import router as onboarding_router
 from app.api.platform import router as platform_router
@@ -390,6 +391,7 @@ app.include_router(admin_router)
 app.include_router(internal_router)
 app.include_router(saas_router)
 app.include_router(platform_router)
+app.include_router(demo_router)
 
 
 

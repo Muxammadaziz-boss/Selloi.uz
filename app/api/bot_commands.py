@@ -107,8 +107,46 @@ async def handle_private_command(message: dict, db: AsyncSession) -> bool:
         return False
 
     # --- wizard text input (non-command message while wizard is active) ---
+    if not text:
+        return False
+
     if not text.startswith("/") and user_id in _wizard_state:
         return await _handle_wizard_input(user_id, chat_id, text, db)
+
+    if not text.startswith("/"):
+        from app.services.demo_service import (
+            get_session_id_by_tg_chat,
+            process_demo_chat,
+            push_telegram_reply_to_demo,
+            resolve_alert_session_id,
+        )
+
+        reply_sid = resolve_alert_session_id(chat_id, message.get("reply_to_message"))
+        if reply_sid and (
+            _is_owner(user_id) or (await admin_service.get_admin_by_telegram_id(db, user_id)) is not None
+        ):
+            pushed = await push_telegram_reply_to_demo(reply_sid, text=text)
+            if pushed is not None:
+                await telegram.call(
+                    "sendMessage",
+                    {"chat_id": chat_id, "text": "✅ Javobingiz jonli web-demoga yuborildi."},
+                )
+                return True
+
+        linked_demo_sid = get_session_id_by_tg_chat(chat_id)
+        if linked_demo_sid:
+            try:
+                demo_res = await process_demo_chat(
+                    linked_demo_sid,
+                    text,
+                    origin_via="telegram_bot",
+                )
+                bot_reply = (demo_res.get("bot_message") or {}).get("text")
+                if bot_reply:
+                    await telegram.call("sendMessage", {"chat_id": chat_id, "text": bot_reply})
+                return True
+            except KeyError:
+                pass
 
     parts = text.split()
     cmd = parts[0].split("@")[0].lower()
@@ -119,6 +157,45 @@ async def handle_private_command(message: dict, db: AsyncSession) -> bool:
             lower_param = raw_param.lower()
             is_link_flow = lower_param.startswith("link_") or lower_param.startswith("link-")
             is_auth_flow = lower_param.startswith("auth_") or lower_param.startswith("auth-")
+            is_demo_flow = lower_param.startswith("demo_") or lower_param.startswith("demo-")
+            if is_demo_flow:
+                import html as _html
+                from app.services.demo_service import bind_telegram_chat_to_demo
+
+                demo_code = raw_param[5:].strip()
+                first_name = sender.get("first_name", "")
+                last_name = sender.get("last_name", "")
+                full_name = f"{first_name} {last_name}".strip() or "Mehmon"
+                bound = await bind_telegram_chat_to_demo(
+                    demo_code,
+                    chat_id=chat_id,
+                    username=sender.get("username"),
+                    full_name=full_name,
+                )
+                if bound is not None:
+                    safe_name = _html.escape(full_name)
+                    await telegram.call(
+                        "sendMessage",
+                        {
+                            "chat_id": chat_id,
+                            "text": (
+                                f"<b>Jonli demo bilan sinxron ulandi</b>\n\n"
+                                f"Assalomu alaykum, <b>{safe_name}</b>.\n"
+                                "Saytda bergan buyurtmalaringiz shu yerga ham keladi, bu yerdan yozgan xabaringiz esa "
+                                "selloi.uz demoda darhol ko'rinadi."
+                            ),
+                            "parse_mode": "HTML",
+                        },
+                    )
+                else:
+                    await telegram.call(
+                        "sendMessage",
+                        {
+                            "chat_id": chat_id,
+                            "text": "⚠️ Demo sessiyasi topilmadi yoki muddati tugagan. Iltimos, selloi.uz saytidan qayta oching.",
+                        },
+                    )
+                return True
             if is_auth_flow or is_link_flow:
                 import html as _html
                 from app.services.telegram_auth import verify_auth_session
@@ -211,7 +288,21 @@ async def handle_callback_query(callback_query: dict, db: AsyncSession) -> None:
     chat_id = callback_query.get("message", {}).get("chat", {}).get("id")
     message_id = callback_query.get("message", {}).get("message_id")
 
-    if not user_id or not chat_id or not data.startswith("admin:"):
+    if not user_id or not chat_id:
+        return
+
+    if data.startswith("demo:"):
+        from app.services.demo_service import handle_demo_telegram_callback
+
+        ok, toast = await handle_demo_telegram_callback(data)
+        await telegram.answer_callback(callback_id, toast, show_alert=False)
+        if ok and message_id:
+            old_text = str(callback_query.get("message", {}).get("text") or "").strip()
+            if old_text:
+                await _edit_message(chat_id, message_id, f"{old_text}\n\n✅ {toast}", [])
+        return
+
+    if not data.startswith("admin:"):
         return
 
     admin = await admin_service.get_admin_by_telegram_id(db, user_id)
