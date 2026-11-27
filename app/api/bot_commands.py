@@ -117,36 +117,60 @@ async def handle_private_command(message: dict, db: AsyncSession) -> bool:
         if len(parts) > 1:
             raw_param = parts[1].strip()
             lower_param = raw_param.lower()
-            if lower_param.startswith("auth_") or lower_param.startswith("auth-"):
+            is_link_flow = lower_param.startswith("link_") or lower_param.startswith("link-")
+            is_auth_flow = lower_param.startswith("auth_") or lower_param.startswith("auth-")
+            if is_auth_flow or is_link_flow:
+                import html as _html
                 from app.services.telegram_auth import verify_auth_session
-                auth_code = raw_param[5:].strip()
+
+                session_code = raw_param[5:].strip()
                 first_name = sender.get("first_name", "")
                 last_name = sender.get("last_name", "")
                 full_name = f"{first_name} {last_name}".strip() or "Foydalanuvchi"
                 username = sender.get("username")
-                verified = verify_auth_session(auth_code, user_id, username, full_name)
+                expected_purpose = "link" if is_link_flow else "login"
+                verified = verify_auth_session(
+                    session_code,
+                    user_id,
+                    username,
+                    full_name,
+                    expected_purpose=expected_purpose,
+                )
                 if verified:
-                    clean_name = (
-                        full_name.replace("*", "").replace("_", "").replace("`", "").strip()
-                        or "Foydalanuvchi"
-                    )
-                    await telegram.call("sendMessage", {
-                        "chat_id": chat_id,
-                        "text": (
-                            f"✅ *Selloi tizimiga kirish tasdiqlandi!*\n\n"
-                            f"Assalomu alaykum, *{clean_name}*!\n"
-                            f"Siz veb-brauzeringizdagi sahifaga muvaffaqiyatli kirdingiz.\n\n"
-                            f"Endi brauzeringizga qaytib, boshqaruv panelidan foydalanishingiz mumkin."
-                        ),
-                        "parse_mode": "Markdown",
-                    })
+                    safe_name = _html.escape(full_name) or "Foydalanuvchi"
+                    if is_link_flow:
+                        await telegram.call("sendMessage", {
+                            "chat_id": chat_id,
+                            "text": (
+                                f"🔗 <b>Telegram hisobingiz Selloi kabinetingizga ulandi!</b>\n\n"
+                                f"Assalomu alaykum, <b>{safe_name}</b>!\n"
+                                f"Tasdiqlash muvaffaqiyatli yakunlandi.\n\n"
+                                f"Endi brauzeringizga qaytib, profilingizdan foydalanishingiz mumkin."
+                            ),
+                            "parse_mode": "HTML",
+                        })
+                    else:
+                        await telegram.call("sendMessage", {
+                            "chat_id": chat_id,
+                            "text": (
+                                f"✅ <b>Selloi tizimiga kirish tasdiqlandi!</b>\n\n"
+                                f"Assalomu alaykum, <b>{safe_name}</b>!\n"
+                                f"Siz veb-brauzeringizdagi sahifaga muvaffaqiyatli kirdingiz.\n\n"
+                                f"Endi brauzeringizga qaytib, boshqaruv panelidan foydalanishingiz mumkin."
+                            ),
+                            "parse_mode": "HTML",
+                        })
                     return True
-                else:
-                    await telegram.call("sendMessage", {
-                        "chat_id": chat_id,
-                        "text": "⚠️ Kirish sessiyasi topilmadi yoki muddati tugagan. Iltimos, veb-sayt orqali qayta urinib ko'ring.",
-                    })
-                    return True
+                expired_msg = (
+                    "⚠️ Ulash sessiyasi topilmadi yoki muddati tugagan. Iltimos, Selloi profilingiz orqali qayta urinib ko'ring."
+                    if is_link_flow
+                    else "⚠️ Kirish sessiyasi topilmadi yoki muddati tugagan. Iltimos, veb-sayt orqali qayta urinib ko'ring."
+                )
+                await telegram.call("sendMessage", {
+                    "chat_id": chat_id,
+                    "text": expired_msg,
+                })
+                return True
         return await _cmd_start(user_id, chat_id, sender, db)
     if cmd in ("/help", "/yordam"):
         return await _cmd_help(user_id, chat_id, db)
@@ -563,14 +587,66 @@ async def _cmd_start(user_id: int, chat_id: int, sender: dict, db: AsyncSession)
         })
         return True
 
-    await telegram.call("sendMessage", {
+    import html as _html
+    from sqlalchemy import select
+    from app.models import Organization, OrganizationMember, User
+
+    web_user = (
+        await db.execute(
+            select(User).where(User.telegram_user_id == user_id, User.is_active == True)
+        )
+    ).scalar_one_or_none()
+    frontend_base = (getattr(settings, "frontend_url", "") or "https://selloi.uz").rstrip("/")
+
+    if web_user:
+        membership_row = (
+            await db.execute(
+                select(Organization.name, OrganizationMember.role)
+                .join(OrganizationMember, OrganizationMember.organization_id == Organization.id)
+                .where(OrganizationMember.user_id == web_user.id, OrganizationMember.is_active == True)
+                .limit(1)
+            )
+        ).first()
+        safe_name = _html.escape(web_user.full_name or "Foydalanuvchi")
+        store_line = (
+            f"🏪 Do'koningiz: <b>{_html.escape(membership_row[0])}</b> ({_html.escape(membership_row[1])})\n\n"
+            if membership_row
+            else "\n"
+        )
+        msg_payload: dict = {
+            "chat_id": chat_id,
+            "text": (
+                f"Assalomu alaykum, <b>{safe_name}</b>! 👋\n\n"
+                f"Telegram hisobingiz Selloi AI kabinetingizga ulangan.\n"
+                f"{store_line}"
+                f"• /help — Bot buyruqlari va yordam"
+            ),
+            "parse_mode": "HTML",
+        }
+        if frontend_base.startswith("https://"):
+            msg_payload["reply_markup"] = {
+                "inline_keyboard": [[{"text": "🚀 Selloi Boshqaruv Paneli", "url": f"{frontend_base}/dashboard"}]]
+            }
+        await telegram.call("sendMessage", msg_payload)
+        return True
+
+    welcome_payload: dict = {
         "chat_id": chat_id,
         "text": (
-            "Assalomu alaykum! Men do'konimizning AI savdo yordamchisiman.\n\n"
-            "Menga qiziqtirgan mahsulotingiz haqida yozishingiz mumkin.\n"
-            "Yo'riqnoma uchun: /help"
+            "Assalomu alaykum! 👋 Men <b>Selloi AI</b> — biznesingiz uchun sun'iy intellektli savdo ekotizimining rasmiy botiman.\n\n"
+            "Bu bot orqali siz:\n"
+            "• Selloi kabinetingizga bir bosishda kirishingiz\n"
+            "• Telegram hisobingizni shaxsiy profilingizga ulashingiz\n"
+            "• Parolni tiklash va tizim bildirishnomalarini olishingiz mumkin\n\n"
+            "Boshlash uchun quyidagi tugmani bosing:"
         ),
-    })
+        "parse_mode": "HTML",
+    }
+    if frontend_base.startswith("https://"):
+        welcome_payload["reply_markup"] = {
+            "inline_keyboard": [[{"text": "🚀 Selloi'ga kirish / Ro'yxatdan o'tish", "url": f"{frontend_base}/login"}]]
+        }
+    await telegram.call("sendMessage", welcome_payload)
     return True
 
 

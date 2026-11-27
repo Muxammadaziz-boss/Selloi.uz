@@ -159,3 +159,197 @@ async def test_bot_command_start_auth_invalid_or_expired_notice():
             call_args = mock_call.await_args[0]
             assert call_args[0] == "sendMessage"
             assert "topilmadi yoki muddati tugagan" in call_args[1]["text"].lower()
+
+
+@pytest.mark.asyncio
+async def test_telegram_auth_redis_cross_worker_persistence():
+    """Verify auth/link sessions survive process memory isolation when Redis is available."""
+    fake_store: dict[str, str] = {}
+
+    class _FakeRedis:
+        def get(self, key: str):
+            return fake_store.get(key)
+
+        def set(self, key: str, value: str, ex: int | None = None):
+            fake_store[key] = value
+            return True
+
+        def delete(self, key: str):
+            fake_store.pop(key, None)
+            return 1
+
+    with patch("app.services.telegram_auth._get_redis_client", return_value=_FakeRedis()):
+        created = await create_auth_session(purpose="link", user_id=42)
+        code = created["code"]
+        assert f"?start=link_{code}" in created["bot_url"]
+        assert created["purpose"] == "link"
+
+        # Simulate separate worker where _AUTH_SESSIONS does not hold the key locally
+        _AUTH_SESSIONS.clear()
+        assert check_auth_session(code)["status"] == "pending"
+
+        # Cross-purpose verify must fail; matching purpose succeeds across workers
+        assert verify_auth_session(f"link_{code}", 555666777, "workeruser", "Worker User", expected_purpose="login") is False
+        assert verify_auth_session(f"link_{code}", 555666777, "workeruser", "Worker User", expected_purpose="link") is True
+
+        _AUTH_SESSIONS.clear()
+        assert consume_auth_session(code, expected_purpose="link", expected_user_id=99) is None
+        consumed = consume_auth_session(code, expected_purpose="link", expected_user_id=42)
+        assert consumed is not None
+        assert consumed["telegram_id"] == 555666777
+
+
+@pytest.mark.asyncio
+async def test_telegram_account_link_and_unlink_flow(tmp_path):
+    """Verify logged-in user can link @Selloi_ai_bot, prevent hijacking, greet in /start, and unlink."""
+    import secrets
+    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+    from app.core.db import get_db
+    from app.core.security import hash_password, reset_rate_limit
+    from app.dependencies.auth import create_access_token
+    from app.models import Base, User
+
+    db_file = tmp_path / "tg_link.db"
+    engine = create_async_engine(f"sqlite+aiosqlite:///{db_file}")
+    needed_tables = [t for t in Base.metadata.sorted_tables if t.name != "channel_posts"]
+    async with engine.begin() as conn:
+        await conn.run_sync(lambda sync_conn: Base.metadata.create_all(sync_conn, tables=needed_tables))
+    session_maker = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
+
+    async def override_get_db():
+        async with session_maker() as session:
+            yield session
+
+    prev_override = app.dependency_overrides.get(get_db)
+    app.dependency_overrides[get_db] = override_get_db
+
+    try:
+        suffix = secrets.token_hex(4)
+        tg_id = 880000000 + int(suffix[:6], 16) % 900000
+
+        async with session_maker() as db:
+            u1 = User(
+                email=f"tg_link_u1_{suffix}@example.com",
+                full_name="Birinchi Egasi",
+                hashed_password=hash_password("Pass1234!"),
+                email_verified=True,
+                is_active=True,
+            )
+            u2 = User(
+                email=f"tg_link_u2_{suffix}@example.com",
+                full_name="Ikkinchi Egasi",
+                hashed_password=hash_password("Pass1234!"),
+                email_verified=True,
+                is_active=True,
+            )
+            tg_only = User(
+                email=f"tg_only_{suffix}@telegram.selloi.uz",
+                full_name="Faqat Telegram",
+                hashed_password="",
+                telegram_user_id=tg_id + 999999,
+                email_verified=True,
+                is_active=True,
+            )
+            empty_stub = User(
+                email=f"tg_stub_{suffix}@telegram.selloi.uz",
+                full_name="Eski Stub",
+                hashed_password="",
+                telegram_user_id=tg_id,
+                email_verified=True,
+                is_active=True,
+            )
+            db.add_all([u1, u2, tg_only, empty_stub])
+            await db.commit()
+            await db.refresh(u1)
+            await db.refresh(u2)
+            await db.refresh(tg_only)
+            u1_id, u1_email = u1.id, u1.email
+            u2_id, u2_email = u2.id, u2.email
+            tgo_id, tgo_email = tg_only.id, tg_only.email
+
+        reset_rate_limit(f"tg_link_init:{u1_id}")
+        reset_rate_limit(f"tg_link_init:{u2_id}")
+
+        h1 = {"Authorization": f"Bearer {create_access_token(u1_id, u1_email)}"}
+        h2 = {"Authorization": f"Bearer {create_access_token(u2_id, u2_email)}"}
+        h_tgo = {"Authorization": f"Bearer {create_access_token(tgo_id, tgo_email)}"}
+
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            init_resp = await client.post("/api/v1/auth/telegram/link/init", headers=h1)
+            assert init_resp.status_code == 200, init_resp.text
+            init_data = init_resp.json()
+            code = init_data["code"]
+            assert f"?start=link_{code}" in init_data["bot_url"]
+
+            # Cannot redeem a link code on the login poll endpoint
+            bad_login_poll = await client.post("/api/v1/auth/telegram/poll", json={"code": code})
+            assert bad_login_poll.status_code == 404
+
+            pending_poll = await client.post("/api/v1/auth/telegram/link/poll", json={"code": code}, headers=h1)
+            assert pending_poll.status_code == 200
+            assert pending_poll.json() == {"status": "pending"}
+
+            # Wrong user cannot poll another user's link session
+            other_poll = await client.post("/api/v1/auth/telegram/link/poll", json={"code": code}, headers=h2)
+            assert other_poll.status_code == 404
+
+            msg_link = {
+                "message_id": 9101,
+                "text": f"/start link_{code}",
+                "chat": {"id": tg_id, "type": "private"},
+                "from": {"id": tg_id, "first_name": "Aziz", "last_name": "Karimov", "username": f"aziz_{suffix}"},
+            }
+            with patch("app.api.bot_commands.telegram.call", new_callable=AsyncMock) as mock_call:
+                mock_call.return_value = {"ok": True}
+                async with session_maker() as db:
+                    handled = await handle_private_command(msg_link, db)
+                    assert handled is True
+                    assert "ulandi" in mock_call.await_args[0][1]["text"].lower()
+
+            # Linking reclaims empty @telegram.selloi.uz stub safely
+            done_poll = await client.post("/api/v1/auth/telegram/link/poll", json={"code": code}, headers=h1)
+            assert done_poll.status_code == 200, done_poll.text
+            done_data = done_poll.json()
+            assert done_data["ok"] is True
+            assert done_data["telegram_user_id"] == tg_id
+
+            me_resp = await client.get("/api/v1/auth/me", headers=h1)
+            assert me_resp.status_code == 200
+            assert me_resp.json()["telegram_user_id"] == tg_id
+            assert "bot_username" in me_resp.json()
+
+            # Direct /start greets linked user cleanly
+            msg_start = {
+                "message_id": 9102,
+                "text": "/start",
+                "chat": {"id": tg_id, "type": "private"},
+                "from": {"id": tg_id, "first_name": "Aziz", "username": f"aziz_{suffix}"},
+            }
+            with patch("app.api.bot_commands.telegram.call", new_callable=AsyncMock) as mock_call:
+                mock_call.return_value = {"ok": True}
+                async with session_maker() as db:
+                    assert await handle_private_command(msg_start, db) is True
+                    assert "selloi ai kabinetingizga ulangan" in mock_call.await_args[0][1]["text"].lower()
+
+            # Second user trying to hijack the already-linked real account gets 409 Conflict
+            init2 = (await client.post("/api/v1/auth/telegram/link/init", headers=h2)).json()
+            assert verify_auth_session(init2["code"], tg_id, f"aziz_{suffix}", "Aziz", expected_purpose="link") is True
+            conflict = await client.post("/api/v1/auth/telegram/link/poll", json={"code": init2["code"]}, headers=h2)
+            assert conflict.status_code == 409
+
+            # Telegram-only account without password cannot unlink (lockout protection)
+            tgo_unlink = await client.post("/api/v1/auth/telegram/unlink", headers=h_tgo)
+            assert tgo_unlink.status_code == 400
+
+            # Email user can unlink safely
+            unlink_resp = await client.post("/api/v1/auth/telegram/unlink", headers=h1)
+            assert unlink_resp.status_code == 200
+            assert unlink_resp.json()["telegram_user_id"] is None
+    finally:
+        if prev_override is None:
+            app.dependency_overrides.pop(get_db, None)
+        else:
+            app.dependency_overrides[get_db] = prev_override
+        await engine.dispose()
+

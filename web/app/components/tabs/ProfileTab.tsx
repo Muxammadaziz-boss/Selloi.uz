@@ -14,6 +14,9 @@ import {
   IconSparkles,
   IconLock,
   IconMail,
+  IconBrandTelegram,
+  IconSend,
+  IconLoader2,
 } from "@tabler/icons-react";
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
 import { Badge } from "../ui/Badge";
@@ -110,21 +113,37 @@ export function ProfileTab({
   const { language, setLanguage, t } = useLanguage();
   const isOwner = currentAdmin?.role === "platform_owner" || currentAdmin?.role === "owner" || Boolean(currentAdmin?.isPlatformOwner);
   const isSiteAdmin = currentAdmin?.role === "platform_admin" || Boolean(currentAdmin?.isPlatformAdmin);
-  const [authProfile, setAuthProfile] = useState<{
+  type AuthMeProfile = {
     email?: string;
     email_verified?: boolean;
     smtp_configured?: boolean;
-  } | null>(null);
+    telegram_user_id?: number | null;
+    bot_username?: string;
+    has_password?: boolean;
+  };
+  const [authProfile, setAuthProfile] = useState<AuthMeProfile | null>(null);
   const [verifyOpen, setVerifyOpen] = useState(false);
   const [verifyCode, setVerifyCode] = useState("");
   const [verifyBusy, setVerifyBusy] = useState(false);
   const [verifyFeedback, setVerifyFeedback] = useState<string | null>(null);
+  const [tgLinkCode, setTgLinkCode] = useState<string | null>(null);
+  const [tgLinkUrl, setTgLinkUrl] = useState<string | null>(null);
+  const [tgLinkBotUsername, setTgLinkBotUsername] = useState<string>("Selloi_ai_bot");
+  const [tgLinkBusy, setTgLinkBusy] = useState(false);
+  const [tgLinkPolling, setTgLinkPolling] = useState(false);
+  const [tgLinkError, setTgLinkError] = useState<string | null>(null);
+  const [tgLinkFeedback, setTgLinkFeedback] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
-    api<{ email?: string; email_verified?: boolean; smtp_configured?: boolean }>("/api/v1/auth/me")
+    api<AuthMeProfile>("/api/v1/auth/me")
       .then((res) => {
-        if (active && res) setAuthProfile(res);
+        if (active && res) {
+          setAuthProfile(res);
+          if (res.bot_username) {
+            setTgLinkBotUsername(res.bot_username);
+          }
+        }
       })
       .catch(() => {});
     return () => {
@@ -132,9 +151,102 @@ export function ProfileTab({
     };
   }, []);
 
+  useEffect(() => {
+    if (!tgLinkPolling || !tgLinkCode) return;
+    let active = true;
+    let attempts = 0;
+    const pollTimer = setInterval(async () => {
+      attempts += 1;
+      if (attempts > 165) {
+        if (active) {
+          setTgLinkPolling(false);
+          setTgLinkError("Telegram tasdiqlash vaqti tugadi. Qayta urinib ko'ring.");
+        }
+        return;
+      }
+      try {
+        const res = await api<{
+          status?: string;
+          ok?: boolean;
+          telegram_user_id?: number | null;
+          username?: string;
+        }>("/api/v1/auth/telegram/link/poll", {
+          method: "POST",
+          body: JSON.stringify({ code: tgLinkCode }),
+        });
+        if (!active) return;
+        if (res?.status === "verified" || res?.ok) {
+          setTgLinkPolling(false);
+          setTgLinkCode(null);
+          setTgLinkUrl(null);
+          setTgLinkError(null);
+          setAuthProfile((prev) => ({ ...(prev || {}), telegram_user_id: res.telegram_user_id ?? null }));
+          setTgLinkFeedback(
+            res.username
+              ? `Telegram (@${res.username}) muvaffaqiyatli ulandi!`
+              : "Telegram hisob muvaffaqiyatli ulandi!"
+          );
+        }
+      } catch (err) {
+        if (!active) return;
+        setTgLinkPolling(false);
+        setTgLinkError(err instanceof Error ? err.message : "Telegram ulashda xatolik yuz berdi");
+      }
+    }, 1800);
+    return () => {
+      active = false;
+      clearInterval(pollTimer);
+    };
+  }, [tgLinkPolling, tgLinkCode]);
+
   const displayEmail = authProfile?.email || currentAdmin?.email || "";
   const isEmailVerified = Boolean(authProfile?.email_verified);
   const canVerifyViaSmtp = Boolean(authProfile?.smtp_configured && displayEmail && !displayEmail.endsWith("@telegram.selloi.uz"));
+  const botUsername = authProfile?.bot_username || tgLinkBotUsername || "Selloi_ai_bot";
+  const linkedTelegramId =
+    authProfile !== null
+      ? Number(authProfile.telegram_user_id || 0)
+      : activeAdminTelegramId > 0
+      ? activeAdminTelegramId
+      : Number(currentAdmin?.telegram_user_id || 0);
+  const isTelegramOnlyAccount = Boolean(
+    displayEmail.toLowerCase().endsWith("@telegram.selloi.uz") && !authProfile?.has_password
+  );
+
+  const handleStartTelegramLink = async () => {
+    setTgLinkBusy(true);
+    setTgLinkError(null);
+    setTgLinkFeedback(null);
+    try {
+      const res = await api<{ code: string; bot_url: string; bot_username?: string }>(
+        "/api/v1/auth/telegram/link/init",
+        { method: "POST" }
+      );
+      if (res.bot_username) setTgLinkBotUsername(res.bot_username);
+      setTgLinkCode(res.code);
+      setTgLinkUrl(res.bot_url);
+      setTgLinkPolling(true);
+    } catch (err) {
+      setTgLinkError(err instanceof Error ? err.message : "Bot bilan ulanish sessiyasini yaratib bo'lmadi");
+    } finally {
+      setTgLinkBusy(false);
+    }
+  };
+
+  const handleUnlinkTelegram = async () => {
+    setTgLinkBusy(true);
+    setTgLinkError(null);
+    setTgLinkFeedback(null);
+    try {
+      await api<{ ok: boolean }>("/api/v1/auth/telegram/unlink", { method: "POST" });
+      setAuthProfile((prev) => ({ ...(prev || {}), telegram_user_id: null }));
+      setTgLinkFeedback("Telegram hisob uzildi.");
+    } catch (err) {
+      setTgLinkError(err instanceof Error ? err.message : "Telegram hisobni uzishda xatolik");
+    } finally {
+      setTgLinkBusy(false);
+    }
+  };
 
   const handleSendVerifyCode = async () => {
     if (!displayEmail) return;
@@ -281,9 +393,20 @@ export function ProfileTab({
                       </div>
                     </div>
                   )}
-                  <div className="d-flex justify-content-between">
-                    <span className="text-secondary">Telegram ID:</span>
-                    <span className="font-monospace text-primary fw-medium">{activeAdminTelegramId > 0 ? activeAdminTelegramId : (currentAdmin?.telegram_user_id || "-")}</span>
+                  <div className="d-flex justify-content-between align-items-center gap-2">
+                    <span className="text-secondary d-flex align-items-center gap-1">
+                      <IconBrandTelegram size={13} /> Telegram:
+                    </span>
+                    <div className="d-flex align-items-center gap-1.5 flex-wrap justify-content-end">
+                      <span className="font-monospace text-primary fw-medium" style={{ fontSize: "0.75rem" }}>
+                        {linkedTelegramId > 0 ? `ID: ${linkedTelegramId}` : "Ulanmagan"}
+                      </span>
+                      {authProfile && (
+                        <Badge variant={linkedTelegramId > 0 ? "success" : "default"}>
+                          {linkedTelegramId > 0 ? "Ulangan" : "Ulanmagan"}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                   <div className="d-flex justify-content-between">
                     <span className="text-secondary">{language === "uz" ? "Tizim roli:" : "Role:"}</span>
@@ -332,6 +455,76 @@ export function ProfileTab({
                 )}
                 {isEmailVerified && verifyFeedback && (
                   <div className="small text-success">{verifyFeedback}</div>
+                )}
+
+                {authProfile && (
+                  <div className="w-100 p-2.5 rounded-2 text-start small d-flex flex-column gap-2" style={{ backgroundColor: "var(--bg-surface-elevated)", border: "1px solid var(--border-subtle)" }}>
+                    <div className="d-flex justify-content-between align-items-center">
+                      <span className="text-secondary fw-medium d-flex align-items-center gap-1">
+                        <IconBrandTelegram size={14} style={{ color: "#229ed9" }} /> @{botUsername}
+                      </span>
+                      {linkedTelegramId > 0 && !tgLinkUrl && !isTelegramOnlyAccount && (
+                        <button
+                          type="button"
+                          className="btn btn-link btn-sm p-0 text-danger text-decoration-none"
+                          style={{ fontSize: "0.72rem" }}
+                          disabled={tgLinkBusy}
+                          onClick={handleUnlinkTelegram}
+                        >
+                          Uzish
+                        </button>
+                      )}
+                    </div>
+
+                    {tgLinkUrl ? (
+                      <div className="d-flex flex-column gap-2">
+                        <a
+                          href={tgLinkUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn btn-primary btn-sm w-100 d-inline-flex align-items-center justify-content-center gap-1.5 text-decoration-none"
+                        >
+                          <IconSend size={14} />
+                          <span>@{tgLinkBotUsername} da tasdiqlash</span>
+                        </a>
+                        <div className="d-flex align-items-center justify-content-between gap-2 text-secondary" style={{ fontSize: "0.72rem" }}>
+                          <span className="d-inline-flex align-items-center gap-1">
+                            {tgLinkPolling && <IconLoader2 size={12} className="spin text-primary" />}
+                            Botda Start bosing — avtomatik tasdiqlanadi
+                          </span>
+                          <button
+                            type="button"
+                            className="btn btn-link btn-sm p-0 text-secondary text-decoration-none"
+                            style={{ fontSize: "0.72rem" }}
+                            onClick={() => {
+                              setTgLinkPolling(false);
+                              setTgLinkUrl(null);
+                              setTgLinkCode(null);
+                            }}
+                          >
+                            Bekor qilish
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant={linkedTelegramId > 0 ? "ghost" : "outline"}
+                        size="xs"
+                        className="w-100"
+                        loading={tgLinkBusy}
+                        onClick={handleStartTelegramLink}
+                        icon={<IconBrandTelegram size={13} />}
+                      >
+                        {linkedTelegramId > 0
+                          ? `Boshqa Telegram ulash (@${botUsername})`
+                          : `Telegramni ulash (@${botUsername})`}
+                      </Button>
+                    )}
+
+                    {tgLinkFeedback && <div className="text-success" style={{ fontSize: "0.72rem" }}>{tgLinkFeedback}</div>}
+                    {tgLinkError && <div className="text-danger" style={{ fontSize: "0.72rem" }}>{tgLinkError}</div>}
+                  </div>
                 )}
 
                 {onReturnToAdmin && (

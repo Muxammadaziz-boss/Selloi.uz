@@ -454,10 +454,10 @@ async def telegram_auth_poll(payload: dict, db: AsyncSession = Depends(get_db)):
     if not code:
         raise HTTPException(status_code=400, detail="Kod ko'rsatilmagan")
 
-    auth_data = consume_auth_session(code)
+    auth_data = consume_auth_session(code, expected_purpose="login")
     if not auth_data:
         pending = check_auth_session(code)
-        if pending:
+        if pending and pending.get("purpose", "login") == "login":
             return {"status": "pending"}
         raise HTTPException(status_code=404, detail="Sessiya topilmadi yoki muddati tugagan")
 
@@ -530,10 +530,142 @@ async def telegram_auth(payload: TelegramAuthRequest, db: AsyncSession = Depends
     )
 
 
+@router.post("/auth/telegram/link/init")
+async def telegram_link_init(current_user: User = Depends(get_current_user)):
+    """Generate a Telegram deep-link session to connect @Selloi_ai_bot to the signed-in user."""
+    from app.services.telegram_auth import create_auth_session
+
+    rate_key = f"tg_link_init:{current_user.id}"
+    if is_rate_limited(rate_key, max_attempts=12, window_seconds=60):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Juda ko'p urinishlar qilindi. Birozdan so'ng qayta urinib ko'ring.",
+        )
+    record_attempt(rate_key)
+    return await create_auth_session(purpose="link", user_id=current_user.id)
+
+
+@router.post("/auth/telegram/link/poll")
+async def telegram_link_poll(
+    payload: dict,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Check and finalize Telegram account linking for the signed-in user."""
+    from app.services.telegram_auth import check_auth_session, consume_auth_session
+
+    code = (payload.get("code") or "").strip()
+    if not code:
+        raise HTTPException(status_code=400, detail="Kod ko'rsatilmagan")
+
+    auth_data = consume_auth_session(code, expected_purpose="link", expected_user_id=current_user.id)
+    if not auth_data:
+        pending = check_auth_session(code)
+        if pending and pending.get("purpose") == "link" and pending.get("user_id") == current_user.id:
+            return {"status": "pending"}
+        raise HTTPException(status_code=404, detail="Ulash sessiyasi topilmadi yoki muddati tugagan")
+
+    clean_tg_id = int(auth_data["telegram_id"])
+    clean_username = (auth_data.get("username") or "").strip().lstrip("@")
+    full_name = (auth_data.get("full_name") or "").strip()
+
+    existing_holder = (
+        await db.execute(
+            select(User).where(User.telegram_user_id == clean_tg_id, User.id != current_user.id)
+        )
+    ).scalar_one_or_none()
+    if existing_holder is not None:
+        has_membership = (
+            await db.execute(
+                select(OrganizationMember.id)
+                .where(OrganizationMember.user_id == existing_holder.id, OrganizationMember.is_active == True)
+                .limit(1)
+            )
+        ).scalar_one_or_none()
+        is_empty_tg_stub = (
+            (existing_holder.email or "").lower().endswith("@telegram.selloi.uz")
+            and not (existing_holder.hashed_password or "").strip()
+            and not existing_holder.is_platform_owner
+            and not getattr(existing_holder, "is_platform_admin", False)
+            and has_membership is None
+        )
+        if is_empty_tg_stub:
+            existing_holder.telegram_user_id = None
+            existing_holder.is_active = False
+            await db.flush()
+        else:
+            raise HTTPException(
+                status_code=409,
+                detail="Bu Telegram hisobi boshqa Selloi foydalanuvchisiga allaqachon ulangan.",
+            )
+
+    settings = get_settings()
+    if settings.admin_telegram_id and clean_tg_id == int(settings.admin_telegram_id):
+        current_user.is_platform_owner = True
+
+    current_user.telegram_user_id = clean_tg_id
+    if not current_user.full_name and full_name:
+        current_user.full_name = full_name
+
+    db.add(
+        AuditLog(
+            user_id=current_user.id,
+            action="telegram_linked",
+            resource="user",
+            resource_id=str(current_user.id),
+            metadata_json={"telegram_user_id": clean_tg_id, "username": clean_username or None},
+        )
+    )
+    await db.commit()
+    await db.refresh(current_user)
+    return {
+        "ok": True,
+        "status": "verified",
+        "telegram_user_id": current_user.telegram_user_id,
+        "username": clean_username,
+        "full_name": current_user.full_name,
+    }
+
+
+@router.post("/auth/telegram/unlink")
+async def telegram_unlink(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Disconnect linked Telegram ID when another login method exists."""
+    if not current_user.telegram_user_id:
+        return {"ok": True, "telegram_user_id": None}
+
+    is_tg_only_account = (current_user.email or "").lower().endswith("@telegram.selloi.uz") and not (
+        current_user.hashed_password or ""
+    ).strip()
+    if is_tg_only_account:
+        raise HTTPException(
+            status_code=400,
+            detail="Bu hisob faqat Telegram orqali kirishga bog'langan. Telegramni uzish uchun avval haqiqiy email va parol o'rnating.",
+        )
+
+    old_tg_id = current_user.telegram_user_id
+    current_user.telegram_user_id = None
+    db.add(
+        AuditLog(
+            user_id=current_user.id,
+            action="telegram_unlinked",
+            resource="user",
+            resource_id=str(current_user.id),
+            metadata_json={"telegram_user_id": old_tg_id},
+        )
+    )
+    await db.commit()
+    await db.refresh(current_user)
+    return {"ok": True, "telegram_user_id": None}
+
+
 @router.get("/auth/me")
 async def get_current_user_profile(current_user: User = Depends(get_current_user)):
     """Get profile of current logged-in user."""
     from app.services import email_service
+    from app.services.telegram_auth import get_bot_username
 
     is_owner = bool(current_user.is_platform_owner)
     is_site_admin = bool(getattr(current_user, "is_platform_admin", False))
@@ -544,6 +676,8 @@ async def get_current_user_profile(current_user: User = Depends(get_current_user
         "telegram_user_id": current_user.telegram_user_id,
         "email_verified": bool(getattr(current_user, "email_verified", False)),
         "smtp_configured": email_service.is_smtp_configured(),
+        "bot_username": await get_bot_username(),
+        "has_password": bool((current_user.hashed_password or "").strip()),
         "is_platform_owner": is_owner,
         "is_platform_admin": is_site_admin,
         "has_platform_access": is_owner or is_site_admin,

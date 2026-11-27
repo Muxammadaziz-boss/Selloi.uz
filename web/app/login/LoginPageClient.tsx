@@ -120,8 +120,8 @@ const TRANSLATIONS: Record<Language, TranslationText> = {
     backToHome: "Bosh sahifa",
     sslSecure: "256-bit SSL xavfsiz shifrlash orqali himoyalangan",
     telegramModalTitle: "Telegram orqali xavfsiz kirish",
-    telegramModalDesc: "Telegram hisobingiz orqali tizimga kirish uchun botimizni oching va pastdagi 'Boshlash' (/start) tugmasini bosing:",
-    telegramOpenBot: "Telegram Botda Tasdiqlash",
+    telegramModalDesc: "Telegram hisobingiz orqali tizimga kirish uchun @Selloi_ai_bot botimizni oching va pastdagi 'Boshlash' (/start) tugmasini bosing:",
+    telegramOpenBot: "@Selloi_ai_bot da tasdiqlash",
     telegramWaiting: "Telegram botingizdan tasdiqlash kutilmoqda...",
     telegramSuccess: "Tasdiqlandi! Boshqaruv paneliga o'tilmoqda...",
     telegramCancel: "Bekor qilish",
@@ -179,8 +179,8 @@ const TRANSLATIONS: Record<Language, TranslationText> = {
     backToHome: "На главную",
     sslSecure: "Защищено 256-битным SSL шифрованием",
     telegramModalTitle: "Безопасный вход через Telegram",
-    telegramModalDesc: "Чтобы войти через свой аккаунт Telegram, откройте нашего бота и нажмите кнопку «Запустить» (/start):",
-    telegramOpenBot: "Подтвердить в Telegram боте",
+    telegramModalDesc: "Чтобы войти через свой аккаунт Telegram, откройте нашего бота @Selloi_ai_bot и нажмите кнопку «Запустить» (/start):",
+    telegramOpenBot: "Подтвердить в @Selloi_ai_bot",
     telegramWaiting: "Ожидание подтверждения из бота...",
     telegramSuccess: "Подтверждено! Переход в панель управления...",
     telegramCancel: "Отмена",
@@ -238,8 +238,8 @@ const TRANSLATIONS: Record<Language, TranslationText> = {
     backToHome: "Back to Home",
     sslSecure: "Protected by 256-bit SSL encryption",
     telegramModalTitle: "Secure Telegram Login",
-    telegramModalDesc: "To sign in with your Telegram account, open our bot and tap 'Start':",
-    telegramOpenBot: "Confirm in Telegram Bot",
+    telegramModalDesc: "To sign in with your Telegram account, open our bot @Selloi_ai_bot and tap 'Start':",
+    telegramOpenBot: "Confirm in @Selloi_ai_bot",
     telegramWaiting: "Waiting for confirmation from bot...",
     telegramSuccess: "Confirmed! Redirecting to dashboard...",
     telegramCancel: "Cancel",
@@ -1260,17 +1260,14 @@ export default function LoginPageClient({
       {/* Email Verification OTP Modal */}
       {verifyModalOpen && (
         <div className="selloi-modal-backdrop" onClick={() => setVerifyModalOpen(false)}>
-          <div className="selloi-modal-card" onClick={(e) => e.stopPropagation()}>
-            <div className="selloi-modal-icon">
-              <IconMail size={32} color="#10b981" />
-            </div>
+          <div className="selloi-modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "430px" }}>
             <h3 className="selloi-modal-title">{t.verifyModalTitle}</h3>
             <p className="selloi-modal-desc">
               {t.verifyModalDesc} <strong>{verifyEmail}</strong>
             </p>
 
             {verifyError && (
-              <div className="selloi-alert selloi-alert-error" role="alert" style={{ marginBottom: "14px" }}>
+              <div className="selloi-alert selloi-alert-danger" role="alert" style={{ marginBottom: "14px" }}>
                 <IconAlertCircle size={16} />
                 <span>{verifyError}</span>
               </div>
