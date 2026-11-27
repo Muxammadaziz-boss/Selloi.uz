@@ -548,6 +548,10 @@
   will-change: transform;
 }
 
+.selloi-hero-float-wrap:hover {
+  animation-play-state: paused;
+}
+
 .selloi-browser-mockup {
   width: 873px;
   height: 470px;
@@ -557,7 +561,7 @@
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 30px rgba(255, 76, 99, 0.12);
   position: relative;
   z-index: 2;
-  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.45s ease;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s ease;
 }
 
 @keyframes selloi-hero-float {
@@ -573,7 +577,7 @@
 }
 
 .selloi-browser-mockup:hover {
-  transform: translateY(-10px) scale(1.015);
+  transform: translateY(-4px);
   box-shadow:
     0 32px 84px rgba(0, 0, 0, 0.68),
     0 0 0 1px rgba(255, 76, 99, 0.38),
@@ -619,6 +623,12 @@
   overflow: hidden;
   border-bottom-left-radius: 10px;
   border-bottom-right-radius: 10px;
+  position: relative;
+  cursor: zoom-in;
+}
+
+.selloi-browser-body.is-zooming {
+  cursor: crosshair;
 }
 
 .selloi-browser-body img {
@@ -627,6 +637,66 @@
   object-fit: cover;
   object-position: bottom;
   display: block;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.selloi-hero-lens {
+  position: absolute;
+  border-radius: 50%;
+  background-repeat: no-repeat;
+  background-color: #0d0d0d;
+  pointer-events: none;
+  z-index: 12;
+  border: 2px solid rgba(255, 255, 255, 0.58);
+  box-shadow:
+    0 18px 42px rgba(0, 0, 0, 0.65),
+    0 0 0 1px rgba(255, 76, 99, 0.36),
+    inset 0 2px 12px rgba(255, 255, 255, 0.24),
+    inset 0 -8px 18px rgba(0, 0, 0, 0.42);
+  opacity: 0;
+  transform: scale(0.84);
+  transition: opacity 0.16s ease, transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: left, top, background-position, transform, opacity;
+}
+
+.selloi-hero-lens.is-active {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.selloi-hero-lens::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 32% 24%,
+    rgba(255, 255, 255, 0.22) 0%,
+    rgba(255, 255, 255, 0.04) 38%,
+    transparent 65%
+  );
+  pointer-events: none;
+}
+
+.selloi-hero-lens::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 76, 99, 0.72);
+  background: rgba(255, 255, 255, 0.16);
+  pointer-events: none;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .selloi-hero-lens {
+    display: none !important;
+  }
 }
 
 /* --------------------------------------------------------------------------

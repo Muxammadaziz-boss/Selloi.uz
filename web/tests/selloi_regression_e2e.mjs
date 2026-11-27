@@ -412,6 +412,23 @@ async function runSuite() {
       const text = await page.textContent("body");
       if (!text || !text.includes("Selloi")) throw new Error("Landing page missing Selloi branding");
       await assertNoHorizontalOverflow(page, "Landing desktop");
+      const scrollState = await page.evaluate(() => {
+        const bodyStyle = getComputedStyle(document.body);
+        return {
+          bodyOverflowY: bodyStyle.overflowY,
+          bodyOverflowX: bodyStyle.overflowX,
+          docScrollable: document.documentElement.scrollHeight > window.innerHeight,
+        };
+      });
+      if (scrollState.bodyOverflowY !== "visible") {
+        throw new Error(`Landing desktop double scrollbar regression: body overflow-y=${scrollState.bodyOverflowY}`);
+      }
+      const heroBox = await page.locator(".selloi-browser-body").boundingBox();
+      if (heroBox) {
+        await page.mouse.move(heroBox.x + heroBox.width / 2, heroBox.y + heroBox.height / 2);
+        await page.locator(".selloi-hero-lens.is-active").waitFor({ state: "visible", timeout: 3000 });
+        await page.mouse.move(10, 10);
+      }
       const a11yCount = await assertNoCriticalA11yViolations(page, "Landing desktop");
 
       await page.setViewportSize({ width: 375, height: 812 });
