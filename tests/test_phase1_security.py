@@ -102,6 +102,8 @@ async def test_require_platform_owner_rejects_tenant_owner():
             email=f"tenant_owner_{int(os.getpid())}@test.com",
             full_name="Tenant Owner",
             hashed_password=hash_password("password123"),
+            email_verified=True,
+            telegram_user_id=920000000 + (os.getpid() % 100000) * 10 + 1,
             is_platform_owner=False,
         )
         session.add(tenant_owner_user)
@@ -136,6 +138,8 @@ async def test_require_platform_owner_allows_true_platform_owner():
             email=f"super_owner_{int(os.getpid())}@platform.com",
             full_name="Platform Chief",
             hashed_password=hash_password("password123"),
+            email_verified=True,
+            telegram_user_id=920000000 + (os.getpid() % 100000) * 10 + 2,
             is_platform_owner=True,
         )
         session.add(platform_owner_user)
@@ -165,6 +169,8 @@ async def test_saas_billing_permission_enforced():
             email=f"operator_billing_{int(os.getpid())}@test.com",
             full_name="Operator User",
             hashed_password=hash_password("password123"),
+            email_verified=True,
+            telegram_user_id=920000000 + (os.getpid() % 100000) * 10 + 3,
             is_platform_owner=False,
         )
         session.add(operator_user)

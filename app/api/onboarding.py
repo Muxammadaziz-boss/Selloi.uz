@@ -9,7 +9,7 @@ import secrets
 import time
 from typing import Optional
 import httpx
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.db import get_db
+from app.core.rate_limit import get_trustworthy_client_ip
 from app.core.security import (
     decrypt_secret,
     encrypt_secret,
@@ -404,13 +405,22 @@ def _org_to_out(org: Organization) -> dict:
 # ---------------------------------------------------------------------------
 
 @router.post("/auth/register", response_model=TokenResponse)
-async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db)):
+async def register(payload: RegisterRequest, request: Request, db: AsyncSession = Depends(get_db)):
     """Register a new platform user. Requires 6-digit email verification when SMTP is configured."""
     from app.services import email_service
 
     clean_email = payload.email.strip().lower()
     if not is_real_email(clean_email):
         raise HTTPException(status_code=400, detail="Haqiqiy email manzilini kiriting (masalan: name@gmail.com)")
+
+    client_ip = get_trustworthy_client_ip(request)
+    ip_rate_key = f"register_ip:{client_ip}"
+    if is_rate_limited(ip_rate_key, max_attempts=60, window_seconds=300):
+        wait_s = get_rate_limit_retry_after(ip_rate_key, max_attempts=60, window_seconds=300)
+        return _rate_limit_response(
+            f"Juda ko'p so'rov yuborildi. {wait_s} soniyadan so'ng qayta urinib ko'ring.",
+            wait_s,
+        )
 
     rate_key = f"register:{clean_email}"
     if is_rate_limited(rate_key, max_attempts=5, window_seconds=60):
@@ -419,6 +429,7 @@ async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db))
             detail="Ro'yxatdan o'tish uchun juda ko'p urinish. 1 daqiqadan so'ng qayta urinib ko'ring.",
         )
     record_attempt(rate_key)
+    record_attempt(ip_rate_key)
 
     existing_user = (await db.execute(select(User).where(User.email == clean_email))).scalar_one_or_none()
     if existing_user is not None:
@@ -479,11 +490,19 @@ async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db))
 
 
 @router.post("/auth/login", response_model=TokenResponse)
-async def login(payload: TokenRequest, db: AsyncSession = Depends(get_db)):
+async def login(payload: TokenRequest, request: Request, db: AsyncSession = Depends(get_db)):
     """Authenticate with email & password to receive a JWT access token."""
     from app.services import email_service
 
     clean_email = payload.email.strip().lower()
+    client_ip = get_trustworthy_client_ip(request)
+    ip_rate_key = f"login_ip:{client_ip}"
+    if is_rate_limited(ip_rate_key, max_attempts=60, window_seconds=60):
+        wait_s = get_rate_limit_retry_after(ip_rate_key, max_attempts=60, window_seconds=60)
+        return _rate_limit_response(
+            f"Juda ko'p kirish urinishi. {wait_s} soniyadan so'ng qayta urinib ko'ring.",
+            wait_s,
+        )
 
     rate_key = f"login:{clean_email}"
     if is_rate_limited(rate_key, max_attempts=5, window_seconds=60):
@@ -497,6 +516,7 @@ async def login(payload: TokenRequest, db: AsyncSession = Depends(get_db)):
 
     if user is None or not verify_password(payload.password, user.hashed_password):
         record_attempt(rate_key)
+        record_attempt(ip_rate_key)
         raise HTTPException(status_code=401, detail="Email yoki parol noto'g'ri")
     if not user.is_active:
         raise HTTPException(status_code=403, detail="Foydalanuvchi faol emas")
@@ -1064,13 +1084,22 @@ async def change_password(
 
 
 @router.post("/auth/forgot-password")
-async def forgot_password(payload: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)):
+async def forgot_password(payload: ForgotPasswordRequest, request: Request, db: AsyncSession = Depends(get_db)):
     """Send a 6-digit password reset OTP via Telegram and/or SMTP Email fallback."""
     from app.services import email_service
 
     clean_email = payload.email.strip().lower()
     if not clean_email or "@" not in clean_email:
         raise HTTPException(status_code=400, detail="Noto'g'ri email manzil")
+
+    client_ip = get_trustworthy_client_ip(request)
+    ip_rate_key = f"forgot_ip:{client_ip}"
+    if is_rate_limited(ip_rate_key, max_attempts=60, window_seconds=300):
+        wait_s = get_rate_limit_retry_after(ip_rate_key, max_attempts=60, window_seconds=300)
+        return _rate_limit_response(
+            f"Juda ko'p so'rov yuborildi. {wait_s} soniyadan so'ng qayta urinib ko'ring.",
+            wait_s,
+        )
 
     cooldown_key = f"forgot_pw_cooldown:{clean_email}"
     if is_rate_limited(cooldown_key, max_attempts=1, window_seconds=PASSWORD_RESET_COOLDOWN_SECONDS):
@@ -1093,6 +1122,7 @@ async def forgot_password(payload: ForgotPasswordRequest, db: AsyncSession = Dep
         )
     record_attempt(rate_key)
     record_attempt(cooldown_key)
+    record_attempt(ip_rate_key)
 
     result = await db.execute(
         select(User).where(User.email == clean_email, User.is_active.is_(True))

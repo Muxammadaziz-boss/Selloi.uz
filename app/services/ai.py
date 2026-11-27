@@ -88,6 +88,12 @@ class SalesAI:
                 logger.warning("Gemini model %s xatolik berdi (%s), zaxiraga o'tilmoqda...", model, e)
                 continue
         if last_error:
+            from app.services.alert_service import schedule_owner_alert
+            schedule_owner_alert(
+                "Gemini AI xatoligi",
+                f"Barcha Gemini modellari javob bermadi: {type(last_error).__name__}: {last_error}",
+                fingerprint=f"gemini:{type(last_error).__name__}",
+            )
             raise last_error
         raise RuntimeError("Barcha Gemini modellari muvaffaqiyatsiz bo'ldi")
 

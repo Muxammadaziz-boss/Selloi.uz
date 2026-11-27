@@ -168,12 +168,22 @@ class SlidingWindowRateLimiter:
         self._lock = threading.Lock()
         self._memory_store: dict[str, list[float]] = defaultdict(list)
         self._redis_client = None
-        self._redis_checked = False
+        self._last_redis_check = 0.0
         self._lua_sha = None
 
     def _get_redis(self):
-        if not self._redis_checked:
-            self._redis_checked = True
+        now = time.time()
+        if self._redis_client is not None:
+            return self._redis_client
+        if (now - self._last_redis_check) < 30.0:
+            return None
+        with self._lock:
+            now = time.time()
+            if self._redis_client is not None:
+                return self._redis_client
+            if (now - self._last_redis_check) < 30.0:
+                return None
+            self._last_redis_check = now
             try:
                 import redis
                 client = redis.Redis.from_url(
@@ -278,7 +288,11 @@ def require_rate_limit(
     async def _rate_limit_dependency(request: Request):
         # Whitelist internal webhooks and health endpoints
         path = request.url.path
-        if path.startswith("/telegram/webhook") or path.startswith("/webhooks/tezcheck") or path == "/health":
+        if (
+            path.startswith("/telegram/webhook")
+            or path.startswith("/webhooks/tezcheck")
+            or path in ("/health", "/health/ready")
+        ):
             return
 
         if key_func is not None:

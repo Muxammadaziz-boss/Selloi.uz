@@ -1,4 +1,5 @@
 import os
+import sys
 from collections.abc import AsyncGenerator
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
@@ -8,6 +9,7 @@ is_test_env = (
     settings.app_env == "test"
     or os.environ.get("TESTING") == "true"
     or os.environ.get("PYTEST_CURRENT_TEST") is not None
+    or "pytest" in sys.modules
 )
 
 if is_test_env:

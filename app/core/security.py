@@ -3,6 +3,7 @@
 import hashlib
 import threading
 import time
+import uuid
 from collections import defaultdict
 from cryptography.fernet import Fernet, InvalidToken
 import bcrypt
@@ -10,8 +11,10 @@ import bcrypt
 from app.core.config import settings
 
 
-# In-memory rate limiting tracker: key -> list of timestamp floats
+# Thread-safe in-memory rate limiting fallback when Redis is unavailable
 _rate_limits: dict[str, list[float]] = defaultdict(list)
+_rate_limit_lock = threading.Lock()
+_DEFAULT_AUTH_RL_TTL_SECONDS = 3600
 
 
 def hash_password(password: str) -> str:
@@ -90,21 +93,48 @@ def mask_secret(secret: str | None) -> str:
     return f"{decrypted[:4]}...{decrypted[-4:]}"
 
 
-def is_rate_limited(key: str, max_attempts: int = 5, window_seconds: int = 60) -> bool:
-    """Check if the given key has exceeded max_attempts within window_seconds."""
+def _get_redis_safe():
+    """Return initialized Redis client if available, else None."""
+    try:
+        from app.core.rate_limit import limiter
+        return limiter._get_redis()
+    except Exception:
+        return None
+
+
+def _read_window_timestamps(key: str, window_seconds: int) -> list[float]:
+    """Read and prune sliding-window attempt timestamps from Redis (preferred) or memory."""
     now = time.time()
     cutoff = now - window_seconds
-    timestamps = [t for t in _rate_limits[key] if t > cutoff]
-    _rate_limits[key] = timestamps
+    r = _get_redis_safe()
+    if r is not None:
+        try:
+            rkey = f"auth_rl:{key}"
+            pipe = r.pipeline(transaction=True)
+            pipe.zremrangebyscore(rkey, "-inf", cutoff)
+            pipe.zrange(rkey, 0, -1, withscores=True)
+            res = pipe.execute()
+            entries = res[1] or []
+            return [float(score) for _member, score in entries]
+        except Exception:
+            pass
+
+    with _rate_limit_lock:
+        timestamps = [t for t in _rate_limits[key] if t > cutoff]
+        _rate_limits[key] = timestamps
+        return list(timestamps)
+
+
+def is_rate_limited(key: str, max_attempts: int = 5, window_seconds: int = 60) -> bool:
+    """Check if the given key has exceeded max_attempts within window_seconds."""
+    timestamps = _read_window_timestamps(key, window_seconds)
     return len(timestamps) >= max_attempts
 
 
 def get_rate_limit_retry_after(key: str, max_attempts: int = 5, window_seconds: int = 60) -> int:
     """Return remaining seconds until a rate-limited key frees a slot, or 0 if not limited."""
     now = time.time()
-    cutoff = now - window_seconds
-    timestamps = [t for t in _rate_limits[key] if t > cutoff]
-    _rate_limits[key] = timestamps
+    timestamps = _read_window_timestamps(key, window_seconds)
     if len(timestamps) < max_attempts:
         return 0
     remaining = (min(timestamps) + window_seconds) - now
@@ -112,15 +142,36 @@ def get_rate_limit_retry_after(key: str, max_attempts: int = 5, window_seconds: 
     return max(1, whole + (1 if remaining > whole else 0))
 
 
-def record_attempt(key: str) -> None:
-    """Record an authentication or sensitive operation attempt."""
-    _rate_limits[key].append(time.time())
+def record_attempt(key: str, ttl_seconds: int = _DEFAULT_AUTH_RL_TTL_SECONDS) -> None:
+    """Record an authentication or sensitive operation attempt across Redis and memory."""
+    now = time.time()
+    with _rate_limit_lock:
+        _rate_limits[key].append(now)
+
+    r = _get_redis_safe()
+    if r is not None:
+        try:
+            rkey = f"auth_rl:{key}"
+            member = f"{now}:{uuid.uuid4().hex[:8]}"
+            pipe = r.pipeline(transaction=True)
+            pipe.zadd(rkey, {member: now})
+            pipe.expire(rkey, max(60, int(ttl_seconds)))
+            pipe.execute()
+        except Exception:
+            pass
 
 
 def reset_rate_limit(key: str) -> None:
     """Reset the rate limit tracker for a key upon successful authentication."""
-    if key in _rate_limits:
-        del _rate_limits[key]
+    with _rate_limit_lock:
+        _rate_limits.pop(key, None)
+
+    r = _get_redis_safe()
+    if r is not None:
+        try:
+            r.delete(f"auth_rl:{key}")
+        except Exception:
+            pass
 
 
 # ---------------------------------------------------------------------------

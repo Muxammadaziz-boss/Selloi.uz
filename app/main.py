@@ -1,8 +1,9 @@
 import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from app.api.admin import router as admin_router
@@ -17,6 +18,7 @@ from app.core.db import SessionLocal, engine
 from app.core.logging import get_logger, setup_logging
 from app.models import Base
 from app.services import admin_service
+from app.services.alert_service import schedule_owner_alert
 from app.services.realtime import realtime_hub
 from app.services.telegram import telegram
 from app.services.bot_manager import bot_manager
@@ -75,8 +77,13 @@ async def _subscription_maintenance_loop():
                     logger.info("Obunalar fon tekshiruvi: %s ta obuna holati yangilandi", total_affected)
         except asyncio.CancelledError:
             break
-        except Exception:
+        except Exception as exc:
             logger.exception("Obunalarni tekshirish fon vazifasida xatolik")
+            schedule_owner_alert(
+                "Obuna fon vazifasida xatolik",
+                f"{type(exc).__name__}: {exc}",
+                fingerprint="bg:subscription_maintenance",
+            )
 
 
 async def _smart_followup_loop():
@@ -92,8 +99,13 @@ async def _smart_followup_loop():
                     logger.info("Smart Follow-up fon vazifasi: %s ta mijozga eslatma yuborildi", sent_total)
         except asyncio.CancelledError:
             break
-        except Exception:
+        except Exception as exc:
             logger.exception("Smart Follow-up fon vazifasida xatolik")
+            schedule_owner_alert(
+                "Smart Follow-up fon vazifasida xatolik",
+                f"{type(exc).__name__}: {exc}",
+                fingerprint="bg:smart_followup",
+            )
 
 
 async def _daily_store_reports_loop():
@@ -109,8 +121,13 @@ async def _daily_store_reports_loop():
                     logger.info("Kunlik do'kon hisobotlari fon vazifasi: %s ta xabar yuborildi", sent_total)
         except asyncio.CancelledError:
             break
-        except Exception:
+        except Exception as exc:
             logger.exception("Kunlik do'kon hisobotlari fon vazifasida xatolik")
+            schedule_owner_alert(
+                "Kunlik hisobot fon vazifasida xatolik",
+                f"{type(exc).__name__}: {exc}",
+                fingerprint="bg:daily_reports",
+            )
 
 
 async def verify_database_readiness(conn) -> tuple[bool, list[str]]:
@@ -396,6 +413,62 @@ app.include_router(demo_router, prefix="/api/demo")
 
 
 
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    """Log unexpected 500 crashes and notify Platform Owner via Telegram with cooldown."""
+    logger.exception("Unhandled server exception on %s %s", request.method, request.url.path)
+    schedule_owner_alert(
+        "API 500 Ichki Xatolik",
+        f"Path: {request.method} {request.url.path}\nXato: {type(exc).__name__}: {exc}",
+        fingerprint=f"500:{request.url.path}:{type(exc).__name__}",
+    )
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"detail": "Ichki server xatoligi yuz berdi"},
+    )
+
+
 @app.get("/health")
 async def health():
     return {"status": "ok", "environment": settings.app_env}
+
+
+@app.get("/health/ready")
+async def health_ready():
+    """Deep readiness probe checking real PostgreSQL and Redis connectivity."""
+    from app.core.rate_limit import limiter
+    from app.services import email_service
+
+    checks: dict[str, str] = {"database": "error", "redis": "unavailable"}
+
+    try:
+        async with engine.connect() as conn:
+            await asyncio.wait_for(conn.execute(text("SELECT 1")), timeout=2.0)
+        checks["database"] = "ok"
+    except Exception as exc:
+        logger.warning("Readiness database check failed: %s", exc)
+        checks["database"] = "error"
+
+    try:
+        r = limiter._get_redis()
+        if r is not None and r.ping():
+            checks["redis"] = "ok"
+    except Exception as exc:
+        logger.warning("Readiness redis check failed: %s", exc)
+        checks["redis"] = "error"
+
+    db_ok = checks["database"] == "ok"
+    redis_ok = checks["redis"] == "ok"
+    is_ready = db_ok and (redis_ok if settings.is_production else True)
+
+    payload = {
+        "status": "ready" if is_ready else "degraded",
+        "environment": settings.app_env,
+        "checks": checks,
+        "telegram_configured": bool(settings.telegram_bot_token),
+        "smtp_configured": email_service.is_smtp_configured(),
+    }
+    return JSONResponse(
+        status_code=status.HTTP_200_OK if is_ready else status.HTTP_503_SERVICE_UNAVAILABLE,
+        content=payload,
+    )
