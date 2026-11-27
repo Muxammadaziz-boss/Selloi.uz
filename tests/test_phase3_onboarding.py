@@ -35,6 +35,8 @@ async def test_verify_bot_token_format_validation():
             email=f"bot_tester_{pid}@ai-sales.uz",
             full_name="Bot Tester",
             hashed_password=hash_password("Pass123!"),
+            email_verified=True,
+            telegram_user_id=710000000 + (pid % 100000) * 10 + 1,
         )
         session.add(user)
         await session.commit()
@@ -62,6 +64,8 @@ async def test_verify_bot_token_live_mock():
             email=f"bot_tester_mock_{pid}@ai-sales.uz",
             full_name="Bot Tester Mock",
             hashed_password=hash_password("Pass123!"),
+            email_verified=True,
+            telegram_user_id=710000000 + (pid % 100000) * 10 + 2,
         )
         session.add(user)
         await session.commit()
@@ -115,6 +119,8 @@ async def test_create_organization_with_bot_token_and_channel():
             email=f"store_owner_{pid}@ai-sales.uz",
             full_name="Store Owner",
             hashed_password=hash_password("Pass123!"),
+            email_verified=True,
+            telegram_user_id=710000000 + (pid % 100000) * 10 + 3,
         )
         session.add(user)
         await session.commit()
@@ -200,6 +206,8 @@ async def test_update_current_organization_settings_and_bot_token():
             email=f"fashion_admin_{pid}@ai-sales.uz",
             full_name="Fashion Admin",
             hashed_password=hash_password("Pass123!"),
+            email_verified=True,
+            telegram_user_id=710000000 + (pid % 100000) * 10 + 4,
         )
         session.add(user)
         await session.commit()
@@ -276,6 +284,8 @@ async def test_set_webhook_and_status_endpoints():
             email=f"tech_boss_{pid}@ai-sales.uz",
             full_name="Tech Boss",
             hashed_password=hash_password("Pass123!"),
+            email_verified=True,
+            telegram_user_id=710000000 + (pid % 100000) * 10 + 5,
         )
         session.add(user)
         await session.commit()
@@ -353,6 +363,8 @@ async def test_tenant_cannot_manage_another_organizations_webhook():
             email=f"user_one_{pid}@ai-sales.uz",
             full_name="User One",
             hashed_password=hash_password("Pass123!"),
+            email_verified=True,
+            telegram_user_id=710000000 + (pid % 100000) * 10 + 6,
         )
         session.add(user1)
 

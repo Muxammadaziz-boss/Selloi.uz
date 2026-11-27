@@ -65,23 +65,41 @@ async def setup_test_orgs_and_users(db: AsyncSession):
     # User A (belongs to Org A)
     user_a = (await db.execute(select(User).where(User.email == "user_a@test.uz"))).scalar_one_or_none()
     if not user_a:
-        user_a = User(email="user_a@test.uz", full_name="User A", is_active=True, is_platform_owner=False, token_version=1)
+        user_a = User(
+            email="user_a@test.uz",
+            full_name="User A",
+            telegram_user_id=91000001,
+            email_verified=True,
+            is_active=True,
+            is_platform_owner=False,
+            token_version=1,
+        )
         db.add(user_a)
         await db.flush()
     else:
+        user_a.telegram_user_id = user_a.telegram_user_id or 91000001
+        user_a.email_verified = True
         user_a.token_version = 1
         await db.flush()
 
     # User B (belongs to Org B)
     user_b = (await db.execute(select(User).where(User.email == "user_b@test.uz"))).scalar_one_or_none()
     if not user_b:
-        user_b = User(email="user_b@test.uz", full_name="User B", is_active=True, is_platform_owner=False, token_version=1)
+        user_b = User(
+            email="user_b@test.uz",
+            full_name="User B",
+            telegram_user_id=91000002,
+            email_verified=True,
+            is_active=True,
+            is_platform_owner=False,
+            token_version=1,
+        )
         db.add(user_b)
         await db.flush()
     else:
+        user_b.telegram_user_id = user_b.telegram_user_id or 91000002
+        user_b.email_verified = True
         user_b.token_version = 1
-        await db.flush()
-        db.add(user_b)
         await db.flush()
 
     # Org A

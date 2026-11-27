@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { resolveEffectiveSessionClaims } from "@/lib/authSession";
 import { sessionCookieName, verifySession } from "@/lib/session";
 
 export default async function PlatformPage() {
@@ -11,7 +12,12 @@ export default async function PlatformPage() {
     redirect("/login?redirect=/admin");
   }
 
-  if (!session.isPlatformOwner && !session.isPlatformAdmin) {
+  const claims = await resolveEffectiveSessionClaims(session);
+  if (!claims.fullyVerified) {
+    redirect("/login?step=complete");
+  }
+
+  if (!claims.isPlatformOwner && !claims.isPlatformAdmin) {
     redirect("/dashboard");
   }
 

@@ -970,6 +970,59 @@
   text-decoration: none;
 }
 
+.selloi-gate-checklist {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.selloi-gate-step-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.78rem;
+  color: #A6A6AF;
+}
+
+.selloi-gate-step-pill.verified {
+  color: #34D399;
+  background: rgba(16, 185, 129, 0.09);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.selloi-gate-step-pill.pending {
+  color: #FCD34D;
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.28);
+}
+
+.selloi-gate-box {
+  padding: 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  margin-bottom: 14px;
+}
+
+.selloi-gate-title {
+  margin: 0 0 6px 0;
+  font-size: 0.96rem;
+  font-weight: 700;
+  color: #F6F6F7;
+}
+
+.selloi-gate-desc {
+  margin: 0 0 14px 0;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: #A6A6AF;
+}
+
 /* Responsive adjustments */
 @media (max-width: 480px) {
   .selloi-auth-card {

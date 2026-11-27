@@ -31,6 +31,23 @@ async function proxy(request: NextRequest) {
     return NextResponse.json({ detail: "Avval admin panelga kiring" }, { status: 401 });
   }
 
+  // Block incomplete/unverified users from hitting dashboard/admin/platform/org APIs via proxy
+  if (
+    sessionData &&
+    sessionData.fullyVerified === false &&
+    !path.startsWith("/api/v1/auth/") &&
+    !isPublicRoute
+  ) {
+    return NextResponse.json(
+      {
+        error: "ACCOUNT_VERIFICATION_REQUIRED",
+        missing_steps: sessionData.missingSteps || [],
+        detail: "To'liq kirish uchun email (OTP) va Telegram hisobingizni tasdiqlang.",
+      },
+      { status: 403 }
+    );
+  }
+
   if (!path.startsWith("/admin/") && !path.startsWith("/api/")) {
     return NextResponse.json({ detail: "Proxy path ruxsat etilmagan" }, { status: 400 });
   }

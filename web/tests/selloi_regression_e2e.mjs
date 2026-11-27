@@ -523,15 +523,52 @@ async function runSuite() {
       await ctx.close();
     }
 
-    // 3. Authenticated Store Dashboard (/dashboard)
+    // 3. Authenticated Store Dashboard (/dashboard) & Unverified Verification Gate Guard
     {
+      const unverifiedCtx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+      const unverifiedToken = createSignedSessionCookie(
+        {
+          userId: 199,
+          email: "partial@selloi.uz",
+          fullName: "Partial User",
+          role: "owner",
+          emailVerified: true,
+          hasRealEmail: true,
+          fullyVerified: false,
+          missingSteps: ["telegram"],
+        },
+        sessionSecret
+      );
+      await unverifiedCtx.addCookies([
+        {
+          name: "sales_session",
+          value: unverifiedToken,
+          domain: originUrl.hostname,
+          path: "/",
+          httpOnly: true,
+          sameSite: "Lax",
+        },
+      ]);
+      const gatePage = await unverifiedCtx.newPage();
+      await gatePage.goto(`${baseUrl}/dashboard`, { waitUntil: "domcontentloaded" });
+      if (!gatePage.url().includes("/login") || !gatePage.url().includes("step=complete")) {
+        throw new Error(`Expected unverified user to be redirected to /login?step=complete, got ${gatePage.url()}`);
+      }
+      await gatePage.locator(".selloi-gate-checklist").waitFor({ state: "visible", timeout: 5000 });
+      await unverifiedCtx.close();
+
       const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
       const token = createSignedSessionCookie(
         {
           userId: 101,
+          telegramUserId: 777101,
           email: "store@selloi.uz",
           fullName: "TechHub Store Owner",
           role: "owner",
+          emailVerified: true,
+          hasRealEmail: true,
+          fullyVerified: true,
+          missingSteps: [],
           organizationId: 1,
           isPlatformOwner: false,
           isPlatformAdmin: false,
@@ -588,9 +625,14 @@ async function runSuite() {
       const adminToken = createSignedSessionCookie(
         {
           userId: 1,
+          telegramUserId: 777001,
           email: "owner@selloi.uz",
           fullName: "Selloi Platform Owner",
           role: "owner",
+          emailVerified: true,
+          hasRealEmail: true,
+          fullyVerified: true,
+          missingSteps: [],
           organizationId: 1,
           isPlatformOwner: true,
           isPlatformAdmin: true,

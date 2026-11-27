@@ -135,6 +135,9 @@ class TokenResponse(BaseModel):
     full_name: str | None = None
     telegram_user_id: int | None = None
     email_verified: bool = False
+    has_real_email: bool = False
+    fully_verified: bool = False
+    missing_steps: list[str] = Field(default_factory=list)
     verification_required: bool = False
     detail: str | None = None
 
@@ -148,6 +151,18 @@ class VerifyEmailRequest(BaseModel):
 class ResendVerificationRequest(BaseModel):
     """Schema for requesting/resending a 6-digit email verification OTP."""
     email: str = Field(min_length=1, max_length=255)
+
+
+class BindEmailInitRequest(BaseModel):
+    """Schema for requesting a 6-digit OTP to bind and verify a real email address."""
+    email: str = Field(min_length=1, max_length=255)
+
+
+class BindEmailConfirmRequest(BaseModel):
+    """Schema for verifying a real email OTP for the signed-in account and unifying identity."""
+    email: str = Field(min_length=1, max_length=255)
+    code: str = Field(min_length=6, max_length=12)
+    password: str | None = Field(default=None, max_length=255)
 
 
 class RegisterRequest(BaseModel):
@@ -164,6 +179,7 @@ class GoogleAuthRequest(BaseModel):
     google_id: str | None = None
     avatar_url: str | None = None
     id_token: str | None = None
+    link_user_id: int | None = None
 
 
 class TelegramAuthRequest(BaseModel):

@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.api.admin import get_current_admin
+from app.dependencies.auth import get_missing_verification_steps, is_real_email, is_user_fully_verified
 from app.core.config import settings
 from app.core.db import get_db
 from app.core.logging import get_logger
@@ -1223,8 +1224,12 @@ async def get_all_users(
     admin: Admin = Depends(require_platform_owner),
     db: AsyncSession = Depends(get_db),
 ):
-    """List all registered users across the platform with their linked store badges."""
-    res = await db.execute(select(User).order_by(User.created_at.desc()))
+    """List all registered users across the platform with verification status and store badges."""
+    res = await db.execute(
+        select(User)
+        .where(~User.email.like("%@merged.selloi.uz"))
+        .order_by(User.created_at.desc())
+    )
     users = res.scalars().all()
 
     mem_res = await db.execute(
@@ -1237,6 +1242,16 @@ async def get_all_users(
         if uid is not None and org_name:
             user_orgs.setdefault(uid, []).append(org_name)
 
+    def _verification_status(u: User) -> str:
+        missing = get_missing_verification_steps(u)
+        if not missing:
+            return "verified"
+        if missing == ["telegram"]:
+            return "pending_telegram"
+        if missing == ["email"]:
+            return "pending_email"
+        return "unverified"
+
     return {
         "users": [
             {
@@ -1244,6 +1259,10 @@ async def get_all_users(
                 "email": u.email,
                 "full_name": u.full_name,
                 "telegram_user_id": u.telegram_user_id,
+                "email_verified": bool(getattr(u, "email_verified", False)),
+                "has_real_email": is_real_email(u.email),
+                "fully_verified": is_user_fully_verified(u),
+                "verification_status": _verification_status(u),
                 "is_platform_owner": u.is_platform_owner,
                 "is_platform_admin": bool(getattr(u, "is_platform_admin", False)),
                 "is_active": u.is_active,

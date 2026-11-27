@@ -28,6 +28,9 @@ export default async function TenantPage({
   }
 
   const claims = await resolveEffectiveSessionClaims(session);
+  if (!claims.fullyVerified) {
+    redirect("/login?step=complete");
+  }
 
   return (
     <Dashboard

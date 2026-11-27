@@ -23,6 +23,9 @@ export default async function SettingsPage() {
   }
 
   const claims = await resolveEffectiveSessionClaims(session);
+  if (!claims.fullyVerified) {
+    redirect("/login?step=complete");
+  }
   if (claims.isPlatformOwner || claims.isPlatformAdmin) {
     redirect("/admin");
   }

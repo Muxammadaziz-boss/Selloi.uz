@@ -23,6 +23,9 @@ export default async function AdminPortalPage() {
   }
 
   const claims = await resolveEffectiveSessionClaims(session);
+  if (!claims.fullyVerified) {
+    redirect("/login?step=complete");
+  }
 
   // Strictly only Sayt egasi (Owner) and Owner-appointed Sayt Adminlari can enter /admin
   if (!claims.isPlatformOwner && !claims.isPlatformAdmin) {

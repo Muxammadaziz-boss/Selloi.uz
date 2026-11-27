@@ -27,6 +27,7 @@ interface LoginPageProps {
     redirect?: string;
     tab?: string;
     error?: string;
+    step?: string;
   }>;
 }
 
@@ -36,29 +37,49 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const secret = process.env.SESSION_SECRET || "";
   const resolvedParams = searchParams ? await searchParams : {};
 
+  let initialCompletionState:
+    | {
+        email: string;
+        telegramUserId?: number;
+        emailVerified: boolean;
+        hasRealEmail: boolean;
+        missingSteps: string[];
+      }
+    | undefined = undefined;
+
   if (sessionCookie && secret) {
     const session = verifySession(sessionCookie.value, secret);
     if (session) {
       const claims = await resolveEffectiveSessionClaims(session);
-      const hasAdminAccess = claims.isPlatformOwner || claims.isPlatformAdmin;
-      const requested = resolvedParams.redirect || "";
-      if (hasAdminAccess) {
-        if (
-          requested &&
-          (requested.startsWith("/admin") || requested.startsWith("/platform") || requested.startsWith("/t/")) &&
-          !requested.startsWith("//")
-        ) {
+      if (claims.fullyVerified) {
+        const hasAdminAccess = claims.isPlatformOwner || claims.isPlatformAdmin;
+        const requested = resolvedParams.redirect || "";
+        if (hasAdminAccess) {
+          if (
+            requested &&
+            (requested.startsWith("/admin") || requested.startsWith("/platform") || requested.startsWith("/t/")) &&
+            !requested.startsWith("//")
+          ) {
+            redirect(requested);
+          }
+          redirect("/admin");
+        }
+        if (requested && requested.startsWith("/") && !requested.startsWith("//")) {
+          if (requested.startsWith("/admin") || requested.startsWith("/platform")) {
+            redirect("/dashboard");
+          }
           redirect(requested);
         }
-        redirect("/admin");
+        redirect("/dashboard");
       }
-      if (requested && requested.startsWith("/") && !requested.startsWith("//")) {
-        if (requested.startsWith("/admin") || requested.startsWith("/platform")) {
-          redirect("/dashboard");
-        }
-        redirect(requested);
-      }
-      redirect("/dashboard");
+
+      initialCompletionState = {
+        email: claims.email || session.email || "",
+        telegramUserId: claims.telegramUserId ?? session.telegramUserId,
+        emailVerified: claims.emailVerified,
+        hasRealEmail: claims.hasRealEmail,
+        missingSteps: claims.missingSteps,
+      };
     }
   }
 
@@ -67,6 +88,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       initialRedirect={resolvedParams.redirect || ""}
       initialTab={resolvedParams.tab || "login"}
       initialError={resolvedParams.error}
+      initialStep={resolvedParams.step}
+      initialCompletionState={initialCompletionState}
     />
   );
 }

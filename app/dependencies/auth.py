@@ -105,6 +105,47 @@ async def get_current_user(
     return user
 
 
+def is_real_email(email: str | None) -> bool:
+    """Return True if email is a real deliverable address (not a synthetic Telegram stub)."""
+    clean = (email or "").strip().lower()
+    if not clean or "@" not in clean or "." not in clean.split("@")[-1]:
+        return False
+    blocked_suffixes = ("@telegram.selloi.uz", "@merged.selloi.uz", "@telegram.local", ".invalid")
+    return not any(clean.endswith(sfx) for sfx in blocked_suffixes)
+
+
+def get_missing_verification_steps(user: User) -> list[str]:
+    """Return ordered list of missing mandatory verification steps ('email', 'telegram')."""
+    steps: list[str] = []
+    if not (bool(getattr(user, "email_verified", False)) and is_real_email(getattr(user, "email", ""))):
+        steps.append("email")
+    if not getattr(user, "telegram_user_id", None):
+        steps.append("telegram")
+    return steps
+
+
+def is_user_fully_verified(user: User) -> bool:
+    """True only when BOTH real verified email AND linked Telegram ID are present."""
+    return len(get_missing_verification_steps(user)) == 0
+
+
+async def get_verified_user(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    """Require full 2-channel account verification (verified real email + linked Telegram)."""
+    missing = get_missing_verification_steps(current_user)
+    if missing:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error": "ACCOUNT_VERIFICATION_REQUIRED",
+                "missing_steps": missing,
+                "message": "To'liq kirish uchun email (OTP) va Telegram hisobingizni tasdiqlang.",
+            },
+        )
+    return current_user
+
+
 async def get_current_admin(
     credentials: HTTPAuthorizationCredentials | None = Depends(security_optional),
     x_admin_token: str | None = Header(default=None),
@@ -148,6 +189,16 @@ async def get_current_admin(
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Foydalanuvchi sessiyasi bekor qilingan (session invalidated)",
+            )
+
+        if not is_user_fully_verified(user):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={
+                    "error": "ACCOUNT_VERIFICATION_REQUIRED",
+                    "missing_steps": get_missing_verification_steps(user),
+                    "message": "Boshqaruv paneliga kirish uchun avval email (OTP) va Telegram hisobingizni tasdiqlang.",
+                },
             )
 
         # Check if user matches an existing Admin row by Telegram User ID

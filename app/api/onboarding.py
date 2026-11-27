@@ -31,7 +31,16 @@ from app.core.security import (
     revoke_user_sessions,
     verify_password,
 )
-from app.dependencies.auth import create_access_token, decode_access_token, get_current_user, security
+from app.dependencies.auth import (
+    create_access_token,
+    decode_access_token,
+    get_current_user,
+    get_missing_verification_steps,
+    get_verified_user,
+    is_real_email,
+    is_user_fully_verified,
+    security,
+)
 from app.core.permissions import ROLE_DEFAULTS
 from app.models import (
     AuditLog,
@@ -43,6 +52,8 @@ from app.models import (
     User,
 )
 from app.schemas import (
+    BindEmailConfirmRequest,
+    BindEmailInitRequest,
     ForgotPasswordRequest,
     GoogleAuthRequest,
     OrganizationCreate,
@@ -160,12 +171,17 @@ async def _verify_and_consume_otp_row(
     return now
 
 
-async def _issue_email_verification_otp(db: AsyncSession, user: User) -> tuple[EmailVerificationToken, bool]:
+async def _issue_email_verification_otp(
+    db: AsyncSession,
+    user: User,
+    *,
+    target_email: str | None = None,
+) -> tuple[EmailVerificationToken, bool]:
     """Create a 6-digit email verification token (hashed) and email it via SMTP."""
     from app.services import email_service
 
     now = datetime.now(timezone.utc)
-    clean_email = user.email.strip().lower()
+    clean_email = (target_email or user.email).strip().lower()
     await db.execute(
         update(EmailVerificationToken)
         .where(
@@ -199,6 +215,119 @@ async def _issue_email_verification_otp(db: AsyncSession, user: User) -> tuple[E
     return token_row, sent
 
 
+def _build_token_response(
+    user: User,
+    *,
+    access_token: str = "",
+    verification_required: bool = False,
+    detail: str | None = None,
+) -> TokenResponse:
+    """Build a consistent TokenResponse reporting exact 2-factor verification progress."""
+    real_email = is_real_email(getattr(user, "email", ""))
+    missing = get_missing_verification_steps(user)
+    return TokenResponse(
+        access_token=access_token,
+        user_id=user.id,
+        email=user.email,
+        full_name=user.full_name,
+        telegram_user_id=user.telegram_user_id,
+        email_verified=bool(getattr(user, "email_verified", False)) and real_email,
+        has_real_email=real_email,
+        fully_verified=len(missing) == 0,
+        missing_steps=missing,
+        verification_required=verification_required,
+        detail=detail,
+    )
+
+
+async def _merge_email_and_telegram_users(
+    db: AsyncSession,
+    *,
+    email_user: User,
+    tg_user: User,
+    preferred_password: str | None = None,
+) -> User:
+    """Safely unify a verified real-email account with a placeholder Telegram account (1 TG <-> 1 Email)."""
+    if email_user.id == tg_user.id:
+        return email_user
+
+    tg_mems = (
+        await db.execute(
+            select(OrganizationMember).where(OrganizationMember.user_id == tg_user.id)
+        )
+    ).scalars().all()
+    email_mems = (
+        await db.execute(
+            select(OrganizationMember).where(OrganizationMember.user_id == email_user.id)
+        )
+    ).scalars().all()
+
+    keep_tg = len(tg_mems) > 0 and len(email_mems) == 0
+    primary = tg_user if keep_tg else email_user
+    secondary = email_user if keep_tg else tg_user
+
+    real_email = email_user.email.strip().lower()
+    real_hash = (email_user.hashed_password or "").strip()
+    tg_id = tg_user.telegram_user_id
+    merged_owner = bool(email_user.is_platform_owner or tg_user.is_platform_owner or _is_configured_admin_email(real_email))
+    merged_admin = bool(getattr(email_user, "is_platform_admin", False) or getattr(tg_user, "is_platform_admin", False))
+    verified_at = email_user.email_verified_at or datetime.now(timezone.utc)
+    best_name = (
+        email_user.full_name.strip()
+        if (email_user.full_name or "").strip()
+        else (tg_user.full_name or "").strip()
+    )
+
+    primary_org_ids = {
+        m.organization_id
+        for m in (tg_mems if keep_tg else email_mems)
+    }
+    secondary_mems = email_mems if keep_tg else tg_mems
+    for m in secondary_mems:
+        if m.organization_id not in primary_org_ids:
+            m.user_id = primary.id
+            primary_org_ids.add(m.organization_id)
+        else:
+            m.is_active = False
+
+    secondary.telegram_user_id = None
+    secondary.is_active = False
+    secondary.email = f"merged_{secondary.id}_{int(time.time())}@merged.selloi.uz"
+    secondary.token_version = (getattr(secondary, "token_version", 1) or 1) + 1
+    await db.flush()
+
+    primary.email = real_email
+    primary.email_verified = True
+    primary.email_verified_at = verified_at
+    primary.telegram_user_id = tg_id
+    primary.is_platform_owner = merged_owner
+    primary.is_platform_admin = merged_admin
+    primary.is_active = True
+    if preferred_password and len(preferred_password.strip()) >= 6:
+        primary.hashed_password = hash_password(preferred_password.strip())
+    elif not (primary.hashed_password or "").strip() and real_hash:
+        primary.hashed_password = real_hash
+    if best_name and (
+        not (primary.full_name or "").strip()
+        or primary.full_name.startswith("User ")
+        or primary.full_name.startswith("@")
+    ):
+        primary.full_name = best_name
+    primary.token_version = (getattr(primary, "token_version", 1) or 1) + 1
+
+    db.add(
+        AuditLog(
+            user_id=primary.id,
+            action="accounts_unified",
+            resource="user",
+            resource_id=str(primary.id),
+            metadata_json={"merged_from_user_id": secondary.id, "email": real_email, "telegram_user_id": tg_id},
+        )
+    )
+    await db.flush()
+    return primary
+
+
 def _is_configured_admin_email(email: str) -> bool:
     """Return True if the verified email matches ADMIN_EMAIL in settings."""
     configured = (get_settings().admin_email or "").strip()
@@ -208,7 +337,12 @@ def _is_configured_admin_email(email: str) -> bool:
     return email.strip().lower() in allowed
 
 
-def _verify_internal_google_signature(sig_header: str, email: str, google_id: str) -> bool:
+def _verify_internal_google_signature(
+    sig_header: str,
+    email: str,
+    google_id: str,
+    link_user_id: int | None = None,
+) -> bool:
     """Verify short-lived HMAC signature generated by the Next.js OAuth BFF."""
     jwt_secret = (get_settings().jwt_secret or "").strip()
     if not jwt_secret or "." not in sig_header:
@@ -220,7 +354,12 @@ def _verify_internal_google_signature(sig_header: str, email: str, google_id: st
         return False
     if abs(int(time.time()) - ts) > 120:
         return False
-    msg = f"google-auth:{ts}:{email.strip().lower()}:{(google_id or '').strip()}".encode("utf-8")
+    clean_email = email.strip().lower()
+    clean_gid = (google_id or "").strip()
+    if link_user_id is not None:
+        msg = f"google-auth:{ts}:{clean_email}:{clean_gid}:{int(link_user_id)}".encode("utf-8")
+    else:
+        msg = f"google-auth:{ts}:{clean_email}:{clean_gid}".encode("utf-8")
     expected_sig = hmac.new(jwt_secret.encode("utf-8"), msg, hashlib.sha256).hexdigest()
     return hmac.compare_digest(expected_sig, provided_sig.strip())
 
@@ -270,6 +409,8 @@ async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db))
     from app.services import email_service
 
     clean_email = payload.email.strip().lower()
+    if not is_real_email(clean_email):
+        raise HTTPException(status_code=400, detail="Haqiqiy email manzilini kiriting (masalan: name@gmail.com)")
 
     rate_key = f"register:{clean_email}"
     if is_rate_limited(rate_key, max_attempts=5, window_seconds=60):
@@ -279,23 +420,36 @@ async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db))
         )
     record_attempt(rate_key)
 
-    existing = await db.execute(select(User).where(User.email == clean_email))
-    if existing.scalar_one_or_none() is not None:
-        raise HTTPException(status_code=400, detail="Bu email allaqachon ro'yxatdan o'tgan")
-
-    user = User(
-        email=clean_email,
-        hashed_password=hash_password(payload.password),
-        full_name=payload.full_name.strip(),
-        email_verified=False,
-    )
-    db.add(user)
-    await db.flush()
+    existing_user = (await db.execute(select(User).where(User.email == clean_email))).scalar_one_or_none()
+    if existing_user is not None:
+        can_reuse_unverified = (
+            not bool(getattr(existing_user, "email_verified", False))
+            and existing_user.telegram_user_id is None
+            and not existing_user.is_platform_owner
+            and not getattr(existing_user, "is_platform_admin", False)
+            and email_service.is_smtp_configured()
+        )
+        if not can_reuse_unverified:
+            raise HTTPException(status_code=400, detail="Bu email allaqachon ro'yxatdan o'tgan")
+        existing_user.hashed_password = hash_password(payload.password)
+        if payload.full_name.strip():
+            existing_user.full_name = payload.full_name.strip()
+        existing_user.is_active = True
+        user = existing_user
+        await db.flush()
+    else:
+        user = User(
+            email=clean_email,
+            hashed_password=hash_password(payload.password),
+            full_name=payload.full_name.strip(),
+            email_verified=False,
+        )
+        db.add(user)
+        await db.flush()
 
     should_verify = (
         email_service.is_smtp_configured()
         and email_service.is_deliverable_email(clean_email)
-        and not _is_configured_admin_email(clean_email)
     )
     if should_verify:
         _row, sent = await _issue_email_verification_otp(db, user)
@@ -306,13 +460,9 @@ async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db))
                 detail="Tasdiqlash xatini yuborib bo'lmadi. Keyinroq qayta urinib ko'ring.",
             )
         await db.commit()
-        return TokenResponse(
+        return _build_token_response(
+            user,
             access_token="",
-            user_id=user.id,
-            email=user.email,
-            full_name=user.full_name,
-            telegram_user_id=user.telegram_user_id,
-            email_verified=False,
             verification_required=True,
             detail="Email manzilingizga 6 xonali tasdiqlash kodi yuborildi.",
         )
@@ -321,13 +471,9 @@ async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db))
     await db.refresh(user)
 
     token = create_access_token(user.id, user.email, token_version=getattr(user, "token_version", 1) or 1)
-    return TokenResponse(
+    return _build_token_response(
+        user,
         access_token=token,
-        user_id=user.id,
-        email=user.email,
-        full_name=user.full_name,
-        telegram_user_id=user.telegram_user_id,
-        email_verified=bool(getattr(user, "email_verified", False)),
         verification_required=False,
     )
 
@@ -356,18 +502,11 @@ async def login(payload: TokenRequest, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=403, detail="Foydalanuvchi faol emas")
 
     reset_rate_limit(rate_key)
-    if _is_configured_admin_email(clean_email) and (not user.is_platform_owner or not user.email_verified):
-        user.is_platform_owner = True
-        user.email_verified = True
-        user.email_verified_at = datetime.now(timezone.utc)
-        await db.commit()
-        await db.refresh(user)
 
     if (
         email_service.is_smtp_configured()
         and not getattr(user, "email_verified", False)
         and email_service.is_deliverable_email(clean_email)
-        and not user.is_platform_owner
     ):
         _row, sent = await _issue_email_verification_otp(db, user)
         await db.commit()
@@ -381,14 +520,18 @@ async def login(payload: TokenRequest, db: AsyncSession = Depends(get_db)):
             },
         )
 
+    if _is_configured_admin_email(clean_email) and not user.is_platform_owner:
+        user.is_platform_owner = True
+        if not email_service.is_smtp_configured() and not getattr(user, "email_verified", False):
+            user.email_verified = True
+            user.email_verified_at = datetime.now(timezone.utc)
+        await db.commit()
+        await db.refresh(user)
+
     token = create_access_token(user.id, user.email, token_version=getattr(user, "token_version", 1) or 1)
-    return TokenResponse(
+    return _build_token_response(
+        user,
         access_token=token,
-        user_id=user.id,
-        email=user.email,
-        full_name=user.full_name,
-        telegram_user_id=user.telegram_user_id,
-        email_verified=bool(getattr(user, "email_verified", False)),
         verification_required=False,
     )
 
@@ -399,19 +542,22 @@ async def google_auth(
     x_internal_google_auth: str | None = Header(default=None),
     db: AsyncSession = Depends(get_db),
 ):
-    """Authenticate or register a user via verified Google OAuth BFF exchange or ID token."""
+    """Authenticate, register, or unify a user via verified Google OAuth BFF exchange or ID token."""
     clean_email = payload.email.strip().lower()
-    if not clean_email or "@" not in clean_email:
+    if not is_real_email(clean_email):
         raise HTTPException(status_code=400, detail="Noto'g'ri email manzil")
 
-    # Verify authenticity: if signature header or id_token is supplied, validate strictly;
-    # in production, fail closed if neither a valid BFF HMAC signature nor valid Google id_token is present.
     verified = False
     if x_internal_google_auth:
-        if not _verify_internal_google_signature(x_internal_google_auth, clean_email, payload.google_id or ""):
+        if not _verify_internal_google_signature(
+            x_internal_google_auth,
+            clean_email,
+            payload.google_id or "",
+            link_user_id=payload.link_user_id,
+        ):
             raise HTTPException(status_code=401, detail="Google autentifikatsiya imzosi yaroqsiz")
         verified = True
-    elif payload.id_token:
+    elif payload.id_token and payload.link_user_id is None:
         if not await _verify_google_id_token_email(payload.id_token, clean_email):
             raise HTTPException(status_code=401, detail="Google ID tokeni tasdiqlanmadi")
         verified = True
@@ -429,11 +575,58 @@ async def google_auth(
             detail="Juda ko'p urinishlar qilindi. 1 daqiqadan so'ng qayta urinib ko'ring.",
         )
 
-    result = await db.execute(select(User).where(User.email == clean_email))
-    user = result.scalar_one_or_none()
-
     is_owner_email = _is_configured_admin_email(clean_email)
+    existing_email_user = (await db.execute(select(User).where(User.email == clean_email))).scalar_one_or_none()
 
+    # Account Unification Path: signed-in Telegram-only user connecting their Gmail
+    if payload.link_user_id is not None:
+        link_target = await db.get(User, int(payload.link_user_id))
+        if link_target is None or not link_target.is_active:
+            raise HTTPException(status_code=404, detail="Bog'lanadigan foydalanuvchi topilmadi")
+
+        if existing_email_user is not None and existing_email_user.id != link_target.id:
+            if (
+                existing_email_user.telegram_user_id is not None
+                and link_target.telegram_user_id is not None
+                and int(existing_email_user.telegram_user_id) != int(link_target.telegram_user_id)
+            ):
+                raise HTTPException(
+                    status_code=409,
+                    detail="Ushbu Gmail boshqa Telegram hisobiga allaqachon ulangan. 1 ta Telegramga faqat 1 ta email ulanishi mumkin.",
+                )
+            if not existing_email_user.is_active:
+                raise HTTPException(status_code=403, detail="Ushbu email hisobi bloklangan")
+            existing_email_user.email_verified = True
+            existing_email_user.email_verified_at = existing_email_user.email_verified_at or datetime.now(timezone.utc)
+            user = await _merge_email_and_telegram_users(
+                db,
+                email_user=existing_email_user,
+                tg_user=link_target,
+            )
+            await db.commit()
+            await db.refresh(user)
+        else:
+            if is_real_email(link_target.email) and link_target.email.strip().lower() != clean_email:
+                raise HTTPException(
+                    status_code=409,
+                    detail="Bu Telegram hisobiga boshqa email allaqachon bog'langan.",
+                )
+            link_target.email = clean_email
+            link_target.email_verified = True
+            link_target.email_verified_at = datetime.now(timezone.utc)
+            if is_owner_email:
+                link_target.is_platform_owner = True
+            if payload.full_name.strip() and (not link_target.full_name or link_target.full_name.startswith("User ") or link_target.full_name.startswith("@")):
+                link_target.full_name = payload.full_name.strip()
+            link_target.token_version = (getattr(link_target, "token_version", 1) or 1) + 1
+            await db.commit()
+            await db.refresh(link_target)
+            user = link_target
+
+        token = create_access_token(user.id, user.email, token_version=getattr(user, "token_version", 1) or 1)
+        return _build_token_response(user, access_token=token, verification_required=False)
+
+    user = existing_email_user
     if user is None:
         display_name = payload.full_name.strip() or clean_email.split("@")[0]
         user = User(
@@ -467,15 +660,7 @@ async def google_auth(
             await db.refresh(user)
 
     token = create_access_token(user.id, user.email, token_version=getattr(user, "token_version", 1) or 1)
-    return TokenResponse(
-        access_token=token,
-        user_id=user.id,
-        email=user.email,
-        full_name=user.full_name,
-        telegram_user_id=user.telegram_user_id,
-        email_verified=True,
-        verification_required=False,
-    )
+    return _build_token_response(user, access_token=token, verification_required=False)
 
 
 @router.post("/auth/telegram/init")
@@ -527,8 +712,8 @@ async def telegram_auth_poll(payload: dict, db: AsyncSession = Depends(get_db)):
             full_name=full_name or (f"@{clean_username}" if clean_username else f"User {clean_id}"),
             telegram_user_id=clean_id,
             hashed_password="",
-            email_verified=True,
-            email_verified_at=datetime.now(timezone.utc),
+            email_verified=False,
+            email_verified_at=None,
             is_platform_owner=is_owner_tg,
             is_active=True,
         )
@@ -538,18 +723,28 @@ async def telegram_auth_poll(payload: dict, db: AsyncSession = Depends(get_db)):
     else:
         if not user.is_active:
             raise HTTPException(status_code=403, detail="Foydalanuvchi hisobi faol emas")
-        user.telegram_user_id = clean_id
-        if not getattr(user, "email_verified", False):
-            user.email_verified = True
-            user.email_verified_at = datetime.now(timezone.utc)
+        dirty = False
+        if user.telegram_user_id != clean_id:
+            user.telegram_user_id = clean_id
+            dirty = True
+        if not is_real_email(user.email) and getattr(user, "email_verified", False):
+            # Synthetic @telegram.selloi.uz placeholder is never a verified real email
+            user.email_verified = False
+            user.email_verified_at = None
+            dirty = True
         if is_owner_tg and not user.is_platform_owner:
             user.is_platform_owner = True
-        if full_name:
+            dirty = True
+        if full_name and not (user.full_name or "").strip():
             user.full_name = full_name
-        await db.commit()
-        await db.refresh(user)
+            dirty = True
+        if dirty:
+            await db.commit()
+            await db.refresh(user)
 
     token = create_access_token(user.id, user.email, token_version=getattr(user, "token_version", 1) or 1)
+    real_email = is_real_email(user.email)
+    missing = get_missing_verification_steps(user)
     return {
         "status": "verified",
         "access_token": token,
@@ -558,6 +753,10 @@ async def telegram_auth_poll(payload: dict, db: AsyncSession = Depends(get_db)):
         "full_name": user.full_name,
         "telegram_user_id": user.telegram_user_id,
         "username": clean_username,
+        "email_verified": bool(getattr(user, "email_verified", False)) and real_email,
+        "has_real_email": real_email,
+        "fully_verified": len(missing) == 0,
+        "missing_steps": missing,
     }
 
 
@@ -615,6 +814,12 @@ async def telegram_link_poll(
         )
     ).scalar_one_or_none()
     if existing_holder is not None:
+        has_real_holder_email = is_real_email(existing_holder.email)
+        if has_real_holder_email:
+            raise HTTPException(
+                status_code=409,
+                detail="Bu Telegram hisobi boshqa Selloi foydalanuvchisiga allaqachon ulangan. 1 ta Telegramga faqat 1 ta email ruxsat etiladi.",
+            )
         has_membership = (
             await db.execute(
                 select(OrganizationMember.id)
@@ -632,11 +837,43 @@ async def telegram_link_poll(
         if is_empty_tg_stub:
             existing_holder.telegram_user_id = None
             existing_holder.is_active = False
+            existing_holder.email = f"merged_{existing_holder.id}_{int(time.time())}@merged.selloi.uz"
             await db.flush()
+        elif is_real_email(current_user.email) and getattr(current_user, "email_verified", False):
+            # Both accounts belong to the user: merge synthetic TG account into unified account
+            prev_tv = max(1, getattr(current_user, "token_version", 1) or 1)
+            unified = await _merge_email_and_telegram_users(
+                db,
+                email_user=current_user,
+                tg_user=existing_holder,
+            )
+            unified.token_version = prev_tv
+            await db.commit()
+            await db.refresh(unified)
+            token = create_access_token(
+                unified.id,
+                unified.email,
+                token_version=getattr(unified, "token_version", 1) or 1,
+            )
+            missing = get_missing_verification_steps(unified)
+            return {
+                "ok": True,
+                "status": "verified",
+                "access_token": token,
+                "user_id": unified.id,
+                "email": unified.email,
+                "telegram_user_id": unified.telegram_user_id,
+                "username": clean_username,
+                "full_name": unified.full_name,
+                "email_verified": bool(getattr(unified, "email_verified", False)),
+                "has_real_email": is_real_email(unified.email),
+                "fully_verified": len(missing) == 0,
+                "missing_steps": missing,
+            }
         else:
             raise HTTPException(
                 status_code=409,
-                detail="Bu Telegram hisobi boshqa Selloi foydalanuvchisiga allaqachon ulangan.",
+                detail="Bu Telegram hisobiga boshqa ma'lumotlar biriktirilgan. Avval emailingizni tasdiqlang.",
             )
 
     settings = get_settings()
@@ -658,12 +895,25 @@ async def telegram_link_poll(
     )
     await db.commit()
     await db.refresh(current_user)
+    token = create_access_token(
+        current_user.id,
+        current_user.email,
+        token_version=getattr(current_user, "token_version", 1) or 1,
+    )
+    missing = get_missing_verification_steps(current_user)
     return {
         "ok": True,
         "status": "verified",
+        "access_token": token,
+        "user_id": current_user.id,
+        "email": current_user.email,
         "telegram_user_id": current_user.telegram_user_id,
         "username": clean_username,
         "full_name": current_user.full_name,
+        "email_verified": bool(getattr(current_user, "email_verified", False)) and is_real_email(current_user.email),
+        "has_real_email": is_real_email(current_user.email),
+        "fully_verified": len(missing) == 0,
+        "missing_steps": missing,
     }
 
 
@@ -709,12 +959,17 @@ async def get_current_user_profile(current_user: User = Depends(get_current_user
 
     is_owner = bool(current_user.is_platform_owner)
     is_site_admin = bool(getattr(current_user, "is_platform_admin", False))
+    real_email = is_real_email(current_user.email)
+    missing = get_missing_verification_steps(current_user)
     return {
         "id": current_user.id,
         "email": current_user.email,
         "full_name": current_user.full_name,
         "telegram_user_id": current_user.telegram_user_id,
-        "email_verified": bool(getattr(current_user, "email_verified", False)),
+        "email_verified": bool(getattr(current_user, "email_verified", False)) and real_email,
+        "has_real_email": real_email,
+        "fully_verified": len(missing) == 0,
+        "missing_steps": missing,
         "smtp_configured": email_service.is_smtp_configured(),
         "bot_username": await get_bot_username(),
         "has_password": bool((current_user.hashed_password or "").strip()),
@@ -736,11 +991,14 @@ async def update_profile(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Update user profile. Unrelated profile changes must not invalidate active sessions."""
+    """Update user display name. Telegram linking must use verified bot flow."""
+    if payload.telegram_user_id is not None and payload.telegram_user_id != current_user.telegram_user_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Telegram hisobini ulash faqat @Selloi_ai_bot tasdig'i orqali amalga oshiriladi.",
+        )
     if payload.full_name is not None:
         current_user.full_name = payload.full_name.strip()
-    if payload.telegram_user_id is not None:
-        current_user.telegram_user_id = payload.telegram_user_id
     await db.commit()
     await db.refresh(current_user)
     return {
@@ -1086,6 +1344,193 @@ async def resend_email_verification(payload: ResendVerificationRequest, db: Asyn
     }
 
 
+@router.post("/auth/bind-email/init")
+async def bind_email_init(
+    payload: BindEmailInitRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Send a 6-digit OTP to bind & verify a real email address for the signed-in account."""
+    from app.services import email_service
+
+    clean_email = payload.email.strip().lower()
+    if not is_real_email(clean_email) or not email_service.is_deliverable_email(clean_email):
+        raise HTTPException(status_code=400, detail="Haqiqiy email manzilini kiriting (masalan: name@gmail.com)")
+
+    if is_real_email(current_user.email) and current_user.email.strip().lower() != clean_email:
+        raise HTTPException(
+            status_code=409,
+            detail="Bu hisobga boshqa email manzili allaqachon bog'langan.",
+        )
+
+    cooldown_key = f"bind_email_cooldown:{current_user.id}"
+    if is_rate_limited(cooldown_key, max_attempts=1, window_seconds=PASSWORD_RESET_COOLDOWN_SECONDS):
+        wait_s = get_rate_limit_retry_after(
+            cooldown_key,
+            max_attempts=1,
+            window_seconds=PASSWORD_RESET_COOLDOWN_SECONDS,
+        )
+        return _rate_limit_response(
+            f"Yangi kod so'rash uchun {wait_s} soniya kuting.",
+            wait_s,
+        )
+
+    rate_key = f"bind_email_init:{clean_email}"
+    if is_rate_limited(rate_key, max_attempts=5, window_seconds=300):
+        wait_s = get_rate_limit_retry_after(rate_key, max_attempts=5, window_seconds=300)
+        return _rate_limit_response(
+            f"Juda ko'p so'rov yuborildi. {wait_s} soniyadan so'ng qayta urinib ko'ring.",
+            wait_s,
+        )
+
+    existing_holder = (
+        await db.execute(select(User).where(User.email == clean_email, User.id != current_user.id))
+    ).scalar_one_or_none()
+    if existing_holder is not None:
+        if not existing_holder.is_active:
+            raise HTTPException(status_code=403, detail="Ushbu email hisobi bloklangan.")
+        if (
+            existing_holder.telegram_user_id is not None
+            and current_user.telegram_user_id is not None
+            and int(existing_holder.telegram_user_id) != int(current_user.telegram_user_id)
+        ):
+            raise HTTPException(
+                status_code=409,
+                detail="Ushbu email manzili boshqa Telegram hisobiga allaqachon ulangan. 1 ta Telegramga faqat 1 ta email ruxsat etiladi.",
+            )
+
+    record_attempt(rate_key)
+    record_attempt(cooldown_key)
+
+    _row, sent = await _issue_email_verification_otp(db, current_user, target_email=clean_email)
+    if not sent and email_service.is_smtp_configured():
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Tasdiqlash xatini yuborib bo'lmadi. Email manzilingizni tekshiring yoki Google orqali kiring.",
+        )
+    await db.commit()
+    return {
+        "ok": True,
+        "detail": f"{clean_email} manziliga 6 xonali tasdiqlash kodi yuborildi.",
+        "expires_in_seconds": EMAIL_VERIFY_TTL_MINUTES * 60,
+        "resend_cooldown_seconds": PASSWORD_RESET_COOLDOWN_SECONDS,
+    }
+
+
+@router.post("/auth/bind-email/confirm", response_model=TokenResponse)
+async def bind_email_confirm(
+    payload: BindEmailConfirmRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Confirm 6-digit OTP to verify & bind a real email onto the signed-in Telegram account."""
+    clean_email = payload.email.strip().lower()
+    clean_code = payload.code.strip()
+
+    if not is_real_email(clean_email):
+        raise HTTPException(status_code=400, detail="Noto'g'ri email manzil")
+
+    rate_key = f"bind_email_confirm:{current_user.id}:{clean_email}"
+    if is_rate_limited(rate_key, max_attempts=10, window_seconds=300):
+        wait_s = get_rate_limit_retry_after(rate_key, max_attempts=10, window_seconds=300)
+        return _rate_limit_response(
+            f"Juda ko'p urinishlar qilindi. {wait_s} soniyadan so'ng qayta urinib ko'ring.",
+            wait_s,
+        )
+
+    if not (clean_code.isdigit() and len(clean_code) == 6):
+        record_attempt(rate_key)
+        raise HTTPException(status_code=400, detail="Tasdiqlash kodi 6 xonali raqam bo'lishi kerak")
+
+    token_row = (
+        await db.execute(
+            select(EmailVerificationToken)
+            .where(
+                EmailVerificationToken.user_id == current_user.id,
+                EmailVerificationToken.email == clean_email,
+                EmailVerificationToken.used_at.is_(None),
+            )
+            .order_by(EmailVerificationToken.id.desc())
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+
+    expected_hash = _hash_email_verification_code(current_user.id, clean_email, clean_code)
+    now = await _verify_and_consume_otp_row(
+        db,
+        row=token_row,
+        expected_hash=expected_hash,
+        rate_key=rate_key,
+    )
+
+    if payload.password and len(payload.password.strip()) < 6:
+        raise HTTPException(status_code=400, detail="Parol kamida 6 belgidan iborat bo'lishi kerak")
+
+    existing_holder = (
+        await db.execute(select(User).where(User.email == clean_email, User.id != current_user.id))
+    ).scalar_one_or_none()
+
+    if existing_holder is not None:
+        if (
+            existing_holder.telegram_user_id is not None
+            and current_user.telegram_user_id is not None
+            and int(existing_holder.telegram_user_id) != int(current_user.telegram_user_id)
+        ):
+            raise HTTPException(
+                status_code=409,
+                detail="Ushbu email manzili boshqa Telegram hisobiga allaqachon ulangan.",
+            )
+        existing_holder.email_verified = True
+        existing_holder.email_verified_at = existing_holder.email_verified_at or now
+        final_user = await _merge_email_and_telegram_users(
+            db,
+            email_user=existing_holder,
+            tg_user=current_user,
+            preferred_password=payload.password,
+        )
+    else:
+        if is_real_email(current_user.email) and current_user.email.strip().lower() != clean_email:
+            raise HTTPException(status_code=409, detail="Bu hisobga boshqa email allaqachon ulangan.")
+        current_user.email = clean_email
+        current_user.email_verified = True
+        current_user.email_verified_at = now
+        current_user.updated_at = now
+        if _is_configured_admin_email(clean_email):
+            current_user.is_platform_owner = True
+        if payload.password and payload.password.strip():
+            current_user.hashed_password = hash_password(payload.password.strip())
+        final_user = current_user
+
+    db.add(
+        AuditLog(
+            user_id=final_user.id,
+            action="email_bound_and_verified",
+            resource="user",
+            resource_id=str(final_user.id),
+            metadata_json={"email": clean_email, "telegram_user_id": final_user.telegram_user_id},
+        )
+    )
+    await db.commit()
+    await db.refresh(final_user)
+
+    reset_rate_limit(rate_key)
+    reset_rate_limit(f"bind_email_cooldown:{current_user.id}")
+    reset_rate_limit(f"bind_email_init:{clean_email}")
+
+    access_token = create_access_token(
+        final_user.id,
+        final_user.email,
+        token_version=getattr(final_user, "token_version", 1) or 1,
+    )
+    return _build_token_response(
+        final_user,
+        access_token=access_token,
+        verification_required=False,
+        detail="Email manzilingiz muvaffaqiyatli tasdiqlandi va hisoblar birlashtirildi!",
+    )
+
+
 @router.post("/auth/verify-email", response_model=TokenResponse)
 async def verify_email_otp(payload: VerifyEmailRequest, db: AsyncSession = Depends(get_db)):
     """Verify a user's email address with a 6-digit OTP and issue an active JWT."""
@@ -1137,6 +1582,8 @@ async def verify_email_otp(payload: VerifyEmailRequest, db: AsyncSession = Depen
     user.email_verified = True
     user.email_verified_at = now
     user.updated_at = now
+    if _is_configured_admin_email(clean_email):
+        user.is_platform_owner = True
     await db.execute(
         update(EmailVerificationToken)
         .where(
@@ -1167,13 +1614,9 @@ async def verify_email_otp(payload: VerifyEmailRequest, db: AsyncSession = Depen
         user.email,
         token_version=getattr(user, "token_version", 1) or 1,
     )
-    return TokenResponse(
+    return _build_token_response(
+        user,
         access_token=access_token,
-        user_id=user.id,
-        email=user.email,
-        full_name=user.full_name,
-        telegram_user_id=user.telegram_user_id,
-        email_verified=True,
         verification_required=False,
         detail="Email manzilingiz muvaffaqiyatli tasdiqlandi!",
     )
@@ -1332,7 +1775,7 @@ async def accept_team_invite(payload: AcceptInviteRequest, db: AsyncSession = De
 async def create_organization(
     payload: OrganizationCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_verified_user),
 ):
     """Create a new organization. The creator automatically becomes the owner."""
     clean_slug = payload.slug.strip().lower()
@@ -1379,7 +1822,7 @@ async def create_organization(
 @router.get("/organizations", response_model=list[OrganizationOut])
 async def list_organizations(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_verified_user),
 ):
     """List all organizations that current user belongs to."""
     result = await db.execute(
@@ -1396,7 +1839,7 @@ async def list_organizations(
 async def get_organization(
     org_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_verified_user),
 ):
     """Get details of an organization."""
     org = await db.get(Organization, org_id)
@@ -1422,7 +1865,7 @@ async def update_organization(
     org_id: int,
     payload: OrganizationUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_verified_user),
 ):
     """Update organization settings, bot token, or AI keys from dashboard."""
     org = await db.get(Organization, org_id)
@@ -1476,7 +1919,7 @@ async def update_organization(
 async def verify_organization_bot(
     org_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_verified_user),
 ):
     """Test and verify the organization's Telegram bot token with Telegram getMe API."""
     org = await db.get(Organization, org_id)

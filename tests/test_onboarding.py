@@ -38,6 +38,31 @@ async def test_auth_and_organization_onboarding_lifecycle():
         me_resp = await client.get("/api/v1/auth/me", headers=headers)
         assert me_resp.status_code == 200
         assert me_resp.json()["email"] == test_email
+        assert me_resp.json()["fully_verified"] is False
+
+        # Unverified user (missing TG / OTP verification) must be blocked from creating stores
+        unverified_org_resp = await client.post("/api/v1/organizations", headers=headers, json={
+            "name": "Blocked Unverified Store",
+            "slug": f"blocked-{int(datetime.now().timestamp())}",
+        })
+        assert unverified_org_resp.status_code == 403
+        assert unverified_org_resp.json()["detail"]["error"] == "ACCOUNT_VERIFICATION_REQUIRED"
+
+        # Complete full verification (email_verified + telegram_user_id) via Telegram link
+        from app.services.telegram_auth import create_auth_session, verify_auth_session
+        link_sess = await create_auth_session(purpose="link", user_id=data["user_id"])
+        tg_uid = int(datetime.now().timestamp() * 1000) % 900000000 + 100000000
+        assert verify_auth_session(f"link_{link_sess['code']}", tg_uid, "aziz_q", "Aziz Qodirov", expected_purpose="link")
+        from app.core.db import SessionLocal
+        from app.models import User
+        from sqlalchemy import select
+        async with SessionLocal() as db:
+            u = (await db.execute(select(User).where(User.id == data["user_id"]))).scalar_one()
+            u.email_verified = True
+            await db.commit()
+        link_done = await client.post("/api/v1/auth/telegram/link/poll", json={"code": link_sess["code"]}, headers=headers)
+        assert link_done.status_code == 200
+        assert link_done.json()["fully_verified"] is True
 
         # 2b. Test Google Auth endpoint
         google_email = f"google_{int(datetime.now().timestamp())}@shop.uz"

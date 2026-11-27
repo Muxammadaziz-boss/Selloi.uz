@@ -81,6 +81,10 @@ export interface PlatformUser {
   email: string;
   full_name?: string;
   telegram_user_id?: number;
+  email_verified?: boolean;
+  has_real_email?: boolean;
+  fully_verified?: boolean;
+  verification_status?: "verified" | "pending_telegram" | "pending_email" | "unverified";
   is_platform_owner: boolean;
   is_platform_admin?: boolean;
   is_active: boolean;
@@ -192,7 +196,7 @@ export function PlatformOwnerTab({
   const [storeSort, setStoreSort] = useState<"newest" | "revenue" | "cost" | "conversations">("newest");
 
   const [userSearch, setUserSearch] = useState("");
-  const [userRoleFilter, setUserRoleFilter] = useState<"all" | "admins" | "owners" | "telegram" | "suspended">("all");
+  const [userRoleFilter, setUserRoleFilter] = useState<"all" | "admins" | "owners" | "telegram" | "unverified" | "suspended">("all");
   const [auditSearch, setAuditSearch] = useState("");
   const [auditActionFilter, setAuditActionFilter] = useState<string>("all");
   const [newAdminEmail, setNewAdminEmail] = useState("");
@@ -429,6 +433,7 @@ export function PlatformOwnerTab({
       if (userRoleFilter === "admins") return Boolean(u.is_platform_owner || u.is_platform_admin);
       if (userRoleFilter === "owners") return !u.is_platform_owner && !u.is_platform_admin;
       if (userRoleFilter === "telegram") return Boolean(u.telegram_user_id);
+      if (userRoleFilter === "unverified") return u.fully_verified === false;
       if (userRoleFilter === "suspended") return !u.is_active;
       return true;
     });
@@ -1434,6 +1439,7 @@ export function PlatformOwnerTab({
                     <option value="admins">Sayt Adminlari</option>
                     <option value="owners">Do&apos;kon Egalari</option>
                     <option value="telegram">Telegram ulanganlar</option>
+                    <option value="unverified">Tasdiqlanmaganlar</option>
                     <option value="suspended">Bloklanganlar</option>
                   </select>
                   <Button variant="secondary" size="sm" icon={<IconDownload size={14} />} onClick={exportUsersCsv}>
@@ -1494,9 +1500,22 @@ export function PlatformOwnerTab({
                         )}
                       </td>
                       <td>
-                        <Badge variant={u.is_active ? "success" : "danger"} dot>
-                          {u.is_active ? "Faol" : "Bloklangan"}
-                        </Badge>
+                        {!u.is_active ? (
+                          <Badge variant="danger" dot>Bloklangan</Badge>
+                        ) : u.fully_verified === false ? (
+                          <div className="d-flex flex-column gap-1">
+                            <Badge variant="warning" dot>Tasdiqlanmagan</Badge>
+                            <span className="text-tertiary" style={{ fontSize: "0.7rem" }}>
+                              {u.verification_status === "pending_telegram"
+                                ? "Telegram ulanmagan"
+                                : u.verification_status === "pending_email"
+                                  ? "Email OTP kutilmoqda"
+                                  : "Email & TG tasdiqlanmagan"}
+                            </span>
+                          </div>
+                        ) : (
+                          <Badge variant="success" dot>Faol</Badge>
+                        )}
                       </td>
                       <td className="text-secondary small font-monospace">
                         {u.created_at ? new Date(u.created_at).toLocaleDateString() : "-"}

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildInternalGoogleAuthSignature, buildVerifiedSessionPayload, attachSessionCookie } from "@/lib/authSession";
+import { sessionCookieName, verifySession } from "@/lib/session";
 
 function getBaseUrl(request: NextRequest): string {
   const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || "selloi.uz";
@@ -68,7 +69,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL("/login?error=google_no_email", baseUrl));
     }
 
-    const internalSig = buildInternalGoogleAuthSignature(email, googleId);
+    const linkCookie = request.cookies.get("selloi_google_link")?.value;
+    const rawSessionCookie = request.cookies.get(sessionCookieName)?.value;
+    const existingSession = verifySession(rawSessionCookie, secret);
+    const linkUserId = linkCookie === "1" && existingSession ? existingSession.userId : undefined;
+
+    const internalSig = buildInternalGoogleAuthSignature(email, googleId, linkUserId);
     const backendHeaders: Record<string, string> = { "Content-Type": "application/json" };
     if (internalSig) {
       backendHeaders["X-Internal-Google-Auth"] = internalSig;
@@ -82,12 +88,17 @@ export async function GET(request: NextRequest) {
         full_name: fullName,
         google_id: googleId,
         avatar_url: profile.picture || null,
+        link_user_id: linkUserId ?? null,
       }),
     });
 
-    const data = await backendRes.json();
+    const data = await backendRes.json().catch(() => ({}));
     if (!backendRes.ok) {
-      return NextResponse.redirect(new URL("/login?error=google_register_failed", baseUrl));
+      const errCode = backendRes.status === 409 ? "google_already_bound_other_tg" : "google_register_failed";
+      const errPath = linkUserId ? `/login?step=complete&error=${errCode}` : `/login?error=${errCode}`;
+      const errResp = NextResponse.redirect(new URL(errPath, baseUrl));
+      errResp.cookies.delete("selloi_google_link");
+      return errResp;
     }
 
     const { payload, defaultRedirect } = await buildVerifiedSessionPayload({
@@ -102,6 +113,7 @@ export async function GET(request: NextRequest) {
     const redirectTarget = new URL(defaultRedirect, baseUrl);
     const response = NextResponse.redirect(redirectTarget);
     attachSessionCookie(response, payload, secret);
+    response.cookies.delete("selloi_google_link");
     return response;
   } catch (err) {
     return NextResponse.redirect(new URL("/login?error=google_error", baseUrl));

@@ -10,6 +10,10 @@ export interface SessionPayload {
   fullName?: string;
   username?: string;
   role?: string;
+  emailVerified?: boolean;
+  hasRealEmail?: boolean;
+  fullyVerified?: boolean;
+  missingSteps?: string[];
   isPlatformOwner?: boolean;
   isPlatformAdmin?: boolean;
   organizationId?: number;

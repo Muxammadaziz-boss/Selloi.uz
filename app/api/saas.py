@@ -131,7 +131,7 @@ class SubscriptionConsentRequest(BaseModel):
 # --- Tenant & Auth Resolvers ---
 
 from app.api.admin import get_current_admin
-from app.dependencies.auth import get_current_user
+from app.dependencies.auth import get_current_user, get_verified_user
 from app.dependencies.tenant import get_admin_tenant_id
 from app.services import admin_service
 
@@ -413,7 +413,7 @@ async def list_user_organizations(
 @router.post("/organizations")
 async def create_organization(
     req: CreateOrgRequest,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_verified_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Onboarding endpoint: create a new organization with 7-day free trial."""
@@ -465,7 +465,7 @@ async def create_organization(
 @router.post("/organizations/verify-token")
 async def verify_bot_token_endpoint(
     req: VerifyTokenRequest,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_verified_user),
 ):
     """Verify Telegram bot token via Telegram getMe API before saving."""
     token = req.token.strip()
@@ -518,7 +518,7 @@ async def verify_bot_token_endpoint(
 @router.post("/organizations/verify-channel")
 async def verify_channel_public_endpoint(
     req: VerifyChannelRequest,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_verified_user),
 ):
     """Verify channel existence during onboarding using system bot token or public API."""
     raw = req.channel.strip()

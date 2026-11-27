@@ -21,10 +21,20 @@ import {
 } from "@tabler/icons-react";
 import "./login.css";
 
+interface CompletionState {
+  email: string;
+  telegramUserId?: number;
+  emailVerified: boolean;
+  hasRealEmail: boolean;
+  missingSteps: string[];
+}
+
 interface LoginPageClientProps {
   initialRedirect: string;
   initialTab?: string;
   initialError?: string;
+  initialStep?: string;
+  initialCompletionState?: CompletionState;
 }
 
 type AuthMode = "login" | "register";
@@ -318,6 +328,8 @@ export default function LoginPageClient({
   initialRedirect,
   initialTab,
   initialError,
+  initialStep,
+  initialCompletionState,
 }: LoginPageClientProps) {
   const [lang, setLang] = useState<Language>("uz");
   const [mode, setMode] = useState<AuthMode>(
@@ -332,7 +344,10 @@ export default function LoginPageClient({
     if (code === "google_cancelled") {
       return "Google orqali kirish bekor qilindi.";
     }
-    if (code === "google_token_failed" || code === "google_error") {
+    if (code === "google_already_bound_other_tg") {
+      return "Ushbu Gmail boshqa Telegram hisobiga allaqachon ulangan. 1 ta Telegramga faqat 1 ta email ruxsat etiladi.";
+    }
+    if (code === "google_token_failed" || code === "google_error" || code === "google_register_failed") {
       return "Google orqali tasdiqlashda xatolik yuz berdi. Qayta urinib ko'ring.";
     }
     return null;
@@ -384,6 +399,28 @@ export default function LoginPageClient({
   const [verifyError, setVerifyError] = useState<string | null>(null);
   const [verifyInfo, setVerifyInfo] = useState<string | null>(null);
 
+  // Full 2-factor completion gate state (mandatory Email + Telegram link before full access)
+  const [completionState, setCompletionState] = useState<CompletionState | null>(
+    initialCompletionState || null
+  );
+  const [gateTgUrl, setGateTgUrl] = useState("");
+  const [gateTgCode, setGateTgCode] = useState("");
+  const [gateTgBotUsername, setGateTgBotUsername] = useState("Selloi_ai_bot");
+  const [gateTgPolling, setGateTgPolling] = useState(false);
+  const [gateTgBusy, setGateTgBusy] = useState(false);
+  const [bindEmail, setBindEmail] = useState("");
+  const [bindOtpCode, setBindOtpCode] = useState("");
+  const [bindPassword, setBindPassword] = useState("");
+  const [bindOtpSent, setBindOtpSent] = useState(false);
+  const [bindLoading, setBindLoading] = useState(false);
+  const [bindResending, setBindResending] = useState(false);
+  const [bindOtpDeadline, setBindOtpDeadline] = useState<number>(0);
+  const [bindResendDeadline, setBindResendDeadline] = useState<number>(0);
+  const [bindOtpRemaining, setBindOtpRemaining] = useState<number>(0);
+  const [bindResendCooldown, setBindResendCooldown] = useState<number>(0);
+  const [gateError, setGateError] = useState<string | null>(getInitialErrorText(initialError));
+  const [gateInfo, setGateInfo] = useState<string | null>(null);
+
   const t = TRANSLATIONS[lang];
 
   const formatCountdown = (totalSeconds: number) => {
@@ -392,6 +429,83 @@ export default function LoginPageClient({
     const secs = safe % 60;
     return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
   };
+
+  useEffect(() => {
+    if (!completionState && initialStep === "complete") {
+      fetch("/api/auth/status", { cache: "no-store" })
+        .then((r) => r.json())
+        .then((d) => {
+          if (d?.authenticated && d?.user && d.user.fullyVerified === false) {
+            setCompletionState({
+              email: d.user.email || "",
+              telegramUserId: d.user.telegramUserId,
+              emailVerified: Boolean(d.user.emailVerified),
+              hasRealEmail: Boolean(d.user.hasRealEmail),
+              missingSteps: d.user.missingSteps || [],
+            });
+          }
+        })
+        .catch(() => {});
+    }
+  }, [initialStep, completionState]);
+
+  useEffect(() => {
+    if (!completionState) return;
+    const syncBindTimers = () => {
+      const now = Date.now();
+      setBindOtpRemaining(
+        bindOtpDeadline > 0 ? Math.max(0, Math.ceil((bindOtpDeadline - now) / 1000)) : 0
+      );
+      setBindResendCooldown(
+        bindResendDeadline > 0 ? Math.max(0, Math.ceil((bindResendDeadline - now) / 1000)) : 0
+      );
+    };
+    syncBindTimers();
+    const timer = window.setInterval(syncBindTimers, 500);
+    return () => window.clearInterval(timer);
+  }, [completionState, bindOtpDeadline, bindResendDeadline]);
+
+  useEffect(() => {
+    if (!gateTgPolling || !gateTgCode) return;
+    let active = true;
+    const interval = window.setInterval(async () => {
+      try {
+        const res = await fetch("/api/auth/telegram/link/poll", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: gateTgCode }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!active) return;
+        if (res.status === 409) {
+          setGateTgPolling(false);
+          setGateError(
+            data.detail ||
+              "Ushbu Telegram hisobi boshqa foydalanuvchiga ulangan. 1 ta Telegramga faqat 1 ta email ruxsat etiladi."
+          );
+          return;
+        }
+        if (res.status === 404) {
+          setGateTgPolling(false);
+          setGateError(data.detail || "Ulash sessiyasi muddati tugadi. Qayta urinib ko'ring.");
+          return;
+        }
+        if (res.ok && data.status === "verified") {
+          setGateTgPolling(false);
+          setGateInfo("Telegram muvaffaqiyatli ulandi! Boshqaruv paneliga o'tilmoqda...");
+          window.setTimeout(() => {
+            window.location.href = resolvePostLoginDestination(data);
+          }, 700);
+        }
+      } catch {
+        // Retry on next poll
+      }
+    }, 1800);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, [gateTgPolling, gateTgCode, initialRedirect]);
 
   useEffect(() => {
     if (!resetModalOpen) return;
@@ -408,6 +522,9 @@ export default function LoginPageClient({
   }, [resetModalOpen, resetOtpDeadline, resetResendDeadline]);
 
   const resolvePostLoginDestination = (data: any): string => {
+    if (data?.user?.fullyVerified === false || data?.redirect === "/login?step=complete") {
+      return "/login?step=complete";
+    }
     const isPlatformStaff = Boolean(data?.user?.isPlatformOwner || data?.user?.isPlatformAdmin);
     const safeRedirect =
       initialRedirect &&
@@ -429,6 +546,135 @@ export default function LoginPageClient({
       return safeRedirect;
     }
     return data?.redirect || "/dashboard";
+  };
+
+  const handleStartGateTelegramLink = async () => {
+    setGateError(null);
+    setGateInfo(null);
+    setGateTgBusy(true);
+    try {
+      const res = await fetch("/api/auth/telegram/link/init", { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setGateError(data.detail || "Telegram ulash sessiyasini yaratib bo'lmadi");
+        return;
+      }
+      if (data.bot_username) setGateTgBotUsername(data.bot_username);
+      setGateTgCode(data.code);
+      setGateTgUrl(data.bot_url);
+      setGateTgPolling(true);
+    } catch (err: any) {
+      setGateError("Tarmoq xatosi: " + err.message);
+    } finally {
+      setGateTgBusy(false);
+    }
+  };
+
+  const sendBindEmailOtp = async (isResend = false) => {
+    setGateError(null);
+    setGateInfo(null);
+    const clean = bindEmail.trim().toLowerCase();
+    if (!clean || !clean.includes("@")) {
+      setGateError(t.emailPlaceholder);
+      return;
+    }
+    if (isResend) setBindResending(true);
+    else setBindLoading(true);
+    try {
+      const res = await fetch("/api/auth/bind-email/init", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: clean }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if (res.status === 429 && typeof data.retry_after_seconds === "number") {
+          const waitSec = Math.max(1, Math.ceil(data.retry_after_seconds));
+          setBindResendDeadline(Date.now() + waitSec * 1000);
+          setBindResendCooldown(waitSec);
+        }
+        setGateError(data.detail || "Tasdiqlash kodini yuborishda xatolik");
+        return;
+      }
+      const ttl = Number(data.expires_in_seconds) > 0 ? Math.ceil(Number(data.expires_in_seconds)) : 900;
+      const cd = Number(data.resend_cooldown_seconds) > 0 ? Math.ceil(Number(data.resend_cooldown_seconds)) : 60;
+      const now = Date.now();
+      setBindEmail(clean);
+      setBindOtpCode("");
+      setBindOtpDeadline(now + ttl * 1000);
+      setBindResendDeadline(now + cd * 1000);
+      setBindOtpRemaining(ttl);
+      setBindResendCooldown(cd);
+      setBindOtpSent(true);
+      setGateInfo(data.detail || `${clean} manziliga 6 xonali tasdiqlash kodi yuborildi.`);
+    } catch (err: any) {
+      setGateError("Tarmoq xatosi: " + err.message);
+    } finally {
+      setBindLoading(false);
+      setBindResending(false);
+    }
+  };
+
+  const handleBindEmailConfirm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setGateError(null);
+    if (bindOtpDeadline > 0 && bindOtpRemaining <= 0) {
+      setGateError(t.resetCodeExpiredError);
+      return;
+    }
+    const clean = bindEmail.trim().toLowerCase();
+    const cleanCode = bindOtpCode.trim();
+    if (!/^\d{6}$/.test(cleanCode)) {
+      setGateError(t.verifyCodeLabel);
+      return;
+    }
+    if (bindPassword && bindPassword.length < 6) {
+      setGateError(t.passwordPlaceholder);
+      return;
+    }
+    setBindLoading(true);
+    try {
+      const res = await fetch("/api/auth/bind-email/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: clean,
+          code: cleanCode,
+          ...(bindPassword.trim() ? { password: bindPassword.trim() } : {}),
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setGateError(data.detail || "Tasdiqlash kodi noto'g'ri");
+        return;
+      }
+      setGateInfo("Email tasdiqlandi va hisoblar birlashtirildi!");
+      if (data.fully_verified || data.user?.fullyVerified) {
+        window.setTimeout(() => {
+          window.location.href = resolvePostLoginDestination(data);
+        }, 700);
+      } else {
+        setCompletionState({
+          email: data.email || clean,
+          telegramUserId: data.telegram_user_id,
+          emailVerified: true,
+          hasRealEmail: true,
+          missingSteps: data.missing_steps || ["telegram"],
+        });
+      }
+    } catch (err: any) {
+      setGateError("Tarmoq xatosi: " + err.message);
+    } finally {
+      setBindLoading(false);
+    }
+  };
+
+  const handleGateLogout = async () => {
+    await fetch("/api/logout", { method: "POST" }).catch(() => {});
+    setCompletionState(null);
+    setGateError(null);
+    setGateInfo(null);
+    window.history.replaceState(null, "", "/login");
   };
 
   useEffect(() => {
@@ -885,6 +1131,279 @@ export default function LoginPageClient({
           <p className="selloi-auth-subtitle">{t.brandSubtitle}</p>
         </div>
 
+        {completionState ? (
+          <div>
+            <div style={{ textAlign: "center", marginBottom: "14px" }}>
+              <h2 className="selloi-modal-title" style={{ marginBottom: "6px" }}>
+                {lang === "ru"
+                  ? "Подтверждение аккаунта"
+                  : lang === "en"
+                    ? "Complete Account Verification"
+                    : "Hisobni to'liq tasdiqlash"}
+              </h2>
+              <p className="selloi-modal-desc" style={{ marginBottom: 0 }}>
+                {lang === "ru"
+                  ? "Для полного доступа подтвердите Email и Telegram (1 Telegram ↔ 1 Email)."
+                  : lang === "en"
+                    ? "Verify both Email and Telegram for full access (1 Telegram ↔ 1 Email)."
+                    : "To'liq kirish uchun Email va Telegram hisobingizni tasdiqlang (1 Telegram ↔ 1 Email)."}
+              </p>
+            </div>
+
+            <div className="selloi-gate-checklist">
+              <div
+                className={`selloi-gate-step-pill ${
+                  completionState.emailVerified && completionState.hasRealEmail ? "verified" : "pending"
+                }`}
+              >
+                {completionState.emailVerified && completionState.hasRealEmail ? (
+                  <IconCheck size={15} />
+                ) : (
+                  <IconClock size={15} />
+                )}
+                <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <div style={{ fontWeight: 700, fontSize: "0.75rem" }}>1. Email / Gmail</div>
+                  <div style={{ fontSize: "0.7rem", opacity: 0.85, overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {completionState.emailVerified && completionState.hasRealEmail
+                      ? completionState.email
+                      : "Tasdiqlanmagan"}
+                  </div>
+                </div>
+              </div>
+
+              <div
+                className={`selloi-gate-step-pill ${
+                  completionState.telegramUserId ? "verified" : "pending"
+                }`}
+              >
+                {completionState.telegramUserId ? <IconCheck size={15} /> : <IconClock size={15} />}
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: "0.75rem" }}>2. Telegram Bot</div>
+                  <div style={{ fontSize: "0.7rem", opacity: 0.85 }}>
+                    {completionState.telegramUserId ? `ID: ${completionState.telegramUserId}` : "Ulanmagan"}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {gateError && (
+              <div className="selloi-alert selloi-alert-danger">
+                <IconAlertCircle size={16} className="flex-shrink-0" />
+                <span>{gateError}</span>
+              </div>
+            )}
+
+            {gateInfo && (
+              <div className="selloi-alert selloi-alert-info">
+                <IconSparkles size={16} className="flex-shrink-0" />
+                <span>{gateInfo}</span>
+              </div>
+            )}
+
+            {!(completionState.emailVerified && completionState.hasRealEmail) ? (
+              <div className="selloi-gate-box">
+                <h3 className="selloi-gate-title">
+                  {lang === "ru" ? "Привяжите Gmail / Email" : lang === "en" ? "Verify Email / Gmail" : "Email / Gmail manzilingizni tasdiqlang"}
+                </h3>
+                <p className="selloi-gate-desc">
+                  {lang === "ru"
+                    ? "Подключите свой Gmail в один клик или подтвердите любой email 6-значным OTP кодом."
+                    : lang === "en"
+                      ? "Connect your Gmail in one click or verify any email via 6-digit OTP."
+                      : "Gmail hisobingizni 1 bosishda ulang yoki email kiritib 6 xonali OTP orqali tasdiqlang."}
+                </p>
+
+                <a
+                  href="/api/auth/google?mode=link"
+                  className="selloi-btn-social selloi-btn-google text-decoration-none"
+                  style={{ marginBottom: "12px" }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                    <path fill="#EA4335" d="M12 5c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 1.19 14.97 0 12 0 7.31 0 3.26 2.69 1.29 6.62l3.66 2.84C5.81 6.86 8.65 5 12 5z" />
+                    <path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58l3.7 2.84c2.16-2 3.72-4.92 3.72-8.66z" />
+                    <path fill="#FBBC05" d="M4.95 14.54c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09L1.29 7.52C.47 9.15 0 10.97 0 12.45s.47 3.3 1.29 4.93l3.66-2.84z" />
+                    <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.7-2.84c-1.08.72-2.45 1.16-4.23 1.16-3.35 0-6.19-2.26-7.2-5.32l-3.66 2.84C3.26 21.31 7.31 24 12 24z" />
+                  </svg>
+                  <span>Google (Gmail) bilan tasdiqlash</span>
+                </a>
+
+                <div className="selloi-auth-divider" style={{ margin: "12px 0" }}>
+                  <span>{t.orWithEmail}</span>
+                </div>
+
+                {!bindOtpSent ? (
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      sendBindEmailOtp(false);
+                    }}
+                    className="selloi-auth-form"
+                  >
+                    <div className="selloi-form-group">
+                      <label className="selloi-form-label">{t.emailLabel}</label>
+                      <div className="selloi-input-wrapper">
+                        <IconMail size={16} className="selloi-input-icon" />
+                        <input
+                          type="email"
+                          className="selloi-input"
+                          placeholder={t.emailPlaceholder}
+                          value={bindEmail}
+                          onChange={(e) => setBindEmail(e.target.value)}
+                          required
+                        />
+                      </div>
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={bindLoading || bindResendCooldown > 0}
+                      className="selloi-btn-primary"
+                    >
+                      <span>
+                        {bindLoading
+                          ? t.resetSending
+                          : bindResendCooldown > 0
+                            ? `${t.resetResendWait} (${bindResendCooldown}s)`
+                            : t.resetSendCodeBtn}
+                      </span>
+                    </button>
+                  </form>
+                ) : (
+                  <form onSubmit={handleBindEmailConfirm} className="selloi-auth-form">
+                    <div className="selloi-form-group">
+                      <label className="selloi-form-label">{t.verifyCodeLabel} ({bindEmail})</label>
+                      <div className="selloi-input-wrapper">
+                        <IconShieldCheck size={16} className="selloi-input-icon" />
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={6}
+                          className="selloi-input selloi-otp-input"
+                          placeholder="123456"
+                          value={bindOtpCode}
+                          onChange={(e) => setBindOtpCode(e.target.value.replace(/\D/g, ""))}
+                          required
+                          autoFocus
+                        />
+                      </div>
+                    </div>
+
+                    <div className="selloi-otp-meta-row">
+                      <span
+                        className={`selloi-otp-timer ${
+                          bindOtpRemaining <= 0 ? "selloi-otp-timer--expired" : ""
+                        }`}
+                      >
+                        <IconClock size={14} />
+                        {bindOtpRemaining > 0
+                          ? `${t.resetCodeTimerLabel}: ${formatCountdown(bindOtpRemaining)}`
+                          : t.resetCodeExpiredError}
+                      </span>
+
+                      <button
+                        type="button"
+                        className="selloi-forgot-link"
+                        disabled={bindResending || bindResendCooldown > 0}
+                        onClick={() => sendBindEmailOtp(true)}
+                      >
+                        {bindResending
+                          ? t.resetSending
+                          : bindResendCooldown > 0
+                            ? `${t.resetResendWait} (${bindResendCooldown}s)`
+                            : t.resetResendCodeBtn}
+                      </button>
+                    </div>
+
+                    <div className="selloi-form-group">
+                      <label className="selloi-form-label">{t.passwordLabel} (ixtiyoriy)</label>
+                      <div className="selloi-input-wrapper">
+                        <IconLock size={16} className="selloi-input-icon" />
+                        <input
+                          type="password"
+                          className="selloi-input"
+                          placeholder={t.passwordPlaceholder}
+                          value={bindPassword}
+                          onChange={(e) => setBindPassword(e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="selloi-modal-btn-row" style={{ marginTop: "8px" }}>
+                      <button
+                        type="button"
+                        className="selloi-modal-btn-cancel"
+                        onClick={() => {
+                          setBindOtpSent(false);
+                          setGateError(null);
+                        }}
+                      >
+                        <span>{t.resetBackStep}</span>
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={bindLoading || bindOtpRemaining <= 0 || bindOtpCode.trim().length !== 6}
+                        className="selloi-modal-btn-confirm"
+                      >
+                        <span>{bindLoading ? t.verifySubmitting : t.verifySubmitBtn}</span>
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            ) : (
+              <div className="selloi-gate-box">
+                <h3 className="selloi-gate-title">
+                  {lang === "ru"
+                    ? "Подтвердите Telegram аккаунт"
+                    : lang === "en"
+                      ? "Verify Telegram Account"
+                      : "Telegram hisobingizni tasdiqlang"}
+                </h3>
+                <p className="selloi-gate-desc">
+                  @{gateTgBotUsername} botida &laquo;Start&raquo; tugmasini bosing — Telegram hisobingiz emailingiz bilan birlashtiriladi.
+                </p>
+
+                {gateTgUrl ? (
+                  <div className="d-flex flex-column gap-2">
+                    <a
+                      href={gateTgUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="selloi-btn-primary text-decoration-none"
+                    >
+                      <IconSend size={18} />
+                      <span>@{gateTgBotUsername} da tasdiqlash</span>
+                    </a>
+                    <div className="d-flex align-items-center justify-content-center gap-2 py-2 text-secondary small">
+                      {gateTgPolling && <IconLoader2 size={16} className="spin text-primary" />}
+                      <span>{t.telegramWaiting}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={gateTgBusy}
+                    onClick={handleStartGateTelegramLink}
+                    className="selloi-btn-primary"
+                  >
+                    <IconSend size={18} />
+                    <span>{gateTgBusy ? t.resetSending : t.telegramOpenBot}</span>
+                  </button>
+                )}
+              </div>
+            )}
+
+            <div className="text-center" style={{ marginTop: "8px" }}>
+              <button
+                type="button"
+                onClick={handleGateLogout}
+                className="selloi-forgot-link"
+              >
+                Boshqa hisob bilan kirish (Chiqish)
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
         {/* Mode Selector Tabs */}
         <div className="selloi-auth-tabs">
           <button
@@ -1176,6 +1695,8 @@ export default function LoginPageClient({
               </button>
             </div>
           </form>
+        )}
+          </>
         )}
 
         {/* Security badge at bottom */}

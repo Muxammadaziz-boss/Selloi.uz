@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
   const clientId = process.env.GOOGLE_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
   const baseUrl = getBaseUrl(request);
   const redirectUri = `${baseUrl}/api/auth/google/callback`;
+  const linkMode = request.nextUrl.searchParams.get("mode") === "link";
 
   if (!clientId) {
     return NextResponse.redirect(new URL("/login?error=google_not_configured", baseUrl));
@@ -27,7 +28,19 @@ export async function GET(request: NextRequest) {
   googleAuthUrl.searchParams.set("access_type", "online");
   googleAuthUrl.searchParams.set("prompt", "select_account");
 
-  return NextResponse.redirect(googleAuthUrl.toString());
+  const res = NextResponse.redirect(googleAuthUrl.toString());
+  if (linkMode) {
+    res.cookies.set("selloi_google_link", "1", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 300,
+    });
+  } else {
+    res.cookies.delete("selloi_google_link");
+  }
+  return res;
 }
 
 export async function POST(request: NextRequest) {
@@ -111,6 +124,10 @@ export async function POST(request: NextRequest) {
         userId: sessionPayload.userId,
         email: sessionPayload.email,
         role: sessionPayload.role,
+        emailVerified: Boolean(sessionPayload.emailVerified),
+        hasRealEmail: Boolean(sessionPayload.hasRealEmail),
+        fullyVerified: Boolean(sessionPayload.fullyVerified),
+        missingSteps: sessionPayload.missingSteps || [],
         isPlatformOwner: Boolean(sessionPayload.isPlatformOwner),
         isPlatformAdmin: Boolean(sessionPayload.isPlatformAdmin),
       },
