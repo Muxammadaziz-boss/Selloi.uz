@@ -178,6 +178,12 @@ class ForgotPasswordRequest(BaseModel):
     email: str = Field(min_length=1, max_length=255)
 
 
+class VerifyResetOtpRequest(BaseModel):
+    """Schema for verifying a 6-digit password reset OTP before changing password."""
+    email: str = Field(min_length=1, max_length=255)
+    code: str = Field(min_length=6, max_length=12)
+
+
 class ResetPasswordRequest(BaseModel):
     """Schema for verifying Telegram OTP and resetting user password."""
     email: str = Field(min_length=1, max_length=255)

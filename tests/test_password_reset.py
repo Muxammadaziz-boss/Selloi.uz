@@ -245,3 +245,85 @@ async def test_reset_password_success_and_session_invalidation(tmp_path, monkeyp
     finally:
         app.dependency_overrides.clear()
         await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_verify_reset_otp_flow_and_resend_rate_limit(tmp_path, monkeypatch):
+    engine, SessionFactory = await _make_isolated_session_maker(tmp_path / "pw_otp_first.db")
+    dummy_tg = _DummyTelegram()
+    monkeypatch.setattr(telegram_module, "telegram", dummy_tg)
+
+    async def _override_get_db():
+        async with SessionFactory() as session:
+            yield session
+
+    app.dependency_overrides[get_db] = _override_get_db
+    for key in (
+        "forgot_pw:otpfirst@example.uz",
+        "forgot_pw_cooldown:otpfirst@example.uz",
+        "verify_reset_otp:otpfirst@example.uz",
+        "reset_pw:otpfirst@example.uz",
+    ):
+        reset_rate_limit(key)
+
+    try:
+        async with SessionFactory() as db:
+            db.add(
+                User(
+                    email="otpfirst@example.uz",
+                    hashed_password=hash_password("InitSecret123"),
+                    full_name="OTP First",
+                    telegram_user_id=777004,
+                    is_active=True,
+                )
+            )
+            await db.commit()
+
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+            forgot_res = await client.post("/api/v1/auth/forgot-password", json={"email": "otpfirst@example.uz"})
+            assert forgot_res.status_code == 200
+            forgot_body = forgot_res.json()
+            assert forgot_body["expires_in_seconds"] == 600
+            assert forgot_body["resend_cooldown_seconds"] == 60
+
+            # Immediate resend hits 60s time rate limit with retry_after_seconds
+            cooldown_res = await client.post("/api/v1/auth/forgot-password", json={"email": "otpfirst@example.uz"})
+            assert cooldown_res.status_code == 429
+            assert cooldown_res.json()["retry_after_seconds"] >= 1
+
+            otp_code = re.search(r"\b(\d{6})\b", dummy_tg.sent[0][1]).group(1)
+
+            # Wrong OTP in verify step returns 400
+            bad_verify = await client.post(
+                "/api/v1/auth/verify-reset-otp",
+                json={"email": "otpfirst@example.uz", "code": "000000"},
+            )
+            assert bad_verify.status_code == 400
+
+            # Correct OTP succeeds without consuming token yet
+            ok_verify = await client.post(
+                "/api/v1/auth/verify-reset-otp",
+                json={"email": "otpfirst@example.uz", "code": otp_code},
+            )
+            assert ok_verify.status_code == 200
+            verify_body = ok_verify.json()
+            assert verify_body["verified"] is True
+            assert verify_body["expires_in_seconds"] > 0
+
+            # Step 3 completes reset using the same verified OTP
+            final_res = await client.post(
+                "/api/v1/auth/reset-password",
+                json={"email": "otpfirst@example.uz", "code": otp_code, "new_password": "FinalStrongPass789"},
+            )
+            assert final_res.status_code == 200
+            assert final_res.json()["ok"] is True
+
+            # Reusing the same code after reset fails
+            replay_res = await client.post(
+                "/api/v1/auth/verify-reset-otp",
+                json={"email": "otpfirst@example.uz", "code": otp_code},
+            )
+            assert replay_res.status_code == 400
+    finally:
+        app.dependency_overrides.clear()
+        await engine.dispose()

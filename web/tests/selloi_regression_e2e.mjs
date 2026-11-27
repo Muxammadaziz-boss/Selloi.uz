@@ -446,7 +446,7 @@ async function runSuite() {
       await ctx.close();
     }
 
-    // 2. /login Page (UZ/RU/EN switch + 2-Step Forgot Password Modal + Mobile + Axe)
+    // 2. /login Page (UZ/RU/EN switch + 3-Step OTP-First Forgot Password Modal + Mobile + Axe)
     {
       const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
       const page = await ctx.newPage();
@@ -457,7 +457,30 @@ async function runSuite() {
         await route.fulfill({
           status: 200,
           contentType: "application/json",
-          body: JSON.stringify({ ok: true, message: "Kod yuborildi" }),
+          body: JSON.stringify({
+            ok: true,
+            detail: "Kod yuborildi",
+            expires_in_seconds: 600,
+            resend_cooldown_seconds: 60,
+          }),
+        });
+      });
+      await page.route("**/api/auth/verify-reset-otp", async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            ok: true,
+            verified: true,
+            expires_in_seconds: 580,
+          }),
+        });
+      });
+      await page.route("**/api/auth/reset-password", async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ ok: true, detail: "Parol yangilandi" }),
         });
       });
 
@@ -475,14 +498,28 @@ async function runSuite() {
       await page.locator(".selloi-modal-content").waitFor({ state: "visible", timeout: 5000 });
       await page.locator(".selloi-modal-content input[type='email']").fill("merchant@selloi.uz");
       await page.locator(".selloi-modal-btn-confirm").click();
-      await page.locator('.selloi-modal-content input[maxlength="6"]').waitFor({ state: "visible", timeout: 5000 });
+
+      // Step 2: OTP input & timer visible, password inputs NOT shown yet
+      const otpInput = page.locator('.selloi-modal-content input[maxlength="6"]');
+      await otpInput.waitFor({ state: "visible", timeout: 5000 });
+      await page.locator(".selloi-modal-content .selloi-otp-timer").waitFor({ state: "visible", timeout: 5000 });
+      const step2PasswordCount = await page.locator(".selloi-modal-content input[type='password']").count();
+      if (step2PasswordCount !== 0) {
+        throw new Error(`Expected 0 password inputs in Step 2 OTP screen, got ${step2PasswordCount}`);
+      }
+
+      await otpInput.fill("123456");
+      await page.locator(".selloi-modal-btn-confirm").click();
+
+      // Step 3: New password inputs revealed only after OTP verification succeeds
+      await page.locator(".selloi-modal-content input[type='password']").first().waitFor({ state: "visible", timeout: 5000 });
       await page.locator(".selloi-modal-btn-cancel").click();
 
       const loginA11y = await assertNoCriticalA11yViolations(page, "Login desktop");
       await page.setViewportSize({ width: 375, height: 812 });
       await assertNoHorizontalOverflow(page, "Login mobile");
       if (pageErrors.length > 0) throw new Error(`/login JS errors: ${pageErrors.join(" | ")}`);
-      report.push(`PASS /login i18n + 2-step reset modal (0 critical a11y, ${loginA11y} minor/moderate)`);
+      report.push(`PASS /login i18n + 3-step OTP reset modal (0 critical a11y, ${loginA11y} minor/moderate)`);
       await ctx.close();
     }
 

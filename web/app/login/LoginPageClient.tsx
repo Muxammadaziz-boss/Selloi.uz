@@ -7,6 +7,7 @@ import {
   IconArrowLeft,
   IconArrowRight,
   IconCheck,
+  IconClock,
   IconEye,
   IconEyeOff,
   IconWorld,
@@ -67,12 +68,23 @@ interface TranslationText {
   passwordsDoNotMatch: string;
   forgotPasswordNotice: string;
   resetModalTitle: string;
+  resetStep1Label: string;
+  resetStep2Label: string;
+  resetStep3Label: string;
   resetStep1Desc: string;
   resetStep2Desc: string;
+  resetStep3Desc: string;
   resetSendCodeBtn: string;
   resetSending: string;
+  resetVerifyCodeBtn: string;
+  resetVerifyingCode: string;
   resetCodeLabel: string;
   resetCodePlaceholder: string;
+  resetCodeTimerLabel: string;
+  resetCodeExpiredError: string;
+  resetResendCodeBtn: string;
+  resetResendWait: string;
+  resetOtpVerifiedNotice: string;
   resetNewPasswordLabel: string;
   resetSubmitBtn: string;
   resetSubmitting: string;
@@ -128,12 +140,23 @@ const TRANSLATIONS: Record<Language, TranslationText> = {
     passwordsDoNotMatch: "Kiritilgan parollar bir-biriga mos kelmadi",
     forgotPasswordNotice: "Parolni tiklash uchun email manzilingizni kiriting.",
     resetModalTitle: "Parolni tiklash",
+    resetStep1Label: "Email",
+    resetStep2Label: "Kod",
+    resetStep3Label: "Parol",
     resetStep1Desc: "Hisobingiz email manzilini kiriting. 6 xonali tasdiqlash kodi Telegram botingizga yoki email pochtangizga yuboriladi.",
-    resetStep2Desc: "Telegram yoki email pochtangizga kelgan 6 xonali kodni va yangi parolingizni kiriting.",
+    resetStep2Desc: "Telegram yoki email pochtangizga kelgan 6 xonali tasdiqlash kodini kiriting.",
+    resetStep3Desc: "Kod tasdiqlandi. Endi hisobingiz uchun yangi parol o'rnating.",
     resetSendCodeBtn: "Tasdiqlash kodini yuborish",
     resetSending: "Yuborilmoqda...",
+    resetVerifyCodeBtn: "Kodni tasdiqlash",
+    resetVerifyingCode: "Tekshirilmoqda...",
     resetCodeLabel: "6 xonali tasdiqlash kodi",
     resetCodePlaceholder: "123456",
+    resetCodeTimerLabel: "Kod muddati",
+    resetCodeExpiredError: "Tasdiqlash kodi muddati tugadi. Yangi kod so'rang.",
+    resetResendCodeBtn: "Kodni qayta yuborish",
+    resetResendWait: "Qayta yuborish",
+    resetOtpVerifiedNotice: "Tasdiqlash kodi to'g'ri! Endi yangi parol o'rnating.",
     resetNewPasswordLabel: "Yangi parol",
     resetSubmitBtn: "Parolni yangilash",
     resetSubmitting: "Yangilanmoqda...",
@@ -187,12 +210,23 @@ const TRANSLATIONS: Record<Language, TranslationText> = {
     passwordsDoNotMatch: "Пароли не совпадают",
     forgotPasswordNotice: "Введите ваш email для восстановления пароля.",
     resetModalTitle: "Восстановление пароля",
+    resetStep1Label: "Email",
+    resetStep2Label: "Код",
+    resetStep3Label: "Пароль",
     resetStep1Desc: "Введите email аккаунта. 6-значный код подтверждения будет отправлен в Telegram-бот или на email.",
-    resetStep2Desc: "Введите 6-значный код из Telegram или email и новый пароль.",
+    resetStep2Desc: "Введите 6-значный код подтверждения из Telegram или email.",
+    resetStep3Desc: "Код подтвержден. Теперь задайте новый пароль для аккаунта.",
     resetSendCodeBtn: "Отправить код",
     resetSending: "Отправка...",
+    resetVerifyCodeBtn: "Проверить код",
+    resetVerifyingCode: "Проверка...",
     resetCodeLabel: "6-значный код подтверждения",
     resetCodePlaceholder: "123456",
+    resetCodeTimerLabel: "Срок кода",
+    resetCodeExpiredError: "Срок действия кода истек. Запросите новый код.",
+    resetResendCodeBtn: "Отправить повторно",
+    resetResendWait: "Повторно через",
+    resetOtpVerifiedNotice: "Код подтвержден! Теперь установите новый пароль.",
     resetNewPasswordLabel: "Новый пароль",
     resetSubmitBtn: "Обновить пароль",
     resetSubmitting: "Обновление...",
@@ -246,12 +280,23 @@ const TRANSLATIONS: Record<Language, TranslationText> = {
     passwordsDoNotMatch: "Passwords do not match",
     forgotPasswordNotice: "Enter your email address to reset your password.",
     resetModalTitle: "Reset Password",
+    resetStep1Label: "Email",
+    resetStep2Label: "Code",
+    resetStep3Label: "Password",
     resetStep1Desc: "Enter your account email. A 6-digit verification code will be sent via Telegram or email.",
-    resetStep2Desc: "Enter the 6-digit code received via Telegram or email along with your new password.",
+    resetStep2Desc: "Enter the 6-digit verification code sent via Telegram or email.",
+    resetStep3Desc: "Code verified. Now set a new password for your account.",
     resetSendCodeBtn: "Send Verification Code",
     resetSending: "Sending...",
+    resetVerifyCodeBtn: "Verify Code",
+    resetVerifyingCode: "Verifying...",
     resetCodeLabel: "6-digit verification code",
     resetCodePlaceholder: "123456",
+    resetCodeTimerLabel: "Code expires in",
+    resetCodeExpiredError: "Verification code expired. Please request a new code.",
+    resetResendCodeBtn: "Resend code",
+    resetResendWait: "Resend in",
+    resetOtpVerifiedNotice: "Verification code confirmed! Now enter your new password.",
     resetNewPasswordLabel: "New password",
     resetSubmitBtn: "Update Password",
     resetSubmitting: "Updating...",
@@ -316,12 +361,17 @@ export default function LoginPageClient({
 
   // Forgot password modal state
   const [resetModalOpen, setResetModalOpen] = useState(false);
-  const [resetStep, setResetStep] = useState<1 | 2>(1);
+  const [resetStep, setResetStep] = useState<1 | 2 | 3>(1);
   const [resetEmail, setResetEmail] = useState("");
   const [resetCode, setResetCode] = useState("");
   const [resetNewPassword, setResetNewPassword] = useState("");
   const [resetConfirmPassword, setResetConfirmPassword] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
+  const [resetResending, setResetResending] = useState(false);
+  const [resetOtpDeadline, setResetOtpDeadline] = useState<number>(0);
+  const [resetResendDeadline, setResetResendDeadline] = useState<number>(0);
+  const [resetOtpRemaining, setResetOtpRemaining] = useState<number>(0);
+  const [resetResendCooldown, setResetResendCooldown] = useState<number>(0);
   const [resetError, setResetError] = useState<string | null>(null);
   const [resetInfo, setResetInfo] = useState<string | null>(null);
 
@@ -335,6 +385,27 @@ export default function LoginPageClient({
   const [verifyInfo, setVerifyInfo] = useState<string | null>(null);
 
   const t = TRANSLATIONS[lang];
+
+  const formatCountdown = (totalSeconds: number) => {
+    const safe = Math.max(0, Math.floor(totalSeconds));
+    const mins = Math.floor(safe / 60);
+    const secs = safe % 60;
+    return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+  };
+
+  useEffect(() => {
+    if (!resetModalOpen) return;
+    const syncTimers = () => {
+      const now = Date.now();
+      const otpSec = resetOtpDeadline > 0 ? Math.max(0, Math.ceil((resetOtpDeadline - now) / 1000)) : 0;
+      const resendSec = resetResendDeadline > 0 ? Math.max(0, Math.ceil((resetResendDeadline - now) / 1000)) : 0;
+      setResetOtpRemaining(otpSec);
+      setResetResendCooldown(resendSec);
+    };
+    syncTimers();
+    const timer = window.setInterval(syncTimers, 500);
+    return () => window.clearInterval(timer);
+  }, [resetModalOpen, resetOtpDeadline, resetResendDeadline]);
 
   const resolvePostLoginDestination = (data: any): string => {
     const isPlatformStaff = Boolean(data?.user?.isPlatformOwner || data?.user?.isPlatformAdmin);
@@ -541,21 +612,29 @@ export default function LoginPageClient({
     setResetCode("");
     setResetNewPassword("");
     setResetConfirmPassword("");
+    setResetOtpDeadline(0);
+    setResetResendDeadline(0);
+    setResetOtpRemaining(0);
+    setResetResendCooldown(0);
     setResetStep(1);
     setResetModalOpen(true);
   };
 
-  const handleForgotPasswordRequest = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const sendResetOtpRequest = async (targetEmail: string, isResend = false) => {
     setResetError(null);
     setResetInfo(null);
-    const cleanEmail = resetEmail.trim().toLowerCase();
+    const cleanEmail = targetEmail.trim().toLowerCase();
     if (!cleanEmail || !cleanEmail.includes("@")) {
       setResetError(t.emailPlaceholder);
       return;
     }
 
-    setResetLoading(true);
+    if (isResend) {
+      setResetResending(true);
+    } else {
+      setResetLoading(true);
+    }
+
     try {
       const res = await fetch("/api/auth/forgot-password", {
         method: "POST",
@@ -564,13 +643,90 @@ export default function LoginPageClient({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
+        if (res.status === 429 && typeof data.retry_after_seconds === "number") {
+          const waitSec = Math.max(1, Math.ceil(data.retry_after_seconds));
+          setResetResendDeadline(Date.now() + waitSec * 1000);
+          setResetResendCooldown(waitSec);
+        }
         setResetError(data.detail || "Kod yuborishda xatolik yuz berdi");
-        setResetLoading(false);
         return;
       }
+
+      const ttlSeconds =
+        typeof data.expires_in_seconds === "number" && data.expires_in_seconds > 0
+          ? Math.ceil(data.expires_in_seconds)
+          : 600;
+      const cooldownSeconds =
+        typeof data.resend_cooldown_seconds === "number" && data.resend_cooldown_seconds > 0
+          ? Math.ceil(data.resend_cooldown_seconds)
+          : 60;
+
+      const now = Date.now();
       setResetEmail(cleanEmail);
-      setResetInfo(t.resetSentNotice);
+      setResetCode("");
+      setResetOtpDeadline(now + ttlSeconds * 1000);
+      setResetResendDeadline(now + cooldownSeconds * 1000);
+      setResetOtpRemaining(ttlSeconds);
+      setResetResendCooldown(cooldownSeconds);
+      setResetInfo(isResend ? t.verifyResentNotice : t.resetSentNotice);
       setResetStep(2);
+    } catch (err: any) {
+      setResetError("Tarmoq xatosi: " + err.message);
+    } finally {
+      setResetLoading(false);
+      setResetResending(false);
+    }
+  };
+
+  const handleForgotPasswordRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await sendResetOtpRequest(resetEmail, false);
+  };
+
+  const handleVerifyResetOtpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setResetError(null);
+    if (resetOtpDeadline > 0 && resetOtpRemaining <= 0) {
+      setResetError(t.resetCodeExpiredError);
+      return;
+    }
+
+    const cleanCode = resetCode.trim();
+    if (!/^\d{6}$/.test(cleanCode)) {
+      setResetError(t.resetCodeLabel);
+      return;
+    }
+
+    setResetLoading(true);
+    try {
+      const res = await fetch("/api/auth/verify-reset-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: resetEmail.trim().toLowerCase(),
+          code: cleanCode,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if (res.status === 429 && typeof data.retry_after_seconds === "number") {
+          const waitSec = Math.max(1, Math.ceil(data.retry_after_seconds));
+          setResetResendDeadline(Date.now() + waitSec * 1000);
+          setResetResendCooldown(waitSec);
+        }
+        setResetError(data.detail || "Tasdiqlash kodi noto'g'ri");
+        return;
+      }
+
+      if (typeof data.expires_in_seconds === "number" && data.expires_in_seconds > 0) {
+        const rem = Math.ceil(data.expires_in_seconds);
+        setResetOtpDeadline(Date.now() + rem * 1000);
+        setResetOtpRemaining(rem);
+      }
+      setResetNewPassword("");
+      setResetConfirmPassword("");
+      setResetInfo(t.resetOtpVerifiedNotice);
+      setResetStep(3);
     } catch (err: any) {
       setResetError("Tarmoq xatosi: " + err.message);
     } finally {
@@ -581,6 +737,10 @@ export default function LoginPageClient({
   const handleResetPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setResetError(null);
+    if (resetOtpDeadline > 0 && resetOtpRemaining <= 0) {
+      setResetError(t.resetCodeExpiredError);
+      return;
+    }
     if (resetNewPassword !== resetConfirmPassword) {
       setResetError(t.passwordsDoNotMatch);
       return;
@@ -604,7 +764,6 @@ export default function LoginPageClient({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setResetError(data.detail || "Parolni yangilashda xatolik yuz berdi");
-        setResetLoading(false);
         return;
       }
       setEmail(resetEmail.trim().toLowerCase());
@@ -1113,16 +1272,49 @@ export default function LoginPageClient({
         </div>
       )}
 
-      {/* Password Reset Modal via Telegram OTP */}
+      {/* Password Reset Modal: 3-Step OTP-First Flow with Rate Limit & Expiry Timers */}
       {resetModalOpen && (
         <div className="selloi-modal-backdrop" onClick={() => setResetModalOpen(false)}>
           <div className="selloi-modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "430px" }}>
             <div className="selloi-modal-emblem">
-              <IconLock size={22} />
+              {resetStep === 2 ? <IconShieldCheck size={22} /> : <IconLock size={22} />}
             </div>
             <h3 className="selloi-modal-title">{t.resetModalTitle}</h3>
+
+            <div className="selloi-reset-steps" aria-label="Reset progress">
+              <span
+                className={`selloi-reset-step-pill ${
+                  resetStep === 1 ? "active" : "done"
+                }`}
+              >
+                {resetStep > 1 ? <IconCheck size={12} /> : "1."} {t.resetStep1Label}
+              </span>
+              <span
+                className={`selloi-reset-step-pill ${
+                  resetStep === 2 ? "active" : resetStep > 2 ? "done" : ""
+                }`}
+              >
+                {resetStep > 2 ? <IconCheck size={12} /> : "2."} {t.resetStep2Label}
+              </span>
+              <span
+                className={`selloi-reset-step-pill ${resetStep === 3 ? "active" : ""}`}
+              >
+                3. {t.resetStep3Label}
+              </span>
+            </div>
+
             <p className="selloi-modal-desc">
-              {resetStep === 1 ? t.resetStep1Desc : t.resetStep2Desc}
+              {resetStep === 1
+                ? t.resetStep1Desc
+                : resetStep === 2
+                  ? t.resetStep2Desc
+                  : t.resetStep3Desc}
+              {resetStep > 1 && resetEmail && (
+                <>
+                  <br />
+                  <span className="selloi-email-pill">{resetEmail}</span>
+                </>
+              )}
             </p>
 
             {resetError && (
@@ -1139,7 +1331,7 @@ export default function LoginPageClient({
               </div>
             )}
 
-            {resetStep === 1 ? (
+            {resetStep === 1 && (
               <form onSubmit={handleForgotPasswordRequest} className="selloi-auth-form">
                 <div className="selloi-form-group">
                   <label className="selloi-form-label">{t.emailLabel}</label>
@@ -1167,15 +1359,23 @@ export default function LoginPageClient({
                   </button>
                   <button
                     type="submit"
-                    disabled={resetLoading}
+                    disabled={resetLoading || resetResendCooldown > 0}
                     className="selloi-modal-btn-confirm"
                   >
-                    <span>{resetLoading ? t.resetSending : t.resetSendCodeBtn}</span>
+                    <span>
+                      {resetLoading
+                        ? t.resetSending
+                        : resetResendCooldown > 0
+                          ? `${t.resetResendWait} (${resetResendCooldown}s)`
+                          : t.resetSendCodeBtn}
+                    </span>
                   </button>
                 </div>
               </form>
-            ) : (
-              <form onSubmit={handleResetPasswordSubmit} className="selloi-auth-form">
+            )}
+
+            {resetStep === 2 && (
+              <form onSubmit={handleVerifyResetOtpSubmit} className="selloi-auth-form">
                 <div className="selloi-form-group">
                   <label className="selloi-form-label">{t.resetCodeLabel}</label>
                   <div className="selloi-input-wrapper">
@@ -1184,7 +1384,7 @@ export default function LoginPageClient({
                       type="text"
                       inputMode="numeric"
                       maxLength={6}
-                      className="selloi-input"
+                      className="selloi-input selloi-otp-input"
                       placeholder={t.resetCodePlaceholder}
                       value={resetCode}
                       onChange={(e) => setResetCode(e.target.value.replace(/\D/g, ""))}
@@ -1192,6 +1392,80 @@ export default function LoginPageClient({
                       autoFocus
                     />
                   </div>
+                </div>
+
+                <div className="selloi-otp-meta-row">
+                  <span
+                    className={`selloi-otp-timer ${
+                      resetOtpRemaining <= 0 ? "selloi-otp-timer--expired" : ""
+                    }`}
+                  >
+                    <IconClock size={14} />
+                    {resetOtpRemaining > 0
+                      ? `${t.resetCodeTimerLabel}: ${formatCountdown(resetOtpRemaining)}`
+                      : t.resetCodeExpiredError}
+                  </span>
+
+                  <button
+                    type="button"
+                    className="selloi-forgot-link"
+                    disabled={resetResending || resetResendCooldown > 0}
+                    onClick={() => sendResetOtpRequest(resetEmail, true)}
+                  >
+                    {resetResending
+                      ? t.resetSending
+                      : resetResendCooldown > 0
+                        ? `${t.resetResendWait} (${resetResendCooldown}s)`
+                        : t.resetResendCodeBtn}
+                  </button>
+                </div>
+
+                <div className="d-flex justify-content-end">
+                  <button
+                    type="button"
+                    className="selloi-forgot-link"
+                    onClick={() => {
+                      setResetStep(1);
+                      setResetError(null);
+                      setResetInfo(null);
+                    }}
+                  >
+                    {t.resetBackStep}
+                  </button>
+                </div>
+
+                <div className="selloi-modal-btn-row">
+                  <button
+                    type="button"
+                    className="selloi-modal-btn-cancel"
+                    onClick={() => setResetModalOpen(false)}
+                  >
+                    <span>{t.telegramCancel}</span>
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={resetLoading || resetOtpRemaining <= 0 || resetCode.trim().length < 6}
+                    className="selloi-modal-btn-confirm"
+                  >
+                    <span>{resetLoading ? t.resetVerifyingCode : t.resetVerifyCodeBtn}</span>
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {resetStep === 3 && (
+              <form onSubmit={handleResetPasswordSubmit} className="selloi-auth-form">
+                <div className="selloi-otp-meta-row" style={{ marginBottom: "6px" }}>
+                  <span
+                    className={`selloi-otp-timer ${
+                      resetOtpRemaining <= 0 ? "selloi-otp-timer--expired" : ""
+                    }`}
+                  >
+                    <IconClock size={14} />
+                    {resetOtpRemaining > 0
+                      ? `${t.resetCodeTimerLabel}: ${formatCountdown(resetOtpRemaining)}`
+                      : t.resetCodeExpiredError}
+                  </span>
                 </div>
 
                 <div className="selloi-form-group">
@@ -1205,6 +1479,7 @@ export default function LoginPageClient({
                       value={resetNewPassword}
                       onChange={(e) => setResetNewPassword(e.target.value)}
                       required
+                      autoFocus
                     />
                   </div>
                 </div>
@@ -1248,7 +1523,7 @@ export default function LoginPageClient({
                   </button>
                   <button
                     type="submit"
-                    disabled={resetLoading}
+                    disabled={resetLoading || resetOtpRemaining <= 0}
                     className="selloi-modal-btn-confirm"
                   >
                     <span>{resetLoading ? t.resetSubmitting : t.resetSubmitBtn}</span>

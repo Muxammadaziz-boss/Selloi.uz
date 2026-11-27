@@ -99,6 +99,19 @@ def is_rate_limited(key: str, max_attempts: int = 5, window_seconds: int = 60) -
     return len(timestamps) >= max_attempts
 
 
+def get_rate_limit_retry_after(key: str, max_attempts: int = 5, window_seconds: int = 60) -> int:
+    """Return remaining seconds until a rate-limited key frees a slot, or 0 if not limited."""
+    now = time.time()
+    cutoff = now - window_seconds
+    timestamps = [t for t in _rate_limits[key] if t > cutoff]
+    _rate_limits[key] = timestamps
+    if len(timestamps) < max_attempts:
+        return 0
+    remaining = (min(timestamps) + window_seconds) - now
+    whole = int(remaining)
+    return max(1, whole + (1 if remaining > whole else 0))
+
+
 def record_attempt(key: str) -> None:
     """Record an authentication or sensitive operation attempt."""
     _rate_limits[key].append(time.time())

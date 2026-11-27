@@ -10,6 +10,7 @@ import time
 from typing import Optional
 import httpx
 from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
 from sqlalchemy import select, update
@@ -20,6 +21,7 @@ from app.core.db import get_db
 from app.core.security import (
     decrypt_secret,
     encrypt_secret,
+    get_rate_limit_retry_after,
     hash_password,
     is_rate_limited,
     mask_secret,
@@ -53,11 +55,13 @@ from app.schemas import (
     TokenRequest,
     TokenResponse,
     VerifyEmailRequest,
+    VerifyResetOtpRequest,
 )
 
 router = APIRouter(prefix="/api/v1", tags=["onboarding"])
 logger = logging.getLogger(__name__)
 PASSWORD_RESET_TTL_MINUTES = 10
+PASSWORD_RESET_COOLDOWN_SECONDS = 60
 EMAIL_VERIFY_TTL_MINUTES = 15
 
 
@@ -75,14 +79,26 @@ def _hash_email_verification_code(user_id: int, email: str, code: str) -> str:
     return hmac.new(secret, msg, hashlib.sha256).hexdigest()
 
 
-async def _verify_and_consume_otp_row(
+def _rate_limit_response(detail: str, retry_after_seconds: int) -> JSONResponse:
+    """Build a consistent HTTP 429 response with retry_after_seconds metadata."""
+    wait_seconds = max(1, int(retry_after_seconds))
+    return JSONResponse(
+        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        content={"detail": detail, "retry_after_seconds": wait_seconds},
+        headers={"Retry-After": str(wait_seconds)},
+    )
+
+
+async def _verify_otp_row(
     db: AsyncSession,
     *,
     row: PasswordResetToken | EmailVerificationToken | None,
     expected_hash: str,
     rate_key: str,
-) -> datetime:
-    """Validate OTP expiry, attempt lockouts, and constant-time hash match; consumes row on success."""
+    consume: bool = True,
+    cooldown_reset_key: str | None = None,
+) -> tuple[datetime, int]:
+    """Validate OTP expiry, attempt lockouts, and hash; returns (now, remaining_seconds)."""
     if row is None:
         record_attempt(rate_key)
         raise HTTPException(status_code=400, detail="Tasdiqlash kodi noto'g'ri yoki muddati tugagan")
@@ -96,6 +112,8 @@ async def _verify_and_consume_otp_row(
 
     if row.attempts >= row.max_attempts:
         row.used_at = now
+        if cooldown_reset_key:
+            reset_rate_limit(cooldown_reset_key)
         await db.commit()
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
@@ -107,6 +125,8 @@ async def _verify_and_consume_otp_row(
         exhausted = row.attempts >= row.max_attempts
         if exhausted:
             row.used_at = now
+            if cooldown_reset_key:
+                reset_rate_limit(cooldown_reset_key)
         record_attempt(rate_key)
         await db.commit()
         if exhausted:
@@ -116,7 +136,27 @@ async def _verify_and_consume_otp_row(
             )
         raise HTTPException(status_code=400, detail="Tasdiqlash kodi noto'g'ri")
 
-    row.used_at = now
+    if consume:
+        row.used_at = now
+    remaining_seconds = max(1, int((expires_at - now).total_seconds()))
+    return now, remaining_seconds
+
+
+async def _verify_and_consume_otp_row(
+    db: AsyncSession,
+    *,
+    row: PasswordResetToken | EmailVerificationToken | None,
+    expected_hash: str,
+    rate_key: str,
+) -> datetime:
+    """Validate OTP expiry, attempt lockouts, and constant-time hash match; consumes row on success."""
+    now, _ = await _verify_otp_row(
+        db,
+        row=row,
+        expected_hash=expected_hash,
+        rate_key=rate_key,
+        consume=True,
+    )
     return now
 
 
@@ -774,13 +814,27 @@ async def forgot_password(payload: ForgotPasswordRequest, db: AsyncSession = Dep
     if not clean_email or "@" not in clean_email:
         raise HTTPException(status_code=400, detail="Noto'g'ri email manzil")
 
+    cooldown_key = f"forgot_pw_cooldown:{clean_email}"
+    if is_rate_limited(cooldown_key, max_attempts=1, window_seconds=PASSWORD_RESET_COOLDOWN_SECONDS):
+        wait_s = get_rate_limit_retry_after(
+            cooldown_key,
+            max_attempts=1,
+            window_seconds=PASSWORD_RESET_COOLDOWN_SECONDS,
+        )
+        return _rate_limit_response(
+            f"Yangi kod so'rash uchun {wait_s} soniya kuting.",
+            wait_s,
+        )
+
     rate_key = f"forgot_pw:{clean_email}"
     if is_rate_limited(rate_key, max_attempts=5, window_seconds=300):
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Juda ko'p so'rov yuborildi. 5 daqiqadan so'ng qayta urinib ko'ring.",
+        wait_s = get_rate_limit_retry_after(rate_key, max_attempts=5, window_seconds=300)
+        return _rate_limit_response(
+            f"Juda ko'p so'rov yuborildi. {wait_s} soniyadan so'ng qayta urinib ko'ring.",
+            wait_s,
         )
     record_attempt(rate_key)
+    record_attempt(cooldown_key)
 
     result = await db.execute(
         select(User).where(User.email == clean_email, User.is_active.is_(True))
@@ -855,25 +909,20 @@ async def forgot_password(payload: ForgotPasswordRequest, db: AsyncSession = Dep
     return {
         "ok": True,
         "detail": "Agar akkauntingiz Telegramga yoki email pochtangizga ulangan bo'lsa, 6 xonali tasdiqlash kodi yuborildi.",
+        "expires_in_seconds": PASSWORD_RESET_TTL_MINUTES * 60,
+        "resend_cooldown_seconds": PASSWORD_RESET_COOLDOWN_SECONDS,
     }
 
 
-@router.post("/auth/reset-password")
-async def reset_password(payload: ResetPasswordRequest, db: AsyncSession = Depends(get_db)):
-    """Verify 6-digit Telegram OTP and reset password, invalidating prior sessions."""
-    clean_email = payload.email.strip().lower()
-    clean_code = payload.code.strip()
-
-    if not clean_email or "@" not in clean_email:
-        raise HTTPException(status_code=400, detail="Noto'g'ri email manzil")
-
-    rate_key = f"reset_pw:{clean_email}"
-    if is_rate_limited(rate_key, max_attempts=10, window_seconds=300):
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Juda ko'p urinishlar qilindi. 5 daqiqadan so'ng qayta urinib ko'ring.",
-        )
-
+async def _verify_password_reset_otp(
+    db: AsyncSession,
+    *,
+    clean_email: str,
+    clean_code: str,
+    rate_key: str,
+    consume: bool,
+) -> tuple[User, PasswordResetToken, datetime, int]:
+    """Validate an active 6-digit password reset OTP for verify-only or final password update."""
     if not (clean_code.isdigit() and len(clean_code) == 6):
         record_attempt(rate_key)
         raise HTTPException(status_code=400, detail="Tasdiqlash kodi 6 xonali raqam bo'lishi kerak")
@@ -898,11 +947,73 @@ async def reset_password(payload: ResetPasswordRequest, db: AsyncSession = Depen
         raise HTTPException(status_code=400, detail="Tasdiqlash kodi noto'g'ri yoki muddati tugagan")
 
     expected_hash = _hash_password_reset_code(user.id, clean_code)
-    now = await _verify_and_consume_otp_row(
+    now, remaining_seconds = await _verify_otp_row(
         db,
         row=reset_row,
         expected_hash=expected_hash,
         rate_key=rate_key,
+        consume=consume,
+        cooldown_reset_key=f"forgot_pw_cooldown:{clean_email}",
+    )
+    return user, reset_row, now, remaining_seconds
+
+
+@router.post("/auth/verify-reset-otp")
+async def verify_reset_otp(payload: VerifyResetOtpRequest, db: AsyncSession = Depends(get_db)):
+    """Verify the 6-digit reset OTP before advancing to the new password step."""
+    clean_email = payload.email.strip().lower()
+    clean_code = payload.code.strip()
+
+    if not clean_email or "@" not in clean_email:
+        raise HTTPException(status_code=400, detail="Noto'g'ri email manzil")
+
+    rate_key = f"verify_reset_otp:{clean_email}"
+    if is_rate_limited(rate_key, max_attempts=5, window_seconds=300):
+        wait_s = get_rate_limit_retry_after(rate_key, max_attempts=5, window_seconds=300)
+        return _rate_limit_response(
+            f"Juda ko'p noto'g'ri urinish qilindi. {wait_s} soniyadan so'ng qayta urinib ko'ring.",
+            wait_s,
+        )
+
+    _, _, _, remaining_seconds = await _verify_password_reset_otp(
+        db,
+        clean_email=clean_email,
+        clean_code=clean_code,
+        rate_key=rate_key,
+        consume=False,
+    )
+    reset_rate_limit(rate_key)
+    return {
+        "ok": True,
+        "verified": True,
+        "detail": "Tasdiqlash kodi to'g'ri. Endi yangi parol o'rnating.",
+        "expires_in_seconds": remaining_seconds,
+    }
+
+
+@router.post("/auth/reset-password")
+async def reset_password(payload: ResetPasswordRequest, db: AsyncSession = Depends(get_db)):
+    """Verify 6-digit Telegram/Email OTP and reset password, invalidating prior sessions."""
+    clean_email = payload.email.strip().lower()
+    clean_code = payload.code.strip()
+
+    if not clean_email or "@" not in clean_email:
+        raise HTTPException(status_code=400, detail="Noto'g'ri email manzil")
+
+    rate_key = f"reset_pw:{clean_email}"
+    if is_rate_limited(rate_key, max_attempts=10, window_seconds=300):
+        wait_s = get_rate_limit_retry_after(rate_key, max_attempts=10, window_seconds=300)
+        return _rate_limit_response(
+            f"Juda ko'p urinishlar qilindi. {wait_s} soniyadan so'ng qayta urinib ko'ring.",
+            wait_s,
+        )
+
+    user, reset_row, now, _ = await _verify_password_reset_otp(
+        db,
+        clean_email=clean_email,
+        clean_code=clean_code,
+        rate_key=rate_key,
+        consume=True,
     )
 
     user.hashed_password = hash_password(payload.new_password)
@@ -931,6 +1042,8 @@ async def reset_password(payload: ResetPasswordRequest, db: AsyncSession = Depen
     revoke_user_sessions(user.id)
     reset_rate_limit(f"login:{clean_email}")
     reset_rate_limit(f"forgot_pw:{clean_email}")
+    reset_rate_limit(f"forgot_pw_cooldown:{clean_email}")
+    reset_rate_limit(f"verify_reset_otp:{clean_email}")
     reset_rate_limit(rate_key)
     return {
         "ok": True,
