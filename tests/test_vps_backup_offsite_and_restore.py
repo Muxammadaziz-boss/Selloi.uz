@@ -86,3 +86,28 @@ def test_aes256_gcm_gzip_backup_roundtrip_and_tamper_detection(tmp_path):
     from cryptography.exceptions import InvalidTag
     with pytest.raises(InvalidTag):
         verify_file(str(key_file), str(enc_tampered))
+
+
+def test_container_and_watchdog_hardening_guards():
+    """Verify non-root container execution, compose hardening, and watchdog syntax/redaction."""
+    dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
+    assert "useradd" in dockerfile and "USER appuser" in dockerfile
+    assert "chown -R appuser:appuser /app" in dockerfile
+
+    web_dockerfile = (ROOT / "web" / "Dockerfile").read_text(encoding="utf-8")
+    assert "USER node" in web_dockerfile
+
+    compose_text = (ROOT / "docker-compose.yml").read_text(encoding="utf-8")
+    assert compose_text.count("restart: unless-stopped") >= 4
+    assert "no-new-privileges:true" in compose_text
+    assert "/health/ready" in compose_text
+
+    watchdog_sh = ROOT / "scripts" / "vps_watchdog.sh"
+    watchdog_text = watchdog_sh.read_text(encoding="utf-8")
+    assert "[REDACTED_BOT_TOKEN]" in watchdog_text
+    assert "ALERT_COOLDOWN_SEC" in watchdog_text
+
+    bash = _find_git_bash()
+    if bash:
+        res = subprocess.run([bash, "-n", str(watchdog_sh)], capture_output=True, text=True)
+        assert res.returncode == 0, f"vps_watchdog.sh syntax error: {res.stderr}"
