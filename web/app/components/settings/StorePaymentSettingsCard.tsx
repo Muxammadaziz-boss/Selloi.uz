@@ -148,6 +148,8 @@ export function StorePaymentSettingsCard({ config, onSaveConfig }: StorePaymentS
       setTezSecretKey("");
       setClickSecretKey("");
       setPaymeSecretKey("");
+    } catch {
+      // Error surfaced via parent toast
     } finally {
       setSaving(false);
     }

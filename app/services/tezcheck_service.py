@@ -216,13 +216,20 @@ class TezCheckService:
         secret_key: Optional[str] = None,
         merchant_id: Optional[str] = None,
         cash_desk_code: Optional[str] = None,
-        mock_mode: Optional[bool] = None
+        mock_mode: Optional[bool] = None,
+        use_global_fallback: bool = True,
     ):
         self.api_url = (api_url or getattr(settings, "tezcheck_api_url", "https://api.tezcheck.uz/api/merchant/v1")).rstrip("/")
-        self.api_key = api_key or getattr(settings, "tezcheck_api_key", None)
-        self.secret_key = secret_key or getattr(settings, "tezcheck_secret_key", None)
-        self.merchant_id = merchant_id or getattr(settings, "tezcheck_merchant_id", None)
-        self.cash_desk_code = cash_desk_code or getattr(settings, "tezcheck_cash_desk_code", None) or self.merchant_id
+        if use_global_fallback:
+            self.api_key = api_key or getattr(settings, "tezcheck_api_key", None)
+            self.secret_key = secret_key or getattr(settings, "tezcheck_secret_key", None)
+            self.merchant_id = merchant_id or getattr(settings, "tezcheck_merchant_id", None)
+            self.cash_desk_code = cash_desk_code or getattr(settings, "tezcheck_cash_desk_code", None) or self.merchant_id
+        else:
+            self.api_key = api_key or None
+            self.secret_key = secret_key or None
+            self.merchant_id = merchant_id or None
+            self.cash_desk_code = cash_desk_code or self.merchant_id
 
         # If running under test or development, allow mock simulation mode when unprovisioned.
         # In production, mock mode is STRICTLY FORBIDDEN (fail-closed).
@@ -678,10 +685,11 @@ class TezCheckService:
         path = "/api/merchant/v1/bills"
         body_bytes = json.dumps(payload, separators=(',', ':')).encode("utf-8")
         headers = self._build_request_headers("POST", path, body_bytes, idempotency_key=idempotency_key)
+        headers["Content-Type"] = "application/json"
 
         try:
             async with httpx.AsyncClient(timeout=15.0) as client:
-                resp = await client.post(f"{self.api_url}/bills", json=payload, headers=headers)
+                resp = await client.post(f"{self.api_url}/bills", content=body_bytes, headers=headers)
                 if resp.status_code >= 400:
                     raise parse_tezcheck_http_error(resp.status_code, resp.text, dict(resp.headers))
                 try:
@@ -802,10 +810,11 @@ class TezCheckService:
                     matched = True
                     break
 
-        if not has_v1_format and not matched and not self.mock_mode:
+        enforce_sig = (not self.mock_mode) or getattr(settings, "is_production", False) or bool(self.secret_key)
+        if not has_v1_format and not matched and enforce_sig:
             raise TezCheckSignatureVerificationError("Invalid signature format: v1= prefix required.")
 
-        if not matched and not self.mock_mode:
+        if not matched and enforce_sig:
             raise TezCheckSignatureVerificationError(
                 f"Signature mismatch: computed '{expected_official}', received '{signature_header}'."
             )

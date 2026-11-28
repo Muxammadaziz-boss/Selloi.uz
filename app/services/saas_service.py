@@ -252,14 +252,16 @@ async def seed_plans_and_defaults(db: AsyncSession):
         res = await db.execute(select(Plan).where(Plan.code == plan_spec["code"]))
         plan = res.scalar_one_or_none()
         if not plan:
+            monthly_uzs_raw = plan_spec.get("price_monthly_uzs", 0) or 0
+            yearly_uzs_raw = plan_spec.get("price_yearly_uzs", 0) or 0
             plan = Plan(
                 code=plan_spec["code"],
                 name=plan_spec["name"],
                 description=plan_spec["description"],
                 price_monthly=plan_spec["price_monthly"],
                 price_yearly=plan_spec["price_yearly"],
-                price_monthly_uzs=plan_spec.get("price_monthly_uzs", 0),
-                price_yearly_uzs=plan_spec.get("price_yearly_uzs", 0),
+                price_monthly_uzs=monthly_uzs_raw * 100 if 0 < monthly_uzs_raw < 3_000_000 else monthly_uzs_raw,
+                price_yearly_uzs=yearly_uzs_raw * 100 if 0 < yearly_uzs_raw < 30_000_000 else yearly_uzs_raw,
                 currency=plan_spec["currency"],
                 features=plan_spec["features"],
                 limits=plan_spec["limits"],
@@ -270,15 +272,17 @@ async def seed_plans_and_defaults(db: AsyncSession):
             await db.flush()
             logger.info("Plan seeded: %s", plan.name)
         else:
-            # Update limits or features if altered
+            # Update limits or features if altered without clobbering owner-approved UZS catalog prices
             plan.features = plan_spec["features"]
             plan.limits = plan_spec["limits"]
             plan.price_monthly = plan_spec["price_monthly"]
             plan.price_yearly = plan_spec["price_yearly"]
-            if plan_spec.get("price_monthly_uzs"):
-                plan.price_monthly_uzs = plan_spec["price_monthly_uzs"]
-            if plan_spec.get("price_yearly_uzs"):
-                plan.price_yearly_uzs = plan_spec["price_yearly_uzs"]
+            if not getattr(plan, "price_monthly_uzs", 0) and plan_spec.get("price_monthly_uzs"):
+                raw_m = plan_spec["price_monthly_uzs"]
+                plan.price_monthly_uzs = raw_m * 100 if 0 < raw_m < 3_000_000 else raw_m
+            if not getattr(plan, "price_yearly_uzs", 0) and plan_spec.get("price_yearly_uzs"):
+                raw_y = plan_spec["price_yearly_uzs"]
+                plan.price_yearly_uzs = raw_y * 100 if 0 < raw_y < 30_000_000 else raw_y
             plan.is_featured = plan_spec["is_featured"]
         plan_records[plan.code] = plan
 
@@ -400,8 +404,14 @@ async def seed_plans_and_defaults(db: AsyncSession):
     await db.execute(
         update(BusinessConnection).where(BusinessConnection.organization_id.is_(None)).values(organization_id=default_org.id)
     )
+    existing_default_setting_keys = select(SystemSetting.key).where(SystemSetting.organization_id == default_org.id)
     await db.execute(
-        update(SystemSetting).where(SystemSetting.organization_id.is_(None)).values(organization_id=default_org.id)
+        update(SystemSetting)
+        .where(
+            SystemSetting.organization_id.is_(None),
+            ~SystemSetting.key.in_(existing_default_setting_keys),
+        )
+        .values(organization_id=default_org.id)
     )
     await db.execute(
         update(Admin).where(Admin.organization_id.is_(None)).values(organization_id=default_org.id)
@@ -638,8 +648,12 @@ async def get_organization_subscription(db: AsyncSession, organization_id: int) 
 
     now = datetime.now(timezone.utc)
     trial_days_left = 0
-    if sub.trial_ends_at and sub.trial_ends_at > now:
-        trial_days_left = max(0, (sub.trial_ends_at - now).days + 1)
+    if sub.trial_ends_at:
+        trial_end = sub.trial_ends_at
+        if trial_end.tzinfo is None:
+            trial_end = trial_end.replace(tzinfo=timezone.utc)
+        if trial_end > now:
+            trial_days_left = max(0, (trial_end - now).days + 1)
 
     return {
         "id": sub.id,

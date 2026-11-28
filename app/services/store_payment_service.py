@@ -97,6 +97,7 @@ def get_store_tezcheck_client(config: StorePaymentConfig) -> TezCheckService:
         api_key=api_key,
         secret_key=secret_key,
         cash_desk_code=cash_desk_code,
+        use_global_fallback=False,
     )
 
 
@@ -408,7 +409,7 @@ async def confirm_store_order_payment(
             metadata_json={"bill_id": payment_record.bill_id, "amount_uzs": payment_record.amount_uzs, "provider": payment_record.provider},
         )
     )
-    await db.flush()
+    await db.commit()
 
     if notify_customer and payment_record.conversation_id:
         conv = await db.get(Conversation, payment_record.conversation_id)
@@ -432,10 +433,9 @@ async def confirm_store_order_payment(
                     )
                 )
                 conv.last_message_at = now
+                await db.commit()
             except Exception as exc:
                 logger.warning("Customer payment confirmation send failed for order %s: %s", payment_record.order_id, exc)
-
-    await db.commit()
 
     await publish_event(
         payment_record.organization_id,

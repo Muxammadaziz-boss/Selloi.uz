@@ -1,12 +1,16 @@
+import { timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { buildInternalGoogleAuthSignature, buildVerifiedSessionPayload, attachSessionCookie } from "@/lib/authSession";
 import { sessionCookieName, verifySession } from "@/lib/session";
 
 function getBaseUrl(request: NextRequest): string {
-  const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || "selloi.uz";
+  const configured = (process.env.PUBLIC_WEB_URL || process.env.NEXT_PUBLIC_APP_URL || "").trim().replace(/\/$/, "");
+  if (configured) {
+    return configured;
+  }
+  const host = request.headers.get("host") || "selloi.uz";
   if (host.includes("localhost") || host.includes("127.0.0.1")) {
-    const proto = request.headers.get("x-forwarded-proto") || "http";
-    return `${proto}://${host}`;
+    return `http://${host}`;
   }
   return `https://${host}`;
 }
@@ -15,11 +19,24 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
   const error = searchParams.get("error");
+  const returnedState = searchParams.get("state") || "";
+  const expectedState = request.cookies.get("selloi_oauth_state")?.value || "";
   const baseUrl = getBaseUrl(request);
   const redirectUri = `${baseUrl}/api/auth/google/callback`;
 
   if (error || !code) {
     return NextResponse.redirect(new URL("/login?error=google_cancelled", baseUrl));
+  }
+
+  const stateValid =
+    expectedState.length > 0 &&
+    returnedState.length === expectedState.length &&
+    timingSafeEqual(Buffer.from(expectedState), Buffer.from(returnedState));
+  if (!stateValid) {
+    const resp = NextResponse.redirect(new URL("/login?error=google_state_invalid", baseUrl));
+    resp.cookies.delete("selloi_oauth_state");
+    resp.cookies.delete("selloi_google_link");
+    return resp;
   }
 
   const clientId = process.env.GOOGLE_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
@@ -114,6 +131,7 @@ export async function GET(request: NextRequest) {
     const response = NextResponse.redirect(redirectTarget);
     attachSessionCookie(response, payload, secret);
     response.cookies.delete("selloi_google_link");
+    response.cookies.delete("selloi_oauth_state");
     return response;
   } catch (err) {
     return NextResponse.redirect(new URL("/login?error=google_error", baseUrl));

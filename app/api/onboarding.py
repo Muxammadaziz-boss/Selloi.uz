@@ -368,6 +368,12 @@ def _verify_internal_google_signature(
 async def _verify_google_id_token_email(id_token: str, claimed_email: str) -> bool:
     """Verify a Google Sign-In id_token directly with Google's tokeninfo endpoint."""
     try:
+        expected_client_id = (
+            getattr(get_settings(), "google_client_id", None)
+            or os.environ.get("GOOGLE_CLIENT_ID")
+            or os.environ.get("NEXT_PUBLIC_GOOGLE_CLIENT_ID")
+            or ""
+        ).strip()
         async with httpx.AsyncClient(timeout=8.0) as client:
             resp = await client.get(
                 "https://oauth2.googleapis.com/tokeninfo",
@@ -376,6 +382,11 @@ async def _verify_google_id_token_email(id_token: str, claimed_email: str) -> bo
             if resp.status_code != 200:
                 return False
             data = resp.json()
+            if expected_client_id:
+                token_aud = str(data.get("aud") or "").strip()
+                token_azp = str(data.get("azp") or "").strip()
+                if token_aud != expected_client_id and token_azp != expected_client_id:
+                    return False
             verified_email = str(data.get("email") or "").strip().lower()
             email_verified = str(data.get("email_verified") or "").lower() in ("true", "1")
             return bool(verified_email and email_verified and verified_email == claimed_email)
@@ -594,6 +605,7 @@ async def google_auth(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="Juda ko'p urinishlar qilindi. 1 daqiqadan so'ng qayta urinib ko'ring.",
         )
+    record_attempt(rate_key)
 
     is_owner_email = _is_configured_admin_email(clean_email)
     existing_email_user = (await db.execute(select(User).where(User.email == clean_email))).scalar_one_or_none()
@@ -721,7 +733,13 @@ async def telegram_auth_poll(payload: dict, db: AsyncSession = Depends(get_db)):
 
     if user is None:
         stmt_email = select(User).where(User.email == email)
-        user = (await db.execute(stmt_email)).scalar_one_or_none()
+        candidate = (await db.execute(stmt_email)).scalar_one_or_none()
+        if candidate is not None and (candidate.telegram_user_id is None or int(candidate.telegram_user_id) == int(clean_id)):
+            user = candidate
+        elif candidate is not None:
+            # Handle recycled Telegram @username safely without hijacking prior owner's account
+            email = f"tg_{clean_id}@telegram.selloi.uz"
+            user = (await db.execute(select(User).where(User.email == email))).scalar_one_or_none()
 
     settings = get_settings()
     is_owner_tg = bool(settings.admin_telegram_id and int(clean_id) == int(settings.admin_telegram_id))
@@ -1822,9 +1840,14 @@ async def accept_team_invite(payload: AcceptInviteRequest, db: AsyncSession = De
         db.add(user)
         await db.flush()
     else:
-        if payload.password:
-            if not verify_password(payload.password, user.hashed_password):
-                raise HTTPException(status_code=401, detail="Bu email uchun kiritilgan parol noto'g'ri")
+        pwd = (payload.password or "").strip()
+        if not user.hashed_password:
+            raise HTTPException(
+                status_code=401,
+                detail="Mavjud hisobda parol o'rnatilmagan. Avval Google/Telegram orqali kirib parol o'rnating.",
+            )
+        if not pwd or not verify_password(pwd, user.hashed_password):
+            raise HTTPException(status_code=401, detail="Bu email uchun kiritilgan parol noto'g'ri")
         user.is_active = True
         user.email_verified = True
         user.email_verified_at = user.email_verified_at or now

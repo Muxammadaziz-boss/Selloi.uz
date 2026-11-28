@@ -104,8 +104,9 @@ export function AnalyticsTab({
     });
 
     orders.forEach((o) => {
-      if (!o.date) return;
-      const parsed = new Date(o.date);
+      const rawDate = (o as any).created_at || o.date;
+      if (!rawDate) return;
+      const parsed = new Date(rawDate);
       if (isNaN(parsed.getTime())) return;
       const k = `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, "0")}-${String(parsed.getDate()).padStart(2, "0")}`;
       const slot = dayMap.get(k);

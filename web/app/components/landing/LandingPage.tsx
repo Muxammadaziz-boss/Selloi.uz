@@ -88,15 +88,22 @@ function LandingPageContent({ isAuthenticated = false, isAdminSession = false }:
   // Handle Onboarding submission from Landing Page
   const handleOnboardingComplete = async (data: any) => {
     try {
-      const res = await fetch("/api/proxy?path=/api/saas/organizations", {
+      const res = await fetch("/api/proxy?path=/api/organizations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
 
       if (!res.ok) {
+        if (res.status === 401) {
+          window.location.href = `/login?redirect=${encodeURIComponent("/dashboard#overview")}`;
+          return;
+        }
         const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.detail || "Do‘kon yaratishda xatolik yuz berdi");
+        const detailMsg = typeof errorData.detail === "string"
+          ? errorData.detail
+          : errorData.detail?.message || "Do‘kon yaratishda xatolik yuz berdi";
+        throw new Error(detailMsg);
       }
 
       await res.json();

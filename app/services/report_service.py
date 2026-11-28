@@ -134,7 +134,8 @@ async def build_store_daily_digest(
         select(func.count(Order.id)).where(
             Order.organization_id == organization_id,
             Order.created_at >= day_start_utc,
-            Order.status.in_(["confirmed", "paid", "completed", "delivered"]),
+            Order.status.isnot(None),
+            func.lower(Order.status).in_(["confirmed", "paid", "completed", "delivered"]),
         )
     ) or 0
     total_orders = await db.scalar(

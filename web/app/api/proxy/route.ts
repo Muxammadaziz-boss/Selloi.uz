@@ -20,7 +20,6 @@ async function proxy(request: NextRequest) {
   const isPublicRoute =
     path === "/api/organizations/verify-token" ||
     path === "/api/organizations/verify-channel" ||
-    path === "/api/saas/organizations" ||
     path.startsWith("/api/onboarding/") ||
     path === "/api/plans" ||
     path.startsWith("/api/plans?") ||

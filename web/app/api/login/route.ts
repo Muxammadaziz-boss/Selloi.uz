@@ -60,11 +60,19 @@ export async function POST(request: NextRequest) {
     });
 
     if (!backendRes.ok) {
-      if (backendRes.status === 403) {
-        const errData = await backendRes.json().catch(() => ({}));
-        return NextResponse.json(errData, { status: 403 });
+      const errData = await backendRes.json().catch(() => ({}));
+      if (backendRes.status === 401) {
+        return NextResponse.json(
+          { detail: errData.detail || "Email yoki parol noto'g'ri" },
+          { status: 401 }
+        );
       }
-      return NextResponse.json({ detail: "Email yoki parol noto'g'ri" }, { status: 401 });
+      return NextResponse.json(
+        errData && typeof errData === "object" && Object.keys(errData).length > 0
+          ? errData
+          : { detail: "Kirishda xatolik yuz berdi" },
+        { status: backendRes.status }
+      );
     }
 
     const data = await backendRes.json();

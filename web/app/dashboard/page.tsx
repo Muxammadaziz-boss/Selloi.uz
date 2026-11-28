@@ -23,6 +23,9 @@ export default async function DashboardPage() {
   }
 
   const claims = await resolveEffectiveSessionClaims(session);
+  if (claims.revoked) {
+    redirect("/login?redirect=/dashboard");
+  }
   if (!claims.fullyVerified) {
     redirect("/login?step=complete");
   }

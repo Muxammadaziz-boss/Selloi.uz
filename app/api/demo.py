@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
+from app.core.rate_limit import get_trustworthy_client_ip
 from app.core.security import is_rate_limited, record_attempt
 from app.services.demo_catalog import DEMO_PRODUCTS
 from app.services.demo_service import (
@@ -22,12 +23,8 @@ router = APIRouter(tags=["demo"])
 
 
 def _client_key(request: Request, prefix: str, sid: str = "") -> str:
-    ip = (
-        request.headers.get("x-real-ip")
-        or (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
-        or (request.client.host if request.client else "unknown")
-    )
-    return f"{prefix}:{ip}:{sid}"
+    ip = get_trustworthy_client_ip(request)
+    return f"{prefix}:{ip}:{sid}" if sid else f"{prefix}:{ip}"
 
 
 class DemoSessionRequest(BaseModel):
@@ -61,7 +58,11 @@ async def get_demo_catalog():
 
 
 @router.post("/session")
-async def init_demo_session(payload: DemoSessionRequest):
+async def init_demo_session(payload: DemoSessionRequest, request: Request):
+    key = _client_key(request, "demo_session")
+    if is_rate_limited(key, max_attempts=30, window_seconds=60):
+        raise HTTPException(status_code=429, detail="Juda ko'p demo sessiyalar yaratildi. Bir ozdan so'ng urinib ko'ring.")
+    record_attempt(key)
     return await create_or_resume_session(
         payload.session_id,
         language=payload.language,

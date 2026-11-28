@@ -24,6 +24,7 @@ from app.services.telegram import TelegramService, get_telegram_service, telegra
 
 logger = get_logger(__name__)
 router = APIRouter(tags=["telegram"])
+_WEBHOOK_BG_TASKS: set[asyncio.Task] = set()
 
 
 def _date(value: str | None) -> datetime | None:
@@ -331,53 +332,62 @@ def _clean_channel_username(raw: str) -> str:
     return raw.strip("/").strip()
 
 
-async def _store_channel_post(message: dict) -> None:
+async def _store_channel_post(message: dict, organization_id: int | None = None) -> None:
     chat = message.get("chat", {})
     username = (chat.get("username") or "").lstrip("@")
     if not username:
         return
+    from sqlalchemy import func as sa_func
     async with SessionLocal() as db:
-        active_channels = await settings_service.get_active_channel_usernames(db)
-        if not active_channels or username.lower() not in [c.lower() for c in active_channels]:
+        stmt = select(ConnectedChannel).where(
+            sa_func.lower(ConnectedChannel.channel_username) == username.lower(),
+            ConnectedChannel.is_active.is_(True),
+        )
+        if organization_id is not None:
+            stmt = stmt.where(ConnectedChannel.organization_id == organization_id)
+        chan_rows = (await db.execute(stmt)).scalars().all()
+        if not chan_rows:
             return
-        chan_row = (await db.execute(select(ConnectedChannel).where(ConnectedChannel.channel_username == username.lower()))).scalar_one_or_none()
-        if not chan_row or not chan_row.organization_id:
-            return
-        org_id = chan_row.organization_id
-        org = await db.get(Organization, org_id) if org_id else None
-        org_token = org.decrypted_bot_token if org else None
-        try:
-            tg_svc = get_telegram_service(org_token)
-        except Exception:
-            tg_svc = telegram
-
         text = message.get("text") or message.get("caption") or ""
         photos = message.get("photo") or []
         file_id = photos[-1].get("file_id") if photos else None
-        photo_bytes = None
-        mime = "image/jpeg"
-        if file_id and tg_svc:
+        for chan_row in chan_rows:
+            if not chan_row.organization_id:
+                continue
+            org_id = chan_row.organization_id
+            org = await db.get(Organization, org_id)
+            if org and org.status != "active":
+                continue
+            org_token = org.decrypted_bot_token if org else None
             try:
-                safe_name = "".join(c for c in username if c.isalnum() or c in "-_") or "channel"
-                dest = Path(settings.storage_dir) / "incoming_tmp" / f"{safe_name}_{message.get('message_id')}.jpg"
-                await tg_svc.download_photo(file_id, dest)
-                photo_bytes = dest.read_bytes()
-                dest.unlink(missing_ok=True)
+                tg_svc = get_telegram_service(org_token)
             except Exception:
-                logger.exception("Kanal post rasmini yuklab olishda xatolik: post=%s", message.get('message_id'))
-                photo_bytes = None
-        await knowledge.upsert_post(
-            db,
-            channel_username=username,
-            telegram_message_id=int(message["message_id"]),
-            text=text,
-            posted_at=datetime.fromtimestamp(message["date"], timezone.utc) if message.get("date") else None,
-            source_url=f"https://t.me/{username}/{message['message_id']}",
-            photo_file_id=file_id,
-            photo_bytes=photo_bytes,
-            photo_mime_type=mime,
-            organization_id=org_id,
-        )
+                tg_svc = telegram
+
+            photo_bytes = None
+            mime = "image/jpeg"
+            if file_id and tg_svc:
+                try:
+                    safe_name = "".join(c for c in username if c.isalnum() or c in "-_") or "channel"
+                    dest = Path(settings.storage_dir) / "incoming_tmp" / f"{org_id}_{safe_name}_{message.get('message_id')}.jpg"
+                    await tg_svc.download_photo(file_id, dest)
+                    photo_bytes = dest.read_bytes()
+                    dest.unlink(missing_ok=True)
+                except Exception:
+                    logger.exception("Kanal post rasmini yuklab olishda xatolik: post=%s", message.get('message_id'))
+                    photo_bytes = None
+            await knowledge.upsert_post(
+                db,
+                channel_username=chan_row.channel_username,
+                telegram_message_id=int(message["message_id"]),
+                text=text,
+                posted_at=datetime.fromtimestamp(message["date"], timezone.utc) if message.get("date") else None,
+                source_url=f"https://t.me/{username}/{message['message_id']}",
+                photo_file_id=file_id,
+                photo_bytes=photo_bytes,
+                photo_mime_type=mime,
+                organization_id=org_id,
+            )
         await db.commit()
 
 
@@ -389,7 +399,9 @@ async def _typing_loop(chat_id: int, connection_id: str | None, stop_event: asyn
         try:
             await svc.send_chat_action(chat_id, "typing", business_connection_id=connection_id)
             await asyncio.wait_for(stop_event.wait(), timeout=4.0)
-        except (asyncio.TimeoutError, asyncio.CancelledError):
+        except asyncio.CancelledError:
+            raise
+        except asyncio.TimeoutError:
             pass
         except Exception:
             break
@@ -1136,12 +1148,18 @@ async def telegram_webhook(
     org_slug: str | None = None,
     x_telegram_bot_api_secret_token: str | None = Header(default=None),
 ):
-    # 1. Resolve expected secret (organization-specific or global)
+    # 1. Resolve organization tenancy & expected secret
     expected = None
+    org_id = None
     if org_slug:
         async with SessionLocal() as db:
             org_row = (await db.execute(select(Organization).where(Organization.slug == org_slug))).scalar_one_or_none()
-            if org_row and org_row.webhook_secret:
+            if not org_row:
+                raise HTTPException(status_code=404, detail="Tashkilot webhooki topilmadi")
+            if org_row.status != "active":
+                raise HTTPException(status_code=403, detail="Tashkilot faol emas")
+            org_id = org_row.id
+            if org_row.webhook_secret:
                 expected = org_row.webhook_secret
     if not expected:
         expected = settings.telegram_webhook_secret
@@ -1181,14 +1199,6 @@ async def telegram_webhook(
     if update_id is None or not isinstance(update_id, int):
         raise HTTPException(status_code=400, detail="Malformed payload: valid integer update_id required")
 
-    # 1. Resolve organization tenancy
-    org_id = None
-    if org_slug:
-        async with SessionLocal() as db:
-            org_row = (await db.execute(select(Organization).where(Organization.slug == org_slug))).scalar_one_or_none()
-            if org_row:
-                org_id = org_row.id
-
     bot_id = f"org_{org_id}" if org_id else "default"
 
     # 2. Durable PostgreSQL inbox persistence BEFORE HTTP 200 acknowledgment
@@ -1222,9 +1232,11 @@ async def telegram_webhook(
         if not settings.is_testing and not getattr(settings, "run_background_workers", False):
             if inbox_item:
                 from app.services.durable_inbox import process_single_inbox_job
-                asyncio.create_task(process_single_inbox_job(inbox_item.id))
+                _task = asyncio.create_task(process_single_inbox_job(inbox_item.id))
             else:
-                asyncio.create_task(execute_update_payload(update, organization_id=org_id))
+                _task = asyncio.create_task(execute_update_payload(update, organization_id=org_id))
+            _WEBHOOK_BG_TASKS.add(_task)
+            _task.add_done_callback(_WEBHOOK_BG_TASKS.discard)
 
         return {"ok": True}
     except Exception as e:
@@ -1259,9 +1271,9 @@ async def execute_update_payload(
                 else:
                     await session.flush()
     elif update.get("channel_post"):
-        await _store_channel_post(update["channel_post"])
+        await _store_channel_post(update["channel_post"], organization_id=organization_id)
     elif update.get("edited_channel_post"):
-        await _store_channel_post(update["edited_channel_post"])
+        await _store_channel_post(update["edited_channel_post"], organization_id=organization_id)
     elif update.get("business_message"):
         await _handle_business_message(update["business_message"], db=db)
     elif update.get("edited_business_message"):
@@ -1299,6 +1311,8 @@ async def _process_private_message(
                     await session.commit()
     except Exception:
         logger.exception("Xususiy xabarni qayta ishlashda xatolik")
+        if db is not None:
+            raise
 
 
 @router.post("/webhooks/tezcheck")

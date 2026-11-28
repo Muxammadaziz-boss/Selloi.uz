@@ -185,10 +185,10 @@ class CentralizedPricingService:
                     plan.price_version = 1
                     dirty = True
                 # If price_monthly_uzs had small whole-soum typo, repair to full tiyin
-                if plan.price_monthly_uzs > 0 and plan.price_monthly_uzs < 1_000_000:
+                if plan.price_monthly_uzs > 0 and plan.price_monthly_uzs < 3_000_000:
                     plan.price_monthly_uzs = plan.price_monthly_uzs * 100
                     dirty = True
-                if plan.price_yearly_uzs > 0 and plan.price_yearly_uzs < 10_000_000:
+                if plan.price_yearly_uzs > 0 and plan.price_yearly_uzs < 30_000_000:
                     plan.price_yearly_uzs = plan.price_yearly_uzs * 100
                     dirty = True
                 if dirty:
@@ -367,9 +367,12 @@ class CentralizedPricingService:
 
         now = datetime.now(timezone.utc)
         effective_time = effective_from if effective_from else now
+        if effective_time.tzinfo is None:
+            effective_time = effective_time.replace(tzinfo=timezone.utc)
+        apply_immediately = not (approval_status == "scheduled" and effective_time > now)
 
         current_version = getattr(plan, "price_version", 1) or 1
-        next_version = current_version + 1
+        next_version = current_version + 1 if apply_immediately else current_version
 
         price_changes: List[Dict[str, Any]] = []
 
@@ -379,11 +382,13 @@ class CentralizedPricingService:
             new_val_tiyin = new_val_uzs * 100
             old_val_tiyin = getattr(plan, "price_promo_uzs", 0) or 0
             if new_val_tiyin != old_val_tiyin:
-                plan.price_promo_uzs = new_val_tiyin
+                if apply_immediately:
+                    plan.price_promo_uzs = new_val_tiyin
                 price_changes.append({
                     "billing_period": PERIOD_MEGA_DISCOUNT_7D,
                     "previous_price_uzs": old_val_tiyin // 100,
                     "new_price_uzs": new_val_uzs,
+                    "new_price_tiyin": new_val_tiyin,
                 })
 
         # 2. Monthly price update
@@ -392,11 +397,13 @@ class CentralizedPricingService:
             new_val_tiyin = new_val_uzs * 100
             old_val_tiyin = plan.price_monthly_uzs or 0
             if new_val_tiyin != old_val_tiyin:
-                plan.price_monthly_uzs = new_val_tiyin
+                if apply_immediately:
+                    plan.price_monthly_uzs = new_val_tiyin
                 price_changes.append({
                     "billing_period": PERIOD_MONTHLY,
                     "previous_price_uzs": old_val_tiyin // 100,
                     "new_price_uzs": new_val_uzs,
+                    "new_price_tiyin": new_val_tiyin,
                 })
 
         # 3. Yearly price update
@@ -405,44 +412,63 @@ class CentralizedPricingService:
             new_val_tiyin = new_val_uzs * 100
             old_val_tiyin = plan.price_yearly_uzs or 0
             if new_val_tiyin != old_val_tiyin:
-                plan.price_yearly_uzs = new_val_tiyin
+                if apply_immediately:
+                    plan.price_yearly_uzs = new_val_tiyin
                 price_changes.append({
                     "billing_period": PERIOD_YEARLY,
                     "previous_price_uzs": old_val_tiyin // 100,
                     "new_price_uzs": new_val_uzs,
+                    "new_price_tiyin": new_val_tiyin,
                 })
 
         # 4. Optional metadata / status updates
-        if "name" in updates and updates["name"]:
-            plan.name = updates["name"].strip()
-        if "description" in updates and updates["description"] is not None:
-            plan.description = updates["description"].strip()
-        if "is_active" in updates and updates["is_active"] is not None:
-            plan.is_active = bool(updates["is_active"])
-        if "is_public" in updates and updates["is_public"] is not None:
-            plan.is_public = bool(updates["is_public"])
-        if "is_featured" in updates and updates["is_featured"] is not None:
-            plan.is_featured = bool(updates["is_featured"])
+        if apply_immediately:
+            if "name" in updates and updates["name"]:
+                plan.name = updates["name"].strip()
+            if "description" in updates and updates["description"] is not None:
+                plan.description = updates["description"].strip()
+            if "is_active" in updates and updates["is_active"] is not None:
+                plan.is_active = bool(updates["is_active"])
+            if "is_public" in updates and updates["is_public"] is not None:
+                plan.is_public = bool(updates["is_public"])
+            if "is_featured" in updates and updates["is_featured"] is not None:
+                plan.is_featured = bool(updates["is_featured"])
 
-        # If pricing was modified, bump version and record immutable history
+        # If pricing was modified, record immutable history (and bump live version only if applied)
         if price_changes:
-            plan.price_version = next_version
+            if apply_immediately:
+                plan.price_version = next_version
+
+            valid_user_id = None
+            if admin_id is not None:
+                u_exists = (await db.execute(select(User.id).where(User.id == admin_id))).scalar_one_or_none()
+                valid_user_id = u_exists
 
             for chg in price_changes:
+                hist_monthly = (
+                    chg["new_price_tiyin"]
+                    if (not apply_immediately and chg["billing_period"] == PERIOD_MONTHLY)
+                    else plan.price_monthly_uzs
+                )
+                hist_yearly = (
+                    chg["new_price_tiyin"]
+                    if (not apply_immediately and chg["billing_period"] == PERIOD_YEARLY)
+                    else plan.price_yearly_uzs
+                )
                 audit_record = PlanPriceHistory(
                     plan_id=plan.id,
                     plan_code=norm_code,
                     billing_period=chg["billing_period"],
                     previous_price_uzs=chg["previous_price_uzs"],
                     new_price_uzs=chg["new_price_uzs"],
-                    price_monthly_uzs=plan.price_monthly_uzs,
-                    price_yearly_uzs=plan.price_yearly_uzs,
+                    price_monthly_uzs=hist_monthly,
+                    price_yearly_uzs=hist_yearly,
                     price_version=next_version,
                     currency="UZS",
                     change_reason=change_reason or "Administrator authorized pricing update",
                     approval_status=approval_status,
                     admin_id=admin_id,
-                    created_by_id=admin_id,
+                    created_by_id=valid_user_id,
                     effective_from=effective_time,
                 )
                 db.add(audit_record)
@@ -450,7 +476,8 @@ class CentralizedPricingService:
         await db.commit()
         await db.refresh(plan)
 
-        pricing_cache.invalidate_public_plans()
+        if apply_immediately:
+            pricing_cache.invalidate_public_plans()
 
         return {
             "success": True,

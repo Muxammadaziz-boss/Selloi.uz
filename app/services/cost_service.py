@@ -95,26 +95,35 @@ async def get_platform_financial_metrics(db: AsyncSession) -> dict:
     churn_rate = (cancelled_count / total_orgs * 100.0) if total_orgs > 0 else 0.0
 
     # 3. AI Usage & Estimated Cost across all organizations this month
-    ai_msgs_total = await db.scalar(
-        select(func.sum(UsageRecord.used)).where(
-            UsageRecord.metric == "ai_messages",
-            UsageRecord.period == current_period,
+    ai_msgs_total = int(
+        await db.scalar(
+            select(func.sum(UsageRecord.used)).where(
+                UsageRecord.metric == "ai_messages",
+                UsageRecord.period == current_period,
+            )
         )
-    ) or 0
+        or 0
+    )
 
-    cost_micros_total = await db.scalar(
-        select(func.sum(UsageRecord.used)).where(
-            UsageRecord.metric == "estimated_ai_cost_micros",
-            UsageRecord.period == current_period,
+    cost_micros_total = int(
+        await db.scalar(
+            select(func.sum(UsageRecord.used)).where(
+                UsageRecord.metric == "estimated_ai_cost_micros",
+                UsageRecord.period == current_period,
+            )
         )
-    ) or 0
+        or 0
+    )
 
-    cost_cents_total = await db.scalar(
-        select(func.sum(UsageRecord.used)).where(
-            UsageRecord.metric == "estimated_ai_cost_cents",
-            UsageRecord.period == current_period,
+    cost_cents_total = int(
+        await db.scalar(
+            select(func.sum(UsageRecord.used)).where(
+                UsageRecord.metric == "estimated_ai_cost_cents",
+                UsageRecord.period == current_period,
+            )
         )
-    ) or 0
+        or 0
+    )
 
     # Total AI cost in USD: prefer micro-USD precision, fallback to legacy cents
     if cost_micros_total > 0:
@@ -161,7 +170,7 @@ async def get_organization_profitability_list(db: AsyncSession, limit: int = 100
         )
         .group_by(UsageRecord.organization_id)
     )
-    cost_by_org_micros = {row[0]: (row[1] or 0) for row in micros_res.all() if row[0] is not None}
+    cost_by_org_micros = {row[0]: int(row[1] or 0) for row in micros_res.all() if row[0] is not None}
 
     cents_res = await db.execute(
         select(UsageRecord.organization_id, func.sum(UsageRecord.used))
@@ -171,7 +180,7 @@ async def get_organization_profitability_list(db: AsyncSession, limit: int = 100
         )
         .group_by(UsageRecord.organization_id)
     )
-    cost_by_org_cents = {row[0]: (row[1] or 0) for row in cents_res.all() if row[0] is not None}
+    cost_by_org_cents = {row[0]: int(row[1] or 0) for row in cents_res.all() if row[0] is not None}
 
     # Combined dictionary of AI costs in USD
     all_org_ids_with_cost = set(cost_by_org_micros.keys()).union(cost_by_org_cents.keys())

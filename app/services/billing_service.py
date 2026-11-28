@@ -3,6 +3,7 @@
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.logging import get_logger
@@ -288,7 +289,7 @@ async def cancel_organization_subscription(
         action="subscription_cancel_scheduled",
         resource="subscription",
         resource_id=str(sub.id),
-        metadata_json={"cancel_at": sub.current_period_end.isoformat()},
+        metadata_json={"cancel_at": sub.current_period_end.isoformat() if sub.current_period_end else None},
     )
     db.add(audit)
     await db.commit()
@@ -350,7 +351,11 @@ async def process_billing_webhook_idempotent(
         status="pending",
     )
     db.add(event_record)
-    await db.flush()
+    try:
+        await db.flush()
+    except IntegrityError:
+        await db.rollback()
+        return False, "already_processed"
 
     try:
         # Route standard event types
@@ -359,7 +364,13 @@ async def process_billing_webhook_idempotent(
             plan_code = payload.get("plan_code", "pro")
             cycle = payload.get("billing_cycle", "monthly")
             if org_id_str:
-                await upgrade_organization_plan(db, int(org_id_str), plan_code, cycle)
+                await upgrade_organization_plan(
+                    db,
+                    int(org_id_str),
+                    plan_code,
+                    cycle,
+                    payment_verified=True,
+                )
 
         elif event_type in ("customer.subscription.deleted", "subscription_expired"):
             org_id_str = payload.get("organization_id")

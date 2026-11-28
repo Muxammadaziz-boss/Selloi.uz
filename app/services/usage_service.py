@@ -182,10 +182,14 @@ async def require_limit(db: AsyncSession, organization_id: int, metric: str, amo
 
 
 async def increment_usage(
-    db: AsyncSession, organization_id: int, metric: str, amount: int = 1
+    db: AsyncSession,
+    organization_id: int,
+    metric: str,
+    amount: int = 1,
+    period: str | None = None,
 ) -> UsageRecord:
     """Safely increments usage counter for monthly or tracked metric."""
-    rec = await get_or_create_usage_record(db, organization_id, metric)
+    rec = await get_or_create_usage_record(db, organization_id, metric, period)
     rec.used += amount
     limits, _ = await get_org_plan_limits(db, organization_id)
     if metric in limits:

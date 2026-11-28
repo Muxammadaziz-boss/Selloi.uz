@@ -10,7 +10,8 @@ from fastapi.responses import Response, StreamingResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 import httpx
 from pydantic import BaseModel
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.db import get_db
@@ -59,7 +60,10 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 
 
 def require_permission(perm: str):
-    async def dependency(current_admin: Admin = Depends(get_current_admin)) -> Admin:
+    async def dependency(
+        current_admin: Admin = Depends(get_current_admin),
+        _org_id: int = Depends(get_admin_tenant_id),
+    ) -> Admin:
         if not admin_service.has_permission(current_admin, perm):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -311,7 +315,7 @@ async def stream_admin_events(
 @router.post("/conversations/{conversation_id}/takeover", dependencies=[Depends(require_permission("can_takeover"))])
 async def takeover(
     conversation_id: int,
-    payload: StatusUpdate,
+    payload: StatusUpdate | None = None,
     db: AsyncSession = Depends(get_db),
     org_id: int = Depends(get_admin_tenant_id),
 ):
@@ -319,7 +323,7 @@ async def takeover(
     if row is None or row.organization_id != org_id:
         raise HTTPException(status_code=404, detail="Suhbat topilmadi")
     row.status = "human_takeover"
-    row.handoff_reason = payload.reason or "Admin panel orqali operator qabul qildi"
+    row.handoff_reason = (payload.reason if payload and payload.reason else None) or "Admin panel orqali operator qabul qildi"
     await db.commit()
     await publish_event(
         org_id,
@@ -429,9 +433,47 @@ async def admin_reply(
 async def get_user_avatar(
     user_id: int,
     current_admin: Admin = Depends(get_current_admin),
+    org_id: int = Depends(get_admin_tenant_id),
+    db: AsyncSession = Depends(get_db),
 ):
+    is_plat = bool(
+        getattr(current_admin, "_is_platform_owner", False)
+        or getattr(current_admin, "_is_platform_admin", False)
+    )
+    if not is_plat and user_id != current_admin.telegram_user_id:
+        conv_hit = (
+            await db.execute(
+                select(Conversation.id).where(Conversation.organization_id == org_id, Conversation.chat_id == user_id).limit(1)
+            )
+        ).scalar_one_or_none()
+        cust_hit = (
+            await db.execute(
+                select(Customer.id).where(Customer.organization_id == org_id, Customer.telegram_user_id == user_id).limit(1)
+            )
+        ).scalar_one_or_none()
+        adm_hit = (
+            await db.execute(
+                select(Admin.id).where(Admin.organization_id == org_id, Admin.telegram_user_id == user_id).limit(1)
+            )
+        ).scalar_one_or_none()
+        mem_hit = (
+            await db.execute(
+                select(OrganizationMember.id)
+                .join(User, User.id == OrganizationMember.user_id)
+                .where(
+                    OrganizationMember.organization_id == org_id,
+                    OrganizationMember.is_active.is_(True),
+                    User.telegram_user_id == user_id,
+                )
+                .limit(1)
+            )
+        ).scalar_one_or_none()
+        if not any((conv_hit, cust_hit, adm_hit, mem_hit)):
+            raise HTTPException(status_code=404, detail="Profil rasmi topilmadi")
     try:
-        tg_svc = telegram or get_telegram_service()
+        org = await db.get(Organization, org_id)
+        org_token = org.decrypted_bot_token if org else None
+        tg_svc = get_telegram_service(org_token) if org_token else (telegram or get_telegram_service())
         photo_bytes = await tg_svc.get_user_profile_photo_bytes(user_id)
     except Exception:
         photo_bytes = None
@@ -918,7 +960,7 @@ async def get_products(
     } for p in products]
 
 
-@router.post("/products")
+@router.post("/products", dependencies=[Depends(require_permission("can_manage_products"))])
 async def create_product(
     payload: ProductCreate,
     db: AsyncSession = Depends(get_db),
@@ -1050,7 +1092,7 @@ async def bulk_import_products(
     }
 
 
-@router.put("/products/{code_or_id}")
+@router.put("/products/{code_or_id}", dependencies=[Depends(require_permission("can_manage_products"))])
 async def update_product(
     code_or_id: str,
     payload: ProductUpdate,
@@ -1096,7 +1138,7 @@ async def update_product(
     }
 
 
-@router.post("/products/extract-from-posts")
+@router.post("/products/extract-from-posts", dependencies=[Depends(require_permission("can_manage_products"))])
 async def extract_products_from_posts_endpoint(
     db: AsyncSession = Depends(get_db),
     current_admin: Admin = Depends(get_current_admin),
@@ -1121,7 +1163,7 @@ async def extract_products_from_posts_endpoint(
     }
 
 
-@router.delete("/products/{code_or_id}")
+@router.delete("/products/{code_or_id}", dependencies=[Depends(require_permission("can_manage_products"))])
 async def delete_product(
     code_or_id: str,
     db: AsyncSession = Depends(get_db),
@@ -1218,7 +1260,7 @@ async def get_orders(
     } for r in rows]
 
 
-@router.post("/orders")
+@router.post("/orders", dependencies=[Depends(require_permission("can_manage_orders"))])
 async def create_order(
     payload: OrderCreate,
     db: AsyncSession = Depends(get_db),
@@ -1267,7 +1309,7 @@ async def create_order(
     }
 
 
-@router.patch("/orders/{order_id}")
+@router.patch("/orders/{order_id}", dependencies=[Depends(require_permission("can_manage_orders"))])
 async def update_order(
     order_id: int,
     payload: OrderUpdate,
@@ -1319,7 +1361,7 @@ async def update_order(
     }
 
 
-@router.delete("/orders/{order_id}")
+@router.delete("/orders/{order_id}", dependencies=[Depends(require_permission("can_manage_orders"))])
 async def delete_order(
     order_id: int,
     db: AsyncSession = Depends(get_db),
@@ -1372,7 +1414,7 @@ async def get_customers(
     } for c in rows]
 
 
-@router.post("/customers")
+@router.post("/customers", dependencies=[Depends(require_permission("can_manage_orders"))])
 async def create_customer(
     payload: CustomerCreate,
     db: AsyncSession = Depends(get_db),
@@ -1389,12 +1431,16 @@ async def create_customer(
         notes=payload.notes,
     )
     db.add(cust)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail="Bu Telegram ID bilan mijoz allaqachon mavjud")
     await db.refresh(cust)
     return {"ok": True, "customer": {"id": cust.id, "name": cust.name, "phone": cust.phone}}
 
 
-@router.patch("/customers/{customer_id}")
+@router.patch("/customers/{customer_id}", dependencies=[Depends(require_permission("can_manage_orders"))])
 async def update_customer(
     customer_id: int,
     payload: CustomerUpdate,
@@ -1454,6 +1500,19 @@ async def create_admin(
     db: AsyncSession = Depends(get_db),
 ):
     await _enforce_limit_unless_owner(db, org_id, "team_members", 1, current_admin=current_admin)
+    existing_admin = (
+        await db.execute(select(Admin).where(Admin.telegram_user_id == payload.telegram_user_id))
+    ).scalar_one_or_none()
+    if (
+        existing_admin is not None
+        and existing_admin.organization_id is not None
+        and existing_admin.organization_id != org_id
+        and not getattr(current_admin, "_is_platform_owner", False)
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail="Bu Telegram foydalanuvchi boshqa tashkilotga biriktirilgan",
+        )
     try:
         new_admin = await admin_service.add_admin(
             db,
@@ -1493,7 +1552,7 @@ async def delete_admin(
         raise HTTPException(status_code=403, detail="Admin o'chirish uchun ruxsat yo'q")
 
     target = await admin_service.get_admin_by_telegram_id(db, telegram_user_id)
-    if target is None or (target.organization_id and target.organization_id != org_id and not getattr(current_admin, "_is_platform_owner", False)):
+    if target is None or (target.organization_id != org_id and not getattr(current_admin, "_is_platform_owner", False)):
         raise HTTPException(status_code=404, detail="Admin topilmadi")
 
     try:
@@ -1516,7 +1575,7 @@ async def update_admin_permission(
         raise HTTPException(status_code=403, detail="Ruxsatlarni o'zgartirish huquqi yo'q")
 
     target = await admin_service.get_admin_by_telegram_id(db, telegram_user_id)
-    if target is None or (target.organization_id and target.organization_id != org_id and not getattr(current_admin, "_is_platform_owner", False)):
+    if target is None or (target.organization_id != org_id and not getattr(current_admin, "_is_platform_owner", False)):
         raise HTTPException(status_code=404, detail="Admin topilmadi")
 
     try:
@@ -1539,7 +1598,7 @@ async def update_admin_role(
         raise HTTPException(status_code=403, detail="Faqat owner boshqa admin rolini o'zgartira oladi")
 
     target = await admin_service.get_admin_by_telegram_id(db, telegram_user_id)
-    if target is None or (target.organization_id and target.organization_id != org_id and not getattr(current_admin, "_is_platform_owner", False)):
+    if target is None or (target.organization_id != org_id and not getattr(current_admin, "_is_platform_owner", False)):
         raise HTTPException(status_code=404, detail="Admin topilmadi")
 
     try:
@@ -1741,7 +1800,7 @@ async def remove_team_member(
     return {"ok": True, "removed_id": member_id}
 
 
-@router.get("/logs")
+@router.get("/logs", dependencies=[Depends(require_permission("can_view_audit_logs"))])
 async def list_tenant_logs(
     limit: int = Query(50, ge=1, le=200),
     db: AsyncSession = Depends(get_db),
@@ -1749,6 +1808,11 @@ async def list_tenant_logs(
     org_id: int = Depends(get_admin_tenant_id),
 ):
     """Aggregate real chronological tenant activity from audit logs, AI/admin replies, orders, and channel syncs."""
+    def _as_utc(dt: datetime | None) -> datetime:
+        if dt is None:
+            return datetime.now(timezone.utc)
+        return dt if dt.tzinfo is not None else dt.replace(tzinfo=timezone.utc)
+
     events: list[tuple[datetime, dict]] = []
 
     audit_rows = (await db.execute(
@@ -1758,7 +1822,7 @@ async def list_tenant_logs(
         .limit(limit)
     )).scalars().all()
     for a in audit_rows:
-        ts = a.created_at or datetime.now(timezone.utc)
+        ts = _as_utc(a.created_at)
         meta_txt = ""
         if isinstance(a.metadata_json, dict) and a.metadata_json:
             meta_txt = ", ".join(f"{k}: {v}" for k, v in list(a.metadata_json.items())[:3])
@@ -1783,7 +1847,7 @@ async def list_tenant_logs(
         .limit(limit)
     )).all()
     for msg, cust_name in msg_rows:
-        ts = msg.created_at or datetime.now(timezone.utc)
+        ts = _as_utc(msg.created_at)
         is_ai = msg.direction == "assistant"
         snippet = (msg.text or "").strip().replace("\n", " ")[:90]
         events.append((ts, {
@@ -1802,7 +1866,7 @@ async def list_tenant_logs(
         .limit(limit)
     )).scalars().all()
     for ord_row in order_rows:
-        ts = ord_row.created_at or datetime.now(timezone.utc)
+        ts = _as_utc(ord_row.created_at)
         events.append((ts, {
             "id": f"order-{ord_row.id}",
             "time": ts.isoformat(),
@@ -1822,7 +1886,7 @@ async def list_tenant_logs(
         .limit(20)
     )).scalars().all()
     for ch in channel_rows:
-        ts = ch.last_synced_at or datetime.now(timezone.utc)
+        ts = _as_utc(ch.last_synced_at)
         events.append((ts, {
             "id": f"sync-{ch.id}",
             "time": ts.isoformat(),
@@ -1842,7 +1906,7 @@ async def get_settings(
     current_admin: Admin = Depends(get_current_admin),
     org_id: int = Depends(get_admin_tenant_id),
 ):
-    channel = await settings_service.get_public_channel(db)
+    channel = await settings_service.get_public_channel(db, organization_id=org_id)
     channels = await settings_service.list_channels(db, organization_id=org_id)
     all_settings = await settings_service.list_settings(db, organization_id=org_id)
     return {
@@ -1874,7 +1938,7 @@ async def update_setting(
         raise HTTPException(status_code=403, detail="Sozlamalarni o'zgartirish huquqi yo'q")
     try:
         if key == "public_channel":
-            cleaned = await settings_service.set_public_channel(db, payload.value)
+            cleaned = await settings_service.set_public_channel(db, payload.value, organization_id=org_id)
             await db.commit()
             return {"ok": True, "key": key, "value": cleaned}
         setting = await settings_service.set_setting(

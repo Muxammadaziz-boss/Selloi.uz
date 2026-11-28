@@ -167,7 +167,7 @@ export function OnboardingModal({ isOpen, onClose, onComplete, initialPlanCode }
           verified: true,
           title: data.title,
           username: data.username,
-          subscribers: data.subscribers,
+          subscribers: data.subscribers_count ?? data.subscribers,
         });
       } else {
         setChannelVerification({

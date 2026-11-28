@@ -339,6 +339,8 @@ async def run_org_followups(
 
     for cand in candidates:
         conv: Conversation = cand["conversation"]
+        conv_id = conv.id
+        conv_customer_name = conv.customer_name
         text = cand["suggested_message"]
         attempt_num = cand["attempt_number"]
         try:
@@ -349,7 +351,7 @@ async def run_org_followups(
             db.add(
                 Message(
                     organization_id=organization_id,
-                    conversation_id=conv.id,
+                    conversation_id=conv_id,
                     telegram_message_id=msg_id,
                     direction="assistant",
                     text=text,
@@ -359,7 +361,7 @@ async def run_org_followups(
             db.add(
                 FollowupLog(
                     organization_id=organization_id,
-                    conversation_id=conv.id,
+                    conversation_id=conv_id,
                     attempt_number=attempt_num,
                     message_text=text,
                     status="sent",
@@ -371,15 +373,15 @@ async def run_org_followups(
                     organization_id=organization_id,
                     action="followup.sent",
                     resource="conversation",
-                    resource_id=str(conv.id),
-                    metadata_json={"customer_name": conv.customer_name, "attempt": attempt_num},
+                    resource_id=str(conv_id),
+                    metadata_json={"customer_name": conv_customer_name, "attempt": attempt_num},
                 )
             )
             await db.commit()
             sent_count += 1
             sent_items.append({
-                "conversation_id": conv.id,
-                "customer_name": conv.customer_name,
+                "conversation_id": conv_id,
+                "customer_name": conv_customer_name,
                 "attempt_number": attempt_num,
                 "status": "sent",
             })
@@ -387,19 +389,19 @@ async def run_org_followups(
                 organization_id,
                 "message.created",
                 {
-                    "conversation_id": conv.id,
+                    "conversation_id": conv_id,
                     "direction": "assistant",
                     "text": text,
-                    "customer_name": conv.customer_name,
+                    "customer_name": conv_customer_name,
                 },
             )
         except Exception as exc:
             await db.rollback()
-            logger.warning("Smart follow-up failed for org=%s conv=%s: %s", organization_id, conv.id, exc)
+            logger.warning("Smart follow-up failed for org=%s conv=%s: %s", organization_id, conv_id, exc)
             db.add(
                 FollowupLog(
                     organization_id=organization_id,
-                    conversation_id=conv.id,
+                    conversation_id=conv_id,
                     attempt_number=attempt_num,
                     message_text=text,
                     status="failed",
@@ -409,8 +411,8 @@ async def run_org_followups(
             )
             await db.commit()
             sent_items.append({
-                "conversation_id": conv.id,
-                "customer_name": conv.customer_name,
+                "conversation_id": conv_id,
+                "customer_name": conv_customer_name,
                 "attempt_number": attempt_num,
                 "status": "failed",
                 "error": str(exc)[:180],

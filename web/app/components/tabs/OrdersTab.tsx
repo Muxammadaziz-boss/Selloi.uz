@@ -128,16 +128,17 @@ export function OrdersTab({
   };
 
   const filteredOrders = orders.filter((ord) => {
-    if (statusFilter !== "all" && ord.status.toLowerCase() !== statusFilter.toLowerCase()) {
+    if (statusFilter !== "all" && (ord.status || "").toLowerCase() !== statusFilter.toLowerCase()) {
       return false;
     }
     if (!orderSearch.trim()) return true;
     const q = orderSearch.toLowerCase();
     return (
-      ord.id.toLowerCase().includes(q) ||
-      ord.customer.toLowerCase().includes(q) ||
-      ord.username.toLowerCase().includes(q) ||
-      ord.product.toLowerCase().includes(q)
+      (ord.id || "").toLowerCase().includes(q) ||
+      (ord.customer || "").toLowerCase().includes(q) ||
+      (ord.username || "").toLowerCase().includes(q) ||
+      (ord.product || "").toLowerCase().includes(q) ||
+      String((ord as any).phone || "").toLowerCase().includes(q)
     );
   });
 
@@ -371,11 +372,13 @@ export function OrdersTab({
                   <div key={`mob-ord-${ord.id}`} className="p-3 border-bottom border-subtle d-flex flex-column gap-2">
                     <div className="d-flex align-items-center justify-content-between gap-2">
                       <span className="font-monospace text-primary fw-bold small">{ord.id}</span>
-                      {ord.status === "Confirmed" ? (
+                      {ord.status?.toLowerCase() === "paid" ? (
+                        <Badge variant="success" dot>{t("orders.status_paid")}</Badge>
+                      ) : ord.status?.toLowerCase() === "confirmed" ? (
                         <Badge variant="success">{t("orders.status_confirmed")}</Badge>
-                      ) : ord.status === "Processing" ? (
+                      ) : ord.status?.toLowerCase() === "processing" ? (
                         <Badge variant="info">{t("orders.status_processing")}</Badge>
-                      ) : ord.status === "Completed" ? (
+                      ) : ord.status?.toLowerCase() === "completed" ? (
                         <Badge variant="accent">{t("orders.status_completed")}</Badge>
                       ) : (
                         <Badge variant="warning">{t("orders.status_new")}</Badge>

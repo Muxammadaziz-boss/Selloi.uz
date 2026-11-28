@@ -1542,6 +1542,7 @@ function DashboardContent({
       setShowOnboardingModal(false);
     } catch (err: any) {
       setError(err.message || "Tashkilot yaratishda xatolik");
+      throw err;
     } finally {
       setBusy(false);
     }
@@ -1560,15 +1561,21 @@ function DashboardContent({
       window.history.replaceState(null, "", url.toString());
     }
     setSuccess(`Faol tashkilot almashtirildi: #${orgId}`);
-    load();
-    loadSaaSData(orgId);
+    if (orgId === activeOrgId) {
+      load();
+      loadSaaSData(orgId);
+    }
   };
 
+  const appliedTenantSlugRef = useRef<string | null>(null);
   useEffect(() => {
-    if (initialTenantSlug && platformOrgs.length > 0) {
+    if (initialTenantSlug && platformOrgs.length > 0 && appliedTenantSlugRef.current !== initialTenantSlug) {
       const matched = platformOrgs.find((o) => o.slug === initialTenantSlug);
-      if (matched && matched.id !== activeOrgId) {
-        setActiveOrgId(matched.id);
+      if (matched) {
+        appliedTenantSlugRef.current = initialTenantSlug;
+        if (matched.id !== activeOrgId) {
+          setActiveOrgId(matched.id);
+        }
         const meta = { id: matched.id, name: matched.name, slug: matched.slug };
         setActiveStoreMeta(meta);
         if (typeof window !== "undefined") {
@@ -1577,11 +1584,9 @@ function DashboardContent({
           localStorage.setItem("owner_impersonating_store", JSON.stringify(meta));
         }
         setIsOwnerImpersonating(true);
-        load();
-        loadSaaSData(matched.id);
       }
     }
-  }, [initialTenantSlug, platformOrgs, activeOrgId, load, loadSaaSData]);
+  }, [initialTenantSlug, platformOrgs, activeOrgId]);
 
 
 
@@ -1624,10 +1629,10 @@ function DashboardContent({
       if (!orderSearch.trim()) return true;
       const s = orderSearch.toLowerCase();
       return (
-        o.customer.toLowerCase().includes(s) ||
-        o.product.toLowerCase().includes(s) ||
-        o.id.toLowerCase().includes(s) ||
-        o.username.toLowerCase().includes(s)
+        (o.customer || "").toLowerCase().includes(s) ||
+        (o.product || "").toLowerCase().includes(s) ||
+        (o.id || "").toLowerCase().includes(s) ||
+        (o.username || "").toLowerCase().includes(s)
       );
     });
   }, [orders, orderSearch]);
@@ -1892,7 +1897,7 @@ function DashboardContent({
 
   return (
     <DesignProvider
-      subscriptionPlan={subscriptionData?.plan?.code || null}
+      subscriptionPlan={subscriptionData?.plan_code || subscriptionData?.plan?.code || null}
       isSubscriptionLoading={isSubscriptionLoading}
       subscriptionError={subscriptionError}
       isPlatformOwner={isPlatformOwner}
@@ -1943,10 +1948,6 @@ function DashboardContent({
             setZone("platform");
             setTab("platform");
           } else {
-            if (typeof window !== "undefined" && (window.location.pathname.startsWith("/admin") || window.location.pathname.startsWith("/platform"))) {
-              window.location.href = "/dashboard";
-              return;
-            }
             setZone("tenant");
             setTab("overview");
           }
@@ -2014,7 +2015,7 @@ function DashboardContent({
                 botConfigured={Boolean(currentOrgDetails?.telegram_bot_token_set)}
                 aiModel={aiModel}
                 storeName={activeStoreMeta?.name || userOrganizations.find((o) => o.id === activeOrgId)?.name || "Do'kon Boshqaruv Paneli"}
-                planCode={subscriptionData?.plan?.code || null}
+                planCode={subscriptionData?.plan_code || subscriptionData?.plan?.code || null}
                 sseConnected={sseConnected}
                 followupEnabled={Boolean(followupBundle?.config?.is_enabled)}
                 paymentProvider={storePaymentConfig?.is_enabled ? storePaymentConfig?.provider : null}
@@ -2049,7 +2050,7 @@ function DashboardContent({
                 draft={draft}
                 setDraft={setDraft}
                 onSendMessage={sendReply}
-                onTakeover={(convId) => perform(`/admin/conversations/${convId}/takeover`)}
+                onTakeover={(convId) => perform(`/admin/conversations/${convId}/takeover`, {})}
                 onResumeAi={(convId) => perform(`/admin/conversations/${convId}/resume`)}
                 busy={busy}
                 customerNotes={customerNotes}

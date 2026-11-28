@@ -179,15 +179,15 @@ export function ProfileTab({
         return;
       }
       try {
-        const res = await api<{
-          status?: string;
-          ok?: boolean;
-          telegram_user_id?: number | null;
-          username?: string;
-        }>("/api/v1/auth/telegram/link/poll", {
+        const httpRes = await fetch("/api/auth/telegram/link/poll", {
           method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ code: tgLinkCode }),
         });
+        const res = await httpRes.json().catch(() => ({}));
+        if (!httpRes.ok) {
+          throw new Error(res?.detail || "Telegram ulashda xatolik yuz berdi");
+        }
         if (!active) return;
         if (res?.status === "verified" || res?.ok) {
           setTgLinkPolling(false);
@@ -232,10 +232,15 @@ export function ProfileTab({
     setTgLinkError(null);
     setTgLinkFeedback(null);
     try {
-      const res = await api<{ code: string; bot_url: string; bot_username?: string }>(
-        "/api/v1/auth/telegram/link/init",
-        { method: "POST" }
-      );
+      const httpRes = await fetch("/api/auth/telegram/link/init", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const res = await httpRes.json().catch(() => ({}));
+      if (!httpRes.ok) {
+        throw new Error(res?.detail || "Bot bilan ulanish sessiyasini yaratib bo'lmadi");
+      }
       if (res.bot_username) setTgLinkBotUsername(res.bot_username);
       setTgLinkCode(res.code);
       setTgLinkUrl(res.bot_url);
@@ -273,6 +278,10 @@ export function ProfileTab({
         body: JSON.stringify({ email: displayEmail }),
       });
       const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setVerifyFeedback(data.detail || "Tasdiqlash kodini yuborishda xatolik yuz berdi");
+        return;
+      }
       setVerifyFeedback(data.detail || "Tasdiqlash kodi yuborildi");
       setVerifyOpen(true);
     } catch {
@@ -356,8 +365,14 @@ export function ProfileTab({
 
   const handleRevokeAllSessions = async () => {
     setRevokeBusy(true);
+    setPasswordError("");
     try {
-      await fetch("/api/auth/revoke-sessions", { method: "POST" });
+      const res = await fetch("/api/auth/revoke-sessions", { method: "POST" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setPasswordError(data.detail || "Sessiyalarni bekor qilib bo'lmadi");
+        return;
+      }
       setRevokeModalOpen(false);
       window.location.href = "/login";
     } finally {

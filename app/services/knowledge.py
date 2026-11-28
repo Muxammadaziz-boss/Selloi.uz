@@ -537,9 +537,9 @@ class KnowledgeService:
         channel_key = f"kb_{organization_id}_{clean_tag}"[:250]
 
         chunks = chunk_text(cleaned, max_chars=max_chars, overlap=overlap)
-        base_msg_id = int(datetime.now().timestamp() * 1000) * 100 + secrets.randbelow(90) + 10
+        base_msg_id = int(datetime.now(timezone.utc).timestamp() * 1000) * 100 + secrets.randbelow(90) + 10
         created_posts: list[ChannelPost] = []
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
 
         for idx, chunk_body in enumerate(chunks):
             prefix = f"[{clean_title} #{idx + 1}/{len(chunks)}]\n" if len(chunks) > 1 else f"[{clean_title}]\n"

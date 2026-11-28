@@ -10,6 +10,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ authenticated: false, user: null });
   }
   const claims = await resolveEffectiveSessionClaims(session);
+  if (claims.revoked) {
+    return NextResponse.json({ authenticated: false, user: null });
+  }
   return NextResponse.json({
     authenticated: true,
     user: {

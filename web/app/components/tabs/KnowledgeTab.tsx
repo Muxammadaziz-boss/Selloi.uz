@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { api } from "../../lib/dashboardApi";
 import { useLanguage } from "../../lib/i18n";
 import {
   IconBooks,
@@ -100,12 +101,10 @@ export function KnowledgeTab({
     setVerifying(true);
     setVerificationResult(null);
     try {
-      const res = await fetch("/api/proxy?path=/admin/channels/verify", {
+      const data = await api<any>("/admin/channels/verify", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ channel: raw }),
       });
-      const data = await res.json();
       setVerificationResult(data);
     } catch (err: any) {
       setVerificationResult({

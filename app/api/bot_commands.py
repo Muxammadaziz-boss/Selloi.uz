@@ -405,14 +405,22 @@ async def handle_callback_query(callback_query: dict, db: AsyncSession) -> None:
                                 _admin_keyboard(admin))
 
         elif data.startswith("admin:takeover:"):
+            if not (admin_service.has_permission(admin, "can_takeover") or _is_owner(user_id)):
+                await telegram.answer_callback(callback_id, "⛔ Suhbatni qabul qilish huquqi yo'q")
+                return
             try:
                 conv_id = int(data.split(":")[-1])
                 from app.models import Conversation
                 conv = await db.get(Conversation, conv_id)
-                if conv:
+                same_org = (
+                    _is_owner(user_id)
+                    or admin.organization_id is None
+                    or (conv is not None and conv.organization_id == admin.organization_id)
+                )
+                if conv and same_org:
                     conv.status = "human_takeover"
                     conv.handoff_reason = f"Operator {admin.name or user_id} Telegram orqali qabul qildi"
-                    await db.commit()
+                    await db.flush()
                     await telegram.answer_callback(callback_id, "✅ Suhbat sizga biriktirildi! Mijozga to'g'ridan-to'g'ri javob berishingiz mumkin.", show_alert=True)
                     await _edit_message(chat_id, message_id, f"✅ *Suhbat qabul qilindi*\nMijoz: {conv.customer_name}\nSiz ushbu suhbatni o'z zimmangizga oldingiz.", [])
                 else:

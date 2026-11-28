@@ -26,6 +26,8 @@ async def get_setting(db: AsyncSession, key: str, default: str = "", organizatio
     if organization_id is not None:
         stmt = stmt.where((SystemSetting.organization_id == organization_id) | (SystemSetting.organization_id.is_(None)))
         stmt = stmt.order_by(SystemSetting.organization_id.desc().nullslast())
+    else:
+        stmt = stmt.where(SystemSetting.organization_id.is_(None))
     result = await db.execute(stmt)
     row = result.scalars().first()
     if row is not None and row.value:
@@ -44,6 +46,8 @@ async def set_setting(
     stmt = select(SystemSetting).where(SystemSetting.key == key)
     if organization_id is not None:
         stmt = stmt.where(SystemSetting.organization_id == organization_id)
+    else:
+        stmt = stmt.where(SystemSetting.organization_id.is_(None))
     result = await db.execute(stmt)
     row = result.scalar_one_or_none()
     if row is None:
@@ -203,31 +207,53 @@ async def remove_channel(
     return channel
 
 
-async def update_channel_stats(db: AsyncSession, channel_username: str, count: int) -> None:
-    """Update post count and last synced timestamp for a channel."""
-    clean = clean_channel_username(channel_username)
-    res = await db.execute(select(ConnectedChannel).where(ConnectedChannel.channel_username == clean))
-    ch = res.scalar_one_or_none()
-    if ch:
-        ch.posts_count = count
-        ch.last_synced_at = datetime.now(timezone.utc)
+async def update_channel_stats(
+    db: AsyncSession,
+    channel_username: str,
+    count: int,
+    organization_id: int | None = None,
+) -> None:
+    """Update post count and last synced timestamp for matching channel row(s)."""
+    clean = clean_channel_username(channel_username).lower()
+    from sqlalchemy import func as sa_func
+
+    stmt = select(ConnectedChannel).where(sa_func.lower(ConnectedChannel.channel_username) == clean)
+    if organization_id is not None:
+        stmt = stmt.where(ConnectedChannel.organization_id == organization_id)
+    res = await db.execute(stmt)
+    channels = res.scalars().all()
+    if channels:
+        now = datetime.now(timezone.utc)
+        for ch in channels:
+            ch.posts_count = count
+            ch.last_synced_at = now
         await db.flush()
 
 
-async def get_public_channel(db: AsyncSession) -> str:
-    """Get the primary active public channel username (legacy compatibility)."""
-    active = await get_active_channel_usernames(db)
+async def get_public_channel(db: AsyncSession, organization_id: int | None = None) -> str:
+    """Get the primary active public channel username scoped to organization."""
+    active = await get_active_channel_usernames(db, organization_id=organization_id)
     if active:
         return active[0]
-    custom = await get_setting(db, "public_channel", default="")
-    raw = custom or settings.telegram_public_channel
+    custom = await get_setting(db, "public_channel", default="", organization_id=organization_id)
+    raw = custom or (settings.telegram_public_channel if organization_id in (None, 1) else "")
     return clean_channel_username(raw)
 
 
-async def set_public_channel(db: AsyncSession, raw_channel: str) -> str:
-    """Add or set channel (legacy compatibility)."""
-    ch = await add_channel(db, raw_channel)
-    await set_setting(db, "public_channel", ch.channel_username, description="Primary public channel")
+async def set_public_channel(
+    db: AsyncSession,
+    raw_channel: str,
+    organization_id: int | None = None,
+) -> str:
+    """Add or set channel scoped to organization."""
+    ch = await add_channel(db, raw_channel, organization_id=organization_id)
+    await set_setting(
+        db,
+        "public_channel",
+        ch.channel_username,
+        description="Primary public channel",
+        organization_id=organization_id,
+    )
     return ch.channel_username
 
 
@@ -236,6 +262,9 @@ async def list_settings(db: AsyncSession, organization_id: int | None = None) ->
     stmt = select(SystemSetting)
     if organization_id is not None:
         stmt = stmt.where((SystemSetting.organization_id == organization_id) | (SystemSetting.organization_id.is_(None)))
+        stmt = stmt.order_by(SystemSetting.organization_id.asc().nullsfirst())
+    else:
+        stmt = stmt.where(SystemSetting.organization_id.is_(None))
     result = await db.execute(stmt)
     rows = result.scalars().all()
     data = {row.key: row.value for row in rows}
@@ -243,6 +272,6 @@ async def list_settings(db: AsyncSession, organization_id: int | None = None) ->
     if active:
         data["public_channel"] = active[0]
         data["connected_channels"] = ",".join(active)
-    elif "public_channel" not in data and settings.telegram_public_channel:
+    elif "public_channel" not in data and organization_id in (None, 1) and settings.telegram_public_channel:
         data["public_channel"] = clean_channel_username(settings.telegram_public_channel)
     return data

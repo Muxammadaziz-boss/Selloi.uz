@@ -212,7 +212,11 @@ class PaymentTestingService:
             or getattr(admin, "username", None)
             or f"admin_{admin.id}@selloi.uz"
         )
-        admin_user_id = admin.id if getattr(admin, "__tablename__", "") == "users" else None
+        linked_user = getattr(admin, "_user", None)
+        admin_user_id = (
+            getattr(linked_user, "id", None)
+            or (admin.id if getattr(admin, "__tablename__", "") == "users" else None)
+        )
 
         metadata = {
             "payment_purpose": "admin_payment_test",
@@ -484,7 +488,7 @@ class PaymentTestingService:
 
         if normalized_status in ("paid", "completed", "success", "succeeded", "payment.succeeded"):
             # 1. Amount validation against immutable record snapshot
-            if amount and int(amount) != test_record.amount_tiyin:
+            if amount is not None and int(amount) != test_record.amount_tiyin:
                 logger.error(
                     "Amount mismatch on webhook for test %s: expected %s tiyin, received %s tiyin",
                     test_record.test_id,

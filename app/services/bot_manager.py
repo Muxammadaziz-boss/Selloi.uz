@@ -5,6 +5,7 @@ behind an HTTPS webhook (production) or via long-polling (local dev / VPS withou
 """
 
 import asyncio
+import time
 from typing import Dict, Optional
 import httpx
 from sqlalchemy import select
@@ -19,6 +20,7 @@ logger = get_logger(__name__)
 
 _BOT_MANAGER_LOCK_NAME = "bot_manager_leader"
 _BOT_MANAGER_LOCK_TTL = 150
+_WEBHOOK_RECHECK_SECONDS = 900.0
 
 
 class TenantBotManager:
@@ -27,14 +29,18 @@ class TenantBotManager:
     def __init__(self):
         self._tasks: Dict[int, asyncio.Task] = {}
         self._invalid_org_ids: set[int] = set()
+        self._webhook_verified_until: Dict[int, float] = {}
+        self._supervision_task: Optional[asyncio.Task] = None
         self._running = False
         self._is_leader = False
 
     async def start(self) -> None:
         """Start monitoring and polling for all active organizations with configured bots."""
+        if self._running:
+            return
         self._running = True
         logger.info("TenantBotManager ishga tushmoqda...")
-        asyncio.create_task(self._supervision_loop())
+        self._supervision_task = asyncio.create_task(self._supervision_loop())
 
     async def _stop_all_tasks(self) -> None:
         """Cancel all running per-organization bot polling tasks."""
@@ -45,8 +51,16 @@ class TenantBotManager:
     async def stop(self) -> None:
         """Gracefully cancel all running bot polling tasks and release leadership."""
         self._running = False
+        if self._supervision_task is not None:
+            self._supervision_task.cancel()
+            try:
+                await self._supervision_task
+            except asyncio.CancelledError:
+                pass
+            self._supervision_task = None
         await self._stop_all_tasks()
         self._invalid_org_ids.clear()
+        self._webhook_verified_until.clear()
         if self._is_leader:
             release_lock(_BOT_MANAGER_LOCK_NAME)
             self._is_leader = False
@@ -96,8 +110,12 @@ class TenantBotManager:
                 del self._tasks[org_id]
 
         # Ensure workers exist for all valid active organizations
+        now = time.monotonic()
         for org in orgs:
             if org.id in self._invalid_org_ids:
+                continue
+            verified_until = self._webhook_verified_until.get(org.id, 0.0)
+            if verified_until > now:
                 continue
             if org.id not in self._tasks or self._tasks[org.id].done():
                 token = org.decrypted_bot_token
@@ -109,6 +127,7 @@ class TenantBotManager:
     async def restart_org(self, org_id: int) -> None:
         """Restart worker for a specific organization after settings change."""
         self._invalid_org_ids.discard(org_id)
+        self._webhook_verified_until.pop(org_id, None)
         if org_id in self._tasks:
             self._tasks[org_id].cancel()
             del self._tasks[org_id]
@@ -148,6 +167,7 @@ class TenantBotManager:
                         return
                 webhook_url = webhook_info.get("result", {}).get("url", "")
             if webhook_url.startswith("https://"):
+                self._webhook_verified_until[org_id] = time.monotonic() + _WEBHOOK_RECHECK_SECONDS
                 logger.info(
                     "Bot HTTPS webhook orqali ishlamoqda: org=%s, url=%s (polling o'chirildi)",
                     org_slug,

@@ -5,8 +5,22 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_db
+from app.core.permissions import ROLE_DEFAULTS
 from app.dependencies.auth import get_current_admin
 from app.models import Admin, Organization, OrganizationMember, User
+
+
+def _sync_admin_role_from_member(current_admin: Admin, mem: OrganizationMember, org_id: int) -> None:
+    """Keep transient Admin role/permissions scoped to the target organization membership."""
+    is_plat_staff = bool(
+        getattr(current_admin, "_is_platform_owner", False)
+        or getattr(current_admin, "_is_platform_admin", False)
+    )
+    if is_plat_staff:
+        return
+    current_admin.organization_id = org_id
+    current_admin.role = mem.role
+    current_admin.permissions = dict(mem.permissions or ROLE_DEFAULTS.get(mem.role, {}))
 
 
 async def get_admin_tenant_id(
@@ -49,7 +63,6 @@ async def get_admin_tenant_id(
         getattr(current_admin, "_is_platform_owner", False)
         or getattr(current_admin, "_is_platform_admin", False)
         or (user and (user.is_platform_owner or getattr(user, "is_platform_admin", False)))
-        or (current_admin.role == "owner" and current_admin.organization_id in (None, 1))
     )
 
     # 2. Case: Specific target_org_id requested
@@ -62,11 +75,7 @@ async def get_admin_tenant_id(
         if is_platform_staff:
             return target_org_id
 
-        # Verify admin row itself is assigned to this organization and active
-        if current_admin.organization_id == target_org_id and current_admin.is_active:
-            return target_org_id
-
-        # Or verify user has an active membership in the requested organization
+        # Check verified OrganizationMember permissions first when user exists
         if user is not None:
             mem_res = await db.execute(
                 select(OrganizationMember).where(
@@ -75,8 +84,14 @@ async def get_admin_tenant_id(
                     OrganizationMember.is_active.is_(True),
                 )
             )
-            if mem_res.scalar_one_or_none() is not None:
+            mem = mem_res.scalar_one_or_none()
+            if mem is not None:
+                _sync_admin_role_from_member(current_admin, mem, target_org_id)
                 return target_org_id
+
+        # Verify legacy admin row itself is assigned to this organization and active
+        if user is None and current_admin.organization_id == target_org_id and current_admin.is_active:
+            return target_org_id
 
         # Forbidden: caller has no membership in requested organization
         raise HTTPException(

@@ -23,6 +23,9 @@ export default async function AdminPortalPage() {
   }
 
   const claims = await resolveEffectiveSessionClaims(session);
+  if (claims.revoked) {
+    redirect("/login?redirect=/admin");
+  }
   if (!claims.fullyVerified) {
     redirect("/login?step=complete");
   }

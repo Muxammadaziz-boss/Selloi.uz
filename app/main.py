@@ -299,6 +299,17 @@ async def lifespan(application: FastAPI):
         "ALTER TABLE store_order_payments ADD COLUMN IF NOT EXISTS payment_meta JSONB DEFAULT '{}'::jsonb",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT FALSE",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified_at TIMESTAMPTZ",
+        """DO $$
+        BEGIN
+            IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'system_settings')
+               AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'system_settings' AND column_name = 'id') THEN
+                ALTER TABLE system_settings DROP CONSTRAINT IF EXISTS system_settings_pkey;
+                ALTER TABLE system_settings ADD COLUMN id SERIAL PRIMARY KEY;
+            END IF;
+        END $$;""",
+        "CREATE INDEX IF NOT EXISTS ix_system_settings_key ON system_settings (key)",
+        "CREATE UNIQUE INDEX IF NOT EXISTS uq_system_settings_org_key ON system_settings (organization_id, key)",
+        "CREATE UNIQUE INDEX IF NOT EXISTS uq_system_settings_global_key ON system_settings (key) WHERE organization_id IS NULL",
     ]
 
     legacy_tables = [

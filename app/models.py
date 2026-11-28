@@ -648,8 +648,18 @@ class ConnectedChannel(Base):
 
 class SystemSetting(Base):
     __tablename__ = "system_settings"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "key", name="uq_system_settings_org_key"),
+        Index(
+            "uq_system_settings_global_key",
+            "key",
+            unique=True,
+            postgresql_where=text("organization_id IS NULL"),
+        ),
+    )
 
-    key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    key: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
     organization_id: Mapped[int | None] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True, nullable=True)
     value: Mapped[str] = mapped_column(Text, default="")
     description: Mapped[str | None] = mapped_column(String(255), nullable=True)

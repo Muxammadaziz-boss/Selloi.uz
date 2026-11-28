@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 import secrets
 from typing import Any, Optional
 import httpx
-from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy import or_, select
 from sqlalchemy.exc import IntegrityError
@@ -136,8 +136,17 @@ from app.dependencies.tenant import get_admin_tenant_id
 from app.services import admin_service
 
 
+def _resolve_actor_user_id(admin: Admin) -> int:
+    """Resolve backing User.id from an Admin context cleanly (Admin has no .user_id column)."""
+    linked_user = getattr(admin, "_user", None)
+    if linked_user is not None and getattr(linked_user, "id", None):
+        return int(linked_user.id)
+    return int(getattr(admin, "id", None) or 1)
+
+
 async def resolve_organization_id(
     x_organization_id: str | None = Header(default=None),
+    organization_id: int | None = Query(default=None),
     admin: Admin = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db),
 ) -> int:
@@ -145,6 +154,7 @@ async def resolve_organization_id(
     return await get_admin_tenant_id(
         current_admin=admin,
         x_organization_id=x_organization_id,
+        organization_id=organization_id,
         db=db,
     )
 
@@ -301,7 +311,7 @@ async def upgrade_plan(
     Subscription entitlement upgrades exclusively upon cryptographic webhook receipt.
     """
     try:
-        user_id = admin.user_id if admin.user_id else 1
+        user_id = _resolve_actor_user_id(admin)
         checkout = await subscription_service.create_subscription_checkout(
             db=db,
             organization_id=org_id,
@@ -595,10 +605,15 @@ async def verify_channel_public_endpoint(
 @router.post("/organizations/{org_id}/set-webhook")
 async def set_org_webhook_endpoint(
     org_id: int,
+    active_org_id: int = Depends(resolve_organization_id),
     admin: Admin = Depends(require_saas_permission("can_manage_settings")),
     db: AsyncSession = Depends(get_db),
 ):
     """Register or refresh the Telegram webhook for the organization."""
+    if org_id != active_org_id and not (
+        getattr(admin, "_is_platform_owner", False) or getattr(admin, "_is_platform_admin", False)
+    ):
+        raise HTTPException(status_code=403, detail="Boshqa tashkilot webhook sozlamalariga ruxsat yo'q")
     org = await db.get(Organization, org_id)
     if not org:
         raise HTTPException(status_code=404, detail="Tashkilot topilmadi")
@@ -636,10 +651,15 @@ async def set_org_webhook_endpoint(
 @router.get("/organizations/{org_id}/webhook-status")
 async def get_org_webhook_status_endpoint(
     org_id: int,
+    active_org_id: int = Depends(resolve_organization_id),
     admin: Admin = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db),
 ):
     """Inspect current Telegram webhook status from Telegram API."""
+    if org_id != active_org_id and not (
+        getattr(admin, "_is_platform_owner", False) or getattr(admin, "_is_platform_admin", False)
+    ):
+        raise HTTPException(status_code=403, detail="Boshqa tashkilot webhook holatini ko'rishga ruxsat yo'q")
     org = await db.get(Organization, org_id)
     if not org:
         raise HTTPException(status_code=404, detail="Tashkilot topilmadi")
@@ -753,7 +773,7 @@ async def create_checkout(
 ):
     """Create a checkout session. Enforces official TezCheck UZS integration in production."""
     if getattr(settings, "is_production", False):
-        user_id = admin.user_id if admin.user_id else 1
+        user_id = _resolve_actor_user_id(admin)
         return await subscription_service.create_subscription_checkout(
             db=db,
             organization_id=org_id,
@@ -880,7 +900,7 @@ async def create_mega_discount_checkout(
 ):
     """Create a single-use TezCheck invoice for 7-day introductory mega discount."""
     try:
-        user_id = admin.user_id if admin.user_id else 1
+        user_id = _resolve_actor_user_id(admin)
         return await subscription_service.create_mega_discount_checkout(
             db=db,
             organization_id=org_id,
@@ -906,7 +926,7 @@ async def create_subscription_checkout(
 ):
     """Create a single-use TezCheck invoice for monthly or yearly regular subscription."""
     try:
-        user_id = admin.user_id if admin.user_id else 1
+        user_id = _resolve_actor_user_id(admin)
         return await subscription_service.create_subscription_checkout(
             db=db,
             organization_id=org_id,
@@ -931,7 +951,7 @@ async def record_subscription_consent(
     db: AsyncSession = Depends(get_db),
 ):
     """Record explicit user consent for renewal frequency and terms before charge."""
-    user_id = admin.user_id if admin.user_id else 1
+    user_id = _resolve_actor_user_id(admin)
     ip = request.client.host if request.client else None
     ua = request.headers.get("user-agent")
     consent = await subscription_service.record_explicit_renewal_consent(
@@ -959,7 +979,7 @@ async def disable_renewal_endpoint(
     db: AsyncSession = Depends(get_db),
 ):
     """Disable automatic renewal consent and flag cancellation at period end."""
-    user_id = admin.user_id if admin.user_id else 1
+    user_id = _resolve_actor_user_id(admin)
     return await subscription_service.disable_automatic_renewal(
         db=db,
         organization_id=org_id,
@@ -996,6 +1016,9 @@ async def tezcheck_webhook(
         payload = json.loads(body.decode("utf-8"))
     except Exception:
         return {"ok": True, "status": "ping_received"}
+
+    if not isinstance(payload, dict):
+        return {"ok": True, "status": "ignored_non_object"}
 
     if payload.get("event") in ("ping", "test", "verification") or payload.get("type") in ("ping", "test"):
         return {"ok": True, "status": "test_received"}
@@ -1145,6 +1168,17 @@ async def tezcheck_webhook(
             event_record.error_message = f"Store order payment topilmadi: {bill_id}"
             await db.commit()
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Buyurtma to'lovi topilmadi")
+        expected_tiyin = int(store_payment.amount_uzs) * 100
+        if amount and int(amount) != expected_tiyin:
+            event_record.status = "failed"
+            event_record.error_message = f"Summa mos kelmadi: kutilgan {expected_tiyin}, keldi {amount}"
+            await db.commit()
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="To'lov summasi mos kelmadi")
+        if currency and currency.upper() != "UZS":
+            event_record.status = "failed"
+            event_record.error_message = f"Valyuta mos kelmadi: {currency}"
+            await db.commit()
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="To'lov valyutasi mos kelmadi")
         settled = await confirm_store_order_payment(db=db, payment_record=store_payment, notify_customer=True)
         event_record.status = "processed"
         event_record.processed_at = datetime.now(timezone.utc)
@@ -1191,6 +1225,9 @@ async def store_tezcheck_webhook(
     except Exception:
         return {"ok": True, "status": "ping_received"}
 
+    if not isinstance(payload, dict):
+        return {"ok": True, "status": "ignored_non_object"}
+
     if payload.get("event") in ("ping", "test", "verification") or payload.get("type") in ("ping", "test"):
         return {"ok": True, "status": "test_received"}
 
@@ -1201,6 +1238,8 @@ async def store_tezcheck_webhook(
     ).scalar_one_or_none()
     if not cfg:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Do'kon to'lov sozlamasi topilmadi")
+    if not cfg.is_enabled:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Do'kon to'lov integratsiyasi faol emas")
 
     client = get_store_tezcheck_client(cfg)
     sig = (
@@ -1271,7 +1310,11 @@ async def store_tezcheck_webhook(
             status="pending",
         )
         db.add(event_record)
-        await db.flush()
+        try:
+            await db.flush()
+        except IntegrityError:
+            await db.rollback()
+            return {"ok": True, "status": "already_processed", "idempotent": True}
     else:
         event_record = existing_event
 
@@ -1292,6 +1335,21 @@ async def store_tezcheck_webhook(
         event_record.error_message = f"Buyurtma to'lovi topilmadi: {bill_id}"
         await db.commit()
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Buyurtma to'lovi topilmadi")
+
+    raw_amt = inner_data.get("amount_minor") if inner_data.get("amount_minor") is not None else inner_data.get("amount", payload.get("amount"))
+    raw_curr = inner_data.get("currency") or payload.get("currency")
+    if raw_amt is not None:
+        expected_tiyin = int(payment.amount_uzs) * 100
+        if int(raw_amt) != expected_tiyin:
+            event_record.status = "failed"
+            event_record.error_message = f"Summa mos kelmadi: kutilgan {expected_tiyin}, keldi {raw_amt}"
+            await db.commit()
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="To'lov summasi mos kelmadi")
+    if raw_curr and str(raw_curr).upper() != "UZS":
+        event_record.status = "failed"
+        event_record.error_message = f"Valyuta mos kelmadi: {raw_curr}"
+        await db.commit()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="To'lov valyutasi mos kelmadi")
 
     settled = await confirm_store_order_payment(db=db, payment_record=payment, notify_customer=True)
     event_record.status = "processed"

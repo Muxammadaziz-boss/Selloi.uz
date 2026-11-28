@@ -27,6 +27,7 @@ Implements the official Selloi subscription model:
 """
 
 import calendar
+import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, Optional, Tuple, List
 from sqlalchemy import select, and_, update
@@ -269,7 +270,7 @@ class SubscriptionService:
         price_version = tariff_info["price_version"]
         plan_id = tariff_info["plan_id"]
 
-        order_id = f"selloi_promo_{organization_id}_{plan_code_lower}_{int(datetime.now(timezone.utc).timestamp())}"
+        order_id = f"selloi_promo_{organization_id}_{plan_code_lower}_{int(datetime.now(timezone.utc).timestamp())}_{secrets.token_hex(4)}"
         description = f"Selloi.uz - {tariff_info['plan_name']} Mega Chegirma (7 kunlik sinov)"
 
         # 1. Create bill in TezCheck with integer tiyin (amount_uzs * 100)
@@ -366,7 +367,7 @@ class SubscriptionService:
         plan_id = tariff_info["plan_id"]
         cycle_label = "1 yillik" if cycle_lower == "yearly" else "1 oylik"
 
-        order_id = f"selloi_sub_{organization_id}_{plan_code_lower}_{cycle_lower}_{int(datetime.now(timezone.utc).timestamp())}"
+        order_id = f"selloi_sub_{organization_id}_{plan_code_lower}_{cycle_lower}_{int(datetime.now(timezone.utc).timestamp())}_{secrets.token_hex(4)}"
         description = f"Selloi.uz - {tariff_info['plan_name']} {cycle_label} obunasi"
 
         # 1. Create bill in TezCheck with integer tiyin (amount_uzs * 100)
@@ -417,10 +418,11 @@ class SubscriptionService:
         db.add(bill)
 
         sub = await self.get_or_create_subscription(db, organization_id)
-        if cycle_lower == "yearly":
-            sub.status = "awaiting_yearly_payment"
-        else:
-            sub.status = "awaiting_monthly_payment"
+        if sub.status not in ("subscription_active", "mega_discount_active", "active", "trialing"):
+            if cycle_lower == "yearly":
+                sub.status = "awaiting_yearly_payment"
+            else:
+                sub.status = "awaiting_monthly_payment"
 
         await db.commit()
 

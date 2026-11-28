@@ -126,14 +126,18 @@ async def resolve_customer_shared_bot_org_id(db: AsyncSession, chat_id: int) -> 
     """Resolve the active tenant organization for a shared-bot private chat_id."""
     cached = get_cached_shared_bot_shop(chat_id)
     if cached is not None:
-        return cached
+        org = await db.get(Organization, cached)
+        if org is not None and org.status == "active":
+            return cached
 
     res = await db.execute(
         select(Conversation.organization_id)
+        .join(Organization, Organization.id == Conversation.organization_id)
         .where(
             Conversation.chat_id == int(chat_id),
             Conversation.business_connection_id.like("shared_shop_%"),
             Conversation.organization_id.is_not(None),
+            Organization.status == "active",
         )
         .order_by(Conversation.last_message_at.desc())
         .limit(1)

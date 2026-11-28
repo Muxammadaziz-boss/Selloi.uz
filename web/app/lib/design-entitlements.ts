@@ -63,7 +63,7 @@ export const DESIGN_DEFINITIONS: Record<DesignId, DesignMetadata> = {
 export function normalizePlanCode(rawPlan?: string | null): string {
   if (!rawPlan) return "start";
   const p = String(rawPlan).trim().toLowerCase();
-  if (p === "standard") return "start";
+  if (p === "standard" || p === "standart") return "pro";
   return p;
 }
 

@@ -643,9 +643,9 @@ async def stage_outbox_event(
         max_attempts=5,
         created_at=_now(),
     )
-    db.add(outbox_item)
     try:
         async with db.begin_nested():
+            db.add(outbox_item)
             await db.flush()
     except IntegrityError:
         existing = (await db.execute(

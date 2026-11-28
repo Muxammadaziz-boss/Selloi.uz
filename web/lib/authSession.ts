@@ -153,6 +153,7 @@ export async function resolveEffectiveSessionClaims(session: SessionPayload): Pr
   telegramUserId?: number;
   email?: string;
   missingSteps: string[];
+  revoked?: boolean;
 }> {
   const cookieHasRealEmail = session.hasRealEmail ?? isRealEmailClient(session.email);
   const cookieEmailVerified = session.emailVerified ?? cookieHasRealEmail;
@@ -177,12 +178,13 @@ export async function resolveEffectiveSessionClaims(session: SessionPayload): Pr
     telegramUserId: cookieTg,
     email: session.email,
     missingSteps: cookieMissing,
+    revoked: false,
   };
 
   const jwtSecret = process.env.JWT_SECRET || process.env.ADMIN_JWT_SECRET || "";
   const backendUrl = (process.env.BACKEND_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
   let bearer = session.backendToken || "";
-  if (!bearer && jwtSecret) {
+  if (jwtSecret) {
     bearer = signBackendJwt(
       session.userId,
       session.email || `user_${session.userId}@selloi.uz`,
@@ -200,6 +202,19 @@ export async function resolveEffectiveSessionClaims(session: SessionPayload): Pr
       cache: "no-store",
       signal: controller.signal,
     });
+    if (res.status === 401 || res.status === 403) {
+      return {
+        isPlatformOwner: false,
+        isPlatformAdmin: false,
+        fullyVerified: false,
+        emailVerified: false,
+        hasRealEmail: false,
+        telegramUserId: undefined,
+        email: session.email,
+        missingSteps: ["email", "telegram"],
+        revoked: true,
+      };
+    }
     if (!res.ok) return fallback;
     const data = await res.json();
     const realEmail = typeof data?.has_real_email === "boolean" ? data.has_real_email : isRealEmailClient(data?.email);

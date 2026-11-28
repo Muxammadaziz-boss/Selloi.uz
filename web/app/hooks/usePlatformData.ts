@@ -111,8 +111,6 @@ export function usePlatformData({
       setZone("tenant");
       setTab("overview");
       setSuccess(`"${store.name}" do'koniga muvaffaqiyatli kirildi!`);
-      await loadStoreData();
-      await loadSaaSData(store.id);
     } catch (err: any) {
       setError(err.message || "Do'konga kirishda xatolik yuz berdi");
     } finally {

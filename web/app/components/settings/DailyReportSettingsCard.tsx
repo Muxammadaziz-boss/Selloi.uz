@@ -81,6 +81,8 @@ export function DailyReportSettingsCard({
         include_customers: includeCustomers,
       });
       setStatusMsg("Kunlik hisobot jadvali saqlandi.");
+    } catch (err: any) {
+      setStatusMsg(err?.message || "Saqlashda xatolik yuz berdi.");
     } finally {
       setSaving(false);
     }
@@ -98,6 +100,8 @@ export function DailyReportSettingsCard({
       if (typeof res?.recipient_count === "number") {
         setStatusMsg(`Telegramda ${res.recipient_count} ta admin hisoboti olishi mumkin.`);
       }
+    } catch (err: any) {
+      setStatusMsg(err?.message || "Namuna hisobotni yuklashda xatolik.");
     } finally {
       setPreviewing(false);
     }
@@ -117,6 +121,8 @@ export function DailyReportSettingsCard({
           ? `Hisobot ${res.sent_count} ta admin Telegramiga yuborildi!`
           : "Telegram ulangan faol admin topilmadi (Adminlar bo'limida Telegram ID qo'shing)."
       );
+    } catch (err: any) {
+      setStatusMsg(err?.message || "Hisobot yuborishda xatolik.");
     } finally {
       setSending(false);
     }

@@ -99,6 +99,8 @@ export function SmartFollowupSettingsCard({
         offer_discount_pct: discountPct,
         custom_template: customTemplate,
       });
+    } catch {
+      // Error surfaced via parent toast
     } finally {
       setSaving(false);
     }
@@ -110,6 +112,8 @@ export function SmartFollowupSettingsCard({
     try {
       const res = await onPreview();
       setPreviewItems(res?.items || []);
+    } catch {
+      setPreviewItems([]);
     } finally {
       setPreviewing(false);
     }
@@ -121,6 +125,8 @@ export function SmartFollowupSettingsCard({
     try {
       await onRunNow();
       setPreviewItems(null);
+    } catch {
+      // Error surfaced via parent toast
     } finally {
       setRunningNow(false);
     }

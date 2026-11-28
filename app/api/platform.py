@@ -647,6 +647,11 @@ async def update_plan_configuration(
         plan.display_order = req.display_order
 
     # Record historical snapshot if price changed
+    linked_user = getattr(admin, "_user", None)
+    user_actor_id = (
+        getattr(linked_user, "id", None)
+        or (admin.id if getattr(admin, "__tablename__", "") == "users" else None)
+    )
     if price_changed:
         plan.price_version = (getattr(plan, "price_version", 1) or 1) + 1
         history = PlanPriceHistory(
@@ -663,7 +668,7 @@ async def update_plan_configuration(
             approval_status=req.approval_status or "approved",
             currency=getattr(plan, "currency", "UZS") or "UZS",
             change_reason=req.change_reason or "Platform Owner price update",
-            created_by_id=getattr(admin, "id", None),
+            created_by_id=user_actor_id,
             effective_from=req.effective_from or datetime.now(timezone.utc),
         )
         db.add(history)
@@ -1637,7 +1642,8 @@ async def get_organization_details_for_admin(
     confirmed_orders_count = await db.scalar(
         select(func.count(Order.id)).where(
             Order.organization_id == org.id,
-            Order.status.in_(["confirmed", "paid", "completed", "delivered"]),
+            Order.status.isnot(None),
+        func.lower(Order.status).in_(["confirmed", "paid", "completed", "delivered"]),
         )
     ) or 0
     products_count = await db.scalar(
@@ -2175,7 +2181,12 @@ async def sync_payment_test_status(
     from app.services.tezcheck_service import TezCheckError, TezCheckAPIError
 
     try:
-        updated = await payment_testing_service.sync_test_payment_status(db, test_id, admin)
+        linked_user = getattr(admin, "_user", None)
+        admin_user_id = (
+            getattr(linked_user, "id", None)
+            or (admin.id if getattr(admin, "__tablename__", "") == "users" else None)
+        )
+        updated = await payment_testing_service.sync_test_payment_status(db, test_id, admin_user_id)
         return {
             "test_id": updated.test_id,
             "status": updated.status,

@@ -1,11 +1,15 @@
+import { randomBytes } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { buildInternalGoogleAuthSignature, buildVerifiedSessionPayload, attachSessionCookie } from "@/lib/authSession";
 
 function getBaseUrl(request: NextRequest): string {
-  const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || "selloi.uz";
+  const configured = (process.env.PUBLIC_WEB_URL || process.env.NEXT_PUBLIC_APP_URL || "").trim().replace(/\/$/, "");
+  if (configured) {
+    return configured;
+  }
+  const host = request.headers.get("host") || "selloi.uz";
   if (host.includes("localhost") || host.includes("127.0.0.1")) {
-    const proto = request.headers.get("x-forwarded-proto") || "http";
-    return `${proto}://${host}`;
+    return `http://${host}`;
   }
   return `https://${host}`;
 }
@@ -20,6 +24,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL("/login?error=google_not_configured", baseUrl));
   }
 
+  const oauthState = randomBytes(24).toString("hex");
   const googleAuthUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
   googleAuthUrl.searchParams.set("client_id", clientId);
   googleAuthUrl.searchParams.set("redirect_uri", redirectUri);
@@ -27,8 +32,16 @@ export async function GET(request: NextRequest) {
   googleAuthUrl.searchParams.set("scope", "openid email profile");
   googleAuthUrl.searchParams.set("access_type", "online");
   googleAuthUrl.searchParams.set("prompt", "select_account");
+  googleAuthUrl.searchParams.set("state", oauthState);
 
   const res = NextResponse.redirect(googleAuthUrl.toString());
+  res.cookies.set("selloi_oauth_state", oauthState, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 300,
+  });
   if (linkMode) {
     res.cookies.set("selloi_google_link", "1", {
       httpOnly: true,

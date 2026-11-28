@@ -218,8 +218,11 @@ class TestPaymentTestingStudio:
                     "amount": 200000,
                 }
 
-        async def mock_post(url, json=None, headers=None):
-            captured_requests.append({"url": url, "json": json, "headers": headers})
+        async def mock_post(url, json=None, content=None, headers=None):
+            import json as json_lib
+
+            payload = json if json is not None else (json_lib.loads(content.decode("utf-8")) if content else None)
+            captured_requests.append({"url": url, "json": payload, "content": content, "headers": headers})
             return MockResponse()
 
         with patch("httpx.AsyncClient.post", side_effect=mock_post):
