@@ -14,6 +14,7 @@ import json
 from typing import Any, Optional
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.cache import BoundedTTLCache
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.models import CustomerPricing, Organization, Plan, PlanPriceHistory, Subscription
@@ -34,27 +35,20 @@ class PricingCacheManager:
     """High-speed caching layer with TTL and post-commit invalidation."""
 
     def __init__(self):
-        self._memory_cache: dict[str, tuple[float, Any]] = {}
+        self._memory_cache: BoundedTTLCache[str, dict] = BoundedTTLCache(maxsize=512, ttl_seconds=60)
 
     def get_public_plans(self, currency: str, billing_cycle: str) -> Optional[dict]:
         key = f"public_plans:{currency.upper()}:{billing_cycle.lower()}"
         cached = self._memory_cache.get(key)
-        if not cached:
-            return None
-        expires_at, data = cached
-        if datetime.now(timezone.utc).timestamp() > expires_at:
-            self._memory_cache.pop(key, None)
-            return None
-        return data
+        return cached if isinstance(cached, dict) else None
 
     def set_public_plans(self, currency: str, billing_cycle: str, data: dict, ttl_seconds: int = 60) -> None:
         key = f"public_plans:{currency.upper()}:{billing_cycle.lower()}"
-        expires_at = datetime.now(timezone.utc).timestamp() + ttl_seconds
-        self._memory_cache[key] = (expires_at, data)
+        self._memory_cache.set(key, data, ttl_seconds=ttl_seconds)
 
     def invalidate_public_plans(self) -> None:
         """Clear all cached public plan responses across currencies and cycles."""
-        keys_to_remove = [k for k in self._memory_cache.keys() if k.startswith("public_plans:")]
+        keys_to_remove = [k for k in list(self._memory_cache.keys()) if k.startswith("public_plans:")]
         for k in keys_to_remove:
             self._memory_cache.pop(k, None)
         logger.info("Public pricing plan cache invalidated successfully.")

@@ -608,6 +608,7 @@ class Product(Base):
     stock: Mapped[str] = mapped_column(String(32), default="In Stock")  # In Stock, Low Stock, Pre-order
     warranty: Mapped[str] = mapped_column(String(64), default="2 oy kafolat")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    embedding: Mapped[list[float] | None] = mapped_column(Vector(settings.openai_embedding_dim), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 

@@ -11,6 +11,7 @@ import secrets
 import time
 from typing import Any, AsyncIterator
 
+from app.core.cache import BoundedTTLCache
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.models import ChannelPost
@@ -31,11 +32,13 @@ DEMO_TTL_SECONDS = 7200  # 2 hours
 _SESSION_PREFIX = "demo_sess:"
 _TG_CHAT_PREFIX = "demo_tg_chat:"
 _ALERT_PREFIX = "demo_alert_msg:"
+_MAX_SSE_SESSIONS = 2000
+_MAX_SSE_PER_SESSION = 20
 
-# In-process store/fallback + active SSE queues
-_DEMO_SESSIONS: dict[str, dict[str, Any]] = {}
-_TG_CHAT_MAP: dict[str, str] = {}
-_ALERT_MAP: dict[str, str] = {}
+# Bounded in-process store/fallback + active SSE queues
+_DEMO_SESSIONS: BoundedTTLCache[str, dict[str, Any]] = BoundedTTLCache(maxsize=1000, ttl_seconds=DEMO_TTL_SECONDS)
+_TG_CHAT_MAP: BoundedTTLCache[str, str] = BoundedTTLCache(maxsize=2000, ttl_seconds=DEMO_TTL_SECONDS)
+_ALERT_MAP: BoundedTTLCache[str, str] = BoundedTTLCache(maxsize=5000, ttl_seconds=DEMO_TTL_SECONDS)
 _SSE_SUBSCRIBERS: dict[str, set[tuple[asyncio.AbstractEventLoop, asyncio.Queue[dict[str, Any]]]]] = {}
 
 
@@ -168,7 +171,18 @@ async def subscribe_demo_events(session_id: str) -> AsyncIterator[str]:
     loop = asyncio.get_running_loop()
     queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue(maxsize=100)
     entry = (loop, queue)
-    _SSE_SUBSCRIBERS.setdefault(sid, set()).add(entry)
+    if sid not in _SSE_SUBSCRIBERS and len(_SSE_SUBSCRIBERS) >= _MAX_SSE_SESSIONS:
+        stale_keys = [k for k, subs in _SSE_SUBSCRIBERS.items() if not subs]
+        for k in stale_keys:
+            _SSE_SUBSCRIBERS.pop(k, None)
+        while len(_SSE_SUBSCRIBERS) >= _MAX_SSE_SESSIONS:
+            oldest_sid = next(iter(_SSE_SUBSCRIBERS))
+            _SSE_SUBSCRIBERS.pop(oldest_sid, None)
+    bucket = _SSE_SUBSCRIBERS.setdefault(sid, set())
+    if len(bucket) >= _MAX_SSE_PER_SESSION:
+        oldest_sub = next(iter(bucket))
+        bucket.discard(oldest_sub)
+    bucket.add(entry)
     try:
         yield f"event: connected\ndata: {json.dumps({'session_id': sid})}\n\n"
         while True:

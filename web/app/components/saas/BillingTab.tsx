@@ -64,6 +64,7 @@ interface BillingTabProps {
   onCancelSubscription: () => Promise<void>;
   onResumeSubscription: () => Promise<void>;
   initialPlan?: string | null;
+  initialBillingCycle?: "monthly" | "yearly" | null;
 }
 
 interface ResolvedTierCard {
@@ -133,6 +134,7 @@ export function BillingTab({
   onCancelSubscription,
   onResumeSubscription,
   initialPlan,
+  initialBillingCycle,
 }: BillingTabProps) {
   const normalizePlan = useCallback((p: string | null | undefined) => {
     if (!p) return "pro";
@@ -145,7 +147,9 @@ export function BillingTab({
   const [actionBusy, setActionBusy] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [selectedPlanForSub, setSelectedPlanForSub] = useState<string>(normalizePlan(initialPlan || subscription?.plan_code));
-  const [selectedCycleForSub, setSelectedCycleForSub] = useState<"monthly" | "yearly">("monthly");
+  const [selectedCycleForSub, setSelectedCycleForSub] = useState<"monthly" | "yearly">(
+    initialBillingCycle === "yearly" ? "yearly" : "monthly"
+  );
   const [renewalConsentChecked, setRenewalConsentChecked] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
@@ -157,6 +161,12 @@ export function BillingTab({
       setSelectedPlanForSub(normalizePlan(initialPlan));
     }
   }, [initialPlan, normalizePlan]);
+
+  useEffect(() => {
+    if (initialBillingCycle === "yearly" || initialBillingCycle === "monthly") {
+      setSelectedCycleForSub(initialBillingCycle);
+    }
+  }, [initialBillingCycle]);
 
   const loadInvoices = useCallback(async () => {
     setInvoicesLoading(true);

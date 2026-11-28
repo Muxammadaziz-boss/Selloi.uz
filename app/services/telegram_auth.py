@@ -2,16 +2,17 @@ import json
 import secrets
 import time
 from typing import Any
+from app.core.cache import BoundedTTLCache
 from app.core.logging import get_logger
 from app.services.telegram import telegram
 
 logger = get_logger(__name__)
 
-# In-process cache/fallback for Telegram auth & link sessions:
+# Bounded in-process cache/fallback for Telegram auth & link sessions:
 # code -> { status: "pending" | "verified" | "consumed", purpose: "login" | "link", user_id: int | None, created_at: float, user_data?: dict, consumed_at?: float }
-_AUTH_SESSIONS: dict[str, dict[str, Any]] = {}
-_CACHED_BOT_USERNAME: str | None = None
 SESSION_TTL_SECONDS = 600  # 10 minutes
+_AUTH_SESSIONS: BoundedTTLCache[str, dict[str, Any]] = BoundedTTLCache(maxsize=2000, ttl_seconds=SESSION_TTL_SECONDS)
+_CACHED_BOT_USERNAME: str | None = None
 _REDIS_KEY_PREFIX = "tg_auth_sess:"
 
 

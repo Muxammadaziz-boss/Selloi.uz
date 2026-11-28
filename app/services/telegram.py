@@ -1,7 +1,11 @@
 import asyncio
 from pathlib import Path
 import httpx
+from app.core.cache import BoundedTTLCache
 from app.core.config import settings
+
+
+_AVATAR_CACHE_MISS = object()
 
 
 class TelegramAPIError(RuntimeError):
@@ -17,6 +21,7 @@ class TelegramService:
         self.base_url = f"https://api.telegram.org/bot{token}"
         self._client: httpx.AsyncClient | None = None
         self._loop = None
+        self._avatar_cache: BoundedTTLCache[int, bytes | None] = BoundedTTLCache(maxsize=512, ttl_seconds=1800)
 
     def _get_client(self) -> httpx.AsyncClient:
         recreate = False
@@ -328,20 +333,17 @@ class TelegramService:
             await self.notify_admin(text)
 
     async def get_user_profile_photo_bytes(self, user_id: int) -> bytes | None:
-        import time
         if not hasattr(self, "_avatar_cache"):
-            self._avatar_cache = {}
-        now = time.time()
-        if user_id in self._avatar_cache:
-            ts, cached_data = self._avatar_cache[user_id]
-            if now - ts < 1800:
-                return cached_data
+            self._avatar_cache = BoundedTTLCache(maxsize=512, ttl_seconds=1800)
+        cached = self._avatar_cache.get(user_id, _AVATAR_CACHE_MISS)
+        if cached is not _AVATAR_CACHE_MISS:
+            return cached  # type: ignore[return-value]
 
         try:
             res = await self.call("getUserProfilePhotos", {"user_id": user_id, "limit": 1})
             photos = res.get("photos", [])
             if not photos or not photos[0]:
-                self._avatar_cache[user_id] = (now, None)
+                self._avatar_cache[user_id] = None
                 return None
             photo_size = photos[0][1] if len(photos[0]) > 1 else photos[0][0]
             file_id = photo_size["file_id"]
@@ -352,16 +354,16 @@ class TelegramService:
             response = await client.get(url)
             if response.status_code == 200:
                 data = response.content
-                self._avatar_cache[user_id] = (now, data)
+                self._avatar_cache[user_id] = data
                 return data
         except Exception:
             pass
 
-        self._avatar_cache[user_id] = (now, None)
+        self._avatar_cache[user_id] = None
         return None
 
 
-_services_cache: dict[str, TelegramService] = {}
+_services_cache: BoundedTTLCache[str, TelegramService] = BoundedTTLCache(maxsize=256, ttl_seconds=86400)
 
 
 def get_telegram_service(bot_token: str | None = None) -> TelegramService:
@@ -369,9 +371,11 @@ def get_telegram_service(bot_token: str | None = None) -> TelegramService:
     token = (bot_token or "").strip() or settings.telegram_bot_token
     if not token:
         raise TelegramAPIError("Telegram bot token sozlanmagan. Iltimos, tashkilot sozlamalarida bot tokenni kiriting.")
-    if token not in _services_cache:
-        _services_cache[token] = TelegramService(bot_token=token)
-    return _services_cache[token]
+    svc = _services_cache.get(token)
+    if svc is None:
+        svc = TelegramService(bot_token=token)
+        _services_cache[token] = svc
+    return svc  # type: ignore[return-value]
 
 
 # Global instance using the default token from settings (for backward-compatibility)

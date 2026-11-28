@@ -37,6 +37,7 @@ interface PricingTabProps {
   currentPlanCode?: string;
   onSelectPlan: (planCode: string, billingCycle: "monthly" | "yearly") => Promise<void>;
   loading?: boolean;
+  initialBillingCycle?: "monthly" | "yearly" | null;
 }
 
 export function PricingTab({
@@ -44,9 +45,18 @@ export function PricingTab({
   currentPlanCode = "pro",
   onSelectPlan,
   loading = false,
+  initialBillingCycle,
 }: PricingTabProps) {
   const { language } = useLanguage();
-  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">(
+    initialBillingCycle === "yearly" ? "yearly" : "monthly"
+  );
+
+  useEffect(() => {
+    if (initialBillingCycle === "yearly" || initialBillingCycle === "monthly") {
+      setBillingCycle(initialBillingCycle);
+    }
+  }, [initialBillingCycle]);
   const [currency, setCurrency] = useState<"USD" | "UZS">("UZS");
   const [busyPlanCode, setBusyPlanCode] = useState<string | null>(null);
 

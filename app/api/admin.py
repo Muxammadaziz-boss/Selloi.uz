@@ -980,6 +980,8 @@ async def create_product(
         warranty=payload.warranty,
         is_active=True,
     )
+    from app.services.knowledge import knowledge
+    await knowledge.populate_product_embedding(product)
     db.add(product)
     await db.commit()
     await db.refresh(product)
@@ -1122,6 +1124,9 @@ async def update_product(
         product.warranty = payload.warranty
     if payload.is_active is not None:
         product.is_active = payload.is_active
+
+    from app.services.knowledge import knowledge
+    await knowledge.populate_product_embedding(product)
 
     await db.commit()
     await db.refresh(product)

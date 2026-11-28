@@ -8,12 +8,13 @@ import threading
 import time
 import httpx
 
+from app.core.cache import BoundedTTLCache
 from app.core.config import settings
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
 
-_ALERT_COOLDOWN_MEM: dict[str, float] = {}
+_ALERT_COOLDOWN_MEM: BoundedTTLCache[str, float] = BoundedTTLCache(maxsize=1000)
 _ALERT_LOCK = threading.Lock()
 
 
@@ -50,7 +51,7 @@ def _should_send_alert(fingerprint: str, cooldown_seconds: int) -> bool:
             _ALERT_COOLDOWN_MEM.pop(k, None)
         if _ALERT_COOLDOWN_MEM.get(digest, 0.0) > now:
             return False
-        _ALERT_COOLDOWN_MEM[digest] = now + cooldown_seconds
+        _ALERT_COOLDOWN_MEM.set(digest, now + cooldown_seconds, ttl_seconds=cooldown_seconds)
         return True
 
 

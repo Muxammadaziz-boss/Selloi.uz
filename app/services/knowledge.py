@@ -3,12 +3,14 @@ import csv
 from datetime import datetime
 import io
 import json
+import os
 from pathlib import Path
 import re
 import secrets
+from typing import Any
 import zlib
 import httpx
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select, text as sa_text
 from sqlalchemy.ext.asyncio import AsyncSession
 from openai import AsyncOpenAI
 from app.core.config import settings
@@ -99,6 +101,89 @@ def chunk_text(text: str, max_chars: int = 1500, overlap: int = 200) -> list[str
             chunks.append(chunk)
         start = max(start + 1, break_pos - overlap)
     return chunks
+
+
+_TSQUERY_LEXEME_RE = re.compile(r"[0-9a-zA-Z\u0400-\u04FF_-]+")
+
+
+def build_fts_or_tsquery(tokens: list[str]) -> str:
+    """Compile expanded multilingual tokens into a safe PostgreSQL OR tsquery string."""
+    lexemes: list[str] = []
+    seen: set[str] = set()
+    for tok in tokens:
+        for part in _TSQUERY_LEXEME_RE.findall(tok or ""):
+            clean = part.strip("-_").lower()
+            if len(clean) >= 2 and clean not in seen:
+                seen.add(clean)
+                lexemes.append(f"{clean}:*")
+            if len(lexemes) >= 16:
+                return " | ".join(lexemes)
+    return " | ".join(lexemes)
+
+
+def fuse_hybrid_ranks(
+    vector_rows: list[Any],
+    fts_rows: list[Any],
+    token_scores: dict[int, int] | None = None,
+    *,
+    limit: int = 5,
+    rrf_k: int = 60,
+) -> list[Any]:
+    """Merge ranked candidate lists via Reciprocal Rank Fusion + lexical overlap bonus."""
+    scores: dict[int, float] = {}
+    by_id: dict[int, Any] = {}
+
+    for rank, row in enumerate(vector_rows, start=1):
+        rid = getattr(row, "id", None)
+        if rid is None:
+            continue
+        by_id[rid] = row
+        scores[rid] = scores.get(rid, 0.0) + (1.4 / (rrf_k + rank))
+
+    for rank, row in enumerate(fts_rows, start=1):
+        rid = getattr(row, "id", None)
+        if rid is None:
+            continue
+        by_id.setdefault(rid, row)
+        scores[rid] = scores.get(rid, 0.0) + (1.0 / (rrf_k + rank))
+
+    if token_scores:
+        for rid, hits in token_scores.items():
+            if rid in by_id and hits > 0:
+                scores[rid] = scores.get(rid, 0.0) + min(float(hits), 8.0) * 0.015
+
+    ranked_ids = sorted(scores.keys(), key=lambda rid: scores[rid], reverse=True)
+    return [by_id[rid] for rid in ranked_ids[:limit]]
+
+
+def _is_postgresql(db: AsyncSession) -> bool:
+    try:
+        bind = db.get_bind()
+    except Exception:
+        bind = getattr(db, "bind", None)
+    return bool(bind is not None and bind.dialect.name == "postgresql")
+
+
+def _pg_concat_space(*cols: Any) -> Any:
+    """Build `coalesce(c1, '') || ' ' || coalesce(c2, '') ...` matching PostgreSQL GIN index expressions."""
+    expr = func.coalesce(cols[0], "")
+    space = sa_text("' '")
+    for col in cols[1:]:
+        expr = expr.op("||")(space).op("||")(func.coalesce(col, ""))
+    return expr
+
+
+def product_embedding_text(product: Product) -> str:
+    return "\n".join(
+        part
+        for part in [
+            f"{product.name} ({product.code})" if product.code else product.name,
+            f"Kategoriya: {product.category}" if product.category else "",
+            f"Xususiyatlar: {product.specs}" if product.specs else "",
+            f"Narxi: {product.price}" if product.price else "",
+        ]
+        if part
+    ).strip()
 
 
 class KnowledgeService:
@@ -314,6 +399,22 @@ class KnowledgeService:
         await db.flush()
         return post
 
+    async def populate_product_embedding(self, product: Product) -> bool:
+        """Best-effort generate vector embedding for a catalog product outside test mode."""
+        if settings.is_testing or os.environ.get("PYTEST_CURRENT_TEST"):
+            return False
+        text_body = product_embedding_text(product)
+        if not text_body:
+            return False
+        try:
+            vec = await self.embed(text_body)
+            if vec:
+                product.embedding = vec
+                return True
+        except Exception:
+            logger.debug("Product embedding generation skipped for code=%s", getattr(product, "code", None))
+        return False
+
     async def search(self, db: AsyncSession, query: str, limit: int = 6, organization_id: int | None = None) -> list[ChannelPost]:
         vector = None
         try:
@@ -322,21 +423,45 @@ class KnowledgeService:
         except Exception:
             logger.exception("Qidiruv embedding yaratishda xatolik")
             vector = None
+
+        vector_rows: list[ChannelPost] = []
         if vector:
             distance = ChannelPost.embedding.cosine_distance(vector)
             stmt = select(ChannelPost).where(ChannelPost.embedding.is_not(None), distance < 0.62)
             if organization_id is not None:
                 stmt = stmt.where(ChannelPost.organization_id == organization_id)
-            stmt = stmt.order_by(distance).limit(limit)
-            rows = (await db.execute(stmt)).scalars().all()
-            if rows:
-                return list(rows)
-        # Fallback for unembedded posts or when the embedding API is unavailable.
+            stmt = stmt.order_by(distance).limit(max(limit * 3, limit))
+            vector_rows = list((await db.execute(stmt)).scalars().all())
+
+        fts_rows: list[ChannelPost] = []
         tokens = expand_search_tokens(query, max_tokens=16)
+        if _is_postgresql(db) and tokens:
+            tsquery_str = build_fts_or_tsquery(tokens)
+            if tsquery_str:
+                try:
+                    fts_vec = func.to_tsvector(
+                        sa_text("'simple'"),
+                        _pg_concat_space(ChannelPost.text, ChannelPost.image_description),
+                    )
+                    tsq = func.to_tsquery(sa_text("'simple'"), tsquery_str)
+                    fts_stmt = select(ChannelPost).where(fts_vec.op("@@")(tsq))
+                    if organization_id is not None:
+                        fts_stmt = fts_stmt.where(ChannelPost.organization_id == organization_id)
+                    fts_stmt = fts_stmt.order_by(func.ts_rank_cd(fts_vec, tsq).desc()).limit(max(limit * 3, limit))
+                    fts_rows = list((await db.execute(fts_stmt)).scalars().all())
+                except Exception:
+                    fts_rows = []
+
+        if vector_rows or fts_rows:
+            return fuse_hybrid_ranks(vector_rows, fts_rows, limit=limit)
+
+        # Fallback for unembedded posts or when neither vector nor FTS matched
         if not tokens:
             return []
+
         def _escape_like(t: str) -> str:
             return t.replace("%", "\\%").replace("_", "\\_")
+
         conditions = [
             ChannelPost.text.ilike(f"%{_escape_like(token)}%") | ChannelPost.image_description.ilike(f"%{_escape_like(token)}%")
             for token in tokens
@@ -354,27 +479,96 @@ class KnowledgeService:
         limit: int = 5,
         organization_id: int | None = None,
     ) -> list[Product]:
-        """Rank active structured Product catalog items matching query tokens for a tenant."""
+        """Hybrid vector + GIN FTS + Uzbek NLP ranking for active Product catalog items."""
         tokens = expand_search_tokens(query, max_tokens=16)
         if not tokens:
             return []
 
-        stmt = select(Product).where(Product.is_active == True)  # noqa: E712
-        if organization_id is not None:
-            stmt = stmt.where(Product.organization_id == organization_id)
-        rows = list((await db.execute(stmt.limit(1000))).scalars().all())
-        if not rows:
+        is_pg = _is_postgresql(db)
+        vector_rows: list[Product] = []
+        fts_rows: list[Product] = []
+        candidate_map: dict[int, Product] = {}
+
+        if is_pg:
+            # 1. PostgreSQL HNSW vector similarity when embedded products exist for tenant
+            emb_exists_stmt = select(Product.id).where(Product.is_active == True, Product.embedding.is_not(None))  # noqa: E712
+            if organization_id is not None:
+                emb_exists_stmt = emb_exists_stmt.where(Product.organization_id == organization_id)
+            has_embeddings = (await db.execute(emb_exists_stmt.limit(1))).scalar_one_or_none() is not None
+            if has_embeddings:
+                try:
+                    embed_input = build_normalized_query_text(query)
+                    vec = await self.embed(embed_input or query)
+                except Exception:
+                    vec = None
+                if vec:
+                    distance = Product.embedding.cosine_distance(vec)
+                    vec_stmt = select(Product).where(
+                        Product.is_active == True,  # noqa: E712
+                        Product.embedding.is_not(None),
+                        distance < 0.62,
+                    )
+                    if organization_id is not None:
+                        vec_stmt = vec_stmt.where(Product.organization_id == organization_id)
+                    vec_stmt = vec_stmt.order_by(distance).limit(max(limit * 3, 15))
+                    vector_rows = list((await db.execute(vec_stmt)).scalars().all())
+                    for p in vector_rows:
+                        candidate_map[p.id] = p
+
+            # 2. PostgreSQL GIN full-text index search across expanded Latin/Cyrillic/slang lexemes
+            tsquery_str = build_fts_or_tsquery(tokens)
+            if tsquery_str:
+                try:
+                    fts_vec = func.to_tsvector(
+                        sa_text("'simple'"),
+                        _pg_concat_space(Product.name, Product.category, Product.specs, Product.code),
+                    )
+                    tsq = func.to_tsquery(sa_text("'simple'"), tsquery_str)
+                    fts_stmt = select(Product).where(Product.is_active == True, fts_vec.op("@@")(tsq))  # noqa: E712
+                    if organization_id is not None:
+                        fts_stmt = fts_stmt.where(Product.organization_id == organization_id)
+                    fts_stmt = fts_stmt.order_by(func.ts_rank_cd(fts_vec, tsq).desc()).limit(max(limit * 4, 20))
+                    fts_rows = list((await db.execute(fts_stmt)).scalars().all())
+                    for p in fts_rows:
+                        candidate_map[p.id] = p
+                except Exception:
+                    fts_rows = []
+
+        # 3. Lexical / normalized fallback for SQLite or substring/partial SKUs when hybrid pool is sparse
+        if len(candidate_map) < limit:
+            stmt = select(Product).where(Product.is_active == True)  # noqa: E712
+            if organization_id is not None:
+                stmt = stmt.where(Product.organization_id == organization_id)
+            rows = list((await db.execute(stmt.limit(1000))).scalars().all())
+            for p in rows:
+                candidate_map.setdefault(p.id, p)
+
+        if not candidate_map:
             return []
 
-        scored: list[tuple[int, Product]] = []
-        for prod in rows:
+        token_scores: dict[int, int] = {}
+        for pid, prod in candidate_map.items():
             raw_haystack = f"{prod.name} {prod.category} {prod.specs} {prod.code}".lower()
             norm_haystack = normalize_for_matching(raw_haystack)
             combined_haystack = f"{raw_haystack} {norm_haystack}"
             hits = sum(1 for tok in tokens if tok in combined_haystack)
             if hits > 0:
-                scored.append((hits, prod))
+                token_scores[pid] = hits
 
+        if vector_rows or fts_rows:
+            # Ensure lexical matches not in vector/fts also enter FTS fallback scoring if needed
+            extra_rows = [
+                candidate_map[pid]
+                for pid, hits in sorted(token_scores.items(), key=lambda x: x[1], reverse=True)
+                if hits > 0 and all(r.id != pid for r in vector_rows) and all(r.id != pid for r in fts_rows)
+            ]
+            return fuse_hybrid_ranks(vector_rows, [*fts_rows, *extra_rows], token_scores=token_scores, limit=limit)
+
+        scored = [
+            (hits, candidate_map[pid])
+            for pid, hits in token_scores.items()
+            if hits > 0
+        ]
         scored.sort(key=lambda item: item[0], reverse=True)
         return [item[1] for item in scored[:limit]]
 

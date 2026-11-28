@@ -439,6 +439,7 @@ function DashboardContent({
   initialTenantSlug,
   initialTab,
   initialPlan,
+  initialBillingCycle,
 }: DashboardProps) {
   const { language, setLanguage, t } = useLanguage();
   const permissionLabels = language === "uz" ? PERMISSION_LABELS_UZ : PERMISSION_LABELS_EN;
@@ -609,11 +610,22 @@ function DashboardContent({
     }
   }, [infoToast]);
 
+  const [selectedBillingCycle, setSelectedBillingCycle] = useState<"monthly" | "yearly" | undefined>(
+    initialBillingCycle
+  );
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
     const statusParam = params.get("status");
     const planParam = params.get("plan") || initialPlan;
+    const rawCycle = params.get("cycle")?.toLowerCase().trim();
+    const cycleParam: "monthly" | "yearly" | undefined =
+      rawCycle === "yearly" ? "yearly" : rawCycle === "monthly" ? "monthly" : initialBillingCycle;
+
+    if (cycleParam) {
+      setSelectedBillingCycle(cycleParam);
+    }
 
     if (statusParam === "promo_success") {
       setSuccess("7 kunlik Mega Chegirma to'lovi muvaffaqiyatli qabul qilindi va faollashtirildi!");
@@ -631,7 +643,7 @@ function DashboardContent({
         setTab("billing");
       }
     }
-  }, [initialPlan]);
+  }, [initialPlan, initialBillingCycle]);
   const [authenticated, setAuthenticated] = useState(initialAuthenticated);
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
@@ -2268,6 +2280,7 @@ function DashboardContent({
                 onCancelSubscription={handleCancelSubscription}
                 onResumeSubscription={handleResumeSubscription}
                 initialPlan={initialPlan}
+                initialBillingCycle={selectedBillingCycle || initialBillingCycle}
               />
             )}
 
@@ -2277,6 +2290,7 @@ function DashboardContent({
                 currentPlanCode={subscriptionData?.plan_code || subscriptionData?.plan?.code || "start"}
                 onSelectPlan={handleUpgradePlan}
                 loading={busy}
+                initialBillingCycle={selectedBillingCycle || initialBillingCycle}
               />
             )}
           </>

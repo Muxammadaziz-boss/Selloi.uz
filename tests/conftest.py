@@ -33,6 +33,11 @@ async def _setup_test_schema():
                 "ALTER TABLE store_payment_configs ADD COLUMN IF NOT EXISTS payme_secret_key TEXT",
                 "ALTER TABLE store_order_payments ADD COLUMN IF NOT EXISTS provider_transaction_id VARCHAR(128)",
                 "ALTER TABLE store_order_payments ADD COLUMN IF NOT EXISTS payment_meta JSONB DEFAULT '{}'::jsonb",
+                "ALTER TABLE products ADD COLUMN IF NOT EXISTS embedding vector(1536)",
+                "CREATE INDEX IF NOT EXISTS ix_products_embedding_hnsw ON products USING hnsw (embedding vector_cosine_ops) WITH (m = 16, ef_construction = 64)",
+                "CREATE INDEX IF NOT EXISTS ix_products_fts ON products USING gin (to_tsvector('simple', coalesce(name, '') || ' ' || coalesce(category, '') || ' ' || coalesce(specs, '') || ' ' || coalesce(code, '')))",
+                "CREATE INDEX IF NOT EXISTS ix_channel_posts_embedding_hnsw ON channel_posts USING hnsw (embedding vector_cosine_ops) WITH (m = 16, ef_construction = 64)",
+                "CREATE INDEX IF NOT EXISTS ix_channel_posts_fts ON channel_posts USING gin (to_tsvector('simple', coalesce(text, '') || ' ' || coalesce(image_description, '')))",
             ]
             for stmt in migrations:
                 try:

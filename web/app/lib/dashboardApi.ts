@@ -135,6 +135,7 @@ export interface DashboardProps {
   initialTenantSlug?: string;
   initialTab?: DashboardTabId;
   initialPlan?: string;
+  initialBillingCycle?: "monthly" | "yearly";
 }
 
 export interface PendingConfirmState {

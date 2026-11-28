@@ -6,13 +6,14 @@ import threading
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.cache import BoundedTTLCache
 from app.core.logging import get_logger
 from app.models import BusinessConnection, Conversation, Organization
 
 logger = get_logger(__name__)
 
 _SHARED_SHOP_TTL_SECONDS = 86400 * 30
-_SHARED_SHOP_MEM: dict[int, int] = {}
+_SHARED_SHOP_MEM: BoundedTTLCache[int, int] = BoundedTTLCache(maxsize=5000, ttl_seconds=_SHARED_SHOP_TTL_SECONDS)
 _SHARED_SHOP_LOCK = threading.Lock()
 
 
