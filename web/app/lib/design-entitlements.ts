@@ -3,8 +3,8 @@
  *
  * Enforces subscription-based access to the 3 independent design systems:
  * - PREMIUM: Available exclusively on ULTRA (and Platform Owner).
- * - IOS: Available on PRO and ULTRA.
- * - CLASSIC: Available on all plans (START / STANDARD, PRO, ULTRA).
+ * - IOS: Available on PRO (and legacy STANDARD/STANDART aliases) and ULTRA.
+ * - CLASSIC: Available on all plans (START, PRO/STANDARD, ULTRA).
  *
  * Backend plan entitlement is authoritative: never trust client-only or spoofed storage.
  * While subscription is loading, unknown, or in error, elevated designs are NEVER authorized;
@@ -51,7 +51,7 @@ export const DESIGN_DEFINITIONS: Record<DesignId, DesignMetadata> = {
     description: "Klassik professional korporativ boshqaruv paneli va ixcham jadvallar.",
     minPlan: "start",
     minPlanLabel: "Barcha Tariflar",
-    allowedPlans: ["start", "standard", "pro", "ultra"],
+    allowedPlans: ["start", "pro", "ultra"],
   },
 };
 

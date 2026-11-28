@@ -724,14 +724,14 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  color: #55555C;
-  font-size: 0.74rem;
+  color: #A1A1AA;
+  font-size: 0.76rem;
   margin-top: 24px;
   user-select: none;
 }
 
 .selloi-auth-security-badge svg {
-  color: #71717A;
+  color: #22C55E;
 }
 
 /* Telegram Modal */

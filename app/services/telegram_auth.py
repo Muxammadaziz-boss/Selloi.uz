@@ -103,15 +103,16 @@ def _prune_expired() -> None:
 
 async def get_bot_username() -> str:
     global _CACHED_BOT_USERNAME
-    if _CACHED_BOT_USERNAME:
+    if isinstance(_CACHED_BOT_USERNAME, str) and _CACHED_BOT_USERNAME.strip():
         return _CACHED_BOT_USERNAME
     try:
         if telegram:
             me = await telegram.call("getMe", {})
-            username = me.get("username")
-            if username:
-                _CACHED_BOT_USERNAME = username
-                return username
+            if isinstance(me, dict):
+                username = me.get("username")
+                if isinstance(username, str) and username.strip():
+                    _CACHED_BOT_USERNAME = username.strip()
+                    return _CACHED_BOT_USERNAME
     except Exception as e:
         logger.warning("Could not fetch bot username via getMe: %s", e)
     return "Selloi_ai_bot"

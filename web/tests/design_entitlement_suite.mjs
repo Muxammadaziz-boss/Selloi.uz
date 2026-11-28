@@ -42,7 +42,8 @@ console.log("=================================================================="
 // --- 1. PLAN NORMALIZATION ---
 assert(normalizePlanCode("ULTRA") === "ultra", "normalize_ultra_uppercase");
 assert(normalizePlanCode("pro") === "pro", "normalize_pro_lowercase");
-assert(normalizePlanCode("standard") === "start", "normalize_standard_alias_to_start");
+assert(normalizePlanCode("standard") === "pro", "normalize_standard_alias_to_pro");
+assert(normalizePlanCode("standart") === "pro", "normalize_standart_alias_to_pro");
 assert(normalizePlanCode("START") === "start", "normalize_start_uppercase");
 assert(normalizePlanCode(null) === "start", "normalize_null_to_start");
 assert(normalizePlanCode("") === "start", "normalize_empty_to_start");
@@ -72,9 +73,9 @@ assert(validateDesignSelection("premium", "start") === "classic", "start_select_
 assert(validateDesignSelection("ios", "start") === "classic", "start_select_ios_falls_back_to_classic");
 assert(validateDesignSelection("classic", "start") === "classic", "start_select_classic_valid");
 
-// STANDARD alias
+// STANDARD / STANDART alias (legacy mid-tier mapped to PRO)
 assert(canUseDesign("standard", "premium") === false, "standard_premium_blocked");
-assert(canUseDesign("standard", "ios") === false, "standard_ios_blocked");
+assert(canUseDesign("standard", "ios") === true, "standard_ios_allowed");
 assert(canUseDesign("standard", "classic") === true, "standard_classic_allowed");
 
 // --- 3. SUBSCRIPTION LOADING STATE (No Elevated Design Flash) ---

@@ -463,7 +463,7 @@
 .selloi-hero-btn-wrap {
   display: inline-block;
   max-width: 100%;
-  animation: selloi-fade-in-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both;
+  animation: selloi-fade-in-up 0.45s cubic-bezier(0.16, 1, 0.3, 1) 0.05s both;
 }
 
 .selloi-hero-btn {
@@ -497,7 +497,7 @@
   width: 873px;
   height: 470px;
   z-index: 5;
-  animation: selloi-mockup-entrance 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.35s both;
+  animation: selloi-mockup-entrance 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.08s both;
 }
 
 @keyframes selloi-mockup-entrance {
@@ -2791,7 +2791,7 @@
 }
 
 /* Responsive Pricing Rules */
-@media (max-width: 1200px) {
+@media (max-width: 960px) {
   .selloi-pricing-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 20px;
@@ -4888,7 +4888,7 @@
 .sdemo-send-btn > *,
 .sdemo-quick-chip > * {
   position: relative;
-  z-index: 2;
+  z-index: 4;
 }
 
 .sdemo-bot-connect::before,
@@ -4916,8 +4916,7 @@
 .sdemo-btn-order::after,
 .sdemo-btn-ghost::after,
 .sdemo-order-submit::after,
-.sdemo-send-btn::after,
-.sdemo-quick-chip::after {
+.sdemo-send-btn::after {
   content: "";
   position: absolute;
   top: -55%;
@@ -4945,8 +4944,12 @@
   transform: translate3d(-85%, 0, 0) skewX(-25deg);
   pointer-events: none;
   opacity: 0;
-  z-index: 3;
+  z-index: 2;
   will-change: transform, opacity;
+}
+
+.sdemo-quick-chip::after {
+  display: none;
 }
 
 .sdemo-bot-connect:hover,
@@ -4998,10 +5001,17 @@
 
 @media (max-width: 760px) {
   .sdemo-section { padding: 56px 14px 44px; }
-  .sdemo-shell { height: 590px; border-radius: 16px; }
-  .sdemo-sidebar { display: none; }
+  .sdemo-shell { height: 610px; border-radius: 16px; }
+  .sdemo-topbar { flex-wrap: wrap; gap: 8px; padding: 10px 12px; }
+  .sdemo-topbar-left { flex: 1 1 auto; }
+  .sdemo-topbar-right { margin-left: auto; flex-shrink: 0; }
   .sdemo-topbar-brand { display: none; }
-  .sdemo-mobile-tabs { display: flex; }
+  .sdemo-mobile-tabs { display: flex; flex-wrap: wrap; }
+  .sdemo-mobile-tab { padding: 5px 9px; font-size: 11.5px; white-space: nowrap; }
+  .sdemo-bot-connect { font-size: 11px; padding: 4px 10px; }
+  .sdemo-quick-row { flex-wrap: wrap; overflow-x: visible; gap: 6px; padding: 8px 12px 4px; }
+  .sdemo-quick-chip { white-space: normal; text-align: left; }
+  .sdemo-sidebar { display: none; }
   .sdemo-order-fields { grid-template-columns: 1fr 1fr; }
   .sdemo-field-addr,
   .sdemo-order-submit { grid-column: 1 / -1; }

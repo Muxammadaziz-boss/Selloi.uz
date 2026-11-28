@@ -631,13 +631,6 @@ class TezCheckService:
         - allowed_provider_codes: Optional list of provider codes to restrict payment methods (e.g. ['test_provider'])
         - idempotency_key: Idempotency-Key header value for retry deduplication
         """
-        if not self.cash_desk_code:
-            raise TezCheckAPIError(
-                code="TEZCHECK_CASH_DESK_MISSING",
-                message="TezCheck kassasi bilan bog‘lanishni tekshiring (cash_desk_code sozlanmagan).",
-                status_code=400,
-            )
-
         if getattr(settings, "is_production", False) and not (self.api_key and self.secret_key):
             raise TezCheckAPIError(
                 code="TEZCHECK_AUTH_FAILED",
@@ -666,6 +659,13 @@ class TezCheckService:
                 "mode": "mock",
                 "created_at": datetime.now(timezone.utc).isoformat(),
             }
+
+        if not self.cash_desk_code:
+            raise TezCheckAPIError(
+                code="TEZCHECK_CASH_DESK_MISSING",
+                message="TezCheck kassasi bilan bog‘lanishni tekshiring (cash_desk_code sozlanmagan).",
+                status_code=400,
+            )
 
         payload: Dict[str, Any] = {
             "amount_minor": amount,

@@ -140,7 +140,7 @@ const TRANSLATIONS: Record<Language, TranslationText> = {
     termsAgreement: "Ro'yxatdan o'tish orqali siz Selloi",
     termsLink: "Foydalanish shartlariga rozilik bildirasiz.",
     backToHome: "Bosh sahifa",
-    sslSecure: "🔒 Ma’lumotlaringiz xavfsiz himoyalangan",
+    sslSecure: "Ma’lumotlaringiz xavfsiz himoyalangan",
     telegramModalTitle: "Telegram orqali xavfsiz kirish",
     telegramModalDesc: "Telegram hisobingiz orqali tizimga kirish uchun @Selloi_ai_bot botimizni oching va pastdagi 'Boshlash' (/start) tugmasini bosing:",
     telegramOpenBot: "@Selloi_ai_bot da tasdiqlash",
@@ -210,7 +210,7 @@ const TRANSLATIONS: Record<Language, TranslationText> = {
     termsAgreement: "Регистрируясь, вы принимаете",
     termsLink: "Условия использования Selloi.",
     backToHome: "На главную",
-    sslSecure: "🔒 Ваши данные надёжно защищены",
+    sslSecure: "Ваши данные надёжно защищены",
     telegramModalTitle: "Безопасный вход через Telegram",
     telegramModalDesc: "Чтобы войти через свой аккаунт Telegram, откройте нашего бота @Selloi_ai_bot и нажмите кнопку «Запустить» (/start):",
     telegramOpenBot: "Подтвердить в @Selloi_ai_bot",
@@ -280,7 +280,7 @@ const TRANSLATIONS: Record<Language, TranslationText> = {
     termsAgreement: "By signing up you agree to Selloi's",
     termsLink: "Terms of Service and Privacy Policy.",
     backToHome: "Back to Home",
-    sslSecure: "🔒 Your data is fully encrypted & secure",
+    sslSecure: "Your data is fully encrypted & secure",
     telegramModalTitle: "Secure Telegram Login",
     telegramModalDesc: "To sign in with your Telegram account, open our bot @Selloi_ai_bot and tap 'Start':",
     telegramOpenBot: "Confirm in @Selloi_ai_bot",
@@ -1707,7 +1707,7 @@ export default function LoginPageClient({
             </div>
 
             <p className="selloi-terms-text">
-              {t.termsAgreement} <a href="#terms">{t.termsLink}</a>
+              {t.termsAgreement} <Link href="/terms" target="_blank" rel="noopener noreferrer">{t.termsLink}</Link>
             </p>
 
             <button

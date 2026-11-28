@@ -158,7 +158,7 @@ export default function Header({
         `[data-nav-id="${targetNavId}"]`
       ) as HTMLElement | null;
 
-      if (activeEl) {
+      if (activeEl && activeEl.offsetWidth > 0) {
         setPillStyle({
           left: activeEl.offsetLeft,
           width: activeEl.offsetWidth,
@@ -167,13 +167,23 @@ export default function Header({
       }
     };
 
+    const schedulePillUpdate = () => {
+      requestAnimationFrame(updatePill);
+    };
+
     updatePill();
     const raf = requestAnimationFrame(updatePill);
-    window.addEventListener("resize", updatePill);
+    window.addEventListener("resize", schedulePillUpdate);
+    let observer: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined" && navRef.current) {
+      observer = new ResizeObserver(schedulePillUpdate);
+      observer.observe(navRef.current);
+    }
 
     return () => {
       cancelAnimationFrame(raf);
-      window.removeEventListener("resize", updatePill);
+      window.removeEventListener("resize", schedulePillUpdate);
+      observer?.disconnect();
     };
   }, [activeSection, hoveredNavId, language, t]);
 

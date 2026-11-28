@@ -437,7 +437,8 @@ export function ConversationDemoSection({ language = "uz" }: { language?: Langua
           : language === "en"
           ? "Hello. Ask about any laptop, PC, or monitor in our 100-item catalog — I will match options live and trigger an instant @Selloi_ai_bot confirmation if you order."
           : "Assalomu alaykum. TechZone katalogidan qaysi noutbuk, kompyuter yoki monitor kerakligini yozing — mos variantlarni tanlab beraman.\n\nSinov chog'ida buyurtma bersangiz, @Selloi_ai_bot shu yerda tasdiq javobini yuboradi.",
-      ts: nowTime(),
+      // Use deterministic SSR-safe timestamp; client mount updates to local clock cleanly
+      ts: "10:00",
     },
   ]);
 
@@ -488,6 +489,11 @@ export function ConversationDemoSection({ language = "uz" }: { language?: Langua
   // Initialize or resume real-time backend session
   useEffect(() => {
     let cancelled = false;
+    setMessages((prev) =>
+      prev.length === 1 && prev[0]?.id === "msg_welcome"
+        ? [{ ...prev[0], ts: nowTime() }]
+        : prev
+    );
     const savedSid = typeof window !== "undefined" ? sessionStorage.getItem("selloi_demo_sid") : null;
 
     fetch("/api/demo/session", {
@@ -1049,7 +1055,7 @@ export function ConversationDemoSection({ language = "uz" }: { language?: Langua
                       disabled={sending}
                       onClick={() => sendMessage(prompt)}
                     >
-                      {prompt}
+                      <span>{prompt}</span>
                     </button>
                   ))}
                 </div>

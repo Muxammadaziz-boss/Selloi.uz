@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import TermsClient from "./TermsClient";
 
 export const metadata: Metadata = {
-  title: "Foydalanish shartlari (Terms of Service) | Selloi.uz",
+  title: "Foydalanish shartlari (Terms of Service)",
   description:
     "Selloi.uz platformasidan foydalanish bo'yicha rasmiy shartlar va qoidalar. Telegram AI sotuvchi xizmatlarining huquqiy asosi.",
   alternates: {
