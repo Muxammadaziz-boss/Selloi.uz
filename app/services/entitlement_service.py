@@ -265,6 +265,56 @@ async def get_all_entitlements(db: AsyncSession, organization_id: int) -> dict:
     }
 
 
+_CUSTOM_BOT_PLANS = {"pro", "standard", "standart", "ultra"}
+_USER_CHAT_PLANS = {"ultra"}
+
+
+async def require_custom_telegram_bot_access(
+    db: AsyncSession,
+    organization_id: int,
+    *,
+    is_platform_owner: bool = False,
+) -> None:
+    """Ensure the organization's plan allows connecting a dedicated Telegram BotFather token."""
+    if is_platform_owner:
+        return
+    _org, plan, _sub = await get_organization_plan_and_subscription(db, organization_id)
+    plan_code = (plan.code if plan else "start").strip().lower()
+    if plan_code not in _CUSTOM_BOT_PLANS:
+        raise FeatureNotAvailableException(
+            feature_key="custom_telegram_bot",
+            required_plan="pro",
+            current_plan=plan_code,
+            custom_message=(
+                "Shaxsiy Telegram bot ulash faqat PRO va ULTRA tariflarida mavjud. "
+                "START tarifida universal @Selloi_ai_bot ishlaydi."
+            ),
+        )
+
+
+async def require_telegram_user_chat_access(
+    db: AsyncSession,
+    organization_id: int,
+    *,
+    is_platform_owner: bool = False,
+) -> None:
+    """Ensure the organization's plan allows Telegram User Chat (MTProto) integration."""
+    if is_platform_owner:
+        return
+    _org, plan, _sub = await get_organization_plan_and_subscription(db, organization_id)
+    plan_code = (plan.code if plan else "start").strip().lower()
+    if plan_code not in _USER_CHAT_PLANS:
+        raise FeatureNotAvailableException(
+            feature_key="telegram_user_chat",
+            required_plan="ultra",
+            current_plan=plan_code,
+            custom_message=(
+                "To'g'ridan-to'g'ri Telegram User Chat (MTProto) funksiyasi "
+                "faqat ULTRA tarifida mavjud."
+            ),
+        )
+
+
 class EntitlementService:
     @staticmethod
     async def has_feature(db: AsyncSession, organization_id: int, feature_key: str) -> bool:
@@ -273,6 +323,28 @@ class EntitlementService:
     @staticmethod
     async def require_feature(db: AsyncSession, organization_id: int, feature_key: str) -> bool:
         return await require_feature(db, organization_id, feature_key)
+
+    @staticmethod
+    async def require_custom_telegram_bot_access(
+        db: AsyncSession,
+        organization_id: int,
+        *,
+        is_platform_owner: bool = False,
+    ) -> None:
+        await require_custom_telegram_bot_access(
+            db, organization_id, is_platform_owner=is_platform_owner
+        )
+
+    @staticmethod
+    async def require_telegram_user_chat_access(
+        db: AsyncSession,
+        organization_id: int,
+        *,
+        is_platform_owner: bool = False,
+    ) -> None:
+        await require_telegram_user_chat_access(
+            db, organization_id, is_platform_owner=is_platform_owner
+        )
 
     @staticmethod
     async def get_all_entitlements(db: AsyncSession, organization_id: int) -> dict:

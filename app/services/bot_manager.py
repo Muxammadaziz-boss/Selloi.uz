@@ -12,9 +12,13 @@ from app.core.config import settings
 from app.core.db import SessionLocal
 from app.core.logging import get_logger
 from app.models import Organization
+from app.services.distributed_lock import release_lock, try_acquire_lock
 from app.services.telegram import get_telegram_service, TelegramService
 
 logger = get_logger(__name__)
+
+_BOT_MANAGER_LOCK_NAME = "bot_manager_leader"
+_BOT_MANAGER_LOCK_TTL = 150
 
 
 class TenantBotManager:
@@ -24,6 +28,7 @@ class TenantBotManager:
         self._tasks: Dict[int, asyncio.Task] = {}
         self._invalid_org_ids: set[int] = set()
         self._running = False
+        self._is_leader = False
 
     async def start(self) -> None:
         """Start monitoring and polling for all active organizations with configured bots."""
@@ -31,20 +36,41 @@ class TenantBotManager:
         logger.info("TenantBotManager ishga tushmoqda...")
         asyncio.create_task(self._supervision_loop())
 
-    async def stop(self) -> None:
-        """Gracefully cancel all running bot polling tasks."""
-        self._running = False
+    async def _stop_all_tasks(self) -> None:
+        """Cancel all running per-organization bot polling tasks."""
         for _org_id, task in list(self._tasks.items()):
             task.cancel()
         self._tasks.clear()
+
+    async def stop(self) -> None:
+        """Gracefully cancel all running bot polling tasks and release leadership."""
+        self._running = False
+        await self._stop_all_tasks()
         self._invalid_org_ids.clear()
+        if self._is_leader:
+            release_lock(_BOT_MANAGER_LOCK_NAME)
+            self._is_leader = False
         logger.info("TenantBotManager to'xtatildi")
 
     async def _supervision_loop(self) -> None:
-        """Periodic supervision loop to discover new tenant bots and restart failed workers."""
+        """Periodic supervision loop using a distributed leader lease across API workers."""
         while self._running:
             try:
-                await self._refresh_workers()
+                acquired, _owner = try_acquire_lock(
+                    _BOT_MANAGER_LOCK_NAME,
+                    ttl_seconds=_BOT_MANAGER_LOCK_TTL,
+                    renew=True,
+                )
+                if acquired:
+                    if not self._is_leader:
+                        logger.info("TenantBotManager liderligi olindi (polling faol)")
+                    self._is_leader = True
+                    await self._refresh_workers()
+                else:
+                    if self._is_leader:
+                        logger.info("TenantBotManager liderligi boshqa workerga o'tdi")
+                        await self._stop_all_tasks()
+                    self._is_leader = False
             except Exception as exc:
                 logger.warning("Bot supervision loop xatoligi: %s", exc)
             await asyncio.sleep(60)
@@ -86,6 +112,15 @@ class TenantBotManager:
         if org_id in self._tasks:
             self._tasks[org_id].cancel()
             del self._tasks[org_id]
+        acquired, _owner = try_acquire_lock(
+            _BOT_MANAGER_LOCK_NAME,
+            ttl_seconds=_BOT_MANAGER_LOCK_TTL,
+            renew=True,
+        )
+        if not acquired:
+            self._is_leader = False
+            return
+        self._is_leader = True
         async with SessionLocal() as db:
             org = await db.get(Organization, org_id)
             if org and org.status == "active":

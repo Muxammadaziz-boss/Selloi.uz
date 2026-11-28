@@ -14,13 +14,42 @@ import app.core.db as core_db
 from app.core.config import settings
 from app.core.security import hash_password
 from app.dependencies.auth import create_access_token
-from app.models import ConnectedChannel, Organization, OrganizationMember, Subscription, User
+from app.models import ConnectedChannel, Organization, OrganizationMember, Plan, Subscription, User
 
 test_engine = create_async_engine(settings.database_url, poolclass=NullPool)
 core_db.engine = test_engine
 core_db.SessionLocal = async_sessionmaker(bind=test_engine, class_=AsyncSession, expire_on_commit=False)
 
 from app.main import app
+
+
+async def _attach_plan(session: AsyncSession, org_id: int, plan_code: str = "pro") -> None:
+    """Attach an active subscription for plan-gated onboarding tests."""
+    plan = (await session.execute(select(Plan).where(Plan.code == plan_code))).scalar_one_or_none()
+    if plan is None:
+        plan = Plan(
+            code=plan_code,
+            name=plan_code.upper(),
+            description=f"{plan_code.upper()} test plan",
+            price_monthly=59,
+            price_yearly=590,
+            currency="USD",
+            features={},
+            limits={},
+            is_active=True,
+        )
+        session.add(plan)
+        await session.flush()
+    session.add(
+        Subscription(
+            organization_id=org_id,
+            plan_id=plan.id,
+            status="subscription_active",
+            billing_cycle="monthly",
+            provider="mock",
+        )
+    )
+    await session.commit()
 
 
 # ===========================================================================
@@ -222,6 +251,7 @@ async def test_update_current_organization_settings_and_bot_token():
         )
         session.add(member)
         await session.commit()
+        await _attach_plan(session, org.id, "pro")
 
         token = create_access_token(user.id, user.email)
         headers = {
@@ -300,6 +330,7 @@ async def test_set_webhook_and_status_endpoints():
         )
         session.add(member)
         await session.commit()
+        await _attach_plan(session, org.id, "pro")
 
         # Update bot token on org
         from app.core.security import encrypt_secret

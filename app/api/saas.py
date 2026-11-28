@@ -602,6 +602,11 @@ async def set_org_webhook_endpoint(
     org = await db.get(Organization, org_id)
     if not org:
         raise HTTPException(status_code=404, detail="Tashkilot topilmadi")
+    await entitlement_service.require_custom_telegram_bot_access(
+        db,
+        org_id,
+        is_platform_owner=bool(getattr(admin, "_is_platform_owner", False)),
+    )
     if not org.decrypted_bot_token:
         raise HTTPException(status_code=400, detail="Tashkilotda bot token mavjud emas")
     if not org.webhook_secret:
@@ -676,6 +681,29 @@ async def update_current_organization(
     org = await db.get(Organization, org_id)
     if not org:
         raise HTTPException(status_code=404, detail="Tashkilot topilmadi")
+
+    is_plat_owner = bool(getattr(admin, "_is_platform_owner", False))
+    setting_bot_token = req.telegram_bot_token is not None and bool(req.telegram_bot_token.strip())
+    if setting_bot_token:
+        await entitlement_service.require_custom_telegram_bot_access(
+            db, org_id, is_platform_owner=is_plat_owner
+        )
+
+    enabling_api_id = (
+        req.telegram_api_id is not None
+        and bool(req.telegram_api_id)
+        and req.telegram_api_id != org.telegram_api_id
+    )
+    enabling_api_hash = req.telegram_api_hash is not None and bool(req.telegram_api_hash.strip())
+    enabling_phone = (
+        req.telegram_phone is not None
+        and bool(req.telegram_phone.strip())
+        and req.telegram_phone.strip() != (org.telegram_phone or "")
+    )
+    if enabling_api_id or enabling_api_hash or enabling_phone:
+        await entitlement_service.require_telegram_user_chat_access(
+            db, org_id, is_platform_owner=is_plat_owner
+        )
 
     if req.name is not None:
         org.name = req.name.strip()

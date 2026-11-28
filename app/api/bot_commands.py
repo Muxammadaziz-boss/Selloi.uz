@@ -20,6 +20,8 @@ Callback queries:
     admin:setrole:<uid>:<role>  — set role
 """
 
+import json
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -31,9 +33,51 @@ from app.services.telegram import telegram
 
 logger = get_logger(__name__)
 
-# Temporary in-memory state for multi-step wizards (per owner chat).
-# Key: telegram_user_id, Value: wizard state dict.
+# Temporary state for multi-step wizards (per owner chat), backed by Redis for
+# multi-worker consistency with an in-memory fallback when Redis is unavailable.
 _wizard_state: dict[int, dict] = {}
+_WIZARD_TTL_SECONDS = 600
+
+
+def _wizard_redis_client():
+    try:
+        from app.core.rate_limit import limiter
+
+        return limiter._get_redis()
+    except Exception:
+        return None
+
+
+def _get_wizard_state(user_id: int) -> dict | None:
+    client = _wizard_redis_client()
+    if client is not None:
+        try:
+            raw = client.get(f"selloi:wizard:{user_id}")
+            if raw:
+                return json.loads(raw)
+        except Exception:
+            pass
+    return _wizard_state.get(user_id)
+
+
+def _set_wizard_state(user_id: int, state: dict) -> None:
+    _wizard_state[user_id] = state
+    client = _wizard_redis_client()
+    if client is not None:
+        try:
+            client.set(f"selloi:wizard:{user_id}", json.dumps(state), ex=_WIZARD_TTL_SECONDS)
+        except Exception:
+            pass
+
+
+def _pop_wizard_state(user_id: int) -> dict | None:
+    client = _wizard_redis_client()
+    if client is not None:
+        try:
+            client.delete(f"selloi:wizard:{user_id}")
+        except Exception:
+            pass
+    return _wizard_state.pop(user_id, None)
 
 
 def _is_owner(user_id: int) -> bool:
@@ -110,7 +154,7 @@ async def handle_private_command(message: dict, db: AsyncSession) -> bool:
     if not text:
         return False
 
-    if not text.startswith("/") and user_id in _wizard_state:
+    if not text.startswith("/") and _get_wizard_state(user_id) is not None:
         return await _handle_wizard_input(user_id, chat_id, text, db)
 
     if not text.startswith("/"):
@@ -392,14 +436,14 @@ async def handle_callback_query(callback_query: dict, db: AsyncSession) -> None:
             if not admin_service.has_permission(admin, "can_manage_admins") and not _is_owner(user_id):
                 await telegram.answer_callback(callback_id, "⛔ Admin qo'shish huquqi yo'q")
                 return
-            _wizard_state[user_id] = {"step": "awaiting_id", "chat_id": chat_id}
+            _set_wizard_state(user_id, {"step": "awaiting_id", "chat_id": chat_id})
             await _edit_message(chat_id, message_id,
                                 "➕ *Yangi admin qo'shish*\n\nAdmin qilinadigan foydalanuvchining Telegram ID raqamini yuboring:",
                                 [[{"text": "❌ Bekor qilish", "callback_data": "admin:menu"}]])
 
         elif data.startswith("admin:add:role:"):
             role = data.split(":")[-1]
-            state = _wizard_state.get(user_id)
+            state = _get_wizard_state(user_id)
             if not state or state.get("step") != "awaiting_role":
                 await telegram.answer_callback(callback_id, "Wizard holati topilmadi")
                 return
@@ -414,7 +458,7 @@ async def handle_callback_query(callback_query: dict, db: AsyncSession) -> None:
                     added_by=user_id,
                 )
                 await db.commit()
-                _wizard_state.pop(user_id, None)
+                _pop_wizard_state(user_id)
                 await _edit_message(chat_id, message_id,
                                     f"✅ Admin qo'shildi!\n\n"
                                     f"👤 Ismi: {new_admin.name or 'Nomsiz'}\n"
@@ -425,7 +469,7 @@ async def handle_callback_query(callback_query: dict, db: AsyncSession) -> None:
                 await _edit_message(chat_id, message_id,
                                     f"❌ Xatolik: {exc}",
                                     [[{"text": "◀️ Admin menyu", "callback_data": "admin:menu"}]])
-                _wizard_state.pop(user_id, None)
+                _pop_wizard_state(user_id)
 
         elif data == "admin:remove:start":
             if not _is_owner(user_id):
@@ -556,7 +600,7 @@ async def handle_callback_query(callback_query: dict, db: AsyncSession) -> None:
             if not _is_owner(user_id) and not admin_service.has_permission(admin, "can_manage_knowledge"):
                 await telegram.answer_callback(callback_id, "⛔ Kanal qo'shish huquqi yo'q")
                 return
-            _wizard_state[user_id] = {"step": "awaiting_channel", "chat_id": chat_id}
+            _set_wizard_state(user_id, {"step": "awaiting_channel", "chat_id": chat_id})
             await _edit_message(
                 chat_id,
                 message_id,
@@ -805,7 +849,7 @@ async def _cmd_addadmin(user_id: int, chat_id: int, db: AsyncSession) -> bool:
     if not admin or (not admin_service.has_permission(admin, "can_manage_admins") and not _is_owner(user_id)):
         await telegram.call("sendMessage", {"chat_id": chat_id, "text": "⛔ Admin qo'shish huquqi yo'q."})
         return True
-    _wizard_state[user_id] = {"step": "awaiting_id", "chat_id": chat_id}
+    _set_wizard_state(user_id, {"step": "awaiting_id", "chat_id": chat_id})
     await telegram.call("sendMessage", {
         "chat_id": chat_id,
         "text": "➕ *Yangi admin qo'shish*\n\nAdmin qilinadigan foydalanuvchining Telegram ID raqamini yuboring:\n\n(Bekor qilish uchun /admin bosing)",
@@ -940,7 +984,7 @@ async def _cmd_addchannel(user_id: int, chat_id: int, text: str, db: AsyncSessio
         except ValueError as exc:
             await telegram.call("sendMessage", {"chat_id": chat_id, "text": f"❌ Xatolik: {exc}"})
             return True
-    _wizard_state[user_id] = {"step": "awaiting_channel", "chat_id": chat_id}
+    _set_wizard_state(user_id, {"step": "awaiting_channel", "chat_id": chat_id})
     await telegram.call("sendMessage", {
         "chat_id": chat_id,
         "text": "📢 *Yangi kanal ulash*\n\nTelegram kanal username yoki havolasini yuboring:\n(Masalan: `@yangi_kanal` yoki `https://t.me/yangi_kanal`)",
@@ -1076,20 +1120,20 @@ async def _cmd_help(user_id: int, chat_id: int, db: AsyncSession) -> bool:
 
 async def _handle_wizard_input(user_id: int, chat_id: int, text: str, db: AsyncSession) -> bool:
     """Handle text input during an active wizard (e.g. add-admin, set-channel)."""
-    state = _wizard_state.get(user_id)
+    state = _get_wizard_state(user_id)
     if not state:
         return False
 
     if state.get("step") == "awaiting_channel":
         if text.startswith("/"):
-            _wizard_state.pop(user_id, None)
+            _pop_wizard_state(user_id)
             return False
         try:
             from app.services.knowledge import knowledge
             ch = await settings_service.add_channel(db, text, added_by=user_id)
             imported = await knowledge.sync_channel_posts(db, ch.channel_username)
             await db.commit()
-            _wizard_state.pop(user_id, None)
+            _pop_wizard_state(user_id)
             await telegram.call("sendMessage", {
                 "chat_id": chat_id,
                 "text": (
@@ -1111,7 +1155,7 @@ async def _handle_wizard_input(user_id: int, chat_id: int, text: str, db: AsyncS
     if state.get("step") == "awaiting_id":
         # Cancel if user typed a command.
         if text.startswith("/"):
-            _wizard_state.pop(user_id, None)
+            _pop_wizard_state(user_id)
             return False
 
         try:
@@ -1128,12 +1172,13 @@ async def _handle_wizard_input(user_id: int, chat_id: int, text: str, db: AsyncS
                 "chat_id": chat_id,
                 "text": "ℹ️ Bu owner ID — allaqachon admin.",
             })
-            _wizard_state.pop(user_id, None)
+            _pop_wizard_state(user_id)
             return True
 
         state["step"] = "awaiting_role"
         state["target_id"] = target_id
         state["target_name"] = text.strip()
+        _set_wizard_state(user_id, state)
 
         keyboard = [[{"text": f"🛡 Admin", "callback_data": "admin:add:role:admin"}],
                      [{"text": f"👤 Moderator", "callback_data": "admin:add:role:moderator"}],

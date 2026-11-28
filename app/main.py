@@ -1,6 +1,8 @@
 import asyncio
+from collections.abc import Awaitable, Callable
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Any
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -19,6 +21,7 @@ from app.core.logging import get_logger, setup_logging
 from app.models import Base
 from app.services import admin_service
 from app.services.alert_service import schedule_owner_alert
+from app.services.distributed_lock import try_acquire_lock
 from app.services.realtime import realtime_hub
 from app.services.telegram import telegram
 from app.services.bot_manager import bot_manager
@@ -26,55 +29,105 @@ from app.services.bot_manager import bot_manager
 logger = get_logger(__name__)
 
 
+async def _run_subscription_maintenance_job() -> None:
+    """Execute one pass of subscription lifecycle transitions."""
+    async with SessionLocal() as db:
+        from datetime import datetime, timedelta, timezone
+        from sqlalchemy import update
+        from app.models import Subscription
+
+        now = datetime.now(timezone.utc)
+        # 1. Expire 7-day Mega Discounts
+        stmt_promo = (
+            update(Subscription)
+            .where(
+                Subscription.status == "mega_discount_active",
+                Subscription.current_period_end < now,
+            )
+            .values(status="mega_discount_expired")
+        )
+        res_promo = await db.execute(stmt_promo)
+
+        # 2. Flag due regular subscriptions
+        stmt_due = (
+            update(Subscription)
+            .where(
+                Subscription.status == "subscription_active",
+                Subscription.current_period_end < now,
+            )
+            .values(status="renewal_due")
+        )
+        res_due = await db.execute(stmt_due)
+
+        # 3. Expire overdue subscriptions after 3-day grace period
+        grace_cutoff = now - timedelta(days=3)
+        stmt_exp = (
+            update(Subscription)
+            .where(
+                Subscription.status.in_(["renewal_due", "renewal_pending", "trialing"]),
+                Subscription.current_period_end < grace_cutoff,
+            )
+            .values(status="subscription_expired")
+        )
+        res_exp = await db.execute(stmt_exp)
+
+        total_affected = (res_promo.rowcount or 0) + (res_due.rowcount or 0) + (res_exp.rowcount or 0)
+        if total_affected > 0:
+            await db.commit()
+            logger.info("Obunalar fon tekshiruvi: %s ta obuna holati yangilandi", total_affected)
+
+
+async def _run_smart_followup_job() -> None:
+    """Execute one pass of respectful Smart Follow-ups."""
+    async with SessionLocal() as db:
+        from app.services.followup_service import run_all_enabled_followups
+
+        sent_total = await run_all_enabled_followups(db)
+        if sent_total > 0:
+            logger.info("Smart Follow-up fon vazifasi: %s ta mijozga eslatma yuborildi", sent_total)
+
+
+async def _run_daily_store_reports_job() -> None:
+    """Execute one pass of per-store daily Telegram digest reports."""
+    async with SessionLocal() as db:
+        from app.services.report_service import run_all_enabled_store_reports
+
+        sent_total = await run_all_enabled_store_reports(db)
+        if sent_total > 0:
+            logger.info("Kunlik do'kon hisobotlari fon vazifasi: %s ta xabar yuborildi", sent_total)
+
+
+async def _run_locked_periodic_job(
+    lock_name: str,
+    ttl_seconds: int,
+    job_fn: Callable[[], Awaitable[None]],
+    *,
+    owner_id: str | None = None,
+    redis_client: Any = None,
+) -> bool:
+    """Run ``job_fn`` at most once per ``ttl_seconds`` interval across all workers."""
+    acquired, _owner = try_acquire_lock(
+        lock_name,
+        ttl_seconds=ttl_seconds,
+        owner_id=owner_id,
+        redis_client=redis_client,
+    )
+    if not acquired:
+        return False
+    await job_fn()
+    return True
+
+
 async def _subscription_maintenance_loop():
     """Background task checking and synchronizing subscription lifecycle transitions."""
     while True:
         try:
             await asyncio.sleep(1800)  # Check every 30 minutes
-            async with SessionLocal() as db:
-                from datetime import datetime, timedelta, timezone
-                from sqlalchemy import update
-                from app.models import Subscription
-
-                now = datetime.now(timezone.utc)
-                # 1. Expire 7-day Mega Discounts
-                stmt_promo = (
-                    update(Subscription)
-                    .where(
-                        Subscription.status == "mega_discount_active",
-                        Subscription.current_period_end < now,
-                    )
-                    .values(status="mega_discount_expired")
-                )
-                res_promo = await db.execute(stmt_promo)
-
-                # 2. Flag due regular subscriptions
-                stmt_due = (
-                    update(Subscription)
-                    .where(
-                        Subscription.status == "subscription_active",
-                        Subscription.current_period_end < now,
-                    )
-                    .values(status="renewal_due")
-                )
-                res_due = await db.execute(stmt_due)
-
-                # 3. Expire overdue subscriptions after 3-day grace period
-                grace_cutoff = now - timedelta(days=3)
-                stmt_exp = (
-                    update(Subscription)
-                    .where(
-                        Subscription.status.in_(["renewal_due", "renewal_pending", "trialing"]),
-                        Subscription.current_period_end < grace_cutoff,
-                    )
-                    .values(status="subscription_expired")
-                )
-                res_exp = await db.execute(stmt_exp)
-
-                total_affected = (res_promo.rowcount or 0) + (res_due.rowcount or 0) + (res_exp.rowcount or 0)
-                if total_affected > 0:
-                    await db.commit()
-                    logger.info("Obunalar fon tekshiruvi: %s ta obuna holati yangilandi", total_affected)
+            await _run_locked_periodic_job(
+                "loop:subscription_maintenance",
+                1740,
+                _run_subscription_maintenance_job,
+            )
         except asyncio.CancelledError:
             break
         except Exception as exc:
@@ -91,12 +144,11 @@ async def _smart_followup_loop():
     while True:
         try:
             await asyncio.sleep(900)
-            async with SessionLocal() as db:
-                from app.services.followup_service import run_all_enabled_followups
-
-                sent_total = await run_all_enabled_followups(db)
-                if sent_total > 0:
-                    logger.info("Smart Follow-up fon vazifasi: %s ta mijozga eslatma yuborildi", sent_total)
+            await _run_locked_periodic_job(
+                "loop:smart_followup",
+                840,
+                _run_smart_followup_job,
+            )
         except asyncio.CancelledError:
             break
         except Exception as exc:
@@ -113,12 +165,11 @@ async def _daily_store_reports_loop():
     while True:
         try:
             await asyncio.sleep(900)
-            async with SessionLocal() as db:
-                from app.services.report_service import run_all_enabled_store_reports
-
-                sent_total = await run_all_enabled_store_reports(db)
-                if sent_total > 0:
-                    logger.info("Kunlik do'kon hisobotlari fon vazifasi: %s ta xabar yuborildi", sent_total)
+            await _run_locked_periodic_job(
+                "loop:daily_store_reports",
+                840,
+                _run_daily_store_reports_job,
+            )
         except asyncio.CancelledError:
             break
         except Exception as exc:
